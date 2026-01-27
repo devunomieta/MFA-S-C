@@ -1,0 +1,80 @@
+import { createContext, useContext, useEffect, useState } from "react";
+
+type Theme = "dark" | "light" | "system";
+
+type ThemeProviderProps = {
+    children: React.ReactNode;
+    defaultTheme?: Theme;
+    storageKey?: string;
+    forceTheme?: Theme;
+};
+
+type ThemeProviderState = {
+    theme: Theme;
+    setTheme: (theme: Theme) => void;
+};
+
+const initialState: ThemeProviderState = {
+    theme: "system",
+    setTheme: () => null,
+};
+
+const ThemeProviderContext = createContext<ThemeProviderState>(initialState);
+
+export function ThemeProvider({
+    children,
+    defaultTheme = "system",
+    storageKey = "vite-ui-theme",
+    forceTheme,
+}: ThemeProviderProps) {
+    const [theme, setTheme] = useState<Theme>(
+        () => (localStorage.getItem(storageKey) as Theme) || defaultTheme
+    );
+
+    useEffect(() => {
+        const root = window.document.documentElement;
+        const effectiveTheme = forceTheme || theme;
+
+        // Reset
+        root.classList.remove("light", "dark");
+
+        // Apply
+        if (effectiveTheme === "system") {
+            const systemTheme = window.matchMedia("(prefers-color-scheme: dark)")
+                .matches
+                ? "dark"
+                : "light";
+
+            root.classList.add(systemTheme);
+            return;
+        }
+
+        root.classList.add(effectiveTheme);
+    }, [theme, forceTheme]);
+
+    const value = {
+        theme,
+        setTheme: (theme: Theme) => {
+            localStorage.setItem(storageKey, theme);
+            setTheme(theme);
+        },
+    };
+
+    return (
+        <ThemeProviderContext.Provider value={value} {...props}>
+            {children}
+        </ThemeProviderContext.Provider>
+    );
+}
+
+export const useTheme = () => {
+    const context = useContext(ThemeProviderContext);
+
+    if (context === undefined)
+        throw new Error("useTheme must be used within a ThemeProvider");
+
+    return context;
+}
+
+// Helper for ...props error in strict mode
+const props = {};
