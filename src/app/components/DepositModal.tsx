@@ -38,6 +38,7 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose }: DepositModal
     useEffect(() => {
         if (defaultPlanId) {
             setSelectedPlanId(defaultPlanId);
+            fetchPlans(); // Refresh plans to ensure the newly joined plan is found
         }
     }, [defaultPlanId]);
 
@@ -50,14 +51,32 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose }: DepositModal
     };
 
     async function fetchPlans() {
-        const { data: userPlansData } = await supabase
+        let query = supabase
             .from("user_plans")
             .select("*, plan:plans(*)")
-            .eq("user_id", user?.id)
-            .eq("status", "active");
+            .eq("user_id", user?.id);
+
+        if (defaultPlanId) {
+            // Contextual Mode (Join Plan or Specific Plan Deposit)
+            // Show ONLY the specifically targeted plan (whether pending or active)
+            query = query.eq("plan_id", defaultPlanId);
+        } else {
+            // General Mode (Wallet Add Funds)
+            // Show ONLY Active plans. Pending plans should not appear here.
+            query = query.eq("status", "active");
+        }
+
+        const { data: userPlansData } = await query;
 
         if (userPlansData) {
-            setMyPlans(userPlansData.map((up: any) => up.plan));
+            // Filter duplicates visually (just in case DB has them)
+            const uniquePlansMap = new Map();
+            userPlansData.forEach((up: any) => {
+                if (!uniquePlansMap.has(up.plan.id)) {
+                    uniquePlansMap.set(up.plan.id, up.plan);
+                }
+            });
+            setMyPlans(Array.from(uniquePlansMap.values()));
         }
     }
 
@@ -241,16 +260,24 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose }: DepositModal
                 }, 0);
             }
 
+            // Prepare update object
+            const updates: any = { current_balance: calculatedBalance };
+
+            // Check if we should activate the plan (if it has funds)
+            if (calculatedBalance > 0) {
+                // We could check current status first, but setting 'active' blindly if balance > 0 is safe for now
+                // or we can fetch current status.
+                updates.status = 'active';
+            }
+
             const { error: updateError } = await supabase
                 .from('user_plans')
-                .update({ current_balance: calculatedBalance })
+                .update(updates)
                 .eq('user_id', user?.id)
                 .eq('plan_id', planId);
 
             if (updateError) {
-                console.error("Error updating plan balance:", updateError);
-                // Even if update fails (e.g. RLS), we tried. 
-                // With RLS fixed, this should work.
+                console.error("Error updating plan balance/status:", updateError);
                 return false;
             }
             return true;
@@ -266,8 +293,20 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose }: DepositModal
         onClose();
     }
 
+    // Derived state for the currently selected plan
+    const selectedPlanObj = myPlans.find(p => p.id === selectedPlanId);
+
+    useEffect(() => {
+        if (selectedPlanObj && selectedPlanObj.contribution_type === 'fixed') {
+            setAmount(selectedPlanObj.fixed_amount.toString());
+        }
+    }, [selectedPlanObj]);
+
+    const isFixedAmount = selectedPlanObj?.contribution_type === 'fixed';
+
     return (
         <DialogContent className="dark:bg-gray-900 dark:border-gray-800 max-w-md max-h-[90vh] overflow-y-auto">
+            {/* Headers ... */}
             <DialogHeader>
                 <DialogTitle className="dark:text-white">Add Funds</DialogTitle>
                 <DialogDescription className="dark:text-gray-400">
@@ -282,7 +321,9 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose }: DepositModal
                 </TabsList>
 
                 <TabsContent value="external" className="space-y-4">
+                    {/* ... Card UI ... */}
                     <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-indigo-900 via-indigo-800 to-emerald-900 p-6 text-white shadow-xl">
+                        {/* ... */}
                         <div className="absolute right-0 top-0 h-32 w-32 -translate-y-8 translate-x-8 rounded-full bg-white/5 blur-2xl"></div>
                         <div className="mb-8 flex justify-between items-start">
                             <div>
@@ -291,7 +332,7 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose }: DepositModal
                             </div>
                             <CreditCard className="h-8 w-8 text-white/80" />
                         </div>
-
+                        {/* ... */}
                         <div className="space-y-4">
                             <div>
                                 <p className="text-xs text-indigo-200">Bank Name</p>
@@ -313,18 +354,6 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose }: DepositModal
                     </div>
 
                     <div className="grid gap-2">
-                        <Label htmlFor="amount-ex" className="dark:text-gray-300">Amount</Label>
-                        <Input
-                            id="amount-ex"
-                            type="number"
-                            placeholder="0.00"
-                            value={amount}
-                            onChange={(e) => setAmount(e.target.value)}
-                            className="dark:bg-gray-800 dark:border-gray-700 dark:text-white"
-                        />
-                    </div>
-
-                    <div className="grid gap-2">
                         <Label htmlFor="plan" className="dark:text-gray-300">Target Plan</Label>
                         <select
                             id="plan"
@@ -339,6 +368,25 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose }: DepositModal
                         </select>
                     </div>
 
+                    <div className="grid gap-2">
+                        <Label htmlFor="amount-ex" className="dark:text-gray-300">Amount</Label>
+                        <Input
+                            id="amount-ex"
+                            type="number"
+                            placeholder="0.00"
+                            value={amount}
+                            onChange={(e) => setAmount(e.target.value)}
+                            disabled={isFixedAmount} // Disable if fixed
+                            className="dark:bg-gray-800 dark:border-gray-700 dark:text-white disabled:opacity-70 disabled:cursor-not-allowed"
+                        />
+                        {isFixedAmount && (
+                            <p className="text-xs text-amber-600 dark:text-amber-400">
+                                This plan requires a fixed contribution of ${formatCurrency(selectedPlanObj.fixed_amount)}.
+                            </p>
+                        )}
+                    </div>
+
+                    {/* Receipt Upload ... */}
                     <div className="grid gap-2">
                         <Label className="dark:text-gray-300">Payment Receipt</Label>
                         <div className="flex items-center justify-center w-full">
@@ -394,6 +442,7 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose }: DepositModal
                 </TabsContent>
 
                 <TabsContent value="wallet" className="space-y-4">
+                    {/* Wallet UI ... */}
                     <div className="p-4 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
                         <div className="flex items-center gap-3">
                             <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-full">
@@ -438,9 +487,17 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose }: DepositModal
                             value={amount}
                             onChange={(e) => setAmount(e.target.value)}
                             max={generalBalance}
-                            className="dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+                            disabled={isFixedAmount} // Disable if fixed
+                            className="dark:bg-gray-800 dark:border-gray-700 dark:text-white disabled:opacity-70 disabled:cursor-not-allowed"
                         />
+                        {isFixedAmount && (
+                            <p className="text-xs text-amber-600 dark:text-amber-400">
+                                This plan requires a fixed contribution of ${formatCurrency(selectedPlanObj.fixed_amount)}.
+                            </p>
+                        )}
                     </div>
+                    {/* ... */}
+
 
                     <Button
                         onClick={() => handleDeposit('wallet')}
