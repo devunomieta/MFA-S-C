@@ -7,6 +7,7 @@ import { SessionManager, SavedSession } from '@/lib/sessionManager';
 interface AuthContextType {
     session: Session | null;
     user: User | null;
+    isAdmin: boolean;
     loading: boolean;
     signOut: () => Promise<void>;
     savedSessions: SavedSession[];
@@ -17,6 +18,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType>({
     session: null,
     user: null,
+    isAdmin: false,
     loading: true,
     signOut: async () => { },
     savedSessions: [],
@@ -27,6 +29,7 @@ const AuthContext = createContext<AuthContextType>({
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [session, setSession] = useState<Session | null>(null);
     const [user, setUser] = useState<User | null>(null);
+    const [isAdmin, setIsAdmin] = useState(false);
     const [loading, setLoading] = useState(true);
     const [savedSessions, setSavedSessions] = useState<SavedSession[]>([]);
 
@@ -34,30 +37,85 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Load stored sessions initially
         setSavedSessions(SessionManager.getSavedSessions());
 
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            setSession(session);
-            setUser(session?.user ?? null);
-            setLoading(false);
-            if (session) {
-                SessionManager.saveSession(session);
-                setSavedSessions(SessionManager.getSavedSessions());
-            }
-        });
+        let mounted = true;
 
+        async function init() {
+            try {
+                // 1. Get initial session
+                const { data: { session }, error } = await supabase.auth.getSession();
+                if (error) throw error;
+
+                if (mounted) {
+                    setSession(session);
+                    setUser(session?.user ?? null);
+                    if (session?.user) {
+                        await checkAdminStatus(session.user.id);
+                        SessionManager.saveSession(session);
+                        setSavedSessions(SessionManager.getSavedSessions());
+                    }
+                }
+            } catch (err) {
+                console.error("Auth init failed:", err);
+            } finally {
+                if (mounted) setLoading(false);
+            }
+        }
+
+        init();
+
+        // 2. Listen for changes
         const {
             data: { subscription },
-        } = supabase.auth.onAuthStateChange((_event, session) => {
+        } = supabase.auth.onAuthStateChange(async (event, session) => {
+            console.log("Auth Event:", event);
+            if (!mounted) return;
+
             setSession(session);
             setUser(session?.user ?? null);
-            setLoading(false);
-            if (session) {
-                SessionManager.saveSession(session);
-                setSavedSessions(SessionManager.getSavedSessions());
+
+            if (session?.user) {
+                // Only re-check admin if user changed or we don't know yet
+                // preventing spam on every token refresh
+                if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
+                    checkAdminStatus(session.user.id);
+                    SessionManager.saveSession(session);
+                    setSavedSessions(SessionManager.getSavedSessions());
+                }
+            } else {
+                setIsAdmin(false);
+                setLoading(false);
             }
         });
 
-        return () => subscription.unsubscribe();
+        return () => {
+            mounted = false;
+            subscription.unsubscribe();
+        };
     }, []);
+
+    // NEW: Handle URL-based Impersonation
+
+
+    async function checkAdminStatus(userId: string) {
+        console.log("Checking admin status for:", userId);
+        try {
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('is_admin')
+                .eq('id', userId)
+                .single();
+
+            console.log("Admin Check Result:", { data, error });
+
+            if (data) {
+                setIsAdmin(data.is_admin || false);
+            }
+        } catch (e) {
+            console.error("Error checking admin status", e);
+        } finally {
+            setLoading(false);
+        }
+    }
 
     const signOut = async () => {
         if (user) {
@@ -87,9 +145,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         window.location.href = '/login';
     };
 
+    // Old state-based impersonation removed.
+
+
+
+
+
     const value = {
         session,
         user,
+        isAdmin,
         loading,
         signOut,
         savedSessions,

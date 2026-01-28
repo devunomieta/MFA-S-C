@@ -14,7 +14,8 @@ import { DepositModal } from "@/app/components/DepositModal";
 import { PlansDeck } from "@/app/components/wallet/PlansDeck";
 import { checkAndProcessMaturity } from "@/lib/planUtils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
-
+import { LoanRepaymentDialog } from "@/app/components/LoanRepaymentDialog";
+import { TransactionDetailsModal } from "@/app/components/wallet/TransactionDetailsModal";
 
 interface Plan {
     id: string;
@@ -25,6 +26,8 @@ interface Plan {
     min_amount: number;
     contribution_type: 'fixed' | 'flexible';
     fixed_amount: number;
+    whatsapp_link?: string;
+    start_date?: string;
 }
 
 interface UserPlan {
@@ -55,11 +58,18 @@ export function Wallet() {
     const [type, setType] = useState<'deposit' | 'withdrawal'>('deposit');
     const [selectedPlanId, setSelectedPlanId] = useState<string>("");
 
-    // DepositModal State
-    // No extra state needed, just passing props
+    // Details Modal State
+    const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
+    const [showDetailsDialog, setShowDetailsDialog] = useState(false);
 
     // Withdrawal State
     const [uploading, setUploading] = useState(false);
+
+    // Loan State
+    const [activeLoan, setActiveLoan] = useState<any>(null);
+    const [showLoanDialog, setShowLoanDialog] = useState(false);
+    const [pendingWithdrawalParams, setPendingWithdrawalParams] = useState<{ target: 'bank' | 'wallet' | 'plan', amount: number } | null>(null);
+    const [withdrawalsEnabled, setWithdrawalsEnabled] = useState(true);
 
     // URL Params for filtering
     const [searchParams] = useSearchParams();
@@ -77,8 +87,30 @@ export function Wallet() {
             fetchPlansData();
             fetchBankAccounts();
             fetchUserPlans();
+            fetchActiveLoan();
+            fetchGlobalSettings();
         }
     }, [user]);
+
+    async function fetchGlobalSettings() {
+        const { data } = await supabase.from('app_settings').select('value').eq('key', 'general').single();
+        if (data?.value?.withdrawals_enabled !== undefined) {
+            setWithdrawalsEnabled(data.value.withdrawals_enabled);
+        }
+    }
+
+    async function fetchActiveLoan() {
+        if (!user) return;
+        const { data } = await supabase
+            .from('loans')
+            .select('*')
+            .eq('user_id', user.id)
+            .eq('status', 'active')
+            .maybeSingle();
+
+        if (data) setActiveLoan(data);
+        else setActiveLoan(null);
+    }
 
     async function fetchUserPlans() {
         const { data, error } = await supabase
@@ -92,13 +124,7 @@ export function Wallet() {
 
         if (!error && data) {
             setUserPlans(data);
-
-            // Run maturity check
-            // We can import checkAndProcessMaturity dynamically or at top level if we add import
-            // For now, let's assume we added the import
             await checkAndProcessMaturity(supabase, data);
-            // If it updated something, we might want to re-fetch or just update local state logic?
-            // For simplicity, relying on next refresh or realtime.
         }
         setLoading(false);
     }
@@ -124,7 +150,6 @@ export function Wallet() {
     async function fetchPlansData() {
         const { data: plansData } = await supabase.from("plans").select("*");
         if (plansData) setAllPlans(plansData);
-        // Removed myPlans fetching as it was only used for the deprecated inline modal
     }
 
     async function fetchBankAccounts() {
@@ -149,36 +174,25 @@ export function Wallet() {
 
         if (data) {
             setTransactions(data);
-
-            // Calculate General Balance (Only transactions with NO plan_id)
-            // Wait, per user request "Pay from their wallet (display their current balance)".
-            // If we only show General Balance in the big card, that's fine.
-            // But if the big card is "Total Balance", it should probably be everything.
-            // However, for "Pay from Wallet", we need "Available (Unallocated) Balance".
-
-            // Let's keep "Total Balance" as "Net Worth" (General + Plans) for the Overview/Wallet display?
-            // Or should Wallet display "General Wallet" only?
-            // Usually "Wallet" implies the source of funds.
-            // Let's stick to calculating "Total Net Balance" here, but maybe distinguish later.
-            // Actually, for simplicity and safety, let's make the main Balance display = General Wallet Balance.
-            // If it includes Plans, users might think they can spend Plan money easily.
-
-            // Refined Logic based on `DepositModal`:
-            // General Balance = Sum of transactions where plan_id is NULL.
-
             const generalTx = data.filter(tx => !tx.plan_id);
             const generalBal = generalTx.reduce((acc, curr) => {
                 const amt = Number(curr.amount);
                 const chg = Number(curr.charge || 0);
 
-                if (curr.type === 'deposit' || curr.type === 'loan_disbursement') return acc + amt - chg;
-                if (curr.type === 'limit_transfer') return acc + amt - chg; // Legacy support
+                // Deposits/Income: Only add if COMPLETED
+                if ((curr.type === 'deposit' || curr.type === 'loan_disbursement' || curr.type === 'limit_transfer') && curr.status === 'completed') {
+                    return acc + amt - chg;
+                }
 
-                if (curr.type === 'withdrawal' || curr.type === 'loan_repayment') return acc - amt - chg;
+                // Withdrawals/Expenses: Deduct if COMPLETED or PENDING (reserve funds)
+                if ((curr.type === 'withdrawal' || curr.type === 'loan_repayment') && (curr.status === 'completed' || curr.status === 'pending')) {
+                    return acc - amt - chg;
+                }
 
-                // Transfer Logic:
-                // If type is transfer and it's in generalTx (plan_id is null), it is an OUTGOING transfer to a plan.
-                if (curr.type === 'transfer') return acc - amt - chg;
+                // Internal Transfers: Deduct/Add based on status
+                if (curr.type === 'transfer' && curr.status === 'completed') {
+                    return acc - amt - chg;
+                }
 
                 return acc;
             }, 0);
@@ -187,24 +201,14 @@ export function Wallet() {
         }
     }
 
-    // copyToClipboard removed
-
-    // Removed handleTransaction as it is now in DepositModal
-
     // Withdrawable Balance (Sum of Matured Plans)
     const [withdrawableBalance, setWithdrawableBalance] = useState(0);
 
     useEffect(() => {
         if (userPlans.length > 0) {
-            // Need to calculate which plans are matured based on local time logic if DB status isn't updated yet.
-            // Ideally, we trust the DB status 'matured'. But we also want to show it if we just calculated it.
-            // For now, let's rely on 'matured' status being set (we might need to call checkAndProcessMaturity here too).
-
-            // Actually, let's filter by status 'matured'
             const maturedSum = userPlans
                 .filter(p => p.status === 'matured')
                 .reduce((acc, curr) => acc + (curr.current_balance || 0), 0);
-
             setWithdrawableBalance(maturedSum);
         } else {
             setWithdrawableBalance(0);
@@ -213,6 +217,15 @@ export function Wallet() {
 
     async function performWithdrawal(target: 'bank' | 'wallet' | 'plan') {
         if (!amount) return;
+
+        // Block global withdrawals (only if target is NOT plan funding - usually funding plans is always allowed)
+        // But if "withdrawals_enabled" means ALL entry out, then block. 
+        // Let's assume it blocks Bank and Wallet withdrawals only.
+        if (!withdrawalsEnabled && target !== 'plan') {
+            toast.error("Withdrawals are currently disabled by the administrator.");
+            return;
+        }
+
         const finalAmount = parseFloat(amount);
         if (finalAmount > withdrawableBalance) {
             toast.error("Insufficient withdrawable funds");
@@ -228,28 +241,41 @@ export function Wallet() {
             return;
         }
 
+        // STRICT LOAN CHECK
+        if (activeLoan) {
+            setPendingWithdrawalParams({ target, amount: finalAmount });
+            setShowLoanDialog(true);
+            return;
+        }
+
+        // Standard
+        await executeStandardWithdrawal(target, finalAmount);
+    }
+
+    async function executeStandardWithdrawal(target: 'bank' | 'wallet' | 'plan', finalAmount: number, isRestricted = false) {
         setUploading(true);
         let remainingToWithdraw = finalAmount;
         const maturedPlans = userPlans.filter(p => p.status === 'matured' && p.current_balance > 0);
-
         maturedPlans.sort((a, b) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime());
 
         for (const plan of maturedPlans) {
             if (remainingToWithdraw <= 0) break;
             const deduction = Math.min(plan.current_balance, remainingToWithdraw);
 
+            // Force Pending for Bank Withdrawals
+            const status = (isRestricted || target === 'bank') ? 'pending' : 'completed';
             const type = target === 'bank' ? 'withdrawal' : 'transfer';
-            const description = target === 'bank'
-                ? `Withdrawal from plan ${plan.plan.name}`
-                : target === 'wallet'
-                    ? `Transfer from ${plan.plan.name} to Wallet`
-                    : `Transfer from ${plan.plan.name} to Plan`;
+            const description = status === 'pending'
+                ? `Withdrawal Request (Pending Approval) - ${plan.plan.name}`
+                : target === 'bank'
+                    ? `Withdrawal from plan ${plan.plan.name}`
+                    : `Transfer from ${plan.plan.name}`;
 
             const { error } = await supabase.from("transactions").insert({
                 user_id: user?.id,
                 amount: deduction,
                 type: type,
-                status: 'completed',
+                status: status,
                 description: description,
                 plan_id: plan.plan.id,
                 charge: 0,
@@ -265,11 +291,10 @@ export function Wallet() {
             }
         }
 
-        if (remainingToWithdraw < finalAmount) {
+        if (!isRestricted && remainingToWithdraw < finalAmount) {
             const actualWithdrawn = finalAmount - remainingToWithdraw;
 
             if (target === 'wallet') {
-                // Credit General Wallet
                 await supabase.from("transactions").insert({
                     user_id: user?.id,
                     amount: actualWithdrawn,
@@ -295,20 +320,115 @@ export function Wallet() {
                     const newTargetBal = targetUserPlan.current_balance + actualWithdrawn;
                     const updates: any = { current_balance: newTargetBal };
                     if (targetUserPlan.status === 'pending_activation') updates.status = 'active';
-
                     await supabase.from('user_plans').update(updates).eq('id', targetUserPlan.id);
                 }
             }
-
             toast.success("Transaction processed successfully!");
-            setOpen(false);
-            setAmount("");
-            fetchWalletData();
-            fetchUserPlans();
+        } else if (isRestricted) {
+            toast.info("Withdrawal request submitted for Admin Approval.");
         } else {
             toast.error("Failed to process transaction.");
         }
+
+        setOpen(false);
+        setAmount("");
+        setPendingWithdrawalParams(null);
+        setShowLoanDialog(false);
         setUploading(false);
+        fetchWalletData();
+        fetchUserPlans();
+        fetchActiveLoan();
+    }
+
+    async function handlePayLoan() {
+        if (!activeLoan || !pendingWithdrawalParams) return;
+        setUploading(true);
+
+        const withdrawalAmount = pendingWithdrawalParams.amount;
+        const loanDebt = activeLoan.total_payable || 0;
+
+        const amountToLoan = Math.min(withdrawalAmount, loanDebt);
+        const amountToUser = Math.max(0, withdrawalAmount - loanDebt);
+
+        let remainingToDeduct = withdrawalAmount;
+        const maturedPlans = userPlans.filter(p => p.status === 'matured' && p.current_balance > 0);
+        maturedPlans.sort((a, b) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime());
+
+        for (const plan of maturedPlans) {
+            if (remainingToDeduct <= 0) break;
+            const deduction = Math.min(plan.current_balance, remainingToDeduct);
+
+            const newBalance = plan.current_balance - deduction;
+            const updates: any = { current_balance: newBalance };
+            if (newBalance === 0) updates.status = 'completed';
+            await supabase.from('user_plans').update(updates).eq('id', plan.id);
+
+            await supabase.from("transactions").insert({
+                user_id: user?.id,
+                amount: deduction,
+                type: 'withdrawal',
+                status: 'completed',
+                description: `Auto-Allocation: Loan Repayment & Withdrawal`,
+                plan_id: plan.plan.id
+            });
+
+            remainingToDeduct -= deduction;
+        }
+
+        await supabase.from("transactions").insert({
+            user_id: user?.id,
+            amount: amountToLoan,
+            type: 'loan_repayment',
+            status: 'completed',
+            description: `Repayment for ${activeLoan.loan_number || 'Loan'}`,
+            plan_id: null,
+            loan_id: activeLoan.id // Link to specific loan
+        });
+
+        const newLoanBalance = loanDebt - amountToLoan;
+        const loanUpdates: any = { total_payable: newLoanBalance };
+        if (newLoanBalance <= 0) loanUpdates.status = 'paid';
+
+        await supabase.from('loans').update(loanUpdates).eq('id', activeLoan.id);
+
+        if (amountToUser > 0) {
+            const target = pendingWithdrawalParams.target;
+            if (target === 'wallet') {
+                await supabase.from("transactions").insert({
+                    user_id: user?.id,
+                    amount: amountToUser,
+                    type: 'transfer',
+                    status: 'completed',
+                    description: `Balance after Loan Repayment`,
+                    plan_id: null
+                });
+            } else if (target === 'bank') {
+                await supabase.from("transactions").insert({
+                    user_id: user?.id,
+                    amount: amountToUser,
+                    type: 'withdrawal',
+                    status: 'pending', // FORCE PENDING
+                    description: `Withdrawal to Bank (Post-Loan Clear)`,
+                    plan_id: null
+                });
+            }
+        }
+
+        toast.success(`Loan Repayment Processed! ${amountToUser > 0 ? `$${amountToUser} withdrawn.` : ''}`);
+
+        setOpen(false);
+        setAmount("");
+        setPendingWithdrawalParams(null);
+        setShowLoanDialog(false);
+        setUploading(false);
+        fetchWalletData();
+        fetchUserPlans();
+        fetchActiveLoan();
+    }
+
+    async function handleRequestRestricted() {
+        if (!pendingWithdrawalParams) return;
+        await executeStandardWithdrawal(pendingWithdrawalParams.target, pendingWithdrawalParams.amount, true);
     }
 
     const renderWithdrawalDialog = () => (
@@ -462,11 +582,9 @@ export function Wallet() {
                             <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                                 Cards & Accounts
                             </h3>
-                            {/* ... */}
                         </div>
 
                         <PlansDeck
-                            // ...
                             plans={userPlans}
                             loading={loading}
                             walletBalance={balance}
@@ -495,7 +613,17 @@ export function Wallet() {
                                         </Button>
                                     </DialogTrigger>
                                     <DialogTrigger asChild>
-                                        <Button onClick={() => { setType('withdrawal'); }} variant="outline" className="h-12 border-gray-200 text-white dark:border-gray-700 hover:bg-gray-100 hover:text-white dark:hover:bg-gray-800 transition-all rounded-xl shadow-sm bg-white dark:bg-gray-900">
+                                        <Button
+                                            onClick={() => {
+                                                if (!withdrawalsEnabled) {
+                                                    toast.error("Withdrawals are currently disabled.");
+                                                    return;
+                                                }
+                                                setType('withdrawal');
+                                            }}
+                                            variant="outline"
+                                            className={`h-12 border-gray-200 text-white dark:border-gray-700 hover:bg-gray-100 hover:text-white dark:hover:bg-gray-800 transition-all rounded-xl shadow-sm bg-white dark:bg-gray-900 ${!withdrawalsEnabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                        >
                                             <ArrowUpRight className="mr-2 h-4 w-4" /> Withdraw
                                         </Button>
                                     </DialogTrigger>
@@ -546,11 +674,10 @@ export function Wallet() {
                                         <TableRow className="dark:border-gray-800 hover:bg-transparent">
                                             <TableHead className="dark:text-gray-400 font-medium">Date</TableHead>
                                             <TableHead className="dark:text-gray-400 font-medium">Type</TableHead>
-                                            {/* Plan column removed */}
                                             <TableHead className="dark:text-gray-400 font-medium">Description</TableHead>
                                             <TableHead className="dark:text-gray-400 font-medium">Status</TableHead>
-                                            <TableHead className="text-right dark:text-gray-400 font-medium">Charge</TableHead>
                                             <TableHead className="text-right dark:text-gray-400 font-medium">Amount</TableHead>
+                                            <TableHead className="text-right dark:text-gray-400 font-medium">Action</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -567,15 +694,12 @@ export function Wallet() {
                                             </TableRow>
                                         ) : (
                                             filteredTransactions
-                                                // Filter out the 'credit' side of internal transfers only when viewing ALL or GENERAL
                                                 .filter(tx => {
                                                     if (selectedPlanFilter !== 'all' && selectedPlanFilter !== 'general') return true;
-                                                    // In All/General view: Hide transfer credits (positive amounts) because they are redundant with the debit
                                                     if (tx.type === 'transfer' && tx.amount > 0 && tx.plan_id) return false;
                                                     return true;
                                                 })
                                                 .map((tx) => {
-                                                    // Determine styling based on type
                                                     let amountClass = "text-gray-900 dark:text-gray-200";
                                                     let amountPrefix = "";
 
@@ -586,7 +710,6 @@ export function Wallet() {
                                                         amountClass = "text-red-600 dark:text-red-500";
                                                         amountPrefix = "-";
                                                     } else if (tx.type === 'transfer') {
-                                                        // Transfers are neutral white/gray, no sign
                                                         amountClass = "text-gray-900 dark:text-white";
                                                         amountPrefix = "";
                                                     }
@@ -595,7 +718,6 @@ export function Wallet() {
                                                         <TableRow key={tx.id} className="dark:border-gray-800 dark:hover:bg-gray-900/50 group">
                                                             <TableCell className="dark:text-gray-300 font-mono text-xs">{new Date(tx.created_at).toLocaleDateString()}</TableCell>
                                                             <TableCell className="capitalize dark:text-gray-300 text-xs font-medium">{tx.type.replace('_', ' ')}</TableCell>
-                                                            {/* Plan column removed */}
                                                             <TableCell className="dark:text-gray-300 text-sm whitespace-normal break-words" title={tx.description}>{tx.description}</TableCell>
                                                             <TableCell>
                                                                 <span className={`px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider font-semibold ${tx.status === 'completed' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800' :
@@ -604,11 +726,22 @@ export function Wallet() {
                                                                     {tx.status}
                                                                 </span>
                                                             </TableCell>
-                                                            <TableCell className="text-right text-red-500 dark:text-red-400 text-sm font-mono opacity-80 group-hover:opacity-100">
-                                                                {tx.charge > 0 ? `-$${formatCurrency(tx.charge)}` : '-'}
-                                                            </TableCell>
                                                             <TableCell className={`text-right font-medium font-mono ${amountClass}`}>
                                                                 {amountPrefix}${formatCurrency(Math.abs(tx.amount))}
+                                                            </TableCell>
+                                                            <TableCell className="text-right">
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    className="h-8 w-8 p-0"
+                                                                    onClick={() => {
+                                                                        setSelectedTransaction(tx);
+                                                                        setShowDetailsDialog(true);
+                                                                    }}
+                                                                >
+                                                                    <span className="sr-only">Open details</span>
+                                                                    <ArrowUpRight className="h-4 w-4 rotate-45" />
+                                                                </Button>
                                                             </TableCell>
                                                         </TableRow>
                                                     );
@@ -621,6 +754,22 @@ export function Wallet() {
                     </Card>
                 </div>
             </div>
+
+            <LoanRepaymentDialog
+                open={showLoanDialog}
+                onOpenChange={setShowLoanDialog}
+                loan={activeLoan}
+                withdrawalAmount={pendingWithdrawalParams?.amount || 0}
+                onPayLoan={handlePayLoan}
+                onRequestWithdrawal={handleRequestRestricted}
+                processing={uploading}
+            />
+
+            <TransactionDetailsModal
+                open={showDetailsDialog}
+                onOpenChange={setShowDetailsDialog}
+                transaction={selectedTransaction}
+            />
         </div >
     );
 }

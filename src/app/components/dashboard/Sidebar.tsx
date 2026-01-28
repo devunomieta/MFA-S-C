@@ -5,10 +5,13 @@ import {
     Wallet,
     Banknote,
     User,
-    LogOut
+    LogOut,
+    Shield
 } from "lucide-react";
 import { useAuth } from "@/app/context/AuthContext";
 import { Button } from "@/app/components/ui/button";
+import { supabase } from "@/lib/supabase";
+import { useEffect, useState } from "react";
 
 const sidebarItems = [
     { icon: LayoutDashboard, label: "Overview", href: "/dashboard" },
@@ -20,13 +23,30 @@ const sidebarItems = [
 
 export function Sidebar() {
     const location = useLocation();
-    const { signOut } = useAuth();
+    const { signOut, isAdmin } = useAuth();
+    const [logoUrl, setLogoUrl] = useState<string | null>(null);
+    const [appName] = useState("AjoSave");
+
+    useEffect(() => {
+        const fetchBranding = async () => {
+            const { data } = await supabase.from('app_settings').select('value').eq('key', 'general').single();
+            if (data?.value?.logo_url) {
+                setLogoUrl(data.value.logo_url);
+            }
+            // Could also fetch app name here if we made it dynamic
+        };
+        fetchBranding();
+    }, []);
 
     return (
         <aside className="w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 hidden md:flex flex-col h-screen sticky top-0 transition-colors">
             <div className="p-6">
-                <Link to="/" className="text-2xl font-bold text-emerald-600 block">
-                    AjoSave
+                <Link to="/" className="block">
+                    {logoUrl ? (
+                        <img src={logoUrl} alt={appName} className="h-8 w-auto object-contain" />
+                    ) : (
+                        <span className="text-2xl font-bold text-emerald-600">{appName}</span>
+                    )}
                 </Link>
             </div>
 
@@ -38,8 +58,8 @@ export function Sidebar() {
                             key={item.href}
                             to={item.href}
                             className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${isActive
-                                    ? "bg-emerald-50 text-emerald-600 font-medium dark:bg-emerald-900/20 dark:text-emerald-400"
-                                    : "text-gray-600 hover:bg-gray-50 hover:text-emerald-600 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-emerald-400"
+                                ? "bg-emerald-50 text-emerald-600 font-medium dark:bg-emerald-900/20 dark:text-emerald-400"
+                                : "text-gray-600 hover:bg-gray-50 hover:text-emerald-600 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-emerald-400"
                                 }`}
                         >
                             <item.icon className="size-5" />
@@ -47,6 +67,16 @@ export function Sidebar() {
                         </Link>
                     );
                 })}
+
+                {isAdmin && (
+                    <Link
+                        to="/admin"
+                        className="flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-purple-600 hover:bg-purple-50 hover:text-purple-700 dark:text-purple-400 dark:hover:bg-purple-900/20"
+                    >
+                        <Shield className="size-5" />
+                        Admin Panel
+                    </Link>
+                )}
             </nav>
 
             <div className="p-4 border-t border-gray-200 dark:border-gray-800">

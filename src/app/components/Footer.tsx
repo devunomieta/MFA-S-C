@@ -1,13 +1,32 @@
 import { Facebook, Twitter, Instagram, Linkedin, Mail, Phone, MapPin } from "lucide-react";
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
 
 export function Footer() {
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchBranding = async () => {
+      const { data } = await supabase.from('app_settings').select('value').eq('key', 'general').single();
+      if (data?.value?.logo_url) {
+        setLogoUrl(data.value.logo_url);
+      }
+    };
+    fetchBranding();
+  }, []);
   return (
     <footer className="bg-gray-900 text-gray-300">
       <div className="container mx-auto px-4 md:px-6 py-16">
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
           {/* About */}
           <div>
-            <div className="text-2xl text-white mb-4">AjoSave</div>
+            <div className="text-2xl text-white mb-4">
+              {logoUrl ? (
+                <img src={logoUrl} alt="AjoSave" className="h-8 w-auto object-contain bg-white/10 p-1 rounded" />
+              ) : (
+                "AjoSave"
+              )}
+            </div>
             <p className="text-sm mb-4">
               The modern platform for group savings and contributions. Save together, grow together.
             </p>

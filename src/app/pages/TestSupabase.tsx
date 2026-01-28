@@ -23,7 +23,7 @@ export function TestSupabase() {
         try {
             // Try to fetch plans as a public test (since we enabled public read on plans)
             // Or just check auth session
-            const { data, error } = await supabase.from('plans').select('count', { count: 'exact', head: true });
+            const { error } = await supabase.from('plans').select('count', { count: 'exact', head: true });
 
             if (error) {
                 throw error;

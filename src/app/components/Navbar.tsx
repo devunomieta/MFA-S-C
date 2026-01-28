@@ -1,18 +1,35 @@
 import { Button } from "@/app/components/ui/button";
 import { Link } from "react-router-dom";
 import { Menu, X } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
 
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchBranding = async () => {
+      const { data } = await supabase.from('app_settings').select('value').eq('key', 'general').single();
+      if (data?.value?.logo_url) {
+        setLogoUrl(data.value.logo_url);
+      }
+    };
+    fetchBranding();
+  }, []);
 
   return (
     <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-200">
       <div className="container mx-auto px-4 md:px-6">
         <div className="flex items-center justify-between h-16 md:h-20">
           {/* Logo */}
+          {/* Logo */}
           <div className="text-2xl text-emerald-600 font-bold">
-            AjoSave
+            {logoUrl ? (
+              <img src={logoUrl} alt="AjoSave" className="h-10 w-auto object-contain" />
+            ) : (
+              "AjoSave"
+            )}
           </div>
 
           {/* Desktop Navigation */}

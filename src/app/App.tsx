@@ -15,6 +15,17 @@ import { Plans } from "@/app/pages/dashboard/Plans";
 import { Wallet } from "@/app/pages/dashboard/Wallet";
 import { Loans } from "@/app/pages/dashboard/Loans";
 import { Profile } from "@/app/pages/dashboard/Profile";
+import { AdminLayout } from "@/app/layout/AdminLayout";
+import { AdminOverview } from "@/app/pages/admin/Overview";
+import { AdminLoans } from "@/app/pages/admin/Loans";
+import { AdminTransactions } from "@/app/pages/admin/Transactions";
+import { AdminUsers } from "@/app/pages/admin/Users";
+import { AdminUserDetails } from "@/app/pages/admin/UserDetails";
+import { AdminPlans } from "@/app/pages/admin/Plans";
+import { AdminSettings } from "@/app/pages/admin/Settings";
+import { AdminNewsletter } from "@/app/pages/admin/Newsletter";
+import { AdminApprovals } from "@/app/pages/admin/Approvals";
+import { AdminProfile } from "@/app/pages/admin/Profile";
 import { useLayoutEffect } from "react";
 import { ThemeProvider } from "@/app/context/ThemeContext";
 
@@ -70,6 +81,20 @@ function AppRoutes() {
             <Route path="loans" element={<Loans />} />
             <Route path="profile" element={<Profile />} />
           </Route>
+        </Route>
+
+        {/* Admin Routes (Protected by AdminLayout) */}
+        <Route element={<AdminLayout />}>
+          <Route path="/admin" element={<AdminOverview />} />
+          <Route path="/admin/loans" element={<AdminLoans />} />
+          <Route path="/admin/transactions" element={<AdminTransactions />} />
+          <Route path="/admin/users" element={<AdminUsers />} />
+          <Route path="/admin/users/:id" element={<AdminUserDetails />} />
+          <Route path="/admin/plans" element={<AdminPlans />} />
+          <Route path="/admin/settings" element={<AdminSettings />} />
+          <Route path="/admin/newsletter" element={<AdminNewsletter />} />
+          <Route path="/admin/approvals" element={<AdminApprovals />} />
+          <Route path="/admin/profile" element={<AdminProfile />} /> {/* Added AdminProfile route */}
         </Route>
       </Routes>
     </ThemeProvider>

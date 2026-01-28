@@ -10,18 +10,53 @@ import {
     DropdownMenuTrigger,
 } from "@/app/components/ui/dropdown-menu";
 import { AccountSwitcher } from "@/app/components/AccountSwitcher";
-import { Menu, LogOut, Repeat } from "lucide-react";
-import { useState } from "react";
+import { Menu, LogOut, Repeat, Megaphone, X } from "lucide-react";
+import { useState, useEffect } from "react";
 import { Button } from "@/app/components/ui/button";
 import { ThemeToggle } from "@/app/components/ThemeToggle";
+import { supabase } from "@/lib/supabase";
 
 export function DashboardLayout() {
     const { user, signOut } = useAuth();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [showSwitcher, setShowSwitcher] = useState(false);
+    const [announcement, setAnnouncement] = useState<any>(null);
+
+    useEffect(() => {
+        const fetchAnnouncement = async () => {
+            const { data } = await supabase
+                .from('announcements')
+                .select('*')
+                .eq('is_active', true)
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .single();
+
+            if (data) {
+                // Check expiry
+                if (data.expires_at && new Date(data.expires_at) < new Date()) return;
+                setAnnouncement(data);
+            }
+        };
+        fetchAnnouncement();
+    }, []);
 
     return (
-        <div className="min-h-screen bg-gray-50 flex dark:bg-gray-900 transition-colors">
+        <div className="min-h-screen bg-gray-50 flex dark:bg-gray-900 transition-colors relative">
+
+            {/* Announcement Banner */}
+            {announcement && (
+                <div className={`fixed top-0 left-0 right-0 z-[60] px-4 py-2 text-white text-sm font-medium flex items-center justify-center gap-2 ${announcement.type === 'error' ? 'bg-red-600' :
+                    announcement.type === 'success' ? 'bg-emerald-600' :
+                        announcement.type === 'warning' ? 'bg-yellow-600' : 'bg-indigo-600'
+                    }`}>
+                    <Megaphone className="w-4 h-4 animate-pulse" />
+                    <span>{announcement.message}</span>
+                    <button onClick={() => setAnnouncement(null)} className="absolute right-4 hover:bg-white/20 p-1 rounded">
+                        <X className="w-4 h-4" />
+                    </button>
+                </div>
+            )}
             <Sidebar />
 
             {/* Mobile Header */}

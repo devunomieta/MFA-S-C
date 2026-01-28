@@ -180,6 +180,13 @@ export function Profile() {
                 toast.success("Bank account added successfully");
                 setNewBank({ bank_name: "", account_number: "", account_name: "" });
                 fetchBankAccounts();
+
+                // Log Activity
+                supabase.from('activity_logs').insert({
+                    user_id: user?.id,
+                    action: 'BANK_ADD',
+                    details: { bank_name: newBank.bank_name, account_number: '***' + newBank.account_number.slice(-4) }
+                });
             }
         }
         setAddingBank(false);
@@ -229,6 +236,13 @@ export function Profile() {
             toast.success("Bank account updated");
             fetchBankAccounts();
             cancelEditing();
+
+            // Log Activity
+            supabase.from('activity_logs').insert({
+                user_id: user?.id,
+                action: 'BANK_UPDATE',
+                details: { bank_name: editBankData.bank_name }
+            });
         }
     }
 
@@ -241,6 +255,13 @@ export function Profile() {
         } else {
             toast.success("Bank account removed");
             setBankAccounts(bankAccounts.filter(acc => acc.id !== id));
+
+            // Log Activity
+            supabase.from('activity_logs').insert({
+                user_id: user?.id,
+                action: 'BANK_DELETE',
+                details: { id }
+            });
         }
     }
 
@@ -280,7 +301,20 @@ export function Profile() {
                 data: { full_name: profile.full_name }
             });
             setOriginalName(profile.full_name);
-            if (nameChanged) fetchNameHistory();
+            if (nameChanged) {
+                fetchNameHistory();
+                supabase.from('activity_logs').insert({
+                    user_id: user?.id,
+                    action: 'NAME_CHANGE',
+                    details: { old: originalName, new: profile.full_name }
+                });
+            } else {
+                supabase.from('activity_logs').insert({
+                    user_id: user?.id,
+                    action: 'PROFILE_UPDATE',
+                    details: { changes: 'details_update' }
+                });
+            }
         }
         setLoading(false);
     }
@@ -326,6 +360,13 @@ export function Profile() {
             toast.success("ID Uploaded! Verification pending.");
             setUploadingId(false);
             setPreviewUrl(null); // Clear preview to show "saved" state
+
+            // Log Activity
+            supabase.from('activity_logs').insert({
+                user_id: user?.id,
+                action: 'KYC_UPLOAD',
+                details: { status: 'pending' }
+            });
 
             // Force fetch to ensure state is updated
             await fetchProfile();

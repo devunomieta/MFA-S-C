@@ -94,17 +94,20 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose }: DepositModal
                 const chg = Number(curr.charge || 0);
 
                 // Income types
-                if (curr.type === 'deposit') return acc + amt - chg;
-                if (curr.type === 'loan_disbursement') return acc + amt - chg;
-                if (curr.type === 'limit_transfer') return acc + amt - chg; // Keeping legacy
+                // Income types - Only if COMPLETED
+                if ((curr.type === 'deposit' || curr.type === 'loan_disbursement' || curr.type === 'limit_transfer') && curr.status === 'completed') {
+                    return acc + amt - chg;
+                }
 
-                // Expense types
-                if (curr.type === 'withdrawal') return acc - amt - chg;
-                if (curr.type === 'loan_repayment') return acc - amt - chg;
+                // Expense types - Deduct if COMPLETED or PENDING
+                if ((curr.type === 'withdrawal' || curr.type === 'loan_repayment') && (curr.status === 'completed' || curr.status === 'pending')) {
+                    return acc - amt - chg;
+                }
 
-                // Transfer Logic for General Wallet (plan_id is null)
-                // If it is a transfer and we are in General Wallet context, it is OUTGOING to a plan.
-                if (curr.type === 'transfer') return acc - amt - chg;
+                // Transfer Logic for General Wallet (plan_id is null) - Only if COMPLETED
+                if (curr.type === 'transfer' && curr.status === 'completed') {
+                    return acc - amt - chg;
+                }
 
                 return acc;
             }, 0);
@@ -171,12 +174,12 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose }: DepositModal
         }
 
         if (method === 'external') {
-            // Standard Deposit
+            // Standard Deposit - REQUIRES ADMIN APPROVAL
             const { error } = await supabase.from("transactions").insert({
                 user_id: user.id,
                 amount: finalAmount,
                 type: 'deposit',
-                status: 'completed', // Admin would review receipts in real app
+                status: 'pending', // CHANGED: Now Pending
                 description: selectedPlanId ? `Deposit to ${myPlans.find(p => p.id === selectedPlanId)?.name}` : 'Wallet Top Up',
                 plan_id: selectedPlanId || null,
                 charge: 0,
@@ -184,18 +187,11 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose }: DepositModal
             });
 
             if (error) {
-                toast.error("Deposit failed");
+                toast.error(`Deposit failed: ${error.message}`);
                 console.error(error);
             } else {
-                // Update Plan Balance if applicable
-                if (selectedPlanId) {
-                    const updateSuccess = await updatePlanBalance(selectedPlanId);
-                    if (updateSuccess) {
-                        finishSuccess("Deposit successful!");
-                    }
-                } else {
-                    finishSuccess("Deposit successful!");
-                }
+                // DO NOT update balance yet. Admin must approve.
+                finishSuccess("Deposit submitted for Admin Approval.");
             }
         } else {
             // Wallet Transfer
@@ -224,7 +220,7 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose }: DepositModal
             ]);
 
             if (txError) {
-                toast.error("Transfer failed");
+                toast.error(`Transfer failed: ${txError.message}`);
                 console.error(txError);
             } else {
                 const updateSuccess = await updatePlanBalance(selectedPlanId);
@@ -289,6 +285,15 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose }: DepositModal
 
     function finishSuccess(msg: string) {
         toast.success(msg);
+        setAmount("");
+        setReceiptFile(null);
+        if (previewUrl) {
+            URL.revokeObjectURL(previewUrl);
+            setPreviewUrl(null);
+        }
+        if (!defaultPlanId) {
+            setSelectedPlanId("");
+        }
         onSuccess();
         onClose();
     }

@@ -20,10 +20,13 @@ export function Overview() {
     const [userPlans, setUserPlans] = useState<any[]>([]);
 
     useEffect(() => {
-        if (user) {
+        if (user?.id) {
             fetchDashboardData();
+        } else {
+            // If no user, stop loading immediately (though ProtectedRoute handles this)
+            setLoading(false);
         }
-    }, [user]);
+    }, [user?.id]);
 
     async function fetchDashboardData() {
         setLoading(true);
