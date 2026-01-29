@@ -205,49 +205,48 @@ export function AdminPlans() {
             </div>
 
             <Tabs defaultValue="management" className="space-y-6">
-                <TabsList className="bg-slate-100 p-1 flex flex-wrap h-auto">
-                    <TabsTrigger value="management" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                <TabsList className="bg-slate-100 p-1 flex flex-wrap h-auto w-full justify-start gap-2">
+                    <TabsTrigger value="management" className="data-[state=active]:bg-white data-[state=active]:shadow-sm flex-grow md:flex-grow-0">
                         <Settings className="w-4 h-4 mr-2" />
-                        Plan Configuration
+                        Plan Config
                     </TabsTrigger>
                     {marathonPlan && (
-                        <TabsTrigger value="marathon" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                        <TabsTrigger value="marathon" className="data-[state=active]:bg-white data-[state=active]:shadow-sm flex-grow md:flex-grow-0">
                             <Activity className="w-4 h-4 mr-2" />
-                            Marathon Monitoring
+                            Marathon
                         </TabsTrigger>
                     )}
                     {sprintPlan && (
-                        <TabsTrigger value="sprint" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                        <TabsTrigger value="sprint" className="data-[state=active]:bg-white data-[state=active]:shadow-sm flex-grow md:flex-grow-0">
                             <Activity className="w-4 h-4 mr-2" />
-                            Sprint Monitoring
+                            Sprint
                         </TabsTrigger>
                     )}
                     {anchorPlan && (
-                        <TabsTrigger value="anchor" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                        <TabsTrigger value="anchor" className="data-[state=active]:bg-white data-[state=active]:shadow-sm flex-grow md:flex-grow-0">
                             <Anchor className="w-4 h-4 mr-2" />
-                            Anchor Monitoring
+                            Anchor
                         </TabsTrigger>
                     )}
                     {dailyDropPlan && (
-                        <TabsTrigger value="daily_drop" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                        <TabsTrigger value="daily_drop" className="data-[state=active]:bg-white data-[state=active]:shadow-sm flex-grow md:flex-grow-0">
                             <Droplets className="w-4 h-4 mr-2" />
                             Daily Drop
                         </TabsTrigger>
                     )}
                     {stepUpPlan && (
-                        <TabsTrigger value="step_up" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                        <TabsTrigger value="step_up" className="data-[state=active]:bg-white data-[state=active]:shadow-sm flex-grow md:flex-grow-0">
                             <TrendingUp className="w-4 h-4 mr-2" />
                             Step-Up
                         </TabsTrigger>
                     )}
                     {monthlyBloomPlan && (
-                        <TabsTrigger value="monthly_bloom" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">
-                            {/* Use Calendar or another icon */}
+                        <TabsTrigger value="monthly_bloom" className="data-[state=active]:bg-white data-[state=active]:shadow-sm flex-grow md:flex-grow-0">
                             <Settings className="w-4 h-4 mr-2" />
                             Monthly Bloom
                         </TabsTrigger>
                     )}
-                    <TabsTrigger value="ajo_circle">The Ajo Circle</TabsTrigger>
+                    <TabsTrigger value="ajo_circle" className="flex-grow md:flex-grow-0">The Ajo Circle</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="management" className="space-y-6">

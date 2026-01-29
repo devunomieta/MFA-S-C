@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Button } from "@/app/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/app/components/ui/card";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/app/components/ui/card";
+import { Badge } from "@/app/components/ui/badge";
 import { Plan, UserPlan } from "@/types";
 import { Link } from "react-router-dom";
-import { Droplets, Calendar, CheckCircle, RefreshCw } from "lucide-react";
+import { Droplets, AlertTriangle, CheckCircle, RefreshCw } from "lucide-react";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
@@ -91,125 +92,157 @@ export function DailyDropPlanCard({ plan, userPlan, onJoin, onDeposit }: DailyDr
         }
     };
 
-    return (
-        <Card className="flex flex-col dark:bg-gray-800 dark:border-gray-700 relative overflow-hidden ring-1 ring-cyan-100 hover:shadow-lg transition-all duration-300">
-            {/* Badge */}
-            <div className="absolute top-0 right-0 bg-cyan-600 text-white text-[10px] uppercase font-bold px-3 py-1 rounded-bl-lg z-20">
-                Daily Drop
-            </div>
-
-            <CardHeader className="pb-2 relative z-10">
-                <div className="flex items-start gap-4">
-                    <div className="bg-cyan-100 p-2 rounded-full">
-                        <Droplets className="w-5 h-5 text-cyan-600" />
+    // Active State - Minimalist
+    if (isJoined) {
+        return (
+            <Card className="flex flex-col relative overflow-hidden bg-white dark:bg-gray-900 border-l-4 border-l-cyan-500 shadow-sm hover:shadow-md transition-shadow">
+                <CardHeader className="pb-2">
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <div className="flex items-center gap-2 mb-2">
+                                <Badge variant="outline" className="text-cyan-700 border-cyan-200 bg-cyan-50">Daily Drop</Badge>
+                                <Badge className={`border-0 ${isFinished ? 'bg-emerald-600' : 'bg-cyan-600 text-white'}`}>
+                                    {isFinished ? 'Completed' : 'Active'}
+                                </Badge>
+                            </div>
+                            <CardTitle className="text-xl font-bold text-gray-900 dark:text-gray-100">{plan.name}</CardTitle>
+                        </div>
+                        <div className="text-right">
+                            <div className="text-xs text-gray-500 uppercase font-bold tracking-wider">Total Saved</div>
+                            <div className="text-xl font-bold text-gray-900 dark:text-white">{formatCurrency(userPlan?.current_balance || 0)}</div>
+                        </div>
                     </div>
+                </CardHeader>
+
+                <CardContent className="space-y-6 flex-1 pt-4">
+                    {isFinished ? (
+                        <div className="text-center py-6 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl border border-emerald-100 dark:border-emerald-800">
+                            <CheckCircle className="w-10 h-10 text-emerald-500 mx-auto mb-3" />
+                            <h3 className="font-bold text-emerald-700 dark:text-emerald-400 text-lg">Goal Achieved!</h3>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">You have completed your {selectedDuration} day cycle.</p>
+                            <Button onClick={handleRejoin} variant="outline" className="border-emerald-200 text-emerald-700 hover:bg-emerald-100 font-semibold">
+                                <RefreshCw className="w-4 h-4 mr-2" /> Start Fresh
+                            </Button>
+                        </div>
+                    ) : (
+                        <div className="space-y-4">
+                            <div className="space-y-2">
+                                <div className="flex justify-between text-sm">
+                                    <span className="text-gray-600 dark:text-gray-400 font-medium">Streak Progress</span>
+                                    <span className="font-bold text-gray-900 dark:text-gray-200">{daysPaid} / {selectedDuration === -1 ? '∞' : selectedDuration} Days</span>
+                                </div>
+                                <div className="h-2 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                                    <div
+                                        className="h-full bg-cyan-500 rounded-full"
+                                        style={{ width: `${selectedDuration === -1 ? 100 : Math.min((daysPaid / selectedDuration) * 100, 100)}%` }}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-800">
+                                    <div className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-1 flex items-center gap-1">
+                                        <Droplets className="w-3 h-3" /> Daily Commit
+                                    </div>
+                                    <div className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                                        {formatCurrency(fixedAmount)}
+                                    </div>
+                                </div>
+                                <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-800">
+                                    <div className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-1 flex items-center gap-1">
+                                        <AlertTriangle className="w-3 h-3" /> Next Due
+                                    </div>
+                                    <div className="text-sm font-bold text-gray-900 dark:text-gray-100 mt-1">
+                                        Today 11:59PM
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </CardContent>
+
+                <CardFooter className="grid grid-cols-2 gap-3 pt-2">
+                    {!isFinished && (
+                        <>
+                            <Button
+                                className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-semibold"
+                                onClick={onDeposit}
+                            >
+                                Drop Funds
+                            </Button>
+                            <Button variant="outline" asChild className="w-full">
+                                <Link to={`/dashboard/wallet?planId=${userPlan?.plan.id}`}>Details</Link>
+                            </Button>
+                        </>
+                    )}
+                </CardFooter>
+            </Card>
+        );
+    }
+
+    // Available State (Minimalist Redesign)
+    return (
+        <Card className="flex flex-col relative overflow-hidden bg-white dark:bg-gray-900 border-l-4 border-l-cyan-500 shadow-sm hover:shadow-md transition-shadow group">
+            <CardHeader className="pb-4">
+                <div className="flex justify-between items-start">
                     <div>
-                        <CardTitle className="text-xl font-bold text-gray-900 dark:text-white">{plan.name}</CardTitle>
-                        <CardDescription className="text-xs mt-1">
-                            {isJoined ?
-                                (isFinished ? "Completed!" : `Day ${daysPaid + 1} of ${selectedDuration === -1 ? 'Infinity' : selectedDuration}`)
-                                : "Flexible Daily Savings"}
-                        </CardDescription>
+                        <Badge variant="secondary" className="mb-2 bg-cyan-50 text-cyan-700 border-cyan-100 hover:bg-cyan-100">
+                            Daily Drop
+                        </Badge>
+                        <CardTitle className="text-xl font-bold text-gray-900 dark:text-white">
+                            {plan.name}
+                        </CardTitle>
                     </div>
                 </div>
+                <p className="text-sm text-gray-500 dark:text-gray-400 font-medium leading-relaxed mt-1 line-clamp-2">
+                    Flexible daily savings. You choose how long.
+                </p>
             </CardHeader>
 
-            <CardContent className="flex-1 space-y-4 relative z-10">
-                {!isJoined ? (
-                    <div className="space-y-4">
-                        <div className="space-y-2">
-                            <Label className="text-xs">Fixed Daily Amount (₦)</Label>
-                            <Input
-                                type="number"
-                                value={joinAmount}
-                                onChange={(e) => setJoinAmount(e.target.value)}
-                                min={500}
-                            />
-                            <p className="text-[10px] text-slate-500">Minimum ₦500. This amount is fixed.</p>
-                        </div>
-                        <div className="space-y-2">
-                            <Label className="text-xs">Duration</Label>
-                            <Select value={joinDuration} onValueChange={setJoinDuration}>
-                                <SelectTrigger>
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="31">31 Days (1 Month)</SelectItem>
-                                    <SelectItem value="62">62 Days (2 Months)</SelectItem>
-                                    <SelectItem value="93">93 Days (3 Months)</SelectItem>
-                                    <SelectItem value="-1">No End Date (Continuous)</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        <div className="bg-cyan-50 p-2 rounded text-xs text-cyan-800 border border-cyan-100">
-                            <strong>Note:</strong> First payment = Service Fee (100% of daily amount). No penalty for missing days, but consistency is key!
-                        </div>
+            <CardContent className="flex-1 space-y-6 pt-2">
+                {/* Input Section - Minimalist UI */}
+                <div className="space-y-4 pt-2">
+                    <div className="space-y-1.5">
+                        <Label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Fixed Daily Amount</Label>
+                        <Input
+                            type="number"
+                            className="bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 h-9 font-semibold text-sm focus-visible:ring-cyan-500"
+                            value={joinAmount}
+                            onChange={(e) => setJoinAmount(e.target.value)}
+                            min={500}
+                            placeholder="Min ₦500"
+                        />
                     </div>
-                ) : (
-                    <div className="space-y-4">
-                        {isFinished ? (
-                            <div className="text-center py-6">
-                                <CheckCircle className="w-12 h-12 text-emerald-500 mx-auto mb-2" />
-                                <h3 className="font-bold text-emerald-700">Goal Achieved!</h3>
-                                <p className="text-xs text-slate-600 mb-4">You have completed your {selectedDuration} day cycle.</p>
-                                <Button onClick={handleRejoin} variant="outline" className="w-full border-cyan-500 text-cyan-600 hover:bg-cyan-50">
-                                    <RefreshCw className="w-4 h-4 mr-2" /> REJOIN
-                                </Button>
-                            </div>
-                        ) : (
-                            <>
-                                <div className="space-y-1">
-                                    <div className="flex justify-between text-xs text-slate-500">
-                                        <span>Progress</span>
-                                        <span>{daysPaid} / {selectedDuration === -1 ? '∞' : selectedDuration} Days</span>
-                                    </div>
-                                    <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-                                        <div
-                                            className="h-full bg-cyan-500 transition-all duration-500"
-                                            style={{ width: `${selectedDuration === -1 ? 100 : Math.min((daysPaid / selectedDuration) * 100, 100)}%` }}
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-2 text-center">
-                                    <div className="p-2 bg-slate-50 rounded border border-slate-100">
-                                        <span className="block text-[10px] text-slate-400 uppercase">Fixed Daily</span>
-                                        <span className="font-bold text-slate-700">{formatCurrency(fixedAmount)}</span>
-                                    </div>
-                                    <div className="p-2 bg-slate-50 rounded border border-slate-100">
-                                        <span className="block text-[10px] text-slate-400 uppercase">Total Saved</span>
-                                        <span className="font-bold text-emerald-600">{formatCurrency(userPlan?.current_balance || 0)}</span>
-                                    </div>
-                                </div>
-
-                                <div className="text-xs text-center text-slate-400">
-                                    Next Drop Due: <b>11:59 PM Daily</b>
-                                </div>
-                            </>
-                        )}
+                    <div className="space-y-1.5">
+                        <Label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Duration</Label>
+                        <Select value={joinDuration} onValueChange={setJoinDuration}>
+                            <SelectTrigger className="bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 h-9 font-medium text-sm focus:ring-cyan-500">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="31">31 Days (1 Month)</SelectItem>
+                                <SelectItem value="62">62 Days (2 Months)</SelectItem>
+                                <SelectItem value="93">93 Days (3 Months)</SelectItem>
+                                <SelectItem value="-1">No End Date (Continuous)</SelectItem>
+                            </SelectContent>
+                        </Select>
                     </div>
-                )}
+                </div>
+
+                <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 font-medium pt-2">
+                    <CheckCircle className="w-3.5 h-3.5 text-cyan-600" />
+                    <span>Consistent daily drops. No penalties.</span>
+                </div>
             </CardContent>
 
             <CardFooter className="pt-2">
-                {!isJoined ? (
-                    <Button onClick={handleJoin} disabled={joining} className="w-full bg-cyan-600 hover:bg-cyan-700 text-white shadow-md">
-                        {joining ? 'Setting up...' : 'Start Daily Drop'}
-                    </Button>
-                ) : !isFinished && (
-                    <div className="w-full grid grid-cols-2 gap-2">
-                        <Button
-                            className="w-full bg-gray-900 text-white hover:bg-gray-800"
-                            onClick={onDeposit}
-                        >
-                            Drop Funds
-                        </Button>
-                        <Button variant="outline" asChild className="w-full">
-                            <Link to={`/dashboard/wallet?planId=${userPlan?.plan.id}`}>Details</Link>
-                        </Button>
-                    </div>
-                )}
+                <Button
+                    className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-semibold"
+                    onClick={handleJoin}
+                    disabled={joining}
+                >
+                    {joining ? 'Setting up...' : 'Start Daily Drop'}
+                </Button>
             </CardFooter>
         </Card>
     );

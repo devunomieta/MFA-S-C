@@ -297,7 +297,7 @@ export function Plans() {
                                         key={plan.id}
                                         plan={plan}
                                         userPlan={myPlans.find(p => p.plan_id === plan.id && p.status !== 'cancelled')}
-                                        onJoin={() => fetchMyPlans()}
+                                        onJoin={() => setJoiningSprintPlan(plan)}
                                         onDeposit={() => setSelectedPlanForDeposit(plan.id)}
                                     />
                                 );

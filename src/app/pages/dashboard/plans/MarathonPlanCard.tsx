@@ -1,6 +1,7 @@
 import { useState } from "react";
+import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/app/components/ui/card";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Plan, UserPlan } from "@/types";
 import { Link } from "react-router-dom";
 import { Trophy, Calendar, AlertTriangle, CheckCircle, ArrowRight, Loader2 } from "lucide-react";
@@ -51,112 +52,140 @@ export function MarathonPlanCard({ plan, userPlan, onJoin, onDeposit }: Marathon
         setExtending(false);
     };
 
-    return (
-        <Card className="flex flex-col dark:bg-gray-800 dark:border-gray-700 relative overflow-hidden ring-1 ring-emerald-100 hover:shadow-lg transition-all duration-300">
-            {/* Marathon Badge */}
-            <div className="absolute top-0 right-0 bg-emerald-600 text-white text-[10px] uppercase font-bold px-3 py-1 rounded-bl-lg z-20">
-                Marathon
-            </div>
-
-            <CardHeader className="pb-2 relative z-10">
-                <div className="flex items-start gap-4">
-                    <div className="bg-emerald-100 p-2 rounded-full">
-                        <Trophy className="w-5 h-5 text-emerald-600" />
+    // Active State (Joined) - Minimalist
+    if (isJoined) {
+        return (
+            <Card className="flex flex-col relative overflow-hidden bg-white dark:bg-gray-900 border-l-4 border-l-emerald-500 shadow-sm hover:shadow-md transition-shadow">
+                <CardHeader className="pb-2">
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <div className="flex items-center gap-2 mb-2">
+                                <Badge variant="outline" className="text-emerald-700 border-emerald-200 bg-emerald-50">Marathon</Badge>
+                                <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white">Active</Badge>
+                            </div>
+                            <CardTitle className="text-xl font-bold text-gray-900 dark:text-gray-100">{plan.name}</CardTitle>
+                        </div>
+                        <div className="text-right">
+                            <div className="text-xs text-gray-500 uppercase font-bold tracking-wider">Total Saved</div>
+                            <div className="text-xl font-bold text-gray-900 dark:text-white">{formatCurrency(userPlan?.current_balance || 0)}</div>
+                        </div>
                     </div>
+                </CardHeader>
+
+                <CardContent className="space-y-6 flex-1 pt-4">
+                    {arrears > 0 && (
+                        <div className="flex items-center gap-2 p-2 bg-red-50 text-red-700 rounded-md text-xs border border-red-100 font-medium">
+                            <AlertTriangle className="w-3.5 h-3.5" />
+                            <span>Arrears: {formatCurrency(arrears)}</span>
+                        </div>
+                    )}
+
+                    <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                            <span className="text-gray-600 dark:text-gray-400 font-medium">Progress</span>
+                            <span className="font-bold text-gray-900 dark:text-gray-200">{weeksPaid} / {duration} Weeks</span>
+                        </div>
+                        <div className="h-2 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                            <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${progress}%` }} />
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-800">
+                            <div className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-1">Status</div>
+                            <div className={`text-sm font-bold flex items-center gap-1.5 ${isCurrentWeekPaid ? 'text-emerald-600' : 'text-amber-600'}`}>
+                                {isCurrentWeekPaid ? <CheckCircle className="w-3.5 h-3.5" /> : <AlertTriangle className="w-3.5 h-3.5" />}
+                                {isCurrentWeekPaid ? 'Paid' : 'Pending'}
+                            </div>
+                        </div>
+                        <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-800">
+                            <div className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-1">Completion</div>
+                            <div className="text-sm font-bold text-gray-900 dark:text-gray-100">
+                                {Math.round(progress)}%
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Extension Option */}
+                    {duration === 30 && (
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="w-full text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                            onClick={handleExtend}
+                            disabled={extending}
+                        >
+                            {extending ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <ArrowRight className="w-3 h-3 mr-1" />}
+                            Extend to 48 Weeks
+                        </Button>
+                    )}
+                </CardContent>
+
+                <CardFooter className="grid grid-cols-2 gap-3 pt-2">
+                    <Button
+                        className="w-full bg-gray-900 hover:bg-gray-800 text-white dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
+                        onClick={onDeposit}
+                    >
+                        {arrears > 0 ? "Pay Arrears" : "Add Funds"}
+                    </Button>
+                    <Button variant="outline" asChild className="w-full">
+                        <Link to={`/dashboard/wallet?planId=${userPlan?.plan.id}`}>Details</Link>
+                    </Button>
+                </CardFooter>
+            </Card>
+        );
+    }
+
+    // Available State (Minimalist Redesign)
+    return (
+        <Card className="flex flex-col relative overflow-hidden bg-white dark:bg-gray-900 border-l-4 border-l-emerald-500 shadow-sm hover:shadow-md transition-shadow group">
+            <CardHeader className="pb-4">
+                <div className="flex justify-between items-start">
                     <div>
-                        <CardTitle className="text-xl font-bold text-gray-900 dark:text-white">{plan.name}</CardTitle>
-                        <CardDescription className="text-xs mt-1">
-                            {isJoined ? `${weeksPaid} of ${duration} Weeks Completed` : plan.description}
-                        </CardDescription>
+                        <Badge variant="secondary" className="mb-2 bg-emerald-50 text-emerald-700 border-emerald-100 hover:bg-emerald-100">
+                            Marathon
+                        </Badge>
+                        <CardTitle className="text-xl font-bold text-gray-900 dark:text-white">
+                            {plan.name}
+                        </CardTitle>
                     </div>
                 </div>
+                <p className="text-sm text-gray-500 dark:text-gray-400 font-medium leading-relaxed mt-1 line-clamp-2">
+                    {plan.description}
+                </p>
             </CardHeader>
 
-            <CardContent className="flex-1 space-y-4 relative z-10">
-                {!isJoined ? (
-                    <div className="space-y-2">
-                        <div className="flex items-center gap-2 text-sm text-slate-600">
-                            <Calendar className="w-4 h-4 text-emerald-500" />
-                            <span>Starts 3rd Week of January</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-slate-600">
-                            <CheckCircle className="w-4 h-4 text-emerald-500" />
-                            <span>Strict Weekly Saves: {formatCurrency(plan.min_amount)}</span>
-                        </div>
-                        <div className="bg-emerald-50 p-2 rounded text-xs text-emerald-800 border border-emerald-100 italic">
-                            Running since Jan 2026. You can still join!
-                        </div>
+            <CardContent className="flex-1 space-y-6 pt-2">
+                <div className="flex justify-between items-end border-b border-gray-100 dark:border-gray-800 pb-4">
+                    <div>
+                        <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Weekly</p>
+                        <p className="text-lg font-bold text-gray-900 dark:text-white">{formatCurrency(plan.min_amount)}</p>
                     </div>
-                ) : (
-                    <div className="space-y-4">
-                        {/* Status Indicators */}
-                        {arrears > 0 && (
-                            <div className="flex items-center gap-2 p-2 bg-red-50 text-red-700 rounded text-xs border border-red-100 animate-pulse">
-                                <AlertTriangle className="w-4 h-4" />
-                                <span>Arrears: {formatCurrency(arrears)}</span>
-                            </div>
-                        )}
-
-                        <div className="space-y-1">
-                            <div className="flex justify-between text-xs text-slate-500">
-                                <span>Progress</span>
-                                <span>{Math.round(progress)}%</span>
-                            </div>
-                            <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-                                <div className="h-full bg-emerald-500 transition-all duration-500" style={{ width: `${progress}%` }} />
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-2 text-center">
-                            <div className="p-2 bg-slate-50 rounded border border-slate-100">
-                                <span className="block text-[10px] text-slate-400 uppercase">Saved</span>
-                                <span className="font-bold text-slate-800">{formatCurrency(userPlan?.current_balance || 0)}</span>
-                            </div>
-                            <div className="p-2 bg-slate-50 rounded border border-slate-100">
-                                <span className="block text-[10px] text-slate-400 uppercase">This Week</span>
-                                <span className={`font-bold ${isCurrentWeekPaid ? 'text-emerald-600' : 'text-amber-600'}`}>
-                                    {isCurrentWeekPaid ? 'Paid' : 'Pending'}
-                                </span>
-                            </div>
-                        </div>
-
-                        {/* Extension Option */}
-                        {duration === 30 && (
-                            <div className="pt-2">
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="w-full text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                                    onClick={handleExtend}
-                                    disabled={extending}
-                                >
-                                    {extending ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <ArrowRight className="w-3 h-3 mr-1" />}
-                                    Extend to 48 Weeks
-                                </Button>
-                            </div>
-                        )}
+                    <div className="text-right">
+                        <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Duration</p>
+                        <p className="text-lg font-bold text-gray-900 dark:text-white">52 Weeks</p>
                     </div>
-                )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 text-xs text-gray-500 dark:text-gray-400 font-medium">
+                    <div className="flex items-center gap-2">
+                        <Calendar className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Year-Long Goal</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Trophy className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Strict Discipline</span>
+                    </div>
+                </div>
             </CardContent>
 
             <CardFooter className="pt-2">
-                {!isJoined ? (
-                    <Button onClick={onJoin} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-md">
-                        Join Challenge
-                    </Button>
-                ) : (
-                    <div className="w-full grid grid-cols-2 gap-2">
-                        <Button
-                            className="w-full bg-gray-900 text-white hover:bg-gray-800"
-                            onClick={onDeposit}
-                        >
-                            {arrears > 0 ? "Pay Arrears" : "Add Funds"}
-                        </Button>
-                        <Button variant="outline" asChild className="w-full">
-                            <Link to={`/dashboard/wallet?planId=${userPlan?.plan.id}`}>Details</Link>
-                        </Button>
-                    </div>
-                )}
+                <Button
+                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+                    onClick={onJoin}
+                >
+                    Start Marathon
+                </Button>
             </CardFooter>
         </Card>
     );

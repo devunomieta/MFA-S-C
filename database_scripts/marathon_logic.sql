@@ -62,9 +62,9 @@ BEGIN
     SELECT * INTO v_plan FROM plans WHERE id = p_plan_id;
     IF NOT FOUND THEN RAISE EXCEPTION 'Plan not found'; END IF;
 
-    -- Get User Plan
+    -- Get User Plan (Allow active or pending_activation)
     SELECT * INTO v_user_plan FROM user_plans 
-    WHERE user_id = p_user_id AND plan_id = p_plan_id AND status = 'active';
+    WHERE user_id = p_user_id AND plan_id = p_plan_id AND status IN ('active', 'pending_activation');
     
     IF NOT FOUND THEN RAISE EXCEPTION 'User is not active in this plan'; END IF;
 
@@ -96,6 +96,7 @@ BEGIN
     SET 
         current_balance = v_new_balance,
         plan_metadata = v_meta,
+        status = 'active', -- Activate plan if it was pending
         updated_at = now()
     WHERE id = v_user_plan.id;
 

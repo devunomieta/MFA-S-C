@@ -38,97 +38,90 @@ export function AjoCirclePlanCard({ plan, userPlan, onJoin, onDeposit }: AjoCirc
     };
 
     if (userPlan) {
-        // Active State
+        // Active State - Minimalist
         const metadata = userPlan.plan_metadata || {};
         const fixedAmount = metadata.fixed_amount || 0;
         const currentWeek = metadata.current_week || 1;
         const weekPaid = metadata.week_paid || false;
-        const pickingTurns = metadata.picking_turns || []; // Array of weeks, e.g. [5]
+        const pickingTurns = metadata.picking_turns || [];
         const missedWeeks = metadata.missed_weeks || 0;
 
-        // Check if it's my turn
         const isMyTurn = pickingTurns.includes(currentWeek);
-        // Withdraw logic: Usually implies "Payout". 
-        // If it's my turn, I should be able to "Withdraw" the Payout amount? 
-        // Or receive automatic credit? Request says "Withdrawal button is enabled only after it is your allocated PICKING TURN".
-        // Assuming this means "During my turn".
 
         return (
-            <Card className="flex flex-col relative overflow-hidden border-indigo-200 dark:border-indigo-800 bg-gradient-to-br from-white to-indigo-50 dark:from-gray-900 dark:to-indigo-950">
-                <div className="absolute top-0 right-0 p-2 opacity-10">
-                    <Coins className="w-24 h-24 text-indigo-600" />
-                </div>
-
+            <Card className="flex flex-col relative overflow-hidden bg-white dark:bg-gray-900 border-l-4 border-l-orange-500 shadow-sm hover:shadow-md transition-shadow">
                 <CardHeader className="pb-2">
                     <div className="flex justify-between items-start">
                         <div>
-                            <Badge className="mb-2 bg-indigo-100 text-indigo-700 hover:bg-indigo-100 border-indigo-200">The Ajo Circle</Badge>
-                            <CardTitle className="text-xl font-bold text-indigo-950 dark:text-indigo-100">My Circle</CardTitle>
+                            <div className="flex items-center gap-2 mb-2">
+                                <Badge variant="outline" className="text-orange-700 border-orange-200 bg-orange-50">The Ajo Circle</Badge>
+                                <Badge className="bg-emerald-600 border-emerald-500 text-white">Active</Badge>
+                            </div>
+                            <CardTitle className="text-xl font-bold text-gray-900 dark:text-gray-100">My Circle</CardTitle>
                         </div>
                         <div className="text-right">
-                            <div className="text-xs text-gray-500 uppercase font-bold">Payout</div>
-                            <div className="text-lg font-extrabold text-emerald-600">₦{formatCurrency(getPayout(fixedAmount))}</div>
+                            <div className="text-xs text-gray-500 uppercase font-bold tracking-wider">Total Payout</div>
+                            <div className="text-xl font-bold text-gray-900 dark:text-white">₦{formatCurrency(getPayout(fixedAmount))}</div>
                         </div>
                     </div>
                 </CardHeader>
 
-                <CardContent className="space-y-4 flex-1">
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="p-3 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-indigo-100 dark:border-gray-700">
-                            <div className="text-[10px] text-gray-500 uppercase flex items-center gap-1">
-                                <Calendar className="w-3 h-3" /> Current Week
+                <CardContent className="space-y-6 flex-1 pt-4">
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-800">
+                            <div className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-1 flex items-center gap-1.5">
+                                <Calendar className="w-3.5 h-3.5" /> Current Week
                             </div>
-                            <div className="text-2xl font-bold text-indigo-700 dark:text-indigo-300">{currentWeek} <span className="text-sm text-gray-400 font-normal">/ 10</span></div>
+                            <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">{currentWeek} <span className="text-sm text-gray-400 font-normal">/ 10</span></div>
                         </div>
-                        <div className="p-3 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-indigo-100 dark:border-gray-700">
-                            <div className="text-[10px] text-gray-500 uppercase flex items-center gap-1">
-                                <Timer className="w-3 h-3" /> My Turn(s)
+                        <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-800">
+                            <div className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-1 flex items-center gap-1.5">
+                                <Timer className="w-3.5 h-3.5" /> My Turn(s)
                             </div>
-                            <div className="text-lg font-bold text-indigo-700 dark:text-indigo-300">
+                            <div className="text-lg font-bold text-orange-600 dark:text-orange-400">
                                 {pickingTurns.length > 0 ? `Week ${pickingTurns.join(', ')}` : 'Pending'}
                             </div>
                         </div>
                     </div>
 
-                    <div className="space-y-1">
+                    <div className="space-y-2">
                         <div className="flex justify-between text-sm">
-                            <span className="text-gray-600 dark:text-gray-400">Weekly Contribution</span>
-                            <span className="font-medium">₦{formatCurrency(fixedAmount)}</span>
+                            <span className="text-gray-600 dark:text-gray-400 font-medium">Weekly Contribution</span>
+                            <span className="font-bold text-gray-900 dark:text-gray-200">₦{formatCurrency(fixedAmount)}</span>
                         </div>
                         <div className="flex justify-between text-sm">
-                            <span className="text-gray-600 dark:text-gray-400">Status</span>
+                            <span className="text-gray-600 dark:text-gray-400 font-medium">Status</span>
                             <span className={`font-bold ${weekPaid ? 'text-emerald-600' : 'text-amber-600'}`}>
                                 {weekPaid ? 'Paid' : 'Due'}
                             </span>
                         </div>
                         {missedWeeks > 0 && (
-                            <div className="flex items-center gap-1 text-xs text-red-600 bg-red-50 p-1 rounded">
-                                <AlertTriangle className="w-3 h-3" /> {missedWeeks} Missed (₦{formatCurrency(missedWeeks * 500)} Penalty)
+                            <div className="flex items-center gap-2 p-2 bg-red-50 text-red-700 rounded-md text-xs border border-red-100 font-medium">
+                                <AlertTriangle className="w-3.5 h-3.5" /> {missedWeeks} Missed (₦{formatCurrency(missedWeeks * 500)} Penalty)
                             </div>
                         )}
+                        <Progress value={(currentWeek / 10) * 100} className="h-2 bg-gray-100 dark:bg-gray-800 rounded-full" indicatorClassName="bg-orange-500" />
                     </div>
-
-                    <Progress value={(currentWeek / 10) * 100} className="h-2 bg-indigo-100" />
                 </CardContent>
 
-                <CardFooter className="flex-col gap-2">
+                <CardFooter className="flex-col gap-2 pt-2">
                     {isMyTurn ? (
-                        <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white animate-pulse">
+                        <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold">
                             Withdraw Payout
                         </Button>
                     ) : (
-                        <Button className="w-full" variant="outline" disabled>
-                            <Lock className="w-3 h-3 mr-2" /> Payout Locked
+                        <Button className="w-full bg-gray-100 text-gray-400 border border-gray-200 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-500 cursor-not-allowed" variant="ghost" disabled>
+                            <Lock className="w-3.5 h-3.5 mr-2" /> Payout Locked
                         </Button>
                     )}
 
                     {!weekPaid && (
-                        <Button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white" onClick={onDeposit}>
+                        <Button className="w-full bg-gray-900 hover:bg-gray-800 text-white dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200 font-semibold" onClick={onDeposit}>
                             Pay Weekly
                         </Button>
                     )}
                     {weekPaid && !isMyTurn && (
-                        <Button className="w-full bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-emerald-200" disabled>
+                        <Button className="w-full bg-emerald-50 text-emerald-700 border border-emerald-200 cursor-not-allowed font-medium text-sm" disabled>
                             <CheckCircle className="w-4 h-4 mr-2" /> Weekly Limit Reached
                         </Button>
                     )}
@@ -137,51 +130,47 @@ export function AjoCirclePlanCard({ plan, userPlan, onJoin, onDeposit }: AjoCirc
         );
     }
 
-    // Available State (Premium Redesign)
+    // Available State (Minimalist Redesign)
     return (
-        <Card className="flex flex-col relative overflow-hidden group hover:shadow-2xl transition-all duration-300 border-0 bg-white dark:bg-gray-900 shadow-lg">
-            {/* Decorative Background */}
-            <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/5 to-purple-600/5 dark:from-indigo-900/40 dark:to-purple-900/40 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-            <div className="absolute -right-12 -top-12 h-40 w-40 bg-indigo-500/10 rounded-full blur-3xl group-hover:bg-indigo-500/20 transition-all" />
-
-            <CardHeader className="pb-4 relative z-10">
+        <Card className="flex flex-col relative overflow-hidden bg-white dark:bg-gray-900 border-l-4 border-l-orange-500 shadow-sm hover:shadow-md transition-shadow group">
+            <CardHeader className="pb-4">
                 <div className="flex justify-between items-start">
                     <div>
-                        <Badge className="mb-3 bg-indigo-100 text-indigo-700 hover:bg-indigo-200 border-0 px-3 py-1 text-xs font-semibold tracking-wide uppercase">
-                            Premium Circle
+                        <Badge variant="secondary" className="mb-2 bg-orange-50 text-orange-700 border-orange-100 hover:bg-orange-100">
+                            The Ajo Circle
                         </Badge>
-                        <CardTitle className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">
+                        <CardTitle className="text-xl font-bold text-gray-900 dark:text-white">
                             {plan.name}
                         </CardTitle>
                     </div>
                     {plan.config?.season_start_date && (
                         <div className="flex flex-col items-end">
                             <span className="text-[10px] uppercase text-gray-400 font-bold tracking-wider">Starts</span>
-                            <span className="text-sm font-bold text-emerald-600 flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-900/30 px-2 py-1 rounded-md">
-                                <Calendar className="w-3.5 h-3.5" />
+                            <span className="text-xs font-bold text-emerald-600 flex items-center gap-1 bg-emerald-50 dark:bg-emerald-900/30 px-2 py-0.5 rounded border border-emerald-100 dark:border-emerald-800">
+                                <Calendar className="w-3 h-3" />
                                 {new Date(plan.config.season_start_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                             </span>
                         </div>
                     )}
                 </div>
-                <p className="text-sm text-gray-500 dark:text-gray-400 font-medium leading-relaxed mt-2">
+                <p className="text-sm text-gray-500 dark:text-gray-400 font-medium leading-relaxed mt-1 line-clamp-2">
                     {plan.description}
                 </p>
             </CardHeader>
 
-            <CardContent className="flex-1 space-y-6 relative z-10">
-                <div className="space-y-3">
-                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Select Contribution</label>
+            <CardContent className="flex-1 space-y-6 pt-2">
+                <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Select Contribution</label>
                     <Select value={selectedAmount} onValueChange={setSelectedAmount}>
-                        <SelectTrigger className="h-12 border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 focus:ring-2 focus:ring-indigo-500/20 font-medium text-lg">
+                        <SelectTrigger className="h-9 font-medium text-sm bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 focus:ring-orange-500">
                             <SelectValue placeholder="Choose amount..." />
                         </SelectTrigger>
                         <SelectContent>
                             {amounts.map((amt: number) => (
-                                <SelectItem key={amt} value={amt.toString()} disabled={amt === 100000} className="py-3">
+                                <SelectItem key={amt} value={amt.toString()} disabled={amt === 100000} className="py-2">
                                     <div className="flex items-center justify-between w-full min-w-[200px]">
-                                        <span className="font-bold text-gray-900 dark:text-white">₦{formatCurrency(amt)}</span>
-                                        {amt === 100000 && <Badge variant="outline" className="ml-2 text-[10px]">Full</Badge>}
+                                        <span className="font-bold text-gray-900 dark:text-white text-sm">₦{formatCurrency(amt)}</span>
+                                        {amt === 100000 && <Badge variant="outline" className="ml-2 text-[10px] h-5">Full</Badge>}
                                     </div>
                                 </SelectItem>
                             ))}
@@ -190,41 +179,41 @@ export function AjoCirclePlanCard({ plan, userPlan, onJoin, onDeposit }: AjoCirc
                 </div>
 
                 {selectedAmount && plan.config?.duration_weeks ? (
-                    <div className="rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 p-5 text-white shadow-lg transform transition-all duration-300 hover:scale-[1.02]">
-                        <div className="flex justify-between items-center mb-4 border-b border-white/20 pb-4">
+                    <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-3 border border-orange-100 dark:border-orange-800">
+                        <div className="flex justify-between items-center mb-3 pb-3 border-b border-orange-200 dark:border-orange-800/50">
                             <div>
-                                <p className="text-indigo-100 text-xs font-medium uppercase tracking-wide">Duration</p>
-                                <p className="text-lg font-bold">{plan.config.duration_weeks} Weeks</p>
+                                <p className="text-orange-900/60 dark:text-orange-100/60 text-[10px] font-bold uppercase tracking-wider">Duration</p>
+                                <p className="text-sm font-bold text-orange-900 dark:text-orange-100">{plan.config.duration_weeks} Weeks</p>
                             </div>
                             <div className="text-right">
-                                <p className="text-indigo-100 text-xs font-medium uppercase tracking-wide">Weekly</p>
-                                <p className="text-lg font-bold">₦{formatCurrency(Number(selectedAmount))}</p>
+                                <p className="text-orange-900/60 dark:text-orange-100/60 text-[10px] font-bold uppercase tracking-wider">Weekly</p>
+                                <p className="text-sm font-bold text-orange-900 dark:text-orange-100">₦{formatCurrency(Number(selectedAmount))}</p>
                             </div>
                         </div>
                         <div className="flex justify-between items-end">
                             <div>
-                                <p className="text-indigo-100 text-xs font-bold uppercase tracking-wider mb-1">Total Payout</p>
-                                <p className="text-3xl font-black tracking-tight">
+                                <p className="text-orange-900/60 dark:text-orange-100/60 text-[10px] font-bold uppercase tracking-wider mb-0.5">Total Payout</p>
+                                <p className="text-xl font-black tracking-tight text-orange-600 dark:text-orange-400">
                                     ₦{formatCurrency(Number(selectedAmount) * plan.config.duration_weeks)}
                                 </p>
                             </div>
-                            <Coins className="w-8 h-8 text-indigo-300/50" />
+                            <Coins className="w-6 h-6 text-orange-300 dark:text-orange-700/50" />
                         </div>
                     </div>
                 ) : (
-                    <div className="rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-700 p-6 flex flex-col items-center justify-center text-center space-y-2 h-[140px]">
-                        <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded-full">
-                            <TrendingUp className="w-6 h-6 text-gray-400" />
+                    <div className="rounded-lg border-2 border-dashed border-gray-200 dark:border-gray-700 p-4 flex flex-col items-center justify-center text-center space-y-2 h-[120px]">
+                        <div className="bg-gray-50 dark:bg-gray-800 p-2 rounded-full">
+                            <TrendingUp className="w-5 h-5 text-gray-400" />
                         </div>
-                        <p className="text-sm font-medium text-gray-500">Select an amount to calculate payout</p>
-                        {!plan.config?.duration_weeks && <p className="text-xs text-amber-500">Season duration pending</p>}
+                        <p className="text-xs font-medium text-gray-500">Select an amount to calculate payout</p>
+                        {!plan.config?.duration_weeks && <p className="text-[10px] text-amber-500 font-bold">Season duration pending</p>}
                     </div>
                 )}
             </CardContent>
 
-            <CardFooter className="flex-col gap-3 relative z-10 pt-2">
+            <CardFooter className="pt-2">
                 <Button
-                    className="w-full h-12 bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 font-bold text-base shadow-lg hover:shadow-xl transition-all"
+                    className="w-full bg-orange-600 hover:bg-orange-700 text-white font-semibold"
                     onClick={handleJoin}
                     disabled={!selectedAmount || !plan.config?.duration_weeks}
                 >
