@@ -574,10 +574,9 @@ export function Wallet() {
 
             <div className="grid gap-8 md:grid-cols-3 items-start">
 
-                {/* Left Column: Unified Deck & Actions (1/3 width) */}
+                {/* Left Column: Plans Deck (1/3 width) */}
                 <div className="md:col-span-1 flex flex-col gap-6">
                     <div>
-                        {/* ... Deck Header ... */}
                         <div className="flex justify-between items-center px-1 mb-4">
                             <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                                 Cards & Accounts
@@ -770,6 +769,6 @@ export function Wallet() {
                 onOpenChange={setShowDetailsDialog}
                 transaction={selectedTransaction}
             />
-        </div >
+        </div>
     );
 }

@@ -72,8 +72,10 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose }: DepositModal
             // Filter duplicates visually (just in case DB has them)
             const uniquePlansMap = new Map();
             userPlansData.forEach((up: any) => {
+                // We map by PLAN ID (Generic) but store the USER PLAN object
+                // ensuring we have access to metadata
                 if (!uniquePlansMap.has(up.plan.id)) {
-                    uniquePlansMap.set(up.plan.id, up.plan);
+                    uniquePlansMap.set(up.plan.id, up);
                 }
             });
             setMyPlans(Array.from(uniquePlansMap.values()));
@@ -175,12 +177,13 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose }: DepositModal
 
         if (method === 'external') {
             // Standard Deposit - REQUIRES ADMIN APPROVAL
+            // TODO: If this is Marathon, Admin approval must trigger process_marathon_deposit
             const { error } = await supabase.from("transactions").insert({
                 user_id: user.id,
                 amount: finalAmount,
                 type: 'deposit',
-                status: 'pending', // CHANGED: Now Pending
-                description: selectedPlanId ? `Deposit to ${myPlans.find(p => p.id === selectedPlanId)?.name}` : 'Wallet Top Up',
+                status: 'pending',
+                description: selectedPlanId ? `Deposit to ${selectedPlanObj?.name}` : 'Wallet Top Up',
                 plan_id: selectedPlanId || null,
                 charge: 0,
                 receipt_url: receiptUrl
@@ -190,21 +193,75 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose }: DepositModal
                 toast.error(`Deposit failed: ${error.message}`);
                 console.error(error);
             } else {
-                // DO NOT update balance yet. Admin must approve.
                 finishSuccess("Deposit submitted for Admin Approval.");
             }
         } else {
             // Wallet Transfer
-            // 1. Deduct from General (Create negative transaction or transfer type)
-            // We use 'transfer' type. In General (plan_id null), it's money leaving.
 
+            // Special Handling for Marathon/Sprint/Anchor Plans: Use RPC Logic
+            const planType = selectedPlanObj?.plan?.type || selectedPlanObj?.type; // Safe access
+
+            if (planType === 'marathon' || planType === 'sprint' || planType === 'anchor' || planType === 'step_up' || planType === 'monthly_bloom' || planType === 'ajo_circle') {
+                // 1. Deduct from General Wallet
+                const { error: deductError } = await supabase.from("transactions").insert({
+                    user_id: user.id,
+                    amount: finalAmount,
+                    type: 'transfer',
+                    status: 'completed',
+                    description: `Transfer to ${selectedPlanObj?.plan?.name || 'Savings Plan'}`,
+                    plan_id: null,
+                    charge: 0
+                });
+
+                if (deductError) {
+                    toast.error("Transfer failed at source.");
+                    setUploading(false);
+                    return;
+                }
+
+                // 2. Process Deposit via RPC
+                let rpcName = '';
+                if (planType === 'marathon') rpcName = 'process_marathon_deposit';
+                else if (planType === 'sprint') rpcName = 'process_sprint_deposit';
+                else if (planType === 'anchor') rpcName = 'process_anchor_deposit';
+                else if (planType === 'step_up') rpcName = 'process_step_up_deposit';
+                else if (planType === 'step_up') rpcName = 'process_step_up_deposit';
+                else if (planType === 'monthly_bloom') rpcName = 'process_monthly_bloom_deposit';
+                else if (planType === 'ajo_circle') rpcName = 'process_ajo_circle_deposit';
+                else rpcName = 'process_daily_drop_deposit';
+
+                const { data: rpcData, error: rpcError } = await supabase.rpc(rpcName, {
+                    p_user_id: user.id,
+                    p_plan_id: selectedPlanId,
+                    p_amount: finalAmount
+                });
+
+                if (rpcError) {
+                    console.error(`${planType} RPC Error:`, rpcError);
+                    toast.error(`Transfer deducted but plan update failed: ${rpcError.message}. Please contact support.`);
+                } else {
+                    let msg = "Deposit Successful!";
+                    if (planType === 'marathon') msg = `Marathon Contribution Successful! Week ${rpcData.week_paid} paid.`;
+                    else if (planType === 'sprint') msg = `Sprint Goal Updated! Week Progress: ${formatCurrency(rpcData.week_total)}`;
+                    else if (planType === 'anchor') msg = `Anchor Goal Updated! Week Progress: ${formatCurrency(rpcData.week_total)}`;
+                    else if (planType === 'step_up') msg = `Step-Up Deposit Successful! Weekly Target Progress Updated.`;
+                    else if (planType === 'monthly_bloom') msg = `Monthly Bloom Deposit Successful! Progress Updated.`;
+                    else if (planType === 'ajo_circle') msg = `Ajo Circle Deposit Successful! Week ${rpcData.week} Paid.`;
+                    else if (planType === 'daily_drop') msg = `Daily Drop Successful! ${rpcData.days_advanced} Days Advanced.`;
+                    finishSuccess(msg);
+                }
+                setUploading(false);
+                return;
+            }
+
+            // Standard Plan Logic (Double Insert + Manual Update)
             const { error: txError } = await supabase.from("transactions").insert([
                 {
                     user_id: user.id,
                     amount: finalAmount,
                     type: 'transfer',
                     status: 'completed',
-                    description: `Transfer to ${myPlans.find(p => p.id === selectedPlanId)?.name}`,
+                    description: `Transfer to ${selectedPlanObj?.name}`,
                     plan_id: null, // From General
                     charge: 0
                 },
@@ -299,15 +356,55 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose }: DepositModal
     }
 
     // Derived state for the currently selected plan
-    const selectedPlanObj = myPlans.find(p => p.id === selectedPlanId);
+    // myPlans now contains UserPlan objects. 
+    // We try to match by Generic Plan ID (p.plan.id) OR UserPlan ID (p.id)
+    const selectedPlanObj = myPlans.find(p => p.plan.id === selectedPlanId || p.id === selectedPlanId);
+
+    // Helper to get the mandated fixed amount (if any)
+    const getMandatedAmount = (userPlan: any) => {
+        if (!userPlan) return 0;
+
+        let amount: any = 0;
+
+        // 1. Ajo Circle (Priority: User Metadata)
+        if (userPlan.plan?.type === 'ajo_circle' || userPlan.type === 'ajo_circle') {
+            amount = userPlan.plan_metadata?.fixed_amount;
+        }
+        // 2. Standard Fixed Plan
+        else if (userPlan.plan?.contribution_type === 'fixed') {
+            amount = userPlan.plan.fixed_amount;
+        }
+
+        // Ensure it's a number
+        const num = parseFloat(amount);
+        return isNaN(num) ? 0 : num;
+    };
+
+    const mandatedAmount = getMandatedAmount(selectedPlanObj);
+    const isFixedAmount = mandatedAmount > 0;
 
     useEffect(() => {
-        if (selectedPlanObj && selectedPlanObj.contribution_type === 'fixed') {
-            setAmount(selectedPlanObj.fixed_amount.toString());
+        if (selectedPlanObj) {
+            const amt = getMandatedAmount(selectedPlanObj);
+            if (amt > 0) {
+                setAmount(amt.toString());
+            }
         }
     }, [selectedPlanObj]);
 
-    const isFixedAmount = selectedPlanObj?.contribution_type === 'fixed';
+    // Fee Logic for Ajo Circle
+    const getFee = () => {
+        if (selectedPlanObj?.plan?.type === 'ajo_circle' || selectedPlanObj?.type === 'ajo_circle') {
+            const config = selectedPlanObj?.plan?.config || selectedPlanObj?.config || {};
+            const fees = config.fees || {};
+            // For Ajo, the amount is the fixed amount (mandatedAmount) or the input amount
+            const amt = Number(amount) || mandatedAmount || 0;
+            return Number(fees[amt.toString()] || 0);
+        }
+        return 0;
+    };
+    const fee = getFee();
+    const totalDeduction = (Number(amount) || 0) + fee;
 
     return (
         <DialogContent className="dark:bg-gray-900 dark:border-gray-800 max-w-md max-h-[90vh] overflow-y-auto">
@@ -367,8 +464,8 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose }: DepositModal
                             onChange={(e) => setSelectedPlanId(e.target.value)}
                         >
                             <option value="">General Wallet (Top Up)</option>
-                            {myPlans.map(plan => (
-                                <option key={plan.id} value={plan.id}>{plan.name}</option>
+                            {myPlans.map(up => (
+                                <option key={up.plan.id} value={up.plan.id}>{up.plan.name}</option>
                             ))}
                         </select>
                     </div>
@@ -384,10 +481,25 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose }: DepositModal
                             disabled={isFixedAmount} // Disable if fixed
                             className="dark:bg-gray-800 dark:border-gray-700 dark:text-white disabled:opacity-70 disabled:cursor-not-allowed"
                         />
-                        {isFixedAmount && (
-                            <p className="text-xs text-amber-600 dark:text-amber-400">
-                                This plan requires a fixed contribution of ${formatCurrency(selectedPlanObj.fixed_amount)}.
-                            </p>
+                        {(isFixedAmount || fee > 0) && (
+                            <div className="mt-2 rounded-lg bg-gray-50 dark:bg-gray-800 p-3 border border-gray-100 dark:border-gray-700 space-y-2">
+                                {isFixedAmount && (
+                                    <div className="flex justify-between items-center text-xs">
+                                        <span className="text-gray-500 dark:text-gray-400">Fixed Contribution</span>
+                                        <span className="font-medium text-gray-900 dark:text-white">₦{formatCurrency(mandatedAmount)}</span>
+                                    </div>
+                                )}
+                                {fee > 0 && (
+                                    <div className="flex justify-between items-center text-xs">
+                                        <span className="text-gray-500 dark:text-gray-400">Service Charge</span>
+                                        <span className="font-medium text-gray-900 dark:text-white">₦{formatCurrency(fee)}</span>
+                                    </div>
+                                )}
+                                <div className="pt-2 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center text-sm font-bold">
+                                    <span className="text-gray-700 dark:text-gray-300">Total Deduction</span>
+                                    <span className="text-emerald-600 dark:text-emerald-400">₦{formatCurrency(totalDeduction)}</span>
+                                </div>
+                            </div>
                         )}
                     </div>
 
@@ -477,8 +589,8 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose }: DepositModal
                             onChange={(e) => setSelectedPlanId(e.target.value)}
                         >
                             <option value="" disabled>Select a Plan</option>
-                            {myPlans.map(plan => (
-                                <option key={plan.id} value={plan.id}>{plan.name}</option>
+                            {myPlans.map(up => (
+                                <option key={up.plan.id} value={up.plan.id}>{up.plan.name}</option>
                             ))}
                         </select>
                     </div>
@@ -495,10 +607,25 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose }: DepositModal
                             disabled={isFixedAmount} // Disable if fixed
                             className="dark:bg-gray-800 dark:border-gray-700 dark:text-white disabled:opacity-70 disabled:cursor-not-allowed"
                         />
-                        {isFixedAmount && (
-                            <p className="text-xs text-amber-600 dark:text-amber-400">
-                                This plan requires a fixed contribution of ${formatCurrency(selectedPlanObj.fixed_amount)}.
-                            </p>
+                        {(isFixedAmount || fee > 0) && (
+                            <div className="mt-2 rounded-lg bg-gray-50 dark:bg-gray-800 p-3 border border-gray-100 dark:border-gray-700 space-y-2">
+                                {isFixedAmount && (
+                                    <div className="flex justify-between items-center text-xs">
+                                        <span className="text-gray-500 dark:text-gray-400">Fixed Contribution</span>
+                                        <span className="font-medium text-gray-900 dark:text-white">₦{formatCurrency(mandatedAmount)}</span>
+                                    </div>
+                                )}
+                                {fee > 0 && (
+                                    <div className="flex justify-between items-center text-xs">
+                                        <span className="text-gray-500 dark:text-gray-400">Service Charge</span>
+                                        <span className="font-medium text-gray-900 dark:text-white">₦{formatCurrency(fee)}</span>
+                                    </div>
+                                )}
+                                <div className="pt-2 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center text-sm font-bold">
+                                    <span className="text-gray-700 dark:text-gray-300">Total Deduction</span>
+                                    <span className="text-emerald-600 dark:text-emerald-400">₦{formatCurrency(totalDeduction)}</span>
+                                </div>
+                            </div>
                         )}
                     </div>
                     {/* ... */}
