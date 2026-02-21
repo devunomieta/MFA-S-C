@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
 import { toast } from "sonner";
 import { useAuth } from "@/app/context/AuthContext";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/app/components/ui/dialog";
 import { DepositModal } from "@/app/components/DepositModal";
 import { checkAndProcessMaturity } from "@/lib/planUtils";
@@ -45,6 +45,19 @@ export function Plans() {
 
     const [loading, setLoading] = useState(true);
     const [viewingPlan, setViewingPlan] = useState<{ plan: Plan; userPlan?: UserPlan } | null>(null);
+    const [searchParams] = useSearchParams();
+
+    useEffect(() => {
+        const joinPlanId = searchParams.get('join');
+        if (joinPlanId && availablePlans.length > 0) {
+            const planToJoin = availablePlans.find(p => p.id === joinPlanId || p.type === joinPlanId);
+            if (planToJoin) {
+                setViewingPlan({ plan: planToJoin });
+                // Remove parameter from URL
+                window.history.replaceState({}, '', window.location.pathname);
+            }
+        }
+    }, [availablePlans, searchParams]);
 
     useEffect(() => {
         fetchPlans();

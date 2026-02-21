@@ -1,5 +1,6 @@
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
+import { PasswordInput } from "@/app/components/ui/PasswordInput";
 import { Label } from "@/app/components/ui/label";
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
@@ -81,10 +82,9 @@ export function Login() {
                         </div>
                         <div>
                             <Label htmlFor="password">Password</Label>
-                            <Input
+                            <PasswordInput
                                 id="password"
                                 name="password"
-                                type="password"
                                 autoComplete="current-password"
                                 required
                                 className="mt-1"

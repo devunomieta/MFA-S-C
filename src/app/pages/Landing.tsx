@@ -1,5 +1,4 @@
 import { Hero } from "@/app/components/Hero";
-import { Features } from "@/app/components/Features";
 import { Benefits } from "@/app/components/Benefits";
 import { HowItWorks } from "@/app/components/HowItWorks";
 import { Stats } from "@/app/components/Stats";
@@ -12,9 +11,6 @@ export function Landing() {
     return (
         <>
             <Hero />
-            <section id="features">
-                <Features />
-            </section>
             <Benefits />
             <section id="how-it-works">
                 <HowItWorks />

@@ -1,42 +1,42 @@
 import { motion } from "motion/react";
-import { Zap, Shield, HeartHandshake, TrendingUp, Smartphone, Lock } from "lucide-react";
+import { Zap, Shield, TrendingUp, Users, Bell, Award, Lock, Star } from "lucide-react";
 
 const benefits = [
   {
-    icon: Zap,
-    title: "Instant Setup",
-    description: "Create your account and start saving in under 3 minutes",
-    gradient: "from-yellow-400 to-orange-500"
-  },
-  {
-    icon: Shield,
-    title: "Protected Funds",
-    description: "Your money is insured and protected by regulatory standards",
-    gradient: "from-blue-400 to-indigo-500"
-  },
-  {
-    icon: HeartHandshake,
-    title: "Community Support",
-    description: "Join a supportive community of savers helping each other succeed",
-    gradient: "from-pink-400 to-rose-500"
-  },
-  {
-    icon: TrendingUp,
-    title: "Financial Growth",
-    description: "Earn competitive interest rates on all your contributions",
+    icon: Users,
+    title: "Group Savings",
+    description: "Save together with friends and family towards common financial goals",
     gradient: "from-emerald-400 to-teal-500"
   },
   {
-    icon: Smartphone,
-    title: "Mobile First",
-    description: "Manage your savings anywhere with our mobile-optimized platform",
+    icon: Shield,
+    title: "100% Secure",
+    description: "Bank-grade encryption ensures your funds and data are always protected",
+    gradient: "from-blue-400 to-indigo-500"
+  },
+  {
+    icon: TrendingUp,
+    title: "Earn More",
+    description: "Enjoy competitive interest rates that help your savings grow faster",
+    gradient: "from-rose-400 to-pink-500"
+  },
+  {
+    icon: Zap,
+    title: "Instant Setup",
+    description: "Start your savings journey in minutes with our streamlined registration",
+    gradient: "from-amber-400 to-orange-500"
+  },
+  {
+    icon: Bell,
+    title: "Smart Reminders",
+    description: "Automated alerts so you never miss a contribution or payout turn",
     gradient: "from-purple-400 to-violet-500"
   },
   {
-    icon: Lock,
-    title: "Bank-Level Security",
-    description: "256-bit encryption keeps your data and funds secure",
-    gradient: "from-cyan-400 to-blue-500"
+    icon: Award,
+    title: "Trusted Platform",
+    description: "Join thousands of successful savers in our growing community",
+    gradient: "from-cyan-400 to-sky-500"
   }
 ];
 
@@ -59,11 +59,11 @@ export function Benefits() {
           transition={{ duration: 0.6 }}
           className="text-center mb-16 space-y-4"
         >
-          <h2 className="text-3xl md:text-4xl lg:text-5xl">
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold">
             Built for <span className="text-emerald-600">Your Success</span>
           </h2>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Experience the perfect blend of traditional Ajo values with modern technology
+            Combining traditional P2P savings values with world-class modern technology
           </p>
         </motion.div>
 
@@ -84,7 +84,7 @@ export function Benefits() {
                 <motion.div
                   className={`absolute inset-0 bg-gradient-to-br ${benefit.gradient} rounded-2xl opacity-0 group-hover:opacity-10 transition-opacity duration-300`}
                 />
-                
+
                 {/* Card content */}
                 <div className="relative bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-shadow border-2 border-gray-100 group-hover:border-emerald-200 h-full">
                   {/* Animated icon container */}

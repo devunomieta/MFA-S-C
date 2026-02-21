@@ -1,5 +1,5 @@
 import { Button } from "@/app/components/ui/button";
-import { Input } from "@/app/components/ui/input";
+import { PasswordInput } from "@/app/components/ui/PasswordInput";
 import { Label } from "@/app/components/ui/label";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
@@ -52,10 +52,9 @@ export function UpdatePassword() {
                     <div className="space-y-4">
                         <div>
                             <Label htmlFor="password">New Password</Label>
-                            <Input
+                            <PasswordInput
                                 id="password"
                                 name="password"
-                                type="password"
                                 autoComplete="new-password"
                                 required
                                 className="mt-1"
@@ -66,10 +65,9 @@ export function UpdatePassword() {
                         </div>
                         <div>
                             <Label htmlFor="confirm-password">Confirm New Password</Label>
-                            <Input
+                            <PasswordInput
                                 id="confirm-password"
                                 name="confirmPassword"
-                                type="password"
                                 autoComplete="new-password"
                                 required
                                 className="mt-1"

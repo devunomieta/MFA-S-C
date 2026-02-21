@@ -13,6 +13,7 @@ interface AuthContextType {
     savedSessions: SavedSession[];
     switchAccount: (session: Session) => Promise<void>;
     addAccount: () => void;
+    lastActivity: number;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -24,6 +25,7 @@ const AuthContext = createContext<AuthContextType>({
     savedSessions: [],
     switchAccount: async () => { },
     addAccount: () => { },
+    lastActivity: Date.now(),
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -32,6 +34,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [isAdmin, setIsAdmin] = useState(false);
     const [loading, setLoading] = useState(true);
     const [savedSessions, setSavedSessions] = useState<SavedSession[]>([]);
+    const [lastActivity, setLastActivity] = useState<number>(Date.now());
 
     useEffect(() => {
         // Load stored sessions initially
@@ -63,7 +66,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         init();
 
-        // 2. Listen for changes
+        // 2. Inactivity Timer (4 hours for auto-logout)
+        let inactivityTimer: NodeJS.Timeout;
+        const AUTO_LOGOUT_TIMEOUT = 4 * 60 * 60 * 1000; // 4 hours
+
+        const resetTimer = () => {
+            const now = Date.now();
+            if (mounted) setLastActivity(now);
+
+            if (inactivityTimer) clearTimeout(inactivityTimer);
+            inactivityTimer = setTimeout(() => {
+                console.log("Auto-logout timeout reached. Signing out.");
+                signOut();
+            }, AUTO_LOGOUT_TIMEOUT);
+        };
+
+        const activityEvents = ['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart'];
+
+        activityEvents.forEach(event => {
+            window.addEventListener(event, resetTimer);
+        });
+
+        resetTimer();
+
+        // 3. Listen for changes
         const {
             data: { subscription },
         } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -90,6 +116,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return () => {
             mounted = false;
             subscription.unsubscribe();
+            activityEvents.forEach(event => {
+                window.removeEventListener(event, resetTimer);
+            });
+            if (inactivityTimer) clearTimeout(inactivityTimer);
         };
     }, []);
 
@@ -159,7 +189,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signOut,
         savedSessions,
         switchAccount,
-        addAccount
+        addAccount,
+        lastActivity
     };
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

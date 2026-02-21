@@ -1,5 +1,6 @@
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
+import { PasswordInput } from "@/app/components/ui/PasswordInput";
 import { Label } from "@/app/components/ui/label";
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
@@ -117,10 +118,9 @@ export function Signup() {
                         </div>
                         <div>
                             <Label htmlFor="password">Password</Label>
-                            <Input
+                            <PasswordInput
                                 id="password"
                                 name="password"
-                                type="password"
                                 autoComplete="new-password"
                                 required
                                 className="mt-1"
@@ -131,10 +131,9 @@ export function Signup() {
                         </div>
                         <div>
                             <Label htmlFor="confirm-password">Confirm Password</Label>
-                            <Input
+                            <PasswordInput
                                 id="confirm-password"
                                 name="confirmPassword"
-                                type="password"
                                 autoComplete="new-password"
                                 required
                                 className="mt-1"
@@ -142,6 +141,11 @@ export function Signup() {
                                 value={formData.confirmPassword}
                                 onChange={handleChange}
                             />
+                            {formData.confirmPassword && formData.password !== formData.confirmPassword && (
+                                <p className="mt-1 text-sm text-red-500 font-medium">
+                                    Passwords do not match
+                                </p>
+                            )}
                         </div>
                     </div>
 

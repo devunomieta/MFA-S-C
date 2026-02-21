@@ -1,5 +1,5 @@
 import { motion } from "motion/react";
-import { Mail, Phone, MapPin, MessageSquare, Send } from "lucide-react";
+import { Mail, Phone, MessageSquare, Send } from "lucide-react";
 import { Card, CardContent } from "@/app/components/ui/card";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
@@ -12,29 +12,22 @@ const contactInfo = [
     icon: Mail,
     title: "Email Us",
     content: "support@ajosave.com",
-    description: "We'll respond within 24 hours",
-    color: "from-emerald-500 to-teal-500"
+    description: "Response within 24 hours",
+    color: "from-emerald-600 to-emerald-400"
   },
   {
     icon: Phone,
     title: "Call Us",
     content: "+234 801 234 5678",
-    description: "Mon-Fri from 8am to 6pm",
-    color: "from-blue-500 to-cyan-500"
-  },
-  {
-    icon: MapPin,
-    title: "Visit Us",
-    content: "123 Savings Street",
-    description: "Lagos, Nigeria",
-    color: "from-purple-500 to-pink-500"
+    description: "Mon-Fri, 8am - 6pm",
+    color: "from-blue-600 to-blue-400"
   },
   {
     icon: MessageSquare,
     title: "Live Chat",
     content: "Chat with our team",
     description: "Available 24/7",
-    color: "from-orange-500 to-yellow-500"
+    color: "from-indigo-600 to-indigo-400"
   }
 ];
 
@@ -95,16 +88,16 @@ export function Contact() {
           transition={{ duration: 0.6 }}
           className="text-center mb-16 space-y-4"
         >
-          <h2 className="text-3xl md:text-4xl lg:text-5xl">
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold">
             Get in <span className="text-emerald-600">Touch</span>
           </h2>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Have questions? We'd love to hear from you. Send us a message and we'll respond as soon as possible.
+            Have questions? We'd love to hear from you. Our support team is here to help you succeed.
           </p>
         </motion.div>
 
         {/* Contact Info Cards */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
+        <div className="grid md:grid-cols-3 gap-6 mb-16 max-w-5xl mx-auto">
           {contactInfo.map((info, index) => {
             const Icon = info.icon;
             return (
