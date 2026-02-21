@@ -10,6 +10,16 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { DepositModal } from "@/app/components/DepositModal";
 import { checkAndProcessMaturity } from "@/lib/planUtils";
 import { Plan, UserPlan } from "@/types"; // Use new types
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/app/components/ui/table";
+import { Badge } from "@/app/components/ui/badge";
+import { Info } from "lucide-react";
 import { MarathonPlanCard } from "./plans/MarathonPlanCard";
 import { MarathonJoinModal } from "./plans/MarathonJoinModal";
 import { SprintPlanCard } from "./plans/SprintPlanCard";
@@ -34,6 +44,7 @@ export function Plans() {
     const [joiningSprintPlan, setJoiningSprintPlan] = useState<Plan | null>(null);
 
     const [loading, setLoading] = useState(true);
+    const [viewingPlan, setViewingPlan] = useState<{ plan: Plan; userPlan?: UserPlan } | null>(null);
 
     useEffect(() => {
         fetchPlans();
@@ -257,6 +268,101 @@ export function Plans() {
     // Helper to check if already joined a specific plan
     const hasJoinedPlan = (planId: string) => myPlans.some(p => p.plan_id === planId && p.status !== 'cancelled' && p.status !== 'completed');
 
+    const PlanTable = ({ items, type }: { items: any[], type: 'available' | 'active' }) => (
+        <div className="rounded-md border border-gray-200 dark:border-gray-800 overflow-hidden bg-white dark:bg-gray-900 shadow-sm">
+            <Table>
+                <TableHeader className="bg-gray-50 dark:bg-gray-800/50">
+                    <TableRow>
+                        <TableHead className="w-12 font-semibold text-gray-900 dark:text-gray-100">S/N</TableHead>
+                        <TableHead className="font-semibold text-gray-900 dark:text-gray-100">Plan Name</TableHead>
+                        <TableHead className="font-semibold text-gray-900 dark:text-gray-100">Status</TableHead>
+                        <TableHead className="font-semibold text-gray-900 dark:text-gray-100">Duration</TableHead>
+                        <TableHead className="hidden md:table-cell font-semibold text-gray-900 dark:text-gray-100">Description</TableHead>
+                        {type === 'active' && (
+                            <TableHead className="text-right font-semibold text-gray-900 dark:text-gray-100">Saved Amount</TableHead>
+                        )}
+                        <TableHead className="text-right font-semibold text-gray-900 dark:text-gray-100">Actions</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {items.length === 0 ? (
+                        <TableRow>
+                            <TableCell colSpan={type === 'active' ? 7 : 6} className="h-24 text-center text-gray-500">
+                                No plans found.
+                            </TableCell>
+                        </TableRow>
+                    ) : (
+                        items.map((item, index) => {
+                            const plan = type === 'active' ? item.plan : item;
+                            const userPlan = type === 'active' ? item : myPlans.find(p => p.plan_id === plan.id && p.status !== 'cancelled');
+                            const isJoined = hasJoinedPlan(plan.id);
+
+                            return (
+                                <TableRow key={item.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors">
+                                    <TableCell className="text-gray-500 dark:text-gray-400 font-medium">
+                                        {index + 1}
+                                    </TableCell>
+                                    <TableCell className="font-medium text-gray-900 dark:text-gray-100">
+                                        <div className="flex items-center gap-2">
+                                            <div className={`w-1.5 h-6 rounded-full ${plan.type === 'marathon' ? 'bg-emerald-500' :
+                                                plan.type === 'sprint' ? 'bg-blue-500' :
+                                                    plan.type === 'anchor' ? 'bg-indigo-500' :
+                                                        plan.type === 'daily_drop' ? 'bg-cyan-500' :
+                                                            plan.type === 'step_up' ? 'bg-purple-500' :
+                                                                plan.type === 'monthly_bloom' ? 'bg-pink-500' :
+                                                                    'bg-orange-500'
+                                                }`} />
+                                            {plan.name}
+                                        </div>
+                                    </TableCell>
+                                    <TableCell>
+                                        {type === 'available' ? (
+                                            isJoined ? (
+                                                <Badge variant="outline" className="text-emerald-600 border-emerald-200 bg-emerald-50 dark:bg-emerald-900/20">Active</Badge>
+                                            ) : (
+                                                <Badge variant="outline" className="text-slate-500">Available</Badge>
+                                            )
+                                        ) : (
+                                            <Badge className={`
+                                                ${item.status === 'matured' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' :
+                                                    item.status === 'active' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-amber-400' :
+                                                        'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400'}
+                                            `}>
+                                                {item.status.replace('_', ' ')}
+                                            </Badge>
+                                        )}
+                                    </TableCell>
+                                    <TableCell className="text-sm text-gray-600 dark:text-gray-400">
+                                        {plan.duration_weeks ? `${plan.duration_weeks} Weeks` : (plan.duration_months ? `${plan.duration_months} Months` : 'Flexible')}
+                                    </TableCell>
+                                    <TableCell className="hidden md:table-cell text-sm text-gray-600 dark:text-gray-400 whitespace-normal min-w-[200px]">
+                                        {plan.description}
+                                    </TableCell>
+                                    {type === 'active' && (
+                                        <TableCell className="text-right font-bold text-gray-900 dark:text-gray-100">
+                                            ₦{formatCurrency(item.current_balance)}
+                                        </TableCell>
+                                    )}
+                                    <TableCell className="text-right">
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                                            onClick={() => setViewingPlan({ plan, userPlan })}
+                                        >
+                                            <Info className="w-4 h-4 mr-1" />
+                                            Details
+                                        </Button>
+                                    </TableCell>
+                                </TableRow>
+                            );
+                        })
+                    )}
+                </TableBody>
+            </Table>
+        </div>
+    );
+
     return (
         <div className="space-y-6">
             <div>
@@ -271,254 +377,11 @@ export function Plans() {
                 </TabsList>
 
                 <TabsContent value="available" className="space-y-4 pt-4">
-                    {availablePlans.length === 0 && !loading && (
-                        <div className="text-center py-10 text-gray-500">No plans available.</div>
-                    )}
-                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {availablePlans.map((plan) => {
-                            // If already joined, maybe skip showing in available or show as "Active"
-                            const isJoined = hasJoinedPlan(plan.id);
-
-                            if (plan.type === 'marathon') {
-                                return (
-                                    <MarathonPlanCard
-                                        key={plan.id}
-                                        plan={plan}
-                                        userPlan={myPlans.find(p => p.plan_id === plan.id && p.status !== 'cancelled')}
-                                        onJoin={() => setJoiningMarathonPlan(plan)}
-                                        onDeposit={() => setSelectedPlanForDeposit(plan.id)} // Wait, if joined, userPlan needs to be passed
-                                    />
-                                );
-                            }
-
-                            if (plan.type === 'sprint') {
-                                return (
-                                    <SprintPlanCard
-                                        key={plan.id}
-                                        plan={plan}
-                                        userPlan={myPlans.find(p => p.plan_id === plan.id && p.status !== 'cancelled')}
-                                        onJoin={() => setJoiningSprintPlan(plan)}
-                                        onDeposit={() => setSelectedPlanForDeposit(plan.id)}
-                                    />
-                                );
-                            }
-
-                            if (plan.type === 'anchor') {
-                                return (
-                                    <AnchorPlanCard
-                                        key={plan.id}
-                                        plan={plan}
-                                        userPlan={myPlans.find(p => p.plan_id === plan.id && p.status !== 'cancelled')}
-                                        onJoin={() => fetchMyPlans()}
-                                        onDeposit={() => setSelectedPlanForDeposit(plan.id)}
-                                    />
-                                );
-                            }
-
-                            if (plan.type === 'daily_drop') {
-                                return (
-                                    <DailyDropPlanCard
-                                        key={plan.id}
-                                        plan={plan}
-                                        userPlan={myPlans.find(p => p.plan_id === plan.id && p.status !== 'cancelled')}
-                                        onJoin={() => fetchMyPlans()}
-                                        onDeposit={() => setSelectedPlanForDeposit(plan.id)}
-                                    />
-                                );
-                            }
-
-                            if (plan.type === 'step_up') {
-                                return (
-                                    <StepUpPlanCard
-                                        key={plan.id}
-                                        plan={plan}
-                                        userPlan={myPlans.find(p => p.plan_id === plan.id && p.status !== 'cancelled')}
-                                        onJoin={handleJoinStepUp}
-                                        onDeposit={() => setSelectedPlanForDeposit(plan.id)}
-                                    />
-                                );
-                            }
-
-                            if (plan.type === 'monthly_bloom') {
-                                return (
-                                    <MonthlyBloomPlanCard
-                                        key={plan.id}
-                                        plan={plan}
-                                        userPlan={myPlans.find(p => p.plan_id === plan.id && p.status !== 'cancelled')}
-                                        onJoin={handleJoinMonthlyBloom}
-                                        onDeposit={() => setSelectedPlanForDeposit(plan.id)}
-                                    />
-                                );
-                            }
-
-                            if (plan.type === 'ajo_circle') {
-                                return (
-                                    <AjoCirclePlanCard
-                                        key={plan.id}
-                                        plan={plan}
-                                        userPlan={myPlans.find(p => p.plan_id === plan.id && p.status !== 'cancelled')}
-                                        onJoin={handleJoinAjoCircle}
-                                        onDeposit={() => setSelectedPlanForDeposit(plan.id)}
-                                    />
-                                );
-                            }
-
-                            return (
-                                <Card key={plan.id} className="flex flex-col relative overflow-hidden hover:shadow-lg transition-all">
-                                    <CardHeader className="pb-2">
-                                        <CardTitle className="text-xl font-bold">{plan.name}</CardTitle>
-                                        <CardDescription>{plan.duration_weeks ? `${plan.duration_weeks} Weeks` : 'Flexible'}</CardDescription>
-                                    </CardHeader>
-                                    <CardContent className="flex-1 space-y-4">
-                                        <p className="text-sm text-gray-600">{plan.description}</p>
-                                        <div className="grid grid-cols-2 gap-3 p-3 bg-gray-50 rounded-lg">
-                                            <div>
-                                                <div className="text-[10px] text-gray-500 uppercase">Min. Deposit</div>
-                                                <div className="text-lg font-bold">${formatCurrency(plan.min_amount)}</div>
-                                            </div>
-                                        </div>
-                                    </CardContent>
-                                    <CardFooter>
-                                        {isJoined ? (
-                                            <Button className="w-full" disabled variant="outline">Already Active</Button>
-                                        ) : (
-                                            <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => joinStandardPlan(plan)}>
-                                                Join Plan
-                                            </Button>
-                                        )}
-                                    </CardFooter>
-                                </Card>
-                            );
-                        })}
-                    </div>
+                    <PlanTable items={availablePlans} type="available" />
                 </TabsContent>
 
                 <TabsContent value="my-plans" className="space-y-4 pt-4">
-                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {activePlans.map((userPlan) => {
-                            if (userPlan.plan.type === 'marathon') {
-                                return (
-                                    <MarathonPlanCard
-                                        key={userPlan.id}
-                                        plan={userPlan.plan}
-                                        userPlan={userPlan}
-                                        onJoin={() => { }} // Already joined
-                                        onDeposit={() => setSelectedPlanForDeposit(userPlan.plan.id)}
-                                    />
-                                );
-                            }
-
-                            if (userPlan.plan.type === 'sprint') {
-                                return (
-                                    <SprintPlanCard
-                                        key={userPlan.id}
-                                        plan={userPlan.plan}
-                                        userPlan={userPlan}
-                                        onJoin={() => fetchMyPlans()}
-                                        onDeposit={() => setSelectedPlanForDeposit(userPlan.plan.id)}
-                                    />
-                                );
-                            }
-
-                            if (userPlan.plan.type === 'anchor') {
-                                return (
-                                    <AnchorPlanCard
-                                        key={userPlan.id}
-                                        plan={userPlan.plan}
-                                        userPlan={userPlan}
-                                        onJoin={() => fetchMyPlans()}
-                                        onDeposit={() => setSelectedPlanForDeposit(userPlan.plan.id)}
-                                    />
-                                );
-                            }
-
-                            if (userPlan.plan.type === 'daily_drop') {
-                                return (
-                                    <DailyDropPlanCard
-                                        key={userPlan.id}
-                                        plan={userPlan.plan}
-                                        userPlan={userPlan}
-                                        onJoin={() => fetchMyPlans()}
-                                        onDeposit={() => setSelectedPlanForDeposit(userPlan.plan.id)}
-                                    />
-                                );
-                            }
-
-                            if (userPlan.plan.type === 'step_up') {
-                                return (
-                                    <StepUpPlanCard
-                                        key={userPlan.id}
-                                        plan={userPlan.plan}
-                                        userPlan={userPlan}
-                                        onJoin={() => fetchMyPlans()}
-                                        onDeposit={() => setSelectedPlanForDeposit(userPlan.plan.id)}
-                                    />
-                                );
-                            }
-
-                            if (userPlan.plan.type === 'monthly_bloom') {
-                                return (
-                                    <MonthlyBloomPlanCard
-                                        key={userPlan.id}
-                                        plan={userPlan.plan}
-                                        userPlan={userPlan}
-                                        onJoin={() => fetchMyPlans()}
-                                        onDeposit={() => setSelectedPlanForDeposit(userPlan.plan.id)}
-                                    />
-                                );
-                            }
-
-                            if (userPlan.plan.type === 'ajo_circle') {
-                                return (
-                                    <AjoCirclePlanCard
-                                        key={userPlan.id}
-                                        plan={userPlan.plan}
-                                        userPlan={userPlan}
-                                        onJoin={() => fetchMyPlans()}
-                                        onDeposit={() => setSelectedPlanForDeposit(userPlan.plan.id)}
-                                    />
-                                );
-                            }
-
-                            // Standard Plan Card Logic (Simplified for brevity, or keep original complex logic)
-                            const startDate = new Date(userPlan.start_date);
-                            const endDate = new Date(startDate);
-                            endDate.setDate(endDate.getDate() + (userPlan.plan.duration_weeks * 7));
-                            const isMatured = userPlan.status === 'matured';
-
-                            return (
-                                <Card key={userPlan.id} className="flex flex-col hover:shadow-lg transition-all">
-                                    <CardHeader className="pb-2">
-                                        <CardTitle>{userPlan.plan.name}</CardTitle>
-                                        <div className="text-xs text-gray-500">
-                                            Ends: {endDate.toLocaleDateString()}
-                                        </div>
-                                    </CardHeader>
-                                    <CardContent className="flex-1 space-y-4">
-                                        <div className="text-center">
-                                            <div className="text-3xl font-extrabold">${formatCurrency(userPlan.current_balance)}</div>
-                                        </div>
-                                    </CardContent>
-                                    <CardFooter className="flex-col gap-2">
-                                        {isMatured ? (
-                                            <Button className="w-full bg-emerald-600" asChild>
-                                                <Link to={`/dashboard/wallet?planId=${userPlan.plan.id}&action=withdraw`}>Withdraw</Link>
-                                            </Button>
-                                        ) : (
-                                            <>
-                                                <Button className="w-full bg-gray-900 text-white" onClick={() => setSelectedPlanForDeposit(userPlan.plan.id)}>
-                                                    Add Funds
-                                                </Button>
-                                                <Button variant="ghost" size="sm" className="w-full text-red-500" onClick={() => setBreakingPlan(userPlan)}>
-                                                    Break Savings
-                                                </Button>
-                                            </>
-                                        )}
-                                    </CardFooter>
-                                </Card>
-                            )
-                        })}
-                    </div>
+                    <PlanTable items={activePlans} type="active" />
                 </TabsContent>
             </Tabs>
 
@@ -528,6 +391,152 @@ export function Plans() {
                     onSuccess={() => fetchMyPlans()}
                     onClose={() => setSelectedPlanForDeposit(null)}
                 />
+            </Dialog>
+
+            {/* Plan Details Modal */}
+            <Dialog open={!!viewingPlan} onOpenChange={(open) => !open && setViewingPlan(null)}>
+                <DialogContent className="max-w-xl p-0 overflow-hidden bg-transparent border-none">
+                    {viewingPlan && (
+                        <div className="animate-in fade-in zoom-in duration-200">
+                            {viewingPlan.plan.type === 'marathon' && (
+                                <MarathonPlanCard
+                                    plan={viewingPlan.plan}
+                                    userPlan={viewingPlan.userPlan}
+                                    onJoin={() => {
+                                        setJoiningMarathonPlan(viewingPlan.plan);
+                                        setViewingPlan(null);
+                                    }}
+                                    onDeposit={() => {
+                                        setSelectedPlanForDeposit(viewingPlan.plan.id);
+                                        setViewingPlan(null);
+                                    }}
+                                />
+                            )}
+                            {viewingPlan.plan.type === 'sprint' && (
+                                <SprintPlanCard
+                                    plan={viewingPlan.plan}
+                                    userPlan={viewingPlan.userPlan}
+                                    onJoin={() => {
+                                        setJoiningSprintPlan(viewingPlan.plan);
+                                        setViewingPlan(null);
+                                    }}
+                                    onDeposit={() => {
+                                        setSelectedPlanForDeposit(viewingPlan.plan.id);
+                                        setViewingPlan(null);
+                                    }}
+                                />
+                            )}
+                            {viewingPlan.plan.type === 'anchor' && (
+                                <AnchorPlanCard
+                                    plan={viewingPlan.plan}
+                                    userPlan={viewingPlan.userPlan}
+                                    onJoin={() => {
+                                        joinStandardPlan(viewingPlan.plan);
+                                        setViewingPlan(null);
+                                    }}
+                                    onDeposit={() => {
+                                        setSelectedPlanForDeposit(viewingPlan.plan.id);
+                                        setViewingPlan(null);
+                                    }}
+                                />
+                            )}
+                            {viewingPlan.plan.type === 'daily_drop' && (
+                                <DailyDropPlanCard
+                                    plan={viewingPlan.plan}
+                                    userPlan={viewingPlan.userPlan}
+                                    onJoin={() => {
+                                        joinStandardPlan(viewingPlan.plan);
+                                        setViewingPlan(null);
+                                    }}
+                                    onDeposit={() => {
+                                        setSelectedPlanForDeposit(viewingPlan.plan.id);
+                                        setViewingPlan(null);
+                                    }}
+                                />
+                            )}
+                            {viewingPlan.plan.type === 'step_up' && (
+                                <StepUpPlanCard
+                                    plan={viewingPlan.plan}
+                                    userPlan={viewingPlan.userPlan}
+                                    onJoin={(p, a, d) => {
+                                        handleJoinStepUp(p, a, d);
+                                        setViewingPlan(null);
+                                    }}
+                                    onDeposit={() => {
+                                        setSelectedPlanForDeposit(viewingPlan.plan.id);
+                                        setViewingPlan(null);
+                                    }}
+                                />
+                            )}
+                            {viewingPlan.plan.type === 'monthly_bloom' && (
+                                <MonthlyBloomPlanCard
+                                    plan={viewingPlan.plan}
+                                    userPlan={viewingPlan.userPlan}
+                                    onJoin={(p, a, d) => {
+                                        handleJoinMonthlyBloom(p, a, d);
+                                        setViewingPlan(null);
+                                    }}
+                                    onDeposit={() => {
+                                        setSelectedPlanForDeposit(viewingPlan.plan.id);
+                                        setViewingPlan(null);
+                                    }}
+                                />
+                            )}
+                            {viewingPlan.plan.type === 'ajo_circle' && (
+                                <AjoCirclePlanCard
+                                    plan={viewingPlan.plan}
+                                    userPlan={viewingPlan.userPlan}
+                                    onJoin={(p, a) => {
+                                        handleJoinAjoCircle(p, a);
+                                        setViewingPlan(null);
+                                    }}
+                                    onDeposit={() => {
+                                        setSelectedPlanForDeposit(viewingPlan.plan.id);
+                                        setViewingPlan(null);
+                                    }}
+                                />
+                            )}
+
+                            {/* Standard Plan Fallback */}
+                            {!['marathon', 'sprint', 'anchor', 'daily_drop', 'step_up', 'monthly_bloom', 'ajo_circle'].includes(viewingPlan.plan.type) && (
+                                <Card className="p-6">
+                                    <div className="flex justify-between items-start mb-4">
+                                        <div>
+                                            <h2 className="text-2xl font-bold">{viewingPlan.plan.name}</h2>
+                                            <p className="text-gray-500">{viewingPlan.plan.description}</p>
+                                        </div>
+                                        <Badge variant="outline">
+                                            {viewingPlan.userPlan ? viewingPlan.userPlan.status : 'Available'}
+                                        </Badge>
+                                    </div>
+                                    <div className="space-y-4">
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="p-3 bg-gray-50 rounded">
+                                                <p className="text-xs text-gray-500">Min Amount</p>
+                                                <p className="text-lg font-bold">₦{formatCurrency(viewingPlan.plan.min_amount)}</p>
+                                            </div>
+                                            <div className="p-3 bg-gray-50 rounded">
+                                                <p className="text-xs text-gray-500">Duration</p>
+                                                <p className="text-lg font-bold">{viewingPlan.plan.duration_weeks} Weeks</p>
+                                            </div>
+                                        </div>
+                                        {viewingPlan.userPlan ? (
+                                            <div className="p-4 bg-emerald-50 rounded border border-emerald-100">
+                                                <p className="text-xs text-emerald-600">Current Balance</p>
+                                                <p className="text-2xl font-bold text-emerald-700">₦{formatCurrency(viewingPlan.userPlan.current_balance)}</p>
+                                            </div>
+                                        ) : (
+                                            <Button className="w-full bg-emerald-600" onClick={() => {
+                                                joinStandardPlan(viewingPlan.plan);
+                                                setViewingPlan(null);
+                                            }}>Join Now</Button>
+                                        )}
+                                    </div>
+                                </Card>
+                            )}
+                        </div>
+                    )}
+                </DialogContent>
             </Dialog>
 
             {/* Marathon Join Modal */}
