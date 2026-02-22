@@ -8,6 +8,7 @@ import { CreditCard, Copy, Upload, Trash2, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/app/context/AuthContext";
+import { logActivity } from "@/lib/activity";
 
 interface DepositModalProps {
     onSuccess: () => void;
@@ -193,6 +194,15 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose }: DepositModal
                 toast.error(`Deposit failed: ${error.message}`);
                 console.error(error);
             } else {
+                logActivity({
+                    userId: user.id,
+                    action: 'DEPOSIT',
+                    details: {
+                        amount: finalAmount,
+                        plan_name: selectedPlanId ? selectedPlanObj?.name : 'Wallet',
+                        display_name: user.user_metadata?.full_name?.split(' ')[0] || 'A user'
+                    }
+                });
                 finishSuccess("Deposit submitted for Admin Approval.");
             }
         } else {
@@ -248,6 +258,16 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose }: DepositModal
                     else if (planType === 'monthly_bloom') msg = `Monthly Bloom Deposit Successful! Progress Updated.`;
                     else if (planType === 'ajo_circle') msg = `Ajo Circle Deposit Successful! Week ${rpcData.week} Paid.`;
                     else if (planType === 'daily_drop') msg = `Daily Drop Successful! ${rpcData.days_advanced} Days Advanced.`;
+
+                    logActivity({
+                        userId: user.id,
+                        action: 'DEPOSIT',
+                        details: {
+                            amount: finalAmount,
+                            plan_name: selectedPlanObj?.plan?.name || selectedPlanObj?.name || 'Savings Plan',
+                            display_name: user.user_metadata?.full_name?.split(' ')[0] || 'A user'
+                        }
+                    });
                     finishSuccess(msg);
                 }
                 setUploading(false);
@@ -282,6 +302,15 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose }: DepositModal
             } else {
                 const updateSuccess = await updatePlanBalance(selectedPlanId);
                 if (updateSuccess) {
+                    logActivity({
+                        userId: user.id,
+                        action: 'DEPOSIT',
+                        details: {
+                            amount: finalAmount,
+                            plan_name: selectedPlanObj?.name || 'Savings Plan',
+                            display_name: user.user_metadata?.full_name?.split(' ')[0] || 'A user'
+                        }
+                    });
                     finishSuccess("Transfer successful!");
                 }
             }

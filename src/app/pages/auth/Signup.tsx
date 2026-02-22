@@ -6,6 +6,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import { logActivity } from "@/lib/activity";
 
 export function Signup() {
     const navigate = useNavigate();
@@ -45,21 +46,20 @@ export function Signup() {
 
             if (error) throw error;
 
-            if (data.session) {
+            if (data.session || data.user) {
+                const user = data.user!;
+                // Log public join activity
+                logActivity({
+                    userId: user.id,
+                    action: 'USER_JOIN',
+                    details: {
+                        display_name: formData.name.split(' ')[0], // Only first name for privacy
+                        full_name: formData.name
+                    },
+                    isPublic: true
+                });
+
                 toast.success("Account created");
-                navigate("/dashboard");
-            } else if (data.user) {
-                // Session is null but user exists -> email confirmation required
-                toast.success("Account created");
-                // If email verification is on, strict routing to dashboard might not make sense without session, 
-                // but user asked for "reroute to dashboard". 
-                // Since they can't do anything without session, maybe redirect to login or dashboard (which will kick them out to login if protected).
-                // Let's stick to the previous logic of login for verification flow, OR force dashboard if that's what they want (but ProtectedRoute will block).
-                // I will keep the routing logic sensible but update the text.
-                // Actually user said "Account created and then reroute to dashboard".
-                // If I route to dashboard and they aren't logged in, they get kicked back to login.
-                // Let's assume they might mean the "happy path" (session active).
-                // I'll leave the verification flow pointing to login to avoid confusion loop, or just point to dashboard which redirects.
                 navigate("/dashboard");
             }
         } catch (error: any) {

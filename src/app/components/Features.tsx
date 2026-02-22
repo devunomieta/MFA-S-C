@@ -15,8 +15,8 @@ const features = [
   },
   {
     icon: TrendingUp,
-    title: "Earn Interest",
-    description: "Watch your savings grow with competitive interest rates on all your contributions."
+    title: "Collective Growth",
+    description: "Watch your savings multiply with social accountability and group-based growth rewards."
   },
   {
     icon: Clock,

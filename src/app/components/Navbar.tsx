@@ -1,12 +1,14 @@
 import { Button } from "@/app/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
-import { Menu, X } from "lucide-react";
+import { Menu, X, ArrowRight, Home, Layout, Zap, Smartphone, Mail } from "lucide-react";
 import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/app/context/AuthContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/app/components/ui/dialog";
 import { PasswordInput } from "@/app/components/ui/PasswordInput";
 import { toast } from "sonner";
+import { ImageWithFallback } from "@/app/components/figma/ImageWithFallback";
 
 export function Navbar() {
   const { user, lastActivity } = useAuth();
@@ -70,7 +72,7 @@ export function Navbar() {
           <div className="text-2xl text-emerald-600 font-bold">
             <Link to="/">
               {logoUrl ? (
-                <img src={logoUrl} alt="AjoSave" className="h-10 w-auto object-contain" />
+                <ImageWithFallback src={logoUrl} alt="AjoSave" className="h-10 w-auto object-contain" />
               ) : (
                 "AjoSave"
               )}
@@ -128,48 +130,49 @@ export function Navbar() {
         </div>
 
         {/* Mobile Navigation */}
-        {isOpen && (
-          <div className="md:hidden py-4 border-t border-gray-200">
-            <div className="flex flex-col gap-4">
-              <a
-                href="/#plans"
-                className="text-gray-700 hover:text-emerald-600 transition-colors py-2"
+        <AnimatePresence>
+          {isOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="fixed inset-0 z-[100] md:hidden bg-white flex flex-col pt-20 px-6 h-[100dvh]"
+            >
+              <button
                 onClick={() => setIsOpen(false)}
+                className="absolute top-6 right-6 p-2 text-slate-900"
               >
-                Plans
-              </a>
-              <a
-                href="#features"
-                className="text-gray-700 hover:text-emerald-600 transition-colors py-2"
-                onClick={() => setIsOpen(false)}
-              >
-                Features
-              </a>
-              <a
-                href="#how-it-works"
-                className="text-gray-700 hover:text-emerald-600 transition-colors py-2"
-                onClick={() => setIsOpen(false)}
-              >
-                How It Works
-              </a>
-              <a
-                href="#testimonials"
-                className="text-gray-700 hover:text-emerald-600 transition-colors py-2"
-                onClick={() => setIsOpen(false)}
-              >
-                Testimonials
-              </a>
-              <a
-                href="#contact"
-                className="text-gray-700 hover:text-emerald-600 transition-colors py-2"
-                onClick={() => setIsOpen(false)}
-              >
-                Contact
-              </a>
-              <div className="flex flex-col gap-2 pt-4 border-t border-gray-200">
+                <X className="size-8" />
+              </button>
+
+              <div className="flex flex-col gap-8 items-center justify-center flex-1">
+                {[
+                  { name: "Home", href: "/", icon: <Home className="size-5" /> },
+                  { name: "Plans", href: "/#plans", icon: <Layout className="size-5" /> },
+                  { name: "Features", href: "#features", icon: <Zap className="size-5" /> },
+                  { name: "How It Works", href: "#how-it-works", icon: <Smartphone className="size-5" /> },
+                  { name: "Contact", href: "#contact", icon: <Mail className="size-5" /> }
+                ].map((item, i) => (
+                  <motion.a
+                    key={item.name}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.1 }}
+                    href={item.href}
+                    className="text-3xl font-black text-slate-900 flex items-center gap-4 hover:text-emerald-600 transition-colors"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    {item.icon}
+                    {item.name}
+                  </motion.a>
+                ))}
+              </div>
+
+              <div className="py-12 border-t border-slate-100 flex flex-col gap-4">
                 {user ? (
                   <Button
-                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
+                    size="lg"
+                    className="w-full h-16 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-lg font-bold"
                     onClick={() => {
                       setIsOpen(false);
                       handleDashboardClick();
@@ -179,20 +182,20 @@ export function Navbar() {
                   </Button>
                 ) : (
                   <>
-                    <Link to="/login" onClick={() => setIsOpen(false)}>
-                      <Button variant="outline" className="w-full">Log In</Button>
+                    <Link to="/login" onClick={() => setIsOpen(false)} className="w-full">
+                      <Button variant="outline" size="lg" className="w-full h-16 border-2 rounded-2xl text-lg font-bold">Log In</Button>
                     </Link>
-                    <Link to="/signup" onClick={() => setIsOpen(false)}>
-                      <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white">
-                        Sign Up
+                    <Link to="/signup" onClick={() => setIsOpen(false)} className="w-full">
+                      <Button size="lg" className="w-full h-16 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-lg font-bold">
+                        Create Free Account
                       </Button>
                     </Link>
                   </>
                 )}
               </div>
-            </div>
-          </div>
-        )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       <Dialog open={showVerifyModal} onOpenChange={setShowVerifyModal}>

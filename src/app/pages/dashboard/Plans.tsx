@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
 import { toast } from "sonner";
 import { useAuth } from "@/app/context/AuthContext";
+import { logActivity } from "@/lib/activity";
 import { Link, useSearchParams } from "react-router-dom";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/app/components/ui/dialog";
 import { DepositModal } from "@/app/components/DepositModal";
@@ -117,6 +118,14 @@ export function Plans() {
         if (error) {
             toast.error("Failed to initiate joining plan");
         } else {
+            logActivity({
+                userId: user.id,
+                action: 'PLAN_JOIN',
+                details: {
+                    plan_name: plan.name,
+                    display_name: user.user_metadata?.full_name?.split(' ')[0] || 'A user'
+                }
+            });
             toast.success(`Plan initiated! Please make a deposit to activate.`);
             setSelectedPlanForDeposit(plan.id);
         }
@@ -148,6 +157,14 @@ export function Plans() {
             toast.error("Failed to join Step-Up plan.");
             console.error(error);
         } else {
+            logActivity({
+                userId: user.id,
+                action: 'PLAN_JOIN',
+                details: {
+                    plan_name: 'Step-Up Habit',
+                    display_name: user.user_metadata?.full_name?.split(' ')[0] || 'A user'
+                }
+            });
             toast.success("Joined Step-Up Plan! Please make your first deposit.");
             fetchMyPlans();
         }
@@ -174,6 +191,14 @@ export function Plans() {
         if (error) {
             toast.error("Failed to join Monthly Bloom plan.");
         } else {
+            logActivity({
+                userId: user.id,
+                action: 'PLAN_JOIN',
+                details: {
+                    plan_name: 'Monthly Bloom',
+                    display_name: user.user_metadata?.full_name?.split(' ')[0] || 'A user'
+                }
+            });
             toast.success("Joined Monthly Bloom! Please make your first deposit.");
             fetchMyPlans();
         }
@@ -203,6 +228,14 @@ export function Plans() {
         if (error) {
             toast.error("Failed to join Ajo Circle.");
         } else {
+            logActivity({
+                userId: user.id,
+                action: 'PLAN_JOIN',
+                details: {
+                    plan_name: 'The Ajo Circle',
+                    display_name: user.user_metadata?.full_name?.split(' ')[0] || 'A user'
+                }
+            });
             toast.success("Joined The Ajo Circle! Admin will assign your picking turn soon.");
             fetchMyPlans();
         }

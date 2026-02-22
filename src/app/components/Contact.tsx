@@ -1,4 +1,4 @@
-import { motion } from "motion/react";
+import { motion } from "framer-motion";
 import { Mail, Phone, MessageSquare, Send } from "lucide-react";
 import { Card, CardContent } from "@/app/components/ui/card";
 import { Button } from "@/app/components/ui/button";
@@ -41,7 +41,6 @@ export function Contact() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle form submission
     console.log("Form submitted:", formData);
   };
 
@@ -53,200 +52,117 @@ export function Contact() {
   };
 
   return (
-    <section className="py-20 md:py-32 bg-gradient-to-br from-emerald-50 via-white to-teal-50 relative overflow-hidden">
-      {/* Background decoration */}
-      <motion.div
-        className="absolute top-0 right-0 w-96 h-96 bg-emerald-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20"
-        animate={{
-          scale: [1, 1.2, 1],
-          x: [0, 50, 0],
-        }}
-        transition={{
-          duration: 8,
-          repeat: Infinity,
-          ease: "easeInOut"
-        }}
-      />
-      <motion.div
-        className="absolute bottom-0 left-0 w-96 h-96 bg-teal-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20"
-        animate={{
-          scale: [1, 1.3, 1],
-          x: [0, -50, 0],
-        }}
-        transition={{
-          duration: 10,
-          repeat: Infinity,
-          ease: "easeInOut"
-        }}
-      />
+    <section className="py-24 md:py-32 bg-white relative overflow-hidden" id="contact">
+      <div className="container mx-auto px-4 relative z-10">
+        <div className="grid lg:grid-cols-2 gap-16 items-center">
+          {/* Left Side: Content & Info */}
+          <motion.div
+            initial={{ opacity: 0, x: -30 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            className="space-y-8"
+          >
+            <div className="space-y-4">
+              <h2 className="text-4xl md:text-5xl lg:text-6xl font-black text-slate-950 tracking-tight">
+                Get in <span className="text-emerald-600">Touch.</span>
+              </h2>
+              <p className="text-xl text-slate-600 font-medium leading-relaxed max-w-lg">
+                Have questions about how AjoSave works? Our specialized team is here to help you navigate your financial journey.
+              </p>
+            </div>
 
-      <div className="container mx-auto px-4 md:px-6 relative z-10">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="text-center mb-16 space-y-4"
-        >
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold">
-            Get in <span className="text-emerald-600">Touch</span>
-          </h2>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Have questions? We'd love to hear from you. Our support team is here to help you succeed.
-          </p>
-        </motion.div>
+            <div className="flex flex-col gap-6 py-4">
+              {contactInfo.map((info, index) => (
+                <div key={index} className="flex items-center gap-6 p-6 bg-slate-50 rounded-2xl border border-slate-100 group hover:border-emerald-200 transition-colors">
+                  <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${info.color} flex items-center justify-center shadow-lg shrink-0`}>
+                    <info.icon className="size-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-slate-950">{info.title}</h3>
+                    <p className="text-sm text-slate-600 font-medium">{info.content}</p>
+                    <p className="text-[10px] text-emerald-600 font-black uppercase tracking-widest mt-1">{info.description}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
 
-        {/* Contact Info Cards */}
-        <div className="grid md:grid-cols-3 gap-6 mb-16 max-w-5xl mx-auto">
-          {contactInfo.map((info, index) => {
-            const Icon = info.icon;
-            return (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-                whileHover={{ y: -5 }}
-              >
-                <Card className="border-2 hover:border-emerald-200 transition-colors h-full">
-                  <CardContent className="pt-6 text-center">
-                    <motion.div
-                      className={`mb-4 inline-flex items-center justify-center w-14 h-14 rounded-xl bg-gradient-to-br ${info.color}`}
-                      whileHover={{ scale: 1.1, rotate: 5 }}
-                      transition={{ type: "spring", stiffness: 300 }}
-                    >
-                      <Icon className="size-7 text-white" />
-                    </motion.div>
-                    <h3 className="text-lg mb-2">{info.title}</h3>
-                    <p className="text-gray-900 mb-1">{info.content}</p>
-                    <p className="text-sm text-gray-600">{info.description}</p>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            );
-          })}
-        </div>
+            <div className="p-10 bg-emerald-600 rounded-[2rem] border border-emerald-500 shadow-2xl shadow-emerald-600/20 space-y-4 relative overflow-hidden group text-white">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+              <div className="flex items-center gap-2 text-emerald-100">
+                <MessageSquare className="size-5" />
+                <span className="font-bold uppercase tracking-widest text-xs">Direct Support</span>
+              </div>
+              <h4 className="text-2xl font-bold">Need Assisted Management?</h4>
+              <p className="text-emerald-50/80 text-sm font-medium leading-relaxed">Join our community of over 50,000 savers and get real-time assistance through our dedicated channels. We can help you manage your circles manually.</p>
+              <Button variant="outline" className="bg-white/10 border-white/20 text-white hover:bg-white hover:text-emerald-700 font-bold rounded-xl h-12 transition-all">
+                Chat with an Expert
+              </Button>
+            </div>
+          </motion.div>
 
-        {/* Contact Form */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6, delay: 0.3 }}
-          className="max-w-3xl mx-auto"
-        >
-          <Card className="border-2 shadow-xl">
-            <CardContent className="pt-8">
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="grid md:grid-cols-2 gap-6">
-                  <motion.div
-                    initial={{ opacity: 0, x: -20 }}
-                    whileInView={{ opacity: 1, x: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.5, delay: 0.4 }}
-                  >
-                    <Label htmlFor="name">Full Name</Label>
+          {/* Right Side: Form */}
+          <motion.div
+            initial={{ opacity: 0, x: 30 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+          >
+            <Card className="border-0 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.1)] rounded-[2.5rem] overflow-hidden">
+              <CardContent className="p-10 bg-white">
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="name" className="text-sm font-bold text-slate-900 ml-1">Full Name</Label>
                     <Input
                       id="name"
                       name="name"
-                      placeholder="John Doe"
+                      placeholder="Jane Doe"
                       value={formData.name}
                       onChange={handleChange}
                       required
-                      className="mt-2"
+                      className="h-14 rounded-2xl border-slate-100 bg-slate-50 focus:bg-white transition-all focus:ring-emerald-500"
                     />
-                  </motion.div>
+                  </div>
 
-                  <motion.div
-                    initial={{ opacity: 0, x: 20 }}
-                    whileInView={{ opacity: 1, x: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.5, delay: 0.4 }}
-                  >
-                    <Label htmlFor="email">Email Address</Label>
+                  <div className="space-y-2">
+                    <Label htmlFor="email" className="text-sm font-bold text-slate-900 ml-1">Email Address</Label>
                     <Input
                       id="email"
                       name="email"
                       type="email"
-                      placeholder="john@example.com"
+                      placeholder="jane@example.com"
                       value={formData.email}
                       onChange={handleChange}
                       required
-                      className="mt-2"
+                      className="h-14 rounded-2xl border-slate-100 bg-slate-50 focus:bg-white transition-all focus:ring-emerald-500"
                     />
-                  </motion.div>
-                </div>
+                  </div>
 
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.5, delay: 0.5 }}
-                >
-                  <Label htmlFor="subject">Subject</Label>
-                  <Input
-                    id="subject"
-                    name="subject"
-                    placeholder="How can we help you?"
-                    value={formData.subject}
-                    onChange={handleChange}
-                    required
-                    className="mt-2"
-                  />
-                </motion.div>
+                  <div className="space-y-2">
+                    <Label htmlFor="message" className="text-sm font-bold text-slate-900 ml-1">Message</Label>
+                    <Textarea
+                      id="message"
+                      name="message"
+                      placeholder="How can we help you?"
+                      value={formData.message}
+                      onChange={handleChange}
+                      required
+                      rows={4}
+                      className="rounded-2xl border-slate-100 bg-slate-50 focus:bg-white transition-all focus:ring-emerald-500 p-4"
+                    />
+                  </div>
 
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.5, delay: 0.6 }}
-                >
-                  <Label htmlFor="message">Message</Label>
-                  <Textarea
-                    id="message"
-                    name="message"
-                    placeholder="Tell us more about your inquiry..."
-                    value={formData.message}
-                    onChange={handleChange}
-                    required
-                    rows={6}
-                    className="mt-2"
-                  />
-                </motion.div>
-
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.5, delay: 0.7 }}
-                >
                   <Button
                     type="submit"
                     size="lg"
-                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
+                    className="w-full h-16 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-lg font-bold shadow-xl shadow-emerald-600/20 active:scale-[0.98] transition-all"
                   >
-                    Send Message
+                    Send Inquiry
                     <Send className="ml-2 size-5" />
                   </Button>
-                </motion.div>
-              </form>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        {/* Additional Info */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6, delay: 0.8 }}
-          className="text-center mt-12"
-        >
-          <p className="text-gray-600">
-            Need immediate assistance? Our support team is available 24/7 to help you.
-          </p>
-        </motion.div>
+                </form>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
       </div>
     </section>
   );

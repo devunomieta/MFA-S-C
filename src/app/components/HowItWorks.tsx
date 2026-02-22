@@ -1,95 +1,85 @@
-import { UserPlus, Users2, Wallet, PartyPopper } from "lucide-react";
-import { motion } from "motion/react";
+import { Target, Users, Zap, TrendingUp } from "lucide-react";
+import { motion } from "framer-motion";
 
 const steps = [
   {
-    icon: UserPlus,
-    step: "Step 1",
-    title: "Create Your Account",
-    description: "Sign up in minutes with just your phone number and basic information. It's quick, easy, and secure."
+    title: "Set Your Financial Goal",
+    description: "Whether it's for a new business, school fees, or a home, start by defining what you're saving for.",
+    icon: <Target className="size-8 text-emerald-600" />,
+    color: "emerald"
   },
   {
-    icon: Users2,
-    step: "Step 2",
-    title: "Join or Create a Group",
-    description: "Start your own savings group or join an existing one. Invite friends, family, or trusted members."
+    title: "Join a Circle",
+    description: "Search for a savings group that matches your budget and schedule. P2P community at its best.",
+    icon: <Users className="size-8 text-blue-600" />,
+    color: "blue"
   },
   {
-    icon: Wallet,
-    step: "Step 3",
-    title: "Make Contributions",
-    description: "Set up automatic contributions or make manual deposits. Track everyone's progress in real-time."
+    title: "Save on Your Terms",
+    description: "Daily, weekly, or monthly—our automated system ensures you stay consistent without the stress.",
+    icon: <Zap className="size-8 text-orange-600" />,
+    color: "orange"
   },
   {
-    icon: PartyPopper,
-    step: "Step 4",
-    title: "Receive Your Payout",
-    description: "When it's your turn, receive the pooled amount directly to your account. Use it for your goals!"
+    title: "Collect Your Payout",
+    description: "When it's your turn, receive your total contributions directly to your bank account.",
+    icon: <TrendingUp className="size-8 text-emerald-600" />,
+    color: "emerald"
   }
 ];
 
 export function HowItWorks() {
   return (
-    <section className="py-20 md:py-32 bg-gradient-to-br from-emerald-50 to-teal-50">
-      <div className="container mx-auto px-4 md:px-6">
+    <section className="py-32 bg-slate-50 relative overflow-hidden" id="how-it-works">
+      {/* Background Glow */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-emerald-500/5 rounded-full blur-[120px]" />
+
+      <div className="container mx-auto px-4 relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="text-center mb-16 space-y-4"
+          className="text-center max-w-3xl mx-auto mb-24"
         >
-          <h2 className="text-3xl md:text-4xl lg:text-5xl">
-            How <span className="text-emerald-600">It Works</span>
-          </h2>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Getting started is simple. Follow these four easy steps to begin your savings journey.
-          </p>
+          <h2 className="text-4xl md:text-5xl font-black text-slate-950 mb-6">How AjoSave <span className="text-emerald-600">Works for You.</span></h2>
+          <p className="text-slate-600 text-lg font-medium">Four simple steps to financial discipline. No paperwork, no hidden fees, just pure community savings.</p>
         </motion.div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {steps.map((item, index) => {
-            const Icon = item.icon;
-            return (
+        <div className="max-w-4xl mx-auto relative">
+          {/* Vertical Line */}
+          <div className="absolute left-[27px] md:left-1/2 md:-translate-x-1/2 top-4 bottom-4 w-1 bg-gradient-to-b from-emerald-500/0 via-emerald-500/20 to-emerald-500/0" />
+
+          <div className="space-y-24">
+            {steps.map((step, index) => (
               <motion.div
                 key={index}
-                className="relative"
-                initial={{ opacity: 0, scale: 0.8 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: index * 0.15 }}
+                initial={{ opacity: 0, y: 40 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ margin: "-100px" }}
+                className={`relative flex flex-col md:flex-row items-center gap-12 ${index % 2 !== 0 ? 'md:flex-row-reverse' : ''}`}
               >
-                {/* Connecting Line - Hidden on last item */}
-                {index < steps.length - 1 && (
-                  <motion.div
-                    className="hidden lg:block absolute top-16 left-1/2 w-full h-0.5 bg-emerald-200 z-0"
-                    initial={{ scaleX: 0 }}
-                    whileInView={{ scaleX: 1 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.8, delay: index * 0.2 + 0.5 }}
-                  />
-                )}
-                
-                <motion.div
-                  className="relative bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-shadow z-10"
-                  whileHover={{ y: -10, scale: 1.02 }}
-                  transition={{ type: "spring", stiffness: 300 }}
-                >
-                  <motion.div
-                    className="mb-6 inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-600 text-white"
-                    whileHover={{ rotate: 360 }}
-                    transition={{ duration: 0.6 }}
-                  >
-                    <Icon className="size-8" />
-                  </motion.div>
-                  
-                  <div className="text-sm text-emerald-600 mb-2">{item.step}</div>
-                  <h3 className="text-xl mb-3">{item.title}</h3>
-                  <p className="text-gray-600">{item.description}</p>
-                </motion.div>
+                {/* Dot */}
+                <div className="absolute left-0 md:left-1/2 md:-translate-x-1/2 flex items-center justify-center">
+                  <div className="w-14 h-14 rounded-full bg-white border-4 border-emerald-500 flex items-center justify-center z-20 shadow-xl shadow-emerald-500/10">
+                    {step.icon}
+                  </div>
+                </div>
+
+                {/* Content */}
+                <div className="flex-1 ml-20 md:ml-0">
+                  <div className={`p-8 rounded-[2rem] bg-white border border-slate-100 shadow-sm transition-all hover:shadow-md group ${index % 2 === 0 ? 'md:text-right' : 'md:text-left'}`}>
+                    <div className={`text-emerald-600 font-black text-6xl opacity-5 absolute ${index % 2 === 0 ? 'left-8' : 'right-8'} top-4`}>
+                      0{index + 1}
+                    </div>
+                    <h3 className="text-2xl font-bold text-slate-950 mb-3 group-hover:text-emerald-600 transition-colors">{step.title}</h3>
+                    <p className="text-slate-600 font-medium leading-relaxed">{step.description}</p>
+                  </div>
+                </div>
+
+                {/* Empty spacer for desktop layout */}
+                <div className="hidden md:block flex-1" />
               </motion.div>
-            );
-          })}
+            ))}
+          </div>
         </div>
       </div>
     </section>

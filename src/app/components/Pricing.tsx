@@ -1,4 +1,4 @@
-import { motion } from "motion/react";
+import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Button } from "@/app/components/ui/button";
 import { useNavigate } from "react-router-dom";
@@ -12,7 +12,8 @@ import {
   TrendingUp,
   Flower2,
   Check,
-  Sparkles
+  Sparkles,
+  Star
 } from "lucide-react";
 
 const plans = [
@@ -20,49 +21,64 @@ const plans = [
     id: "marathon",
     name: "Marathon",
     icon: <Target className="size-6" />,
-    color: "emerald",
-    price: "Flexible",
-    description: "Long-term targeted savings for big dreams",
-    features: ["Custom target", "Choose duration", "Flexible amounts", "Goal tracking"],
+    color: "bg-slate-900",
+    price: "Long-Term",
+    minAmount: "₦50k/month",
+    duration: "6 - 24 Months",
+    activeSavers: "12,402",
+    description: "Targeted savings for major milestones.",
+    features: ["Custom target", "Choose duration", "Flexible amounts", "Goal tracking", "Assisted management"],
     popular: true
   },
   {
     id: "sprint",
     name: "Sprint",
     icon: <Zap className="size-6" />,
-    color: "blue",
-    price: "Fixed",
-    description: "Short-term targeted savings for quick wins",
-    features: ["Quick cycles", "Specific goals", "Weekly payouts", "Low barrier"],
+    color: "bg-emerald-600",
+    price: "Short-Term",
+    minAmount: "₦5k/week",
+    duration: "1 - 3 Months",
+    activeSavers: "8,921",
+    description: "Quick targeted savings for urgent needs.",
+    features: ["Weekly circles", "Specific goals", "Automated saves", "Fast payouts"],
     popular: false
   },
   {
     id: "ajo_circle",
     name: "Ajo Circle",
     icon: <Users className="size-6" />,
-    color: "rose",
-    price: "Group",
-    description: "Traditional rotating P2P savings and credit",
-    features: ["Social saving", "Rotating turns", "Accountability", "Admin managed"],
-    popular: false
+    color: "bg-emerald-600",
+    price: "Social",
+    minAmount: "₦10k/month",
+    duration: "Flexible",
+    activeSavers: "25,188",
+    description: "Traditional rotating community savings.",
+    features: ["Social saving", "Rotating turns", "Accountability", "Secure payout", "Manual transfer supported"],
+    popular: true
   },
   {
     id: "anchor",
     name: "Anchor",
     icon: <Anchor className="size-6" />,
-    color: "indigo",
-    price: "Stability",
-    description: "Consistent daily or weekly fixed savings",
-    features: ["Steady growth", "Automated saves", "Discipline builder", "Fixed amounts"],
+    color: "bg-slate-900",
+    price: "Stable",
+    minAmount: "₦2k/day",
+    duration: "3 - 12 Months",
+    activeSavers: "5,301",
+    description: "Daily or weekly fixed contributions.",
+    features: ["Steady saving", "Automated saves", "Discipline builder", "Fixed amounts"],
     popular: false
   },
   {
     id: "daily_drop",
     name: "Daily Drop",
     icon: <Droplets className="size-6" />,
-    color: "cyan",
+    color: "bg-teal-900",
     price: "Micro",
-    description: "Small daily contributions that add up",
+    minAmount: "₦1k/day",
+    duration: "Ongoing",
+    activeSavers: "15,224",
+    description: "Small daily contributions that add up.",
     features: ["Daily micro-saves", "Tiny increments", "Loose change tool", "Auto-deduct"],
     popular: false
   },
@@ -70,66 +86,71 @@ const plans = [
     id: "step_up",
     name: "Step Up",
     icon: <TrendingUp className="size-6" />,
-    color: "purple",
-    price: "Growth",
-    description: "Increasing weekly amounts to build habit",
-    features: ["Escalating saves", "Habit formation", "Interest bonus", "Weekly increments"],
+    color: "bg-teal-900",
+    price: "Habit",
+    minAmount: "₦1k/week (Starts)",
+    duration: "6 Months",
+    activeSavers: "3,110",
+    description: "Increasing amounts to build discipline.",
+    features: ["Escalating saves", "Habit formation", "Completion bonus", "Weekly increments"],
     popular: false
   },
   {
     id: "monthly_bloom",
     name: "Monthly Bloom",
     icon: <Flower2 className="size-6" />,
-    color: "pink",
+    color: "bg-slate-900",
     price: "Monthly",
-    description: "Fixed monthly targets for seasonal needs",
-    features: ["Month-end goals", "Predictable saves", "Major payouts", "Low frequency"],
+    minAmount: "₦20k/month",
+    duration: "12 Months",
+    activeSavers: "6,442",
+    description: "Fixed monthly targets for seasonal needs.",
+    features: ["Month-end goals", "Predictable saves", "Major payouts", "Low frequency", "Assisted management"],
     popular: false
   }
 ];
 
 const colorVariants: Record<string, string> = {
-  emerald: "border-emerald-500 text-emerald-600 bg-emerald-50",
-  blue: "border-blue-500 text-blue-600 bg-blue-50",
-  rose: "border-rose-500 text-rose-600 bg-rose-50",
-  indigo: "border-indigo-500 text-indigo-600 bg-indigo-50",
-  cyan: "border-cyan-500 text-cyan-600 bg-cyan-50",
-  purple: "border-purple-500 text-purple-600 bg-purple-50",
-  pink: "border-pink-500 text-pink-600 bg-pink-50",
+  "bg-emerald-600": "border-emerald-600 text-emerald-600 bg-emerald-50",
+  "bg-teal-900": "border-teal-900 text-teal-900 bg-teal-50",
+  "bg-slate-900": "border-slate-900 text-slate-900 bg-slate-50",
 };
 
 const buttonVariants: Record<string, string> = {
-  emerald: "bg-emerald-600 hover:bg-emerald-700",
-  blue: "bg-blue-600 hover:bg-blue-700",
-  rose: "bg-rose-600 hover:bg-rose-700",
-  indigo: "bg-indigo-600 hover:bg-indigo-700",
-  cyan: "bg-cyan-600 hover:bg-cyan-700",
-  purple: "bg-purple-600 hover:bg-purple-700",
-  pink: "bg-pink-600 hover:bg-pink-700",
+  "bg-emerald-600": "bg-emerald-600 hover:bg-emerald-700",
+  "bg-teal-900": "bg-teal-900 hover:bg-teal-800",
+  "bg-slate-900": "bg-slate-900 hover:bg-slate-800",
 };
 
 export function Pricing() {
   const navigate = useNavigate();
   const { user } = useAuth();
+
   return (
-    <section id="plans" className="py-20 md:py-32 bg-slate-50">
-      <div className="container mx-auto px-4 md:px-6">
+    <section id="plans" className="py-32 bg-slate-50 relative overflow-hidden">
+      {/* Decorative blobs */}
+      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-emerald-100/30 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/2" />
+      <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-blue-100/20 rounded-full blur-[120px] translate-y-1/2 -translate-x-1/2" />
+
+      <div className="container mx-auto px-4 relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="text-center mb-16 space-y-4"
+          className="text-center mb-20 space-y-4"
         >
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold">
-            Tailored <span className="text-emerald-600">Savings Plans</span>
+          <div className="inline-flex items-center gap-2 bg-emerald-100 text-emerald-700 px-4 py-2 rounded-full mb-4">
+            <Star className="size-4 fill-emerald-600" />
+            <span className="text-xs font-black uppercase tracking-widest">Flexible Options</span>
+          </div>
+          <h2 className="text-4xl md:text-5xl font-black text-slate-950">
+            Tailored <span className="text-emerald-600">Savings Plans.</span>
           </h2>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Find the perfect strategy to achieve your financial goals with our diverse range of plans.
+          <p className="text-lg text-slate-600 font-medium max-w-2xl mx-auto">
+            Choose the strategy that fits your lifestyle. From daily drops to monthly blooms, we've got you covered.
           </p>
         </motion.div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 max-w-7xl mx-auto">
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
           {plans.map((plan, index) => (
             <motion.div
               key={index}
@@ -148,31 +169,44 @@ export function Pricing() {
                 </div>
               )}
 
-              <Card className={`h-full border-2 transition-all group-hover:shadow-xl ${plan.popular ? 'border-emerald-500 ring-2 ring-emerald-500/10' : 'border-gray-100'}`}>
-                <CardHeader className="space-y-4">
-                  <div className={`p-3 rounded-xl w-fit ${colorVariants[plan.color]}`}>
+              <Card className={`h-full border-2 transition-all duration-500 rounded-[2.5rem] overflow-hidden group-hover:shadow-[0_20px_50px_rgba(0,0,0,0.1)] ${plan.popular ? 'border-emerald-500 bg-white ring-4 ring-emerald-500/10' : 'border-white bg-white/70 backdrop-blur-sm'}`}>
+                <CardHeader className="space-y-6 p-8 pb-0">
+                  <div className={`p-4 rounded-2xl w-fit shadow-lg ${colorVariants[plan.color]}`}>
                     {plan.icon}
                   </div>
                   <div>
-                    <CardTitle className="text-xl font-bold">{plan.name}</CardTitle>
-                    <p className="text-sm text-gray-500 mt-1">{plan.description}</p>
+                    <CardTitle className="text-2xl font-black text-slate-950 tracking-tight">{plan.name}</CardTitle>
+                    <p className="text-sm text-slate-500 font-medium mt-2 leading-relaxed">{plan.description}</p>
                   </div>
-                  <div className="pt-2">
-                    <span className="text-2xl font-bold text-gray-900">{plan.price}</span>
+                  <div className="pt-2 border-b border-slate-100 pb-6 space-y-4">
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-slate-400 font-bold uppercase tracking-widest">Amount</span>
+                      <span className="text-slate-900 font-black">{plan.minAmount}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-slate-400 font-bold uppercase tracking-widest">Duration</span>
+                      <span className="text-slate-900 font-black">{plan.duration}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-slate-400 font-bold uppercase tracking-widest">Savers</span>
+                      <span className="text-emerald-600 font-black">{plan.activeSavers} Active</span>
+                    </div>
                   </div>
                 </CardHeader>
-                <CardContent className="space-y-6">
-                  <ul className="space-y-3">
+                <CardContent className="p-8 space-y-8">
+                  <ul className="space-y-4">
                     {plan.features.map((feature, fIdx) => (
-                      <li key={fIdx} className="flex items-center gap-2 text-sm text-gray-600">
-                        <Check className="size-4 text-emerald-500 shrink-0" />
+                      <li key={fIdx} className="flex items-start gap-3 text-sm text-slate-600 font-medium">
+                        <div className="p-0.5 rounded-full bg-emerald-100 shrink-0 mt-0.5">
+                          <Check className="size-3 text-emerald-600" />
+                        </div>
                         <span>{feature}</span>
                       </li>
                     ))}
                   </ul>
 
                   <Button
-                    className={`w-full text-white font-semibold transition-transform active:scale-95 ${buttonVariants[plan.color]}`}
+                    className={`w-full h-14 rounded-2xl text-white font-bold transition-all active:scale-95 shadow-lg ${buttonVariants[plan.color]}`}
                     onClick={() => {
                       if (user) {
                         navigate(`/dashboard/plans?join=${plan.id}`);
@@ -181,7 +215,7 @@ export function Pricing() {
                       }
                     }}
                   >
-                    Join Plan
+                    Join Circle
                   </Button>
                 </CardContent>
               </Card>

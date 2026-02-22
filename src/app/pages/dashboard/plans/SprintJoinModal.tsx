@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { Plan } from "@/types";
 import { useAuth } from "@/app/context/AuthContext";
+import { logActivity } from "@/lib/activity";
 
 interface GenericJoinModalProps {
     plan: Plan; // Or partial plan details
@@ -51,6 +52,14 @@ export function SprintJoinModal({ plan, isOpen, onClose, onSuccess, customTitle,
         if (error) {
             toast.error(`Failed to join ${plan.name}: ` + error.message);
         } else {
+            logActivity({
+                userId: user.id,
+                action: 'PLAN_JOIN',
+                details: {
+                    plan_name: plan.name,
+                    display_name: user.user_metadata?.full_name?.split(' ')[0] || 'A user'
+                }
+            });
             toast.success(`Welcome to ${plan.name}!`);
             onSuccess();
             onClose();

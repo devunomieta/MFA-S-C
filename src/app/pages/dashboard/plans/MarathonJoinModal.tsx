@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/app/context/AuthContext";
 import { Plan } from "@/types";
+import { logActivity } from "@/lib/activity";
 
 interface MarathonJoinModalProps {
     plan: Plan;
@@ -49,6 +50,14 @@ export function MarathonJoinModal({ plan, isOpen, onClose, onSuccess }: Marathon
         if (error) {
             toast.error("Failed to join Marathon plan: " + error.message);
         } else {
+            logActivity({
+                userId: user.id,
+                action: 'PLAN_JOIN',
+                details: {
+                    plan_name: plan.name,
+                    display_name: user.user_metadata?.full_name?.split(' ')[0] || 'A user'
+                }
+            });
             toast.success(`Welcome to the ${weeks}-Week Marathon! Make your first deposit to start.`);
             onSuccess();
             onClose();
