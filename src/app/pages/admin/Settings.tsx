@@ -8,7 +8,7 @@ import { Textarea } from "@/app/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/app/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
 import { toast } from "sonner";
-import { Save, Mail, Settings as SettingsIcon, ShieldAlert, Megaphone, Trash2 } from "lucide-react";
+import { Save, Mail, Settings as SettingsIcon, Image as ImageIcon, Megaphone, Trash2 } from "lucide-react";
 
 
 export function AdminSettings() {
@@ -27,6 +27,7 @@ export function AdminSettings() {
         from_email: ""
     });
     const [logoUrl, setLogoUrl] = useState("");
+    const [uploadingLogo, setUploadingLogo] = useState(false);
     const [templates, setTemplates] = useState<any>({});
 
     // Announcement State
@@ -92,6 +93,38 @@ export function AdminSettings() {
         }
     }
 
+    async function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            setUploadingLogo(true);
+
+            try {
+                const fileExt = file.name.split('.').pop();
+                const fileName = `system_logo_${Date.now()}.${fileExt}`;
+                const filePath = `branding/${fileName}`;
+
+                const { error: uploadError } = await supabase.storage
+                    .from('branding')
+                    .upload(filePath, file);
+
+                if (uploadError) throw uploadError;
+
+                const { data: { publicUrl } } = supabase.storage
+                    .from('branding')
+                    .getPublicUrl(filePath);
+
+                setLogoUrl(publicUrl);
+                // Also update the general settings object so it's saved when user clicks Save in Branding
+                setGeneral({ ...general, logo_url: publicUrl });
+                toast.success("Logo uploaded. Remember to save settings.");
+            } catch (error: any) {
+                toast.error("Logo upload failed: " + error.message);
+            } finally {
+                setUploadingLogo(false);
+            }
+        }
+    }
+
     async function saveSettings(key: string, value: any) {
         try {
             const { error } = await supabase
@@ -117,7 +150,7 @@ export function AdminSettings() {
             <Tabs defaultValue="general" className="w-full">
                 <TabsList>
                     <TabsTrigger value="general" className="gap-2"><SettingsIcon className="w-4 h-4" /> General</TabsTrigger>
-                    <TabsTrigger value="branding" className="gap-2"><ShieldAlert className="w-4 h-4" /> Branding</TabsTrigger>
+                    <TabsTrigger value="branding" className="gap-2"><ImageIcon className="w-4 h-4" /> Branding</TabsTrigger>
                     <TabsTrigger value="email" className="gap-2"><Mail className="w-4 h-4" /> Email & SMTP</TabsTrigger>
                     <TabsTrigger value="announcements" className="gap-2"><Megaphone className="w-4 h-4" /> Announcements</TabsTrigger>
                 </TabsList>
@@ -156,6 +189,68 @@ export function AdminSettings() {
                             <div className="flex justify-end">
                                 <Button onClick={() => saveSettings('general', general)} className="bg-emerald-600 hover:bg-emerald-700">
                                     <Save className="w-4 h-4 mr-2" /> Save General Settings
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                <TabsContent value="branding" className="space-y-6 mt-4">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Branding & Visuals</CardTitle>
+                            <CardDescription>Customize the look of the platform.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            <div className="grid gap-4">
+                                <Label>Platform Logo</Label>
+                                <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-xl bg-slate-50 border-slate-200">
+                                    {logoUrl ? (
+                                        <div className="relative group">
+                                            <img src={logoUrl} alt="Logo Preview" className="max-h-32 object-contain" />
+                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-lg">
+                                                <Button
+                                                    variant="destructive"
+                                                    size="icon"
+                                                    onClick={() => setLogoUrl("")}
+                                                    className="h-8 w-8"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="text-center">
+                                            <ImageIcon className="w-12 h-12 text-slate-300 mx-auto mb-2" />
+                                            <p className="text-sm text-slate-500 mb-4">No logo uploaded yet</p>
+                                        </div>
+                                    )}
+
+                                    <div className="mt-4">
+                                        <input
+                                            type="file"
+                                            id="logo-upload"
+                                            className="hidden"
+                                            accept="image/*"
+                                            onChange={handleLogoUpload}
+                                        />
+                                        <Button
+                                            variant="outline"
+                                            onClick={() => document.getElementById('logo-upload')?.click()}
+                                            disabled={uploadingLogo}
+                                        >
+                                            {uploadingLogo ? "Uploading..." : (
+                                                <><ImageIcon className="w-4 h-4 mr-2" /> {logoUrl ? "Change Logo" : "Upload Logo"}</>
+                                            )}
+                                        </Button>
+                                    </div>
+                                    <p className="text-[10px] text-slate-400 mt-4">Recommended: PNG or SVG with transparent background.</p>
+                                </div>
+                            </div>
+
+                            <div className="flex justify-end pt-4 border-t">
+                                <Button onClick={() => saveSettings('general', { ...general, logo_url: logoUrl })} className="bg-emerald-600 hover:bg-emerald-700">
+                                    <Save className="w-4 h-4 mr-2" /> Save Branding
                                 </Button>
                             </div>
                         </CardContent>

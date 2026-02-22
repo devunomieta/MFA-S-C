@@ -13,6 +13,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { DepositModal } from "@/app/components/DepositModal";
 import { PlansDeck } from "@/app/components/wallet/PlansDeck";
 import { checkAndProcessMaturity } from "@/lib/planUtils";
+import { calculateBalance } from "@/lib/walletUtils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
 import { LoanRepaymentDialog } from "@/app/components/LoanRepaymentDialog";
 import { TransactionDetailsModal } from "@/app/components/wallet/TransactionDetailsModal";
@@ -174,29 +175,8 @@ export function Wallet() {
 
         if (data) {
             setTransactions(data);
-            const generalTx = data.filter(tx => !tx.plan_id);
-            const generalBal = generalTx.reduce((acc, curr) => {
-                const amt = Number(curr.amount);
-                const chg = Number(curr.charge || 0);
-
-                // Deposits/Income: Only add if COMPLETED
-                if ((curr.type === 'deposit' || curr.type === 'loan_disbursement' || curr.type === 'limit_transfer') && curr.status === 'completed') {
-                    return acc + amt - chg;
-                }
-
-                // Withdrawals/Expenses: Deduct if COMPLETED or PENDING (reserve funds)
-                if ((curr.type === 'withdrawal' || curr.type === 'loan_repayment') && (curr.status === 'completed' || curr.status === 'pending')) {
-                    return acc - amt - chg;
-                }
-
-                // Internal Transfers: Deduct/Add based on status
-                if (curr.type === 'transfer' && curr.status === 'completed') {
-                    return acc - amt - chg;
-                }
-
-                return acc;
-            }, 0);
-
+            // Calculate General Wallet balance (plan_id is null)
+            const generalBal = calculateBalance(data as any, null);
             setBalance(generalBal);
         }
     }
@@ -699,16 +679,17 @@ export function Wallet() {
                                                     return true;
                                                 })
                                                 .map((tx) => {
+                                                    const isPositive = ['deposit', 'loan_disbursement', 'interest', 'limit_transfer'].includes(tx.type);
                                                     let amountClass = "text-gray-900 dark:text-gray-200";
                                                     let amountPrefix = "";
 
-                                                    if (tx.type === 'deposit' || tx.type === 'loan_disbursement') {
+                                                    if (isPositive) {
                                                         amountClass = "text-emerald-600 dark:text-emerald-400";
                                                         amountPrefix = "+";
-                                                    } else if (tx.type === 'withdrawal' || tx.type === 'loan_repayment') {
+                                                    } else if (['withdrawal', 'loan_repayment'].includes(tx.type)) {
                                                         amountClass = "text-red-600 dark:text-red-500";
                                                         amountPrefix = "-";
-                                                    } else if (tx.type === 'transfer') {
+                                                    } else {
                                                         amountClass = "text-gray-900 dark:text-white";
                                                         amountPrefix = "";
                                                     }

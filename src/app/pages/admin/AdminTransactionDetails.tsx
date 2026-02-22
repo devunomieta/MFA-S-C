@@ -129,21 +129,32 @@ export function AdminTransactionDetails({ transaction, open, onOpenChange, onApp
                                 <FileText className="w-3 h-3" /> Receipt / Proof
                             </h4>
                             <div className="relative rounded-md overflow-hidden bg-white border border-slate-200 min-h-[200px] flex items-center justify-center group">
-                                <img
-                                    src={transaction.receipt_url}
-                                    alt="Payment Receipt"
-                                    className="w-full h-auto max-h-[400px] object-contain"
-                                />
-                                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                    <a
-                                        href={transaction.receipt_url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="bg-white text-slate-900 px-4 py-2 rounded-full font-medium text-sm hover:bg-slate-100"
-                                    >
-                                        View Full Size
-                                    </a>
-                                </div>
+                                {transaction.receipt_url.includes('mock-storage.com') ? (
+                                    <div className="p-8 text-center bg-slate-50 w-full h-full flex flex-col items-center justify-center">
+                                        <FileText className="w-10 h-10 text-slate-300 mb-3" />
+                                        <p className="text-sm font-semibold text-slate-600">Legacy Transaction</p>
+                                        <p className="text-xs text-slate-500 mt-1">This is mock data from development.</p>
+                                        <p className="text-[10px] text-blue-500 mt-3 break-all max-w-xs">{transaction.receipt_url}</p>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <img
+                                            src={transaction.receipt_url}
+                                            alt="Payment Receipt"
+                                            className="w-full h-auto max-h-[400px] object-contain"
+                                        />
+                                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                            <a
+                                                href={transaction.receipt_url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="bg-white text-slate-900 px-4 py-2 rounded-full font-medium text-sm hover:bg-slate-100"
+                                            >
+                                                View Full Size
+                                            </a>
+                                        </div>
+                                    </>
+                                )}
                             </div>
                         </div>
                     )}

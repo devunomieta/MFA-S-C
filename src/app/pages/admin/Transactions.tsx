@@ -3,10 +3,9 @@ import { supabase } from "@/lib/supabase";
 import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
 import { toast } from "sonner";
-import { Check, X, FileText, ExternalLink, Mail, Phone, ArrowRightLeft, AlertCircle, Eye } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/app/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
-import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/app/components/ui/dialog";
+import { Check, X, FileText, ExternalLink, Mail, AlertCircle, Eye } from "lucide-react";
+import { Card, CardContent } from "@/app/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/app/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
@@ -15,7 +14,6 @@ import { AdminTransactionDetails } from "./AdminTransactionDetails";
 export function AdminTransactions() {
     const [transactions, setTransactions] = useState<any[]>([]);
     const [loans, setLoans] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState("all");
 
     // Details Modal State
@@ -34,9 +32,7 @@ export function AdminTransactions() {
     }, []);
 
     async function fetchData() {
-        setLoading(true);
         await Promise.all([fetchTransactions(), fetchLoans()]);
-        setLoading(false);
     }
 
     async function fetchTransactions() {
@@ -68,7 +64,7 @@ export function AdminTransactions() {
     }
 
     // --- SHARED ACTIONS ---
-    const contactUser = (email: string, phone?: string) => {
+    const contactUser = (email: string) => {
         // Simple mailto for now
         window.location.href = `mailto:${email}`;
     };
@@ -264,6 +260,56 @@ export function AdminTransactions() {
             case 'failed': case 'rejected': return 'bg-red-100 text-red-800 border-red-200';
             default: return 'bg-gray-100 text-gray-800 border-gray-200';
         }
+    };
+
+    const renderRevenueTable = (txs: any[]) => {
+        const filtered = txs.filter(t => t.type === 'service_charge' && t.status === 'completed');
+
+        if (filtered.length === 0) return <div className="p-8 text-center text-gray-500">No revenue records found.</div>;
+
+        return (
+            <div className="rounded-md border border-slate-200 overflow-hidden">
+                <table className="w-full text-sm text-left">
+                    <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-200">
+                        <tr>
+                            <th className="px-4 py-3">Date</th>
+                            <th className="px-4 py-3">Source Plan</th>
+                            <th className="px-4 py-3">User</th>
+                            <th className="px-4 py-3">Fee Type</th>
+                            <th className="px-4 py-3">Amount</th>
+                            <th className="px-4 py-3 text-right">Reference</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                        {filtered.map((tx) => (
+                            <tr key={tx.id} className="hover:bg-slate-50 transition-colors">
+                                <td className="px-4 py-3 text-slate-500 whitespace-nowrap">
+                                    {new Date(tx.created_at).toLocaleDateString()}
+                                </td>
+                                <td className="px-4 py-3 font-medium text-slate-900">
+                                    {tx.plan?.name || 'General Platform'}
+                                </td>
+                                <td className="px-4 py-3">
+                                    <div className="text-xs text-slate-900 font-medium">{tx.profile?.full_name}</div>
+                                    <div className="text-[10px] text-slate-500">{tx.profile?.email}</div>
+                                </td>
+                                <td className="px-4 py-3">
+                                    <Badge variant="outline" className="text-[10px] bg-blue-50 text-blue-700">
+                                        {tx.description?.includes('Penalty') ? 'Penalty' : 'Service Fee'}
+                                    </Badge>
+                                </td>
+                                <td className="px-4 py-3 font-bold text-emerald-600">
+                                    +${Number(tx.amount).toLocaleString()}
+                                </td>
+                                <td className="px-4 py-3 text-right text-[10px] font-mono text-slate-400">
+                                    {tx.id.split('-')[0]}...
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        );
     };
 
     const renderTransactionTable = (txs: any[], typeFilter?: string) => {
@@ -491,6 +537,9 @@ export function AdminTransactions() {
                             </Badge>
                         )}
                     </TabsTrigger>
+                    <TabsTrigger value="revenue" className="flex gap-2">
+                        Revenue Ledger
+                    </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="all" className="mt-6">
@@ -516,6 +565,17 @@ export function AdminTransactions() {
                         Rejecting a withdrawal will automatically refund the amount to the source plan.
                     </div>
                     <Card><CardContent className="pt-6">{renderTransactionTable(transactions, 'withdrawal')}</CardContent></Card>
+                </TabsContent>
+                <TabsContent value="revenue" className="mt-6">
+                    <div className="mb-4 text-sm text-gray-500 bg-emerald-50 p-3 rounded-md border border-emerald-100 flex items-center gap-2">
+                        <Check className="w-4 h-4 text-emerald-600" />
+                        This ledger tracks all platform service charges and penalties collected.
+                    </div>
+                    <Card>
+                        <CardContent className="pt-6">
+                            {renderRevenueTable(transactions)}
+                        </CardContent>
+                    </Card>
                 </TabsContent>
             </Tabs>
 

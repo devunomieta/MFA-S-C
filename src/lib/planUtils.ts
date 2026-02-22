@@ -8,7 +8,10 @@ export interface PlanMaturityStatus {
     daysRemaining: number;
 }
 
-export function calculateMaturity(startDateStr: string, durationWeeks: number): PlanMaturityStatus {
+export function calculateMaturity(startDateStrParam: string | null | undefined, durationWeeks: number): PlanMaturityStatus | null {
+    const startDateStr = startDateStrParam; // Renamed parameter to avoid conflict with new const
+    if (!startDateStr) return null; // Safety fallback
+
     const startDate = new Date(startDateStr);
     const durationDays = durationWeeks * 7;
 
@@ -43,8 +46,11 @@ export function calculateMaturity(startDateStr: string, durationWeeks: number): 
 export async function checkAndProcessMaturity(supabase: SupabaseClient, userPlans: any[]) {
     const maturedPlans = userPlans.filter(up => {
         if (up.status !== 'active') return false;
-        const { isMatured } = calculateMaturity(up.start_date, up.plan.duration_weeks || 0);
-        return isMatured;
+        const status = calculateMaturity(up.start_date, up.plan.config?.duration_weeks || 1);
+        if (!status) { // Handle null return from calculateMaturity
+            return false;
+        }
+        return status.isMatured;
     });
 
     if (maturedPlans.length > 0) {

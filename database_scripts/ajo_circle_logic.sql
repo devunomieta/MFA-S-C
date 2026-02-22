@@ -51,8 +51,17 @@ BEGIN
     v_fixed_amount := (v_metadata->>'fixed_amount')::NUMERIC;
     v_current_week := COALESCE((v_metadata->>'current_week')::INTEGER, 1);
 
-    -- Calculate Fee
-    v_expected_fee := COALESCE((v_fees->>v_fixed_amount::TEXT)::NUMERIC, 0);
+    -- Calculate Fee based on official table
+    v_expected_fee := CASE 
+        WHEN v_fixed_amount >= 100000 THEN 1000
+        WHEN v_fixed_amount >= 50000 THEN 500
+        WHEN v_fixed_amount >= 30000 THEN 500
+        WHEN v_fixed_amount >= 25000 THEN 500
+        WHEN v_fixed_amount >= 20000 THEN 500
+        WHEN v_fixed_amount >= 15000 THEN 300
+        WHEN v_fixed_amount >= 10000 THEN 200
+        ELSE 0 
+    END;
 
     -- Check if Amount matches (Contribution + Fee) or just Contribution?
     -- Allow flexibility slightly? No, fixed.

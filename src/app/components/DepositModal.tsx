@@ -9,6 +9,8 @@ import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/app/context/AuthContext";
 import { logActivity } from "@/lib/activity";
+import { validateFile } from "@/lib/validation";
+import { calculateBalance, Transaction } from "@/lib/walletUtils";
 
 interface DepositModalProps {
     onSuccess: () => void;
@@ -92,28 +94,7 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose }: DepositModal
             .is("plan_id", null); // Only fetch general wallet transactions
 
         if (txData) {
-            const bal = txData.reduce((acc, curr) => {
-                const amt = Number(curr.amount);
-                const chg = Number(curr.charge || 0);
-
-                // Income types
-                // Income types - Only if COMPLETED
-                if ((curr.type === 'deposit' || curr.type === 'loan_disbursement' || curr.type === 'limit_transfer') && curr.status === 'completed') {
-                    return acc + amt - chg;
-                }
-
-                // Expense types - Deduct if COMPLETED or PENDING
-                if ((curr.type === 'withdrawal' || curr.type === 'loan_repayment') && (curr.status === 'completed' || curr.status === 'pending')) {
-                    return acc - amt - chg;
-                }
-
-                // Transfer Logic for General Wallet (plan_id is null) - Only if COMPLETED
-                if (curr.type === 'transfer' && curr.status === 'completed') {
-                    return acc - amt - chg;
-                }
-
-                return acc;
-            }, 0);
+            const bal = calculateBalance(txData as any, null);
             setGeneralBalance(bal);
         }
         setLoadingBalance(false);
@@ -121,6 +102,17 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose }: DepositModal
 
     const handleFileChange = (file: File | null) => {
         if (file) {
+            // Security: Strict File Validation
+            const validation = validateFile(file, {
+                maxSizeMB: 5,
+                allowedTypes: ["image/jpeg", "image/png", "application/pdf"]
+            });
+
+            if (!validation.isValid) {
+                toast.error(validation.error);
+                return;
+            }
+
             setReceiptFile(file);
             const objectUrl = URL.createObjectURL(file);
             setPreviewUrl(objectUrl);
@@ -146,8 +138,10 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose }: DepositModal
         if (!user || !amount) return;
 
         const finalAmount = parseFloat(amount);
-        if (isNaN(finalAmount) || finalAmount <= 0) {
-            toast.error("Invalid amount");
+        const minAmount = selectedPlanObj?.plan?.min_amount || 500;
+
+        if (isNaN(finalAmount) || finalAmount < minAmount) {
+            toast.error(`Minimum amount for this plan is ₦${formatCurrency(minAmount)}`);
             return;
         }
 
@@ -171,14 +165,31 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose }: DepositModal
         let receiptUrl = null;
 
         if (receiptFile) {
-            // Mock upload
-            receiptUrl = `https://mock-storage.com/${receiptFile.name}`;
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            try {
+                const fileExt = receiptFile.name.split('.').pop();
+                const fileName = `${user.id}-${Math.random()}.${fileExt}`;
+
+                const { error: uploadError } = await supabase.storage
+                    .from('receipts')
+                    .upload(fileName, receiptFile);
+
+                if (uploadError) throw uploadError;
+
+                const { data: { publicUrl } } = supabase.storage
+                    .from('receipts')
+                    .getPublicUrl(fileName);
+
+                receiptUrl = publicUrl;
+            } catch (error: any) {
+                console.error("Receipt Upload Error:", error);
+                toast.error("Failed to upload receipt. Please try again.");
+                setUploading(false);
+                return;
+            }
         }
 
         if (method === 'external') {
             // Standard Deposit - REQUIRES ADMIN APPROVAL
-            // TODO: If this is Marathon, Admin approval must trigger process_marathon_deposit
             const { error } = await supabase.from("transactions").insert({
                 user_id: user.id,
                 amount: finalAmount,
@@ -421,14 +432,21 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose }: DepositModal
         }
     }, [selectedPlanObj]);
 
-    // Fee Logic for Ajo Circle
+    // Fee Logic for Ajo Circle - Specific table from User Review
     const getFee = () => {
         if (selectedPlanObj?.plan?.type === 'ajo_circle' || selectedPlanObj?.type === 'ajo_circle') {
-            const config = selectedPlanObj?.plan?.config || selectedPlanObj?.config || {};
-            const fees = config.fees || {};
-            // For Ajo, the amount is the fixed amount (mandatedAmount) or the input amount
             const amt = Number(amount) || mandatedAmount || 0;
-            return Number(fees[amt.toString()] || 0);
+
+            // Explicit Ajo Fee Table
+            if (amt >= 100000) return 1000;
+            if (amt >= 50000) return 500;
+            if (amt >= 30000) return 500;
+            if (amt >= 25000) return 500;
+            if (amt >= 20000) return 500;
+            if (amt >= 15000) return 300;
+            if (amt >= 10000) return 200;
+
+            return 0;
         }
         return 0;
     };

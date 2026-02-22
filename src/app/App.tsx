@@ -15,6 +15,8 @@ import { Plans } from "@/app/pages/dashboard/Plans";
 import { Wallet } from "@/app/pages/dashboard/Wallet";
 import { Loans } from "@/app/pages/dashboard/Loans";
 import { Profile } from "@/app/pages/dashboard/Profile";
+import { Help } from "@/app/pages/dashboard/Help";
+import { Notifications } from "@/app/pages/dashboard/Notifications";
 import { AdminLayout } from "@/app/layout/AdminLayout";
 import { AdminOverview } from "@/app/pages/admin/Overview";
 import { AdminLoans } from "@/app/pages/admin/Loans";
@@ -76,10 +78,12 @@ function AppRoutes() {
         <Route element={<ProtectedRoute />}>
           <Route path="/dashboard" element={<DashboardLayout />}>
             <Route index element={<Overview />} />
+            <Route path="notifications" element={<Notifications />} />
             <Route path="plans" element={<Plans />} />
             <Route path="wallet" element={<Wallet />} />
             <Route path="loans" element={<Loans />} />
             <Route path="profile" element={<Profile />} />
+            <Route path="help" element={<Help />} />
           </Route>
         </Route>
 

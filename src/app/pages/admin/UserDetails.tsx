@@ -145,8 +145,12 @@ export function AdminUserDetails() {
                 <CardContent className="p-6">
                     <div className="flex flex-col md:flex-row gap-6 items-start md:items-center justify-between">
                         <div className="flex items-center gap-4">
-                            <div className="h-16 w-16 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 font-bold text-2xl">
-                                {initials}
+                            <div className="h-16 w-16 rounded-full overflow-hidden bg-slate-200 flex items-center justify-center text-slate-600 font-bold text-2xl border-2 border-white shadow-sm">
+                                {profile.avatar_url ? (
+                                    <img src={profile.avatar_url} alt={profile.full_name} className="h-full w-full object-cover" />
+                                ) : (
+                                    initials
+                                )}
                             </div>
                             <div>
                                 <h2 className="text-xl font-bold text-slate-900">{profile.full_name || 'No Name'}</h2>

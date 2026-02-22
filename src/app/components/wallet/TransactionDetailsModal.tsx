@@ -119,18 +119,26 @@ export function TransactionDetailsModal({ transaction, open, onOpenChange }: Tra
                                 <FileText className="w-3.5 h-3.5" /> Payment Receipt
                             </h4>
                             <div className="relative rounded-md overflow-hidden bg-white dark:bg-black/20 border border-gray-200 dark:border-gray-700 min-h-[200px] flex items-center justify-center">
-                                <img
-                                    src={transaction.receipt_url}
-                                    alt="Payment Receipt"
-                                    className="w-full h-auto max-h-[300px] object-contain"
-                                    onError={(e) => {
-                                        e.currentTarget.style.display = 'none';
-                                        e.currentTarget.parentElement?.classList.add('flex-col', 'p-4');
-                                        const fallback = document.createElement('div');
-                                        fallback.innerHTML = `<p class="text-xs text-gray-500 mb-2">Image preview unavailable.</p><a href="${transaction.receipt_url}" target="_blank" class="text-xs text-blue-600 underline break-all">${transaction.receipt_url}</a>`;
-                                        e.currentTarget.parentElement?.appendChild(fallback);
-                                    }}
-                                />
+                                {transaction.receipt_url.includes('mock-storage.com') ? (
+                                    <div className="p-6 text-center">
+                                        <FileText className="w-8 h-8 text-gray-400 mx-auto mb-2 opacity-50" />
+                                        <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Legacy Transaction</p>
+                                        <p className="text-xs text-gray-500 mt-1 italic">Mock data from development</p>
+                                    </div>
+                                ) : (
+                                    <img
+                                        src={transaction.receipt_url}
+                                        alt="Payment Receipt"
+                                        className="w-full h-auto max-h-[300px] object-contain"
+                                        onError={(e) => {
+                                            e.currentTarget.style.display = 'none';
+                                            e.currentTarget.parentElement?.classList.add('flex-col', 'p-4');
+                                            const fallback = document.createElement('div');
+                                            fallback.innerHTML = `<p class="text-xs text-gray-500 mb-2">Image preview unavailable.</p><a href="${transaction.receipt_url}" target="_blank" class="text-xs text-blue-600 underline break-all">${transaction.receipt_url}</a>`;
+                                            e.currentTarget.parentElement?.appendChild(fallback);
+                                        }}
+                                    />
+                                )}
                             </div>
                         </div>
                     )}

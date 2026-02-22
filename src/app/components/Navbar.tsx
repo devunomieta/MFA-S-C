@@ -98,12 +98,21 @@ export function Navbar() {
           {/* Desktop CTA Buttons */}
           <div className="hidden md:flex items-center gap-4">
             {user ? (
-              <Button
-                className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                onClick={handleDashboardClick}
-              >
-                Access Dashboard
-              </Button>
+              <Link to="/dashboard" className="flex items-center gap-3 hover:bg-gray-50 p-1 pr-3 rounded-full border border-gray-100 transition-colors">
+                <div className="h-10 w-10 rounded-full overflow-hidden bg-emerald-100 flex items-center justify-center text-emerald-600 font-bold border border-emerald-200">
+                  {user.user_metadata?.avatar_url ? (
+                    <img src={user.user_metadata.avatar_url} alt="Profile" className="h-full w-full object-cover" />
+                  ) : (
+                    (user.user_metadata?.full_name?.[0] || user.email?.[0] || 'U').toUpperCase()
+                  )}
+                </div>
+                <div className="hidden lg:block text-left">
+                  <p className="text-sm font-bold text-gray-900 leading-tight truncate max-w-[120px]">
+                    {user.user_metadata?.full_name?.split(' ')[0] || 'Dashboard'}
+                  </p>
+                  <p className="text-[10px] text-emerald-600 font-medium uppercase tracking-wider">Account</p>
+                </div>
+              </Link>
             ) : (
               <>
                 <Link to="/login">

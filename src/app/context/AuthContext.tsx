@@ -100,9 +100,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setUser(session?.user ?? null);
 
             if (session?.user) {
-                // Only re-check admin if user changed or we don't know yet
-                // preventing spam on every token refresh
-                if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
+                // Refresh user state on sign in, initial session, or update
+                if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'USER_UPDATED') {
+                    setUser(session.user);
                     checkAdminStatus(session.user.id);
                     SessionManager.saveSession(session);
                     setSavedSessions(SessionManager.getSavedSessions());

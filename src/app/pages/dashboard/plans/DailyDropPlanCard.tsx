@@ -10,6 +10,16 @@ import { Label } from "@/app/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/app/components/ui/alert-dialog";
 
 interface DailyDropPlanCardProps {
     plan: Plan;
@@ -30,6 +40,8 @@ export function DailyDropPlanCard({ plan, userPlan, onJoin, onDeposit }: DailyDr
     const [joinAmount, setJoinAmount] = useState<string>("500");
     const [joinDuration, setJoinDuration] = useState<string>("31");
     const [joining, setJoining] = useState(false);
+    const [showJoinConfirm, setShowJoinConfirm] = useState(false);
+    const [showRejoinConfirm, setShowRejoinConfirm] = useState(false);
 
     const isFinished = selectedDuration !== -1 && daysPaid >= selectedDuration;
 
@@ -42,54 +54,53 @@ export function DailyDropPlanCard({ plan, userPlan, onJoin, onDeposit }: DailyDr
             return;
         }
 
-        if (!confirm(`Confirm setup?\n\nDaily Amount: ${formatCurrency(amt)}\nDuration: ${joinDuration === '-1' ? 'Continuous' : joinDuration + ' Days'}\n\nFirst payment of ${formatCurrency(amt)} will be charged immediately as a ONE-TIME SERVICE FEE.`)) return;
-
-        setJoining(true);
-
-        const { error } = await supabase.from('user_plans').insert({
-            user_id: (await supabase.auth.getUser()).data.user?.id,
-            plan_id: plan.id,
-            status: 'active',
-            plan_metadata: {
-                fixed_amount: amt,
-                selected_duration: parseInt(joinDuration),
-                total_days_paid: 0,
-                last_payment_date: null
-            },
-            current_balance: 0
-        });
-
-        if (error) {
-            toast.error("Failed to join: " + error.message);
-        } else {
-            // Trigger First Payment (Service Charge)
-            // We need to trigger the Deposit Modal or handle it here?
-            // The user requirement says "first payment is deducted for this purpose". 
-            // Usually 'Join' acts as just setup, then they deposit. 
-            // BUT: "Charge: The selected fixed amount is automatically the charge and the first payment is deducted for this purpose."
-            // Let's assume they join, then they must make a deposit. The SQL logic handles the first deposit as fee.
-            toast.success("Plan Setup! Please make your first deposit to pay the Service Fee.");
-            onJoin();
-        }
-        setJoining(false);
+        setShowJoinConfirm(true);
     };
 
-    const handleRejoin = async () => {
-        if (!confirm("Rejoin logic will archive this plan and start fresh. Continue?")) return;
-        // Currently we just archiving logic or creating a new entry?
-        // Simpler: Reset metadata
-        // For MVP: We delete the old user_plan or set status to 'archived' and create new.
-        // Let's just reset
+    const confirmJoin = async () => {
+        const amt = parseFloat(joinAmount);
+        setJoining(true);
 
+        try {
+            const { error } = await supabase.from('user_plans').insert({
+                user_id: (await supabase.auth.getUser()).data.user?.id,
+                plan_id: plan.id,
+                status: 'active',
+                plan_metadata: {
+                    fixed_amount: amt,
+                    selected_duration: parseInt(joinDuration),
+                    total_days_paid: 0,
+                    last_payment_date: null
+                },
+                current_balance: 0
+            });
+
+            if (error) {
+                toast.error("Failed to join: " + error.message);
+            } else {
+                toast.success("Plan Setup! Please make your first deposit to pay the Service Fee.");
+                onJoin();
+            }
+        } catch (err) {
+            toast.error("An unexpected error occurred");
+        } finally {
+            setJoining(false);
+            setShowJoinConfirm(false);
+        }
+    };
+
+    const confirmRejoin = async () => {
         const { error } = await supabase.from('user_plans').update({
             status: 'archived'
         }).eq('id', userPlan?.id);
 
-        if (error) toast.error("Failed to archive old plan");
-        else {
+        if (error) {
+            toast.error("Failed to archive old plan");
+        } else {
             toast.success("Plan archived. You can now start fresh.");
             onJoin(); // Refresh
         }
+        setShowRejoinConfirm(false);
     };
 
     // Active State - Minimalist
@@ -120,7 +131,7 @@ export function DailyDropPlanCard({ plan, userPlan, onJoin, onDeposit }: DailyDr
                             <CheckCircle className="w-10 h-10 text-emerald-500 mx-auto mb-3" />
                             <h3 className="font-bold text-emerald-700 dark:text-emerald-400 text-lg">Goal Achieved!</h3>
                             <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">You have completed your {selectedDuration} day cycle.</p>
-                            <Button onClick={handleRejoin} variant="outline" className="border-emerald-200 text-emerald-700 hover:bg-emerald-100 font-semibold">
+                            <Button onClick={() => setShowRejoinConfirm(true)} variant="outline" className="border-emerald-200 text-emerald-700 hover:bg-emerald-100 font-semibold">
                                 <RefreshCw className="w-4 h-4 mr-2" /> Start Fresh
                             </Button>
                         </div>
@@ -244,6 +255,73 @@ export function DailyDropPlanCard({ plan, userPlan, onJoin, onDeposit }: DailyDr
                     {joining ? 'Setting up...' : 'Start Daily Drop'}
                 </Button>
             </CardFooter>
+
+            {/* Confirmation Dialogs */}
+            <AlertDialog open={showJoinConfirm} onOpenChange={setShowJoinConfirm}>
+                <AlertDialogContent className="rounded-2xl border-cyan-100 dark:border-gray-800">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                            <Droplets className="w-6 h-6 text-cyan-600" />
+                            Confirm Plan Setup
+                        </AlertDialogTitle>
+                        <AlertDialogDescription className="space-y-4 pt-4">
+                            <div className="p-4 bg-cyan-50/50 dark:bg-cyan-900/10 rounded-xl border border-cyan-100 dark:border-cyan-800/50">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <p className="text-[10px] uppercase font-bold text-cyan-600 tracking-wider">Daily Amount</p>
+                                        <p className="text-lg font-black text-gray-900 dark:text-white">{formatCurrency(parseFloat(joinAmount))}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] uppercase font-bold text-cyan-600 tracking-wider">Duration</p>
+                                        <p className="text-lg font-black text-gray-900 dark:text-white">
+                                            {joinDuration === '-1' ? 'Continuous' : `${joinDuration} Days`}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex items-start gap-3 p-3 bg-amber-50 dark:bg-amber-900/10 rounded-lg border border-amber-100 dark:border-amber-800/50">
+                                <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                                <p className="text-xs text-amber-800 dark:text-amber-400 leading-relaxed">
+                                    <span className="font-bold uppercase tracking-tighter block mb-1">One-Time Service Fee</span>
+                                    Your first payment of <span className="font-bold">{formatCurrency(parseFloat(joinAmount))}</span> will be charged immediately as a service fee.
+                                </p>
+                            </div>
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className="gap-2 pt-4">
+                        <AlertDialogCancel className="rounded-xl border-gray-200">Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={confirmJoin}
+                            className="bg-cyan-600 hover:bg-cyan-700 text-white rounded-xl px-8 font-bold"
+                        >
+                            Complete Setup
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            <AlertDialog open={showRejoinConfirm} onOpenChange={setShowRejoinConfirm}>
+                <AlertDialogContent className="rounded-2xl border-emerald-100 dark:border-gray-800">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                            <RefreshCw className="w-6 h-6 text-emerald-600" />
+                            Start New Cycle?
+                        </AlertDialogTitle>
+                        <AlertDialogDescription className="pt-2">
+                            This will archive your current {plan.name} record and let you start a fresh cycle. Your current balance will be preserved in your history.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className="gap-2 pt-4">
+                        <AlertDialogCancel className="rounded-xl border-gray-200">Wait, Go Back</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={confirmRejoin}
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl px-8 font-bold"
+                        >
+                            Yes, Start Fresh
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </Card>
     );
 }

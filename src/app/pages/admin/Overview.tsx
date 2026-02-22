@@ -13,9 +13,9 @@ export function AdminOverview() {
         activeLoansCount: 0,
         pendingDepositsCount: 0,
         pendingDepositsAmount: 0,
-        totalDepositsAmount: 0
+        totalDepositsAmount: 0,
+        totalFeesAmount: 0
     });
-    const [recentActivity, setRecentActivity] = useState<any[]>([]); // Keep for backward compat if needed, or remove
     const [latestDeposits, setLatestDeposits] = useState<any[]>([]);
     const [latestWithdrawals, setLatestWithdrawals] = useState<any[]>([]);
     const [latestLoans, setLatestLoans] = useState<any[]>([]);
@@ -57,15 +57,25 @@ export function AdminOverview() {
 
             const totalAmount = completedDeps?.reduce((acc, curr) => acc + Number(curr.amount), 0) || 0;
 
+            // 5. Total Fees Collected (Admin Revenue)
+            const { data: feesData } = await supabase
+                .from('transactions')
+                .select('amount')
+                .eq('type', 'service_charge')
+                .eq('status', 'completed');
+
+            const totalFees = feesData?.reduce((acc, curr) => acc + Number(curr.amount), 0) || 0;
+
             setStats({
                 totalUsers: usersCount || 0,
                 activeLoansCount: loansCount || 0,
                 pendingDepositsCount: pendingCount,
                 pendingDepositsAmount: pendingAmount,
-                totalDepositsAmount: totalAmount
+                totalDepositsAmount: totalAmount,
+                totalFeesAmount: totalFees
             });
 
-            // 5. Recent Activity (Categorized)
+            // 6. Recent Activity (Categorized)
             // Deposits
             const { data: recentDeps } = await supabase
                 .from('transactions')
@@ -94,7 +104,7 @@ export function AdminOverview() {
             setLatestLoans(recentLoans || []);
 
 
-            // 6. Chart Data (Last 6 Months Trends)
+            // 7. Chart Data (Last 6 Months Trends)
             const sixMonthsAgo = new Date();
             sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
             sixMonthsAgo.setDate(1); // Start of that month
@@ -109,12 +119,13 @@ export function AdminOverview() {
             // Process for Chart
             const grouped = (trendData || []).reduce((acc: any, curr: any) => {
                 const date = new Date(curr.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }); // e.g., "Jan 2025"
-                if (!acc[date]) acc[date] = { deposits: 0, withdrawals: 0, loans: 0 };
+                if (!acc[date]) acc[date] = { deposits: 0, withdrawals: 0, loans: 0, revenue: 0 };
 
                 const amt = Number(curr.amount);
                 if (curr.type === 'deposit') acc[date].deposits += amt;
                 else if (curr.type === 'withdrawal') acc[date].withdrawals += amt;
                 else if (curr.type === 'loan_disbursement') acc[date].loans += amt;
+                else if (curr.type === 'service_charge') acc[date].revenue += amt;
 
                 return acc;
             }, {});
@@ -123,7 +134,8 @@ export function AdminOverview() {
                 date, // "Jan 2025"
                 deposits: grouped[date].deposits,
                 withdrawals: grouped[date].withdrawals,
-                loans: grouped[date].loans
+                loans: grouped[date].loans,
+                revenue: grouped[date].revenue
             }));
 
             setChartData(chartArray);
@@ -229,12 +241,26 @@ export function AdminOverview() {
                     onClick={() => navigate('/admin/transactions')}
                 >
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium text-slate-500">Total Revenue</CardTitle>
-                        <Activity className="h-4 w-4 text-blue-600" />
+                        <CardTitle className="text-sm font-medium text-slate-500">Platform Deposits</CardTitle>
+                        <Banknote className="h-4 w-4 text-emerald-600" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold text-slate-900">{formatCurrency(stats.totalDepositsAmount)}</div>
-                        <p className="text-xs text-slate-500">Lifetime deposits processed</p>
+                        <p className="text-xs text-slate-500">Current holdings across all plans</p>
+                    </CardContent>
+                </Card>
+
+                <Card
+                    className="bg-white border-slate-200 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+                    onClick={() => navigate('/admin/transactions?tab=revenue')}
+                >
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium text-slate-500">Admin Wallet</CardTitle>
+                        <Activity className="h-4 w-4 text-blue-600" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold text-blue-600">{formatCurrency(stats.totalFeesAmount)}</div>
+                        <p className="text-xs text-blue-500 font-medium">Total fees & penalties collected</p>
                     </CardContent>
                 </Card>
             </div>

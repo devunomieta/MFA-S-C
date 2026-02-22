@@ -7,6 +7,8 @@ import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { logActivity } from "@/lib/activity";
+import { validatePassword } from "@/lib/validation";
+import { PasswordStrength } from "@/app/components/ui/PasswordStrength";
 
 export function Signup() {
     const navigate = useNavigate();
@@ -18,12 +20,21 @@ export function Signup() {
         confirmPassword: "",
     });
 
+    const passFeedback = validatePassword(formData.password);
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Security: Strict Password Complexity
+        if (!passFeedback.isValid) {
+            toast.error("Please meet all password security requirements");
+            return;
+        }
+
         if (formData.password !== formData.confirmPassword) {
             toast.error("Passwords do not match");
             return;
@@ -128,6 +139,7 @@ export function Signup() {
                                 value={formData.password}
                                 onChange={handleChange}
                             />
+                            <PasswordStrength feedback={passFeedback} passwordLength={formData.password.length} />
                         </div>
                         <div>
                             <Label htmlFor="confirm-password">Confirm Password</Label>

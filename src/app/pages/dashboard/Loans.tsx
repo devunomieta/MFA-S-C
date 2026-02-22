@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/app/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/app/components/ui/card";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/app/components/ui/dialog";
@@ -9,10 +8,12 @@ import { Badge } from "@/app/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/app/components/ui/table";
 import { toast } from "sonner";
 import { useAuth } from "@/app/context/AuthContext";
-import { CheckCircle2, XCircle, AlertTriangle, Upload, FileText, Clock } from "lucide-react";
+import { CheckCircle2, XCircle, AlertTriangle, Upload, FileText, Clock, Loader2 } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 
 export function Loans() {
     const { user } = useAuth();
+    const [searchParams] = useSearchParams();
     const [loans, setLoans] = useState<any[]>([]);
     const [interestRate, setInterestRate] = useState(10); // Default fallback
 
@@ -58,6 +59,18 @@ export function Loans() {
             fetchLoanTransactions();
         }
     }, [user]);
+
+    useEffect(() => {
+        const loanId = searchParams.get('id');
+        if (loanId && loans.length > 0) {
+            const loan = loans.find(l => l.id === loanId);
+            if (loan) {
+                setSelectedLoan(loan);
+                setRepayOpen(true);
+                window.history.replaceState({}, '', window.location.pathname);
+            }
+        }
+    }, [loans, searchParams]);
 
     async function fetchSettings() {
         const { data } = await supabase.from('app_settings').select('value').eq('key', 'general').single();
@@ -176,19 +189,37 @@ export function Loans() {
         hasActivePlan &&
         profile?.gov_id_status === 'verified';
 
-    async function handleUploadId() {
+    async function handleUploadId(file: File) {
+        if (!user) return;
         setIsUploadingId(true);
-        // Mock ID Upload
-        setTimeout(async () => {
+
+        try {
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${user.id}-${Math.random()}.${fileExt}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('kyc')
+                .upload(fileName, file);
+
+            if (uploadError) throw uploadError;
+
+            const { data: { publicUrl } } = supabase.storage
+                .from('kyc')
+                .getPublicUrl(fileName);
+
             await supabase.from("profiles").update({
-                gov_id_status: 'pending', // Set to pending
-                gov_id_url: 'https://mock-id.com/id.jpg'
-            }).eq("id", user?.id);
+                gov_id_status: 'pending',
+                gov_id_url: publicUrl
+            }).eq("id", user.id);
 
             toast.success("ID Uploaded! Verification pending.");
-            setIsUploadingId(false);
             fetchEligibilityData();
-        }, 1500);
+        } catch (error: any) {
+            console.error("ID Upload Error:", error);
+            toast.error("Failed to upload ID. Please try again.");
+        } finally {
+            setIsUploadingId(false);
+        }
     }
 
     async function handleRequestLoan() {
@@ -322,9 +353,28 @@ export function Loans() {
                             </span>
                         </div>
                         {profile?.gov_id_status === 'not_uploaded' && (
-                            <Button size="sm" variant="outline" onClick={handleUploadId} disabled={isUploadingId}>
-                                {isUploadingId ? "Uploading..." : <><Upload className="w-3 h-3 mr-1" /> Upload</>}
-                            </Button>
+                            <>
+                                <input
+                                    type="file"
+                                    id="id-upload"
+                                    className="hidden"
+                                    accept="image/*,application/pdf"
+                                    onChange={(e) => {
+                                        if (e.target.files && e.target.files[0]) {
+                                            handleUploadId(e.target.files[0]);
+                                        }
+                                    }}
+                                />
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => document.getElementById('id-upload')?.click()}
+                                    disabled={isUploadingId}
+                                >
+                                    {isUploadingId ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Upload className="w-3 h-3 mr-1" />}
+                                    Upload
+                                </Button>
+                            </>
                         )}
                         {profile?.gov_id_status === 'pending' && (
                             <span className="text-xs text-yellow-600 font-medium">Under Review</span>

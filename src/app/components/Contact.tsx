@@ -6,6 +6,7 @@ import { Input } from "@/app/components/ui/input";
 import { Textarea } from "@/app/components/ui/textarea";
 import { Label } from "@/app/components/ui/label";
 import { useState } from "react";
+import { PlanRecommender } from "./PlanRecommender";
 
 const contactInfo = [
   {
@@ -32,6 +33,7 @@ const contactInfo = [
 ];
 
 export function Contact() {
+  const [showRecommender, setShowRecommender] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -94,11 +96,21 @@ export function Contact() {
               </div>
               <h4 className="text-2xl font-bold">Need Assisted Management?</h4>
               <p className="text-emerald-50/80 text-sm font-medium leading-relaxed">Join our community of over 50,000 savers and get real-time assistance through our dedicated channels. We can help you manage your circles manually.</p>
-              <Button variant="outline" className="bg-white/10 border-white/20 text-white hover:bg-white hover:text-emerald-700 font-bold rounded-xl h-12 transition-all">
+              <Button
+                onClick={() => setShowRecommender(true)}
+                variant="outline"
+                className="bg-white/10 border-white/20 text-white hover:bg-white hover:text-emerald-700 font-bold rounded-xl h-12 transition-all"
+              >
                 Chat with an Expert
               </Button>
             </div>
           </motion.div>
+
+          {/* Recommender Tool */}
+          <PlanRecommender
+            open={showRecommender}
+            onOpenChange={setShowRecommender}
+          />
 
           {/* Right Side: Form */}
           <motion.div

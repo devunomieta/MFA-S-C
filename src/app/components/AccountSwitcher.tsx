@@ -30,12 +30,16 @@ export function AccountSwitcher({ open, onOpenChange }: AccountSwitcherProps) {
                                     }
                                 }}
                                 className={`w-full flex items-center gap-3 p-3 rounded-lg border transition-all hover:bg-gray-50 dark:hover:bg-gray-800 ${session.user.id === user?.id
-                                        ? "border-emerald-500 bg-emerald-50/50 dark:bg-emerald-900/20"
-                                        : "border-gray-200 dark:border-gray-700"
+                                    ? "border-emerald-500 bg-emerald-50/50 dark:bg-emerald-900/20"
+                                    : "border-gray-200 dark:border-gray-700"
                                     }`}
                             >
-                                <div className="h-10 w-10 rounded-full bg-emerald-100 dark:bg-emerald-800 flex items-center justify-center text-emerald-600 dark:text-emerald-300 font-bold shrink-0">
-                                    {session.user.email?.[0].toUpperCase() || <User className="size-5" />}
+                                <div className="h-10 w-10 rounded-full overflow-hidden bg-emerald-100 dark:bg-emerald-800 flex items-center justify-center text-emerald-600 dark:text-emerald-300 font-bold shrink-0 border border-emerald-200 dark:border-emerald-700">
+                                    {session.user.user_metadata?.avatar_url ? (
+                                        <img src={session.user.user_metadata.avatar_url} alt="Avatar" className="h-full w-full object-cover" />
+                                    ) : (
+                                        session.user.email?.[0].toUpperCase() || <User className="size-5" />
+                                    )}
                                 </div>
                                 <div className="text-left flex-1 min-w-0">
                                     <p className="font-medium text-sm text-gray-900 dark:text-gray-100 truncate">

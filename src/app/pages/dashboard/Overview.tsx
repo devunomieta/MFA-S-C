@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/app/context/AuthContext";
 import { Button } from "@/app/components/ui/button";
 import { Link } from "react-router-dom";
+import { calculateBalance } from "@/lib/walletUtils";
 
 export function Overview() {
     const { user } = useAuth();
@@ -39,20 +40,8 @@ export function Overview() {
                 .order("created_at", { ascending: false });
 
             if (txData) {
-                // Calculate Balance
-                const bal = txData.reduce((acc, curr) => {
-                    const amt = Number(curr.amount);
-                    const chg = Number(curr.charge || 0);
-                    // Additions: Deposits, Loan Disbursements
-                    if (curr.type === 'deposit' || curr.type === 'loan_disbursement' || curr.type === 'interest') {
-                        return acc + amt - chg;
-                    }
-                    // Deductions: Withdrawals, Loan Repayments
-                    if (curr.type === 'withdrawal' || curr.type === 'loan_repayment') {
-                        return acc - amt - chg;
-                    }
-                    return acc;
-                }, 0);
+                // Calculate Balance using unified utility
+                const bal = calculateBalance(txData as any, null);
                 setTotalBalance(bal);
 
                 // Recent Transactions (Top 5)
@@ -184,7 +173,7 @@ export function Overview() {
                         ) : (
                             <div className="space-y-4">
                                 {recentTransactions.map((tx) => {
-                                    const isPositive = tx.type === 'deposit' || tx.type === 'loan_disbursement' || tx.type === 'interest';
+                                    const isPositive = ['deposit', 'loan_disbursement', 'interest', 'limit_transfer'].includes(tx.type);
                                     const Icon = isPositive ? ArrowUpRight : ArrowDownLeft;
                                     const color = isPositive ? "text-emerald-600" : "text-gray-600";
                                     const bg = isPositive ? "bg-emerald-100 dark:bg-emerald-900/20" : "bg-gray-100 dark:bg-gray-700";

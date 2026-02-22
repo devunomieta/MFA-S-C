@@ -6,37 +6,59 @@ import {
     Banknote,
     User,
     LogOut,
-    Shield
+    Shield,
+    LifeBuoy,
+    Bell
 } from "lucide-react";
 import { useAuth } from "@/app/context/AuthContext";
+import { notificationService } from "@/lib/notification";
+import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
 import { supabase } from "@/lib/supabase";
 import { useEffect, useState } from "react";
 
-const sidebarItems = [
-    { icon: LayoutDashboard, label: "Overview", href: "/dashboard" },
-    { icon: PiggyBank, label: "Plans", href: "/dashboard/plans" },
-    { icon: Wallet, label: "Wallet", href: "/dashboard/wallet" },
-    { icon: Banknote, label: "Loans", href: "/dashboard/loans" },
-    { icon: User, label: "Profile", href: "/dashboard/profile" },
-];
-
 export function Sidebar() {
     const location = useLocation();
-    const { signOut, isAdmin } = useAuth();
+    const { signOut, isAdmin, user } = useAuth();
     const [logoUrl, setLogoUrl] = useState<string | null>(null);
     const [appName] = useState("AjoSave");
 
+    const [unreadCount, setUnreadCount] = useState(0);
+
+    const sidebarItems = [
+        { icon: LayoutDashboard, label: "Overview", href: "/dashboard" },
+        { icon: PiggyBank, label: "Plans", href: "/dashboard/plans" },
+        { icon: Wallet, label: "Wallet", href: "/dashboard/wallet" },
+        { icon: Banknote, label: "Loans", href: "/dashboard/loans" },
+        { icon: User, label: "Profile", href: "/dashboard/profile" },
+        { icon: Bell, label: "Notifications", href: "/dashboard/notifications", count: unreadCount },
+        { icon: LifeBuoy, label: "Request Help", href: "/dashboard/help" },
+    ];
+
     useEffect(() => {
-        const fetchBranding = async () => {
+        if (!user) return;
+
+        const fetchData = async () => {
             const { data } = await supabase.from('app_settings').select('value').eq('key', 'general').single();
             if (data?.value?.logo_url) {
                 setLogoUrl(data.value.logo_url);
             }
-            // Could also fetch app name here if we made it dynamic
+
+            // Fetch unread notifications
+            const count = await notificationService.getUnreadCount();
+            setUnreadCount(count || 0);
         };
-        fetchBranding();
-    }, []);
+        fetchData();
+
+        // Subscribe to notifications
+        const subscription = notificationService.subscribeToNotifications(user.id, () => {
+            notificationService.getUnreadCount().then(c => setUnreadCount(c || 0));
+        });
+
+        return () => {
+            subscription.unsubscribe();
+        };
+    }, [user]);
 
     return (
         <aside className="w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 hidden md:flex flex-col h-screen sticky top-0 transition-colors">
@@ -57,13 +79,20 @@ export function Sidebar() {
                         <Link
                             key={item.href}
                             to={item.href}
-                            className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${isActive
+                            className={`flex items-center justify-between px-4 py-3 rounded-lg transition-colors ${isActive
                                 ? "bg-emerald-50 text-emerald-600 font-medium dark:bg-emerald-900/20 dark:text-emerald-400"
                                 : "text-gray-600 hover:bg-gray-50 hover:text-emerald-600 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-emerald-400"
                                 }`}
                         >
-                            <item.icon className="size-5" />
-                            {item.label}
+                            <div className="flex items-center gap-3">
+                                <item.icon className="size-5" />
+                                {item.label}
+                            </div>
+                            {item.count !== undefined && item.count > 0 && (
+                                <Badge className="h-5 min-w-[20px] px-1 flex items-center justify-center bg-red-600 text-white border-0 text-[10px] font-bold">
+                                    {item.count > 9 ? '9+' : item.count}
+                                </Badge>
+                            )}
                         </Link>
                     );
                 })}
@@ -79,14 +108,33 @@ export function Sidebar() {
                 )}
             </nav>
 
-            <div className="p-4 border-t border-gray-200 dark:border-gray-800">
+            <div className="p-4 border-t border-gray-200 dark:border-gray-800 space-y-4">
+                {user && (
+                    <div className="flex items-center gap-3 px-2 py-1">
+                        <div className="h-10 w-10 rounded-full overflow-hidden bg-emerald-100 dark:bg-emerald-900 flex items-center justify-center text-emerald-600 dark:text-emerald-300 font-bold shrink-0 border border-emerald-200 dark:border-emerald-700">
+                            {user.user_metadata?.avatar_url ? (
+                                <img src={user.user_metadata.avatar_url} alt="Profile" className="h-full w-full object-cover" />
+                            ) : (
+                                (user.user_metadata?.full_name?.[0] || user.email?.[0] || 'U').toUpperCase()
+                            )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                                {user.user_metadata?.full_name || 'User'}
+                            </p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                                {user.email}
+                            </p>
+                        </div>
+                    </div>
+                )}
                 <Button
                     variant="ghost"
-                    className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/10"
+                    className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/10 h-10 px-3 rounded-lg"
                     onClick={signOut}
                 >
                     <LogOut className="size-5 mr-3" />
-                    Sign Out
+                    <span className="font-medium">Sign Out</span>
                 </Button>
             </div>
         </aside>

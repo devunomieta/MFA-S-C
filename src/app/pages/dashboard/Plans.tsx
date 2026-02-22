@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/ta
 import { toast } from "sonner";
 import { useAuth } from "@/app/context/AuthContext";
 import { logActivity } from "@/lib/activity";
-import { useSearchParams, Link } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/app/components/ui/dialog";
 import { DepositModal } from "@/app/components/DepositModal";
 import { checkAndProcessMaturity } from "@/lib/planUtils";
@@ -85,12 +85,12 @@ const PlanTable = ({ items, type, onDetails, myPlans }: {
                                         <TableCell className="font-medium text-gray-900 dark:text-gray-100 whitespace-nowrap">
                                             <div className="flex items-center gap-2">
                                                 <div className={`w-1.5 h-6 rounded-full ${plan.type === 'marathon' ? 'bg-emerald-500' :
-                                                        plan.type === 'sprint' ? 'bg-blue-500' :
-                                                            plan.type === 'anchor' ? 'bg-slate-900' :
-                                                                plan.type === 'daily_drop' ? 'bg-cyan-500' :
-                                                                    plan.type === 'step_up' ? 'bg-teal-900' :
-                                                                        plan.type === 'monthly_bloom' ? 'bg-pink-500' :
-                                                                            'bg-emerald-600'
+                                                    plan.type === 'sprint' ? 'bg-blue-500' :
+                                                        plan.type === 'anchor' ? 'bg-slate-900' :
+                                                            plan.type === 'daily_drop' ? 'bg-cyan-500' :
+                                                                plan.type === 'step_up' ? 'bg-teal-900' :
+                                                                    plan.type === 'monthly_bloom' ? 'bg-pink-500' :
+                                                                        'bg-emerald-600'
                                                     }`} />
                                                 {plan.name}
                                             </div>
@@ -163,14 +163,29 @@ export function Plans() {
 
     useEffect(() => {
         const joinPlanId = searchParams.get('join');
-        if (joinPlanId && availablePlans.length > 0) {
-            const planToJoin = availablePlans.find(p => p.id === joinPlanId || p.type === joinPlanId);
-            if (planToJoin) {
-                setViewingPlan({ plan: planToJoin });
+        const viewPlanId = searchParams.get('view');
+
+        if (availablePlans.length > 0) {
+            if (joinPlanId) {
+                const planToJoin = availablePlans.find(p => p.id === joinPlanId || p.type === joinPlanId);
+                if (planToJoin) {
+                    setViewingPlan({ plan: planToJoin });
+                    window.history.replaceState({}, '', window.location.pathname);
+                }
+            } else if (viewPlanId) {
+                // Check if it's an active plan or available plan
+                const myPlan = myPlans.find(p => p.plan_id === viewPlanId && p.status !== 'cancelled');
+                const planDetails = availablePlans.find(p => p.id === viewPlanId);
+
+                if (myPlan) {
+                    setViewingPlan({ plan: myPlan.plan, userPlan: myPlan });
+                } else if (planDetails) {
+                    setViewingPlan({ plan: planDetails });
+                }
                 window.history.replaceState({}, '', window.location.pathname);
             }
         }
-    }, [availablePlans, searchParams]);
+    }, [availablePlans, myPlans, searchParams]);
 
     useEffect(() => {
         fetchPlans();
@@ -210,7 +225,8 @@ export function Plans() {
     }
 
     async function joinStandardPlan(plan: Plan) {
-        if (!user) return;
+        if (!user || processingAction) return;
+        setProcessingAction(true);
         const { error } = await supabase.from("user_plans").insert({
             user_id: user.id,
             plan_id: plan.id,
@@ -220,6 +236,7 @@ export function Plans() {
 
         if (error) {
             toast.error("Failed to initiate joining plan");
+            setProcessingAction(false);
         } else {
             logActivity({
                 userId: user.id,
@@ -228,11 +245,13 @@ export function Plans() {
             });
             toast.success(`Plan initiated! Please make a deposit to activate.`);
             setSelectedPlanForDeposit(plan.id);
+            setProcessingAction(false);
         }
     }
 
     async function handleJoinStepUp(planId: string, amount: number, duration: number) {
-        if (!user) return;
+        if (!user || processingAction) return;
+        setProcessingAction(true);
         const metadata = { fixed_amount: amount, selected_duration: duration, weeks_completed: 0, week_paid_so_far: 0 };
         const { error } = await supabase.from("user_plans").insert({
             user_id: user.id,
@@ -245,6 +264,7 @@ export function Plans() {
 
         if (error) {
             toast.error("Failed to join Step-Up plan.");
+            setProcessingAction(false);
         } else {
             logActivity({
                 userId: user.id,
@@ -253,11 +273,13 @@ export function Plans() {
             });
             toast.success("Joined Rapid Fixed Savings! Please make your first deposit.");
             fetchMyPlans();
+            setProcessingAction(false);
         }
     }
 
     async function handleJoinMonthlyBloom(planId: string, amount: number, duration: number) {
-        if (!user) return;
+        if (!user || processingAction) return;
+        setProcessingAction(true);
         const metadata = { target_amount: amount, selected_duration: duration, months_completed: 0, month_paid_so_far: 0, arrears: 0 };
         const { error } = await supabase.from("user_plans").insert({
             user_id: user.id,
@@ -270,6 +292,7 @@ export function Plans() {
 
         if (error) {
             toast.error("Failed to join Monthly Bloom plan.");
+            setProcessingAction(false);
         } else {
             logActivity({
                 userId: user.id,
@@ -278,11 +301,13 @@ export function Plans() {
             });
             toast.success("Joined Monthly Saving Plan! Please make your first deposit.");
             fetchMyPlans();
+            setProcessingAction(false);
         }
     }
 
     async function handleJoinAjoCircle(planId: string, amount: number) {
-        if (!user) return;
+        if (!user || processingAction) return;
+        setProcessingAction(true);
         const metadata = { fixed_amount: amount, picking_turns: [], current_week: 1, week_paid: false, missed_weeks: 0, last_payment_date: null };
         const { error } = await supabase.from("user_plans").insert({
             user_id: user.id,
@@ -295,6 +320,7 @@ export function Plans() {
 
         if (error) {
             toast.error("Failed to join Ajo Circle.");
+            setProcessingAction(false);
         } else {
             logActivity({
                 userId: user.id,
@@ -303,6 +329,7 @@ export function Plans() {
             });
             toast.success("Joined Digital Ajo Circle! Admin will assign your picking turn soon.");
             fetchMyPlans();
+            setProcessingAction(false);
         }
     }
 

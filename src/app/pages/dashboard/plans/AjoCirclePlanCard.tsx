@@ -28,8 +28,18 @@ export function AjoCirclePlanCard({ plan, userPlan, onJoin, onDeposit }: AjoCirc
         }).format(value);
     };
 
-    const getFee = (amt: number) => fees[amt.toString()] || 0;
-    const getPayout = (amt: number) => amt * 10;
+    const getFee = (amt: number) => {
+        if (amt >= 100000) return 1000;
+        if (amt >= 50000) return 500;
+        if (amt >= 30000) return 500;
+        if (amt >= 25000) return 500;
+        if (amt >= 20000) return 500;
+        if (amt >= 15000) return 300;
+        if (amt >= 10000) return 200;
+        return 0;
+    };
+    const duration = plan.config?.duration_weeks || 10;
+    const getPayout = (amt: number) => amt * duration;
 
     const handleJoin = () => {
         if (!selectedAmount) return;
@@ -71,7 +81,7 @@ export function AjoCirclePlanCard({ plan, userPlan, onJoin, onDeposit }: AjoCirc
                             <div className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-1 flex items-center gap-1.5">
                                 <Calendar className="w-3.5 h-3.5" /> Current Week
                             </div>
-                            <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">{currentWeek} <span className="text-sm text-gray-400 font-normal">/ 10</span></div>
+                            <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">{currentWeek} <span className="text-sm text-gray-400 font-normal">/ {duration}</span></div>
                         </div>
                         <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-800">
                             <div className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-1 flex items-center gap-1.5">
@@ -99,7 +109,7 @@ export function AjoCirclePlanCard({ plan, userPlan, onJoin, onDeposit }: AjoCirc
                                 <AlertTriangle className="w-3.5 h-3.5" /> {missedWeeks} Missed (₦{formatCurrency(missedWeeks * 500)} Penalty)
                             </div>
                         )}
-                        <Progress value={(currentWeek / 10) * 100} className="h-2 bg-gray-100 dark:bg-gray-800 rounded-full" />
+                        <Progress value={(currentWeek / duration) * 100} className="h-2 bg-gray-100 dark:bg-gray-800 rounded-full" />
                     </div>
                 </CardContent>
 
@@ -206,11 +216,11 @@ export function AjoCirclePlanCard({ plan, userPlan, onJoin, onDeposit }: AjoCirc
                             <ul className="space-y-1.5">
                                 <li className="flex items-center gap-2 text-xs text-orange-700 dark:text-orange-400">
                                     <div className="w-1 h-1 rounded-full bg-orange-500" />
-                                    Weekly contributions for 10 weeks
+                                    Weekly contributions for {duration} weeks
                                 </li>
                                 <li className="flex items-center gap-2 text-xs text-orange-700 dark:text-orange-400">
                                     <div className="w-1 h-1 rounded-full bg-orange-500" />
-                                    Service Fee: ₦{formatCurrency(getFee(Number(selectedAmount)))} per cycle
+                                    Service Fee: {selectedAmount ? `₦${formatCurrency(getFee(Number(selectedAmount)))}` : 'Calculated based on amount'}
                                 </li>
                                 <li className="flex items-center gap-2 text-xs text-orange-700 dark:text-orange-400">
                                     <div className="w-1 h-1 rounded-full bg-orange-500" />

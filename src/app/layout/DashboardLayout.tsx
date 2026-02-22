@@ -10,10 +10,12 @@ import {
     DropdownMenuTrigger,
 } from "@/app/components/ui/dropdown-menu";
 import { AccountSwitcher } from "@/app/components/AccountSwitcher";
-import { Menu, LogOut, Repeat, Megaphone, X, LayoutDashboard, PiggyBank, Wallet as WalletIcon, Banknote, User, Shield } from "lucide-react";
+import { Menu, LogOut, Repeat, Megaphone, X, LayoutDashboard, PiggyBank, Wallet as WalletIcon, Banknote, User, Shield, LifeBuoy, Bell } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Button } from "@/app/components/ui/button";
-import { ThemeToggle } from "@/app/components/ThemeToggle";
+import { NotificationBell } from "@/app/components/dashboard/NotificationBell";
+import { notificationService } from "@/lib/notification";
+import { Badge } from "@/app/components/ui/badge";
 import { supabase } from "@/lib/supabase";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/app/components/ui/sheet";
 import { Link, useLocation } from "react-router-dom";
@@ -25,16 +27,22 @@ export function DashboardLayout() {
     const [announcement, setAnnouncement] = useState<any>(null);
     const location = useLocation();
 
+    const [unreadCount, setUnreadCount] = useState(0);
+
     const sidebarItems = [
         { icon: LayoutDashboard, label: "Overview", href: "/dashboard" },
         { icon: PiggyBank, label: "Plans", href: "/dashboard/plans" },
         { icon: WalletIcon, label: "Wallet", href: "/dashboard/wallet" },
         { icon: Banknote, label: "Loans", href: "/dashboard/loans" },
         { icon: User, label: "Profile", href: "/dashboard/profile" },
+        { icon: Bell, label: "Notifications", href: "/dashboard/notifications", count: unreadCount },
+        { icon: LifeBuoy, label: "Request Help", href: "/dashboard/help" },
     ];
 
     useEffect(() => {
-        const fetchAnnouncement = async () => {
+        if (!user) return;
+
+        const fetchData = async () => {
             const { data } = await supabase
                 .from('announcements')
                 .select('*')
@@ -44,13 +52,25 @@ export function DashboardLayout() {
                 .single();
 
             if (data) {
-                // Check expiry
                 if (data.expires_at && new Date(data.expires_at) < new Date()) return;
                 setAnnouncement(data);
             }
+
+            // Unread count
+            const count = await notificationService.getUnreadCount();
+            setUnreadCount(count || 0);
         };
-        fetchAnnouncement();
-    }, []);
+        fetchData();
+
+        // Subscription
+        const subscription = notificationService.subscribeToNotifications(user.id, () => {
+            notificationService.getUnreadCount().then(c => setUnreadCount(c || 0));
+        });
+
+        return () => {
+            subscription.unsubscribe();
+        };
+    }, [user]);
 
     return (
         <div className="min-h-screen bg-gray-50 flex dark:bg-gray-900 transition-colors relative">
@@ -76,8 +96,11 @@ export function DashboardLayout() {
                     <div className="flex items-center gap-4 md:hidden">
                         <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
                             <SheetTrigger asChild>
-                                <Button variant="ghost" size="icon" className="dark:text-white dark:hover:bg-gray-800">
+                                <Button variant="ghost" size="icon" className="dark:text-white dark:hover:bg-gray-800 relative">
                                     <Menu className="size-6" />
+                                    {unreadCount > 0 && (
+                                        <span className="absolute top-2 right-2 flex h-2 w-2 rounded-full bg-red-600 ring-2 ring-white dark:ring-gray-900" />
+                                    )}
                                 </Button>
                             </SheetTrigger>
                             <SheetContent side="left" className="w-64 p-0 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800">
@@ -92,13 +115,20 @@ export function DashboardLayout() {
                                                 key={item.href}
                                                 to={item.href}
                                                 onClick={() => setIsMobileMenuOpen(false)}
-                                                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${isActive
+                                                className={`flex items-center justify-between px-4 py-3 rounded-lg transition-colors ${isActive
                                                     ? "bg-emerald-50 text-emerald-600 font-medium dark:bg-emerald-900/20 dark:text-emerald-400"
                                                     : "text-gray-600 hover:bg-gray-50 hover:text-emerald-600 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-emerald-400"
                                                     }`}
                                             >
-                                                <item.icon className="size-5" />
-                                                {item.label}
+                                                <div className="flex items-center gap-3">
+                                                    <item.icon className="size-5" />
+                                                    {item.label}
+                                                </div>
+                                                {item.count !== undefined && item.count > 0 && (
+                                                    <Badge className="h-5 min-w-[20px] px-1 flex items-center justify-center bg-red-600 text-white border-0 text-[10px] font-bold">
+                                                        {item.count > 9 ? '9+' : item.count}
+                                                    </Badge>
+                                                )}
                                             </Link>
                                         );
                                     })}
@@ -130,7 +160,7 @@ export function DashboardLayout() {
                     </div>
 
                     <div className="ml-auto flex items-center gap-4">
-                        <ThemeToggle />
+                        <NotificationBell />
 
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -139,8 +169,12 @@ export function DashboardLayout() {
                                         <p className="font-medium text-gray-900 dark:text-gray-100">{user?.user_metadata?.full_name || 'User'}</p>
                                         <p className="text-gray-500 dark:text-gray-400">{user?.email}</p>
                                     </div>
-                                    <div className="h-10 w-10 rounded-full bg-emerald-100 dark:bg-emerald-900 flex items-center justify-center text-emerald-600 dark:text-emerald-300 font-bold text-lg cursor-pointer">
-                                        {(user?.user_metadata?.full_name?.[0] || user?.email?.[0] || 'U').toUpperCase()}
+                                    <div className="h-10 w-10 rounded-full overflow-hidden bg-emerald-100 dark:bg-emerald-900 flex items-center justify-center text-emerald-600 dark:text-emerald-300 font-bold text-lg cursor-pointer border border-gray-200 dark:border-gray-700">
+                                        {user?.user_metadata?.avatar_url ? (
+                                            <img src={user.user_metadata.avatar_url} alt="Profile" className="h-full w-full object-cover" />
+                                        ) : (
+                                            (user?.user_metadata?.full_name?.[0] || user?.email?.[0] || 'U').toUpperCase()
+                                        )}
                                     </div>
                                 </button>
                             </DropdownMenuTrigger>

@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogTrigger } from "@/app/components/ui/dialog
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
 import { User, KeyRound, UserCheck, Landmark, Shield, Mail } from "lucide-react";
 import { InputOTP, InputOTPGroup, InputOTPSeparator, InputOTPSlot } from "@/app/components/ui/input-otp";
+import { validateFile, validatePassword } from "@/lib/validation";
 
 export function Profile() {
     const { user } = useAuth();
@@ -52,8 +53,10 @@ export function Profile() {
 
     // KYC Upload State
     const [uploadingId, setUploadingId] = useState(false);
+    const [uploadingAvatar, setUploadingAvatar] = useState(false);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const avatarInputRef = useRef<HTMLInputElement>(null);
 
     // Password State
     const [showPasswordForm, setShowPasswordForm] = useState(false);
@@ -62,6 +65,9 @@ export function Profile() {
         new_password: "",
         confirm_password: ""
     });
+
+    const passFeedback = validatePassword(passwordData.new_password);
+
     const [otpCode, setOtpCode] = useState("");
     const [codeRequested, setCodeRequested] = useState(false);
     const [requestingCode, setRequestingCode] = useState(false);
@@ -370,6 +376,13 @@ export function Profile() {
             toast.error("Please fill all password fields and enter the verification code");
             return;
         }
+
+        // Security: Strict Password Complexity
+        if (!passFeedback.isValid) {
+            toast.error("New password does not meet security requirements");
+            return;
+        }
+
         if (passwordData.new_password !== passwordData.confirm_password) {
             toast.error("New passwords do not match");
             return;
@@ -411,47 +424,111 @@ export function Profile() {
         setUpdatingPassword(false);
     }
 
-    // Handle File Selection
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
+
+            // Security: Strict File Validation
+            const validation = validateFile(file, {
+                maxSizeMB: 5,
+                allowedTypes: ["image/jpeg", "image/png", "application/pdf"]
+            });
+
+            if (!validation.isValid) {
+                toast.error(validation.error);
+                return;
+            }
+
             const objectUrl = URL.createObjectURL(file);
             setPreviewUrl(objectUrl);
         }
     };
 
+    const handleAvatarSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+
+            const validation = validateFile(file, {
+                maxSizeMB: 2,
+                allowedTypes: ["image/jpeg", "image/png"]
+            });
+
+            if (!validation.isValid) {
+                toast.error(validation.error);
+                return;
+            }
+
+            setUploadingAvatar(true);
+            try {
+                const fileExt = file.name.split('.').pop();
+                const fileName = `${user?.id}-${Math.random()}.${fileExt}`;
+
+                const { error: uploadError } = await supabase.storage
+                    .from('avatars')
+                    .upload(fileName, file);
+
+                if (uploadError) throw uploadError;
+
+                const { data: { publicUrl } } = supabase.storage
+                    .from('avatars')
+                    .getPublicUrl(fileName);
+
+                const { error: updateError } = await supabase
+                    .from('profiles')
+                    .update({ avatar_url: publicUrl })
+                    .eq('id', user?.id);
+
+                if (updateError) throw updateError;
+
+                setProfile({ ...profile, avatar_url: publicUrl });
+                toast.success("Avatar updated!");
+
+                // Update Auth Metadata too
+                await supabase.auth.updateUser({
+                    data: { avatar_url: publicUrl }
+                });
+
+            } catch (error: any) {
+                toast.error(error.message || "Failed to upload avatar");
+            } finally {
+                setUploadingAvatar(false);
+            }
+        }
+    };
+
     async function handleUploadId() {
-        if (!previewUrl) {
+        if (!previewUrl || !fileInputRef.current?.files?.[0]) {
             fileInputRef.current?.click();
             return;
         }
 
+        const file = fileInputRef.current.files[0];
         setUploadingId(true);
-        // Mock ID Upload and processing
-        setTimeout(async () => {
-            // In a real app, we would upload the file to storage here
-            // const { data, error } = await supabase.storage.from('kyc').upload(...)
 
-            // For now, we simulate success and save a "mock" URL if no real one, 
-            // but we'll try to use the preview one for session persistence if possible, 
-            // or just use a placeholder that implies success.
-            const mockUrl = 'https://ui.shadcn.com/placeholder.svg'; // Placeholder for demo
+        try {
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${user?.id}-${Math.random()}.${fileExt}`;
+            const filePath = `kyc/${fileName}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('kyc')
+                .upload(filePath, file);
+
+            if (uploadError) throw uploadError;
+
+            const { data: { publicUrl } } = supabase.storage
+                .from('kyc')
+                .getPublicUrl(filePath);
 
             const { error: updateError } = await supabase.from("profiles").update({
-                gov_id_status: 'pending', // Set to Pending instead of Verified
-                gov_id_url: mockUrl
+                gov_id_status: 'pending',
+                gov_id_url: publicUrl
             }).eq("id", user?.id);
 
-            if (updateError) {
-                console.error("KYC Upload Error:", updateError);
-                toast.error("Failed to submit ID. Please try again.");
-                setUploadingId(false);
-                return;
-            }
+            if (updateError) throw updateError;
 
             toast.success("ID Uploaded! Verification pending.");
-            setUploadingId(false);
-            setPreviewUrl(null); // Clear preview to show "saved" state
+            setPreviewUrl(null);
 
             // Log Activity
             supabase.from('activity_logs').insert({
@@ -460,9 +537,13 @@ export function Profile() {
                 details: { status: 'pending' }
             });
 
-            // Force fetch to ensure state is updated
             await fetchProfile();
-        }, 1500);
+        } catch (error: any) {
+            console.error("KYC Upload Error:", error);
+            toast.error(error.message || "Failed to submit ID. Please try again.");
+        } finally {
+            setUploadingId(false);
+        }
     }
 
     return (
@@ -506,7 +587,23 @@ export function Profile() {
                                         {(profile.full_name?.[0] || 'U').toUpperCase()}
                                     </AvatarFallback>
                                 </Avatar>
-                                <Button variant="outline" className="dark:bg-gray-900 dark:text-white dark:border-gray-700 dark:hover:bg-gray-800">Change Avatar</Button>
+                                <div>
+                                    <input
+                                        type="file"
+                                        ref={avatarInputRef}
+                                        className="hidden"
+                                        accept="image/jpeg,image/png"
+                                        onChange={handleAvatarSelect}
+                                    />
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => avatarInputRef.current?.click()}
+                                        disabled={uploadingAvatar}
+                                        className="dark:bg-gray-900 dark:text-white dark:border-gray-700 dark:hover:bg-gray-800"
+                                    >
+                                        {uploadingAvatar ? "Uploading..." : "Change Avatar"}
+                                    </Button>
+                                </div>
                             </div>
 
                             <div className="grid gap-2">

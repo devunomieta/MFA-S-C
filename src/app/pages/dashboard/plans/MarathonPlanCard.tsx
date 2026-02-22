@@ -7,6 +7,17 @@ import { Link } from "react-router-dom";
 import { Trophy, Calendar, AlertTriangle, CheckCircle, ArrowRight, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/app/components/ui/alert-dialog";
 
 interface MarathonPlanCardProps {
     plan: Plan;
@@ -17,6 +28,7 @@ interface MarathonPlanCardProps {
 
 export function MarathonPlanCard({ plan, userPlan, onJoin, onDeposit }: MarathonPlanCardProps) {
     const [extending, setExtending] = useState(false);
+    const [showExtendDialog, setShowExtendDialog] = useState(false);
     const isJoined = !!userPlan;
     const metadata = userPlan?.plan_metadata || {};
     const duration = metadata.selected_duration || plan.config?.durations?.[1] || 48; // Default max
@@ -30,7 +42,6 @@ export function MarathonPlanCard({ plan, userPlan, onJoin, onDeposit }: Marathon
 
     const handleExtend = async () => {
         if (!userPlan) return;
-        if (!confirm("Are you sure you want to extend your challenge to 48 weeks? This cannot be reversed.")) return;
 
         setExtending(true);
         const newMeta = { ...metadata, selected_duration: 48 };
@@ -108,16 +119,45 @@ export function MarathonPlanCard({ plan, userPlan, onJoin, onDeposit }: Marathon
 
                     {/* Extension Option */}
                     {duration === 30 && (
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            className="w-full text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                            onClick={handleExtend}
-                            disabled={extending}
-                        >
-                            {extending ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <ArrowRight className="w-3 h-3 mr-1" />}
-                            Extend to 48 Weeks
-                        </Button>
+                        <AlertDialog open={showExtendDialog} onOpenChange={setShowExtendDialog}>
+                            <AlertDialogTrigger asChild>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="w-full text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                    disabled={extending}
+                                >
+                                    {extending ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <ArrowRight className="w-3 h-3 mr-1" />}
+                                    Extend to 48 Weeks
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Extend Marathon Challenge?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        Are you sure you want to extend your challenge to 48 weeks?
+                                        This will increase your total savings target and the duration of your commitment.
+                                        <div className="mt-2 p-3 bg-blue-50 text-blue-700 text-xs rounded-md border border-blue-100 font-medium italic">
+                                            "A longer marathon builds greater financial discipline."
+                                        </div>
+                                        <p className="mt-2 text-red-600 font-bold">This action cannot be reversed.</p>
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel disabled={extending}>Maybe Later</AlertDialogCancel>
+                                    <AlertDialogAction
+                                        onClick={(e: React.MouseEvent) => {
+                                            e.preventDefault();
+                                            handleExtend();
+                                        }}
+                                        disabled={extending}
+                                        className="bg-blue-600 hover:bg-blue-700"
+                                    >
+                                        {extending ? "Extending..." : "Yes, Extend Challenge"}
+                                    </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
                     )}
                 </CardContent>
 
