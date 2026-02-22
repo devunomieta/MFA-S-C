@@ -219,7 +219,7 @@ export function AdminPlans() {
                     {sprintPlan && (
                         <TabsTrigger value="sprint" className="data-[state=active]:bg-white data-[state=active]:shadow-sm flex-grow md:flex-grow-0">
                             <Activity className="w-4 h-4 mr-2" />
-                            Sprint
+                            30-Weeks Sprint
                         </TabsTrigger>
                     )}
                     {anchorPlan && (
@@ -237,16 +237,16 @@ export function AdminPlans() {
                     {stepUpPlan && (
                         <TabsTrigger value="step_up" className="data-[state=active]:bg-white data-[state=active]:shadow-sm flex-grow md:flex-grow-0">
                             <TrendingUp className="w-4 h-4 mr-2" />
-                            Step-Up
+                            Rapid Savings
                         </TabsTrigger>
                     )}
                     {monthlyBloomPlan && (
                         <TabsTrigger value="monthly_bloom" className="data-[state=active]:bg-white data-[state=active]:shadow-sm flex-grow md:flex-grow-0">
                             <Settings className="w-4 h-4 mr-2" />
-                            Monthly Bloom
+                            Monthly Saving
                         </TabsTrigger>
                     )}
-                    <TabsTrigger value="ajo_circle" className="flex-grow md:flex-grow-0">The Ajo Circle</TabsTrigger>
+                    <TabsTrigger value="ajo_circle" className="flex-grow md:flex-grow-0">Digital Ajo</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="management" className="space-y-6">
@@ -437,7 +437,7 @@ export function AdminPlans() {
                     <TabsContent value="sprint">
                         <div className="flex items-center justify-between mb-4 bg-blue-50 p-4 rounded-lg border border-blue-100">
                             <div>
-                                <h2 className="text-lg font-bold text-blue-900">Sprint Dashboard</h2>
+                                <h2 className="text-lg font-bold text-blue-900">30-Weeks Saving Sprint Dashboard</h2>
                                 <p className="text-sm text-blue-700">Monitor active 30-week sprint participants and weekly targets.</p>
                             </div>
                             <Button variant="outline" className="border-blue-200 text-blue-700 hover:bg-blue-100" asChild>
@@ -452,7 +452,7 @@ export function AdminPlans() {
                     <TabsContent value="anchor">
                         <div className="flex items-center justify-between mb-4 bg-indigo-50 p-4 rounded-lg border border-indigo-100">
                             <div>
-                                <h2 className="text-lg font-bold text-indigo-900">Anchor Dashboard</h2>
+                                <h2 className="text-lg font-bold text-indigo-900">48-Weeks Saving Sprint Dashboard</h2>
                                 <p className="text-sm text-indigo-700">Monitor 48-week Anchor participants and weekly targets.</p>
                             </div>
                             <Button variant="outline" className="border-indigo-200 text-indigo-700 hover:bg-indigo-100" asChild>
@@ -467,7 +467,7 @@ export function AdminPlans() {
                     <TabsContent value="daily_drop">
                         <div className="flex items-center justify-between mb-4 bg-cyan-50 p-4 rounded-lg border border-cyan-100">
                             <div>
-                                <h2 className="text-lg font-bold text-cyan-900">Daily Drop Dashboard</h2>
+                                <h2 className="text-lg font-bold text-cyan-900">Daily Savings Dashboard</h2>
                                 <p className="text-sm text-cyan-700">Monitor active daily savers.</p>
                             </div>
                             <Button variant="outline" className="border-cyan-200 text-cyan-700 hover:bg-cyan-100" asChild>
@@ -482,8 +482,8 @@ export function AdminPlans() {
                     <TabsContent value="step_up">
                         <div className="flex items-center justify-between mb-4 bg-purple-50 p-4 rounded-lg border border-purple-100">
                             <div>
-                                <h2 className="text-lg font-bold text-purple-900">Step-Up Dashboard</h2>
-                                <p className="text-sm text-purple-700">Monitor active Step-Up tiers and weekly progress.</p>
+                                <h2 className="text-lg font-bold text-purple-900">Rapid Fixed Savings Dashboard</h2>
+                                <p className="text-sm text-purple-700">Monitor active Rapid Fixed Savings tiers and weekly progress.</p>
                             </div>
                             <Button variant="outline" className="border-purple-200 text-purple-700 hover:bg-purple-100" asChild>
                                 <a href={stepUpPlan.whatsapp_link} target="_blank">WhatsApp Group</a>
@@ -497,8 +497,8 @@ export function AdminPlans() {
                     <TabsContent value="monthly_bloom">
                         <div className="flex items-center justify-between mb-4 bg-pink-50 p-4 rounded-lg border border-pink-100">
                             <div>
-                                <h2 className="text-lg font-bold text-pink-900">Monthly Bloom Dashboard</h2>
-                                <p className="text-sm text-pink-700">Monitor active Monthly Bloom participants.</p>
+                                <h2 className="text-lg font-bold text-pink-900">Monthly Saving Plan Dashboard</h2>
+                                <p className="text-sm text-pink-700">Monitor active Monthly Saving Plan participants.</p>
                             </div>
                             {monthlyBloomPlan.whatsapp_link && (
                                 <Button variant="outline" className="border-pink-200 text-pink-700 hover:bg-pink-100" asChild>

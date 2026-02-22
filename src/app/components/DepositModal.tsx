@@ -597,7 +597,7 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose }: DepositModal
                             <div>
                                 <p className="text-sm text-gray-500 dark:text-gray-400">Available General Balance</p>
                                 <p className="text-xl font-bold dark:text-white">
-                                    {loadingBalance ? "Loading..." : `$${formatCurrency(generalBalance)}`}
+                                    {loadingBalance ? "Loading..." : `₦${formatCurrency(generalBalance)}`}
                                 </p>
                             </div>
                         </div>

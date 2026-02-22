@@ -52,8 +52,8 @@ export function StepUpPlanCard({ plan, userPlan, onJoin, onDeposit }: StepUpPlan
                     <div className="flex justify-between items-start">
                         <div>
                             <div className="flex items-center gap-2 mb-2">
-                                <Badge variant="outline" className="text-purple-700 border-purple-200 bg-purple-50">Step-Up</Badge>
-                                <Badge className={`border-0 ${isCompleted ? 'bg-emerald-600' : 'bg-purple-600 text-white'}`}>
+                                <Badge variant="outline" className="text-teal-700 border-teal-200 bg-teal-50">{plan.name}</Badge>
+                                <Badge className={`border-0 ${isCompleted ? 'bg-emerald-600' : 'bg-teal-900 text-white'}`}>
                                     {isCompleted ? 'Completed' : 'Active'}
                                 </Badge>
                             </div>
@@ -139,8 +139,8 @@ export function StepUpPlanCard({ plan, userPlan, onJoin, onDeposit }: StepUpPlan
             <CardHeader className="pb-4">
                 <div className="flex justify-between items-start">
                     <div>
-                        <Badge variant="secondary" className="mb-2 bg-purple-50 text-purple-700 border-purple-100 hover:bg-purple-100">
-                            Step-Up
+                        <Badge variant="secondary" className="mb-2 bg-teal-50 text-teal-700 border-teal-100 hover:bg-teal-100">
+                            Fixed Growth
                         </Badge>
                         <CardTitle className="text-xl font-bold text-gray-900 dark:text-white">
                             {plan.name}
@@ -148,7 +148,7 @@ export function StepUpPlanCard({ plan, userPlan, onJoin, onDeposit }: StepUpPlan
                     </div>
                 </div>
                 <p className="text-sm text-gray-500 dark:text-gray-400 font-medium leading-relaxed mt-1 line-clamp-2">
-                    Structured weekly growth. Start fast, finish strong.
+                    Step up your financial game by committing to a high-value fixed weekly amount for rapid growth.
                 </p>
             </CardHeader>
 
@@ -183,6 +183,28 @@ export function StepUpPlanCard({ plan, userPlan, onJoin, onDeposit }: StepUpPlan
                             </Select>
                         </div>
                     </div>
+
+                    <div className="p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-100 dark:border-purple-800">
+                        <h4 className="text-[10px] font-bold text-purple-800 dark:text-purple-400 uppercase tracking-wider mb-2">Rules & Features</h4>
+                        <ul className="space-y-1.5">
+                            <li className="flex items-center gap-2 text-xs text-purple-700 dark:text-purple-400">
+                                <div className="w-1 h-1 rounded-full bg-purple-500" />
+                                High-value fixed weekly commitment
+                            </li>
+                            <li className="flex items-center gap-2 text-xs text-purple-700 dark:text-purple-400">
+                                <div className="w-1 h-1 rounded-full bg-purple-500" />
+                                Duration: 10, 15, or 20 Weeks
+                            </li>
+                            <li className="flex items-center gap-2 text-xs text-purple-700 dark:text-purple-400">
+                                <div className="w-1 h-1 rounded-full bg-purple-500" />
+                                Strictly locked; no early breakage
+                            </li>
+                            <li className="flex items-center gap-2 text-xs text-purple-700 dark:text-purple-400">
+                                <div className="w-1 h-1 rounded-full bg-purple-500" />
+                                ₦500 penalty for missed weeks
+                            </li>
+                        </ul>
+                    </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 text-xs text-gray-500 dark:text-gray-400 font-medium pt-2">
@@ -199,10 +221,10 @@ export function StepUpPlanCard({ plan, userPlan, onJoin, onDeposit }: StepUpPlan
 
             <CardFooter className="pt-2">
                 <Button
-                    className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold"
+                    className="w-full bg-teal-900 hover:bg-teal-800 text-white font-semibold"
                     onClick={handleJoin}
                 >
-                    Start Step-Up
+                    Start Rapid Savings
                 </Button>
             </CardFooter>
         </Card>

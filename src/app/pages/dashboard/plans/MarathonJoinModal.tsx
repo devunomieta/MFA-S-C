@@ -69,9 +69,9 @@ export function MarathonJoinModal({ plan, isOpen, onClose, onSuccess }: Marathon
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
             <DialogContent className="sm:max-w-md">
                 <DialogHeader>
-                    <DialogTitle>Join {plan.name}</DialogTitle>
+                    <DialogTitle>Join Marathon Target Savings</DialogTitle>
                     <DialogDescription>
-                        Select your challenge duration. You must deposit ₦{plan.min_amount} weekly.
+                        Select your challenge duration. You must deposit ₦3,000 weekly.
                     </DialogDescription>
                 </DialogHeader>
 
@@ -95,7 +95,7 @@ export function MarathonJoinModal({ plan, isOpen, onClose, onSuccess }: Marathon
                     <div className="rounded-md bg-amber-50 p-3 text-sm text-amber-800 border border-amber-200">
                         <p className="font-bold mb-1">Important Rules:</p>
                         <ul className="list-disc list-inside space-y-1 text-xs">
-                            <li>Minimum weekly deposit: ₦{plan.min_amount}</li>
+                            <li>Minimum weekly deposit: ₦3,000</li>
                             <li>Weekly resets on Sunday 11:59 PM.</li>
                             <li>Missed weeks incur a ₦500 penalty.</li>
                             <li>No withdrawals until maturity.</li>

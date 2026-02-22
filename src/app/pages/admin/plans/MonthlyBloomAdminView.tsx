@@ -90,7 +90,7 @@ export function MonthlyBloomAdminView() {
                         <CardTitle className="text-sm font-medium text-pink-800">Total Subscribers</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-pink-900">{plans.length}</div>
+                        <h3 className="font-bold text-pink-900">Monthly Saving Plan Controls</h3>
                     </CardContent>
                 </Card>
                 <Card className="bg-purple-50 border-purple-200">

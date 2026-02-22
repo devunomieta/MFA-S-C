@@ -82,8 +82,8 @@ export function MarathonAdminView({ plan }: MarathonAdminViewProps) {
         <div className="space-y-6">
             <div className="flex justify-between items-center bg-emerald-50 p-4 rounded-lg border border-emerald-100 mb-4">
                 <div>
-                    <h3 className="font-bold text-emerald-900">Marathon Controls</h3>
-                    <p className="text-sm text-emerald-700">Manual triggers. (Flexible Duration)</p>
+                    <h3 className="font-bold text-emerald-900">Marathon Target Savings Controls</h3>
+                    <p className="text-sm text-emerald-700">Manual triggers. (30 or 48 Weeks)</p>
                 </div>
                 <Button
                     onClick={handleTriggerAutoSave}

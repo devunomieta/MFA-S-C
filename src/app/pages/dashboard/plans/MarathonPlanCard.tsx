@@ -60,7 +60,7 @@ export function MarathonPlanCard({ plan, userPlan, onJoin, onDeposit }: Marathon
                     <div className="flex justify-between items-start">
                         <div>
                             <div className="flex items-center gap-2 mb-2">
-                                <Badge variant="outline" className="text-emerald-700 border-emerald-200 bg-emerald-50">Marathon</Badge>
+                                <Badge variant="outline" className="text-emerald-700 border-emerald-200 bg-emerald-50">{plan.name}</Badge>
                                 <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white">Active</Badge>
                             </div>
                             <CardTitle className="text-xl font-bold text-gray-900 dark:text-gray-100">{plan.name}</CardTitle>
@@ -151,30 +151,54 @@ export function MarathonPlanCard({ plan, userPlan, onJoin, onDeposit }: Marathon
                     </div>
                 </div>
                 <p className="text-sm text-gray-500 dark:text-gray-400 font-medium leading-relaxed mt-1 line-clamp-2">
-                    {plan.description}
+                    A disciplined, long-term savings plan starting every January to help you hit those massive end-of-year financial goals.
                 </p>
             </CardHeader>
 
             <CardContent className="flex-1 space-y-6 pt-2">
                 <div className="flex justify-between items-end border-b border-gray-100 dark:border-gray-800 pb-4">
                     <div>
-                        <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Weekly</p>
-                        <p className="text-lg font-bold text-gray-900 dark:text-white">{formatCurrency(plan.min_amount)}</p>
+                        <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Weekly Min</p>
+                        <p className="text-lg font-bold text-gray-900 dark:text-white">₦3,000</p>
                     </div>
                     <div className="text-right">
                         <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Duration</p>
-                        <p className="text-lg font-bold text-gray-900 dark:text-white">52 Weeks</p>
+                        <p className="text-lg font-bold text-gray-900 dark:text-white">30 or 48 Weeks</p>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 text-xs text-gray-500 dark:text-gray-400 font-medium">
-                    <div className="flex items-center gap-2">
-                        <Calendar className="w-3.5 h-3.5 text-emerald-600" />
-                        <span>Year-Long Goal</span>
+                <div className="space-y-4 pt-2">
+                    <div className="p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-100 dark:border-emerald-800">
+                        <h4 className="text-[10px] font-bold text-emerald-800 dark:text-emerald-400 uppercase tracking-wider mb-2">Rules & Features</h4>
+                        <ul className="space-y-1.5">
+                            <li className="flex items-center gap-2 text-xs text-emerald-700 dark:text-emerald-400">
+                                <div className="w-1 h-1 rounded-full bg-emerald-500" />
+                                Starts 3rd week of January annually
+                            </li>
+                            <li className="flex items-center gap-2 text-xs text-emerald-700 dark:text-emerald-400">
+                                <div className="w-1 h-1 rounded-full bg-emerald-500" />
+                                Strictly locked until December completion
+                            </li>
+                            <li className="flex items-center gap-2 text-xs text-emerald-700 dark:text-emerald-400">
+                                <div className="w-1 h-1 rounded-full bg-emerald-500" />
+                                Daily/Weekly top-ups allowed
+                            </li>
+                            <li className="flex items-center gap-2 text-xs text-emerald-700 dark:text-emerald-400">
+                                <div className="w-1 h-1 rounded-full bg-emerald-500" />
+                                ₦500 penalty for missed weeks
+                            </li>
+                        </ul>
                     </div>
-                    <div className="flex items-center gap-2">
-                        <Trophy className="w-3.5 h-3.5 text-emerald-600" />
-                        <span>Strict Discipline</span>
+
+                    <div className="grid grid-cols-2 gap-3 text-xs text-gray-500 dark:text-gray-400 font-medium">
+                        <div className="flex items-center gap-2">
+                            <Calendar className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>Ends in Dec</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Trophy className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>Strictly Locked</span>
+                        </div>
                     </div>
                 </div>
             </CardContent>

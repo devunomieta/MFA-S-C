@@ -89,7 +89,7 @@ export function DailyDropAdminView({ plan }: DailyDropAdminViewProps) {
         <div className="space-y-6">
             <div className="flex justify-between items-center bg-cyan-50 p-4 rounded-lg border border-cyan-100 mb-4">
                 <div>
-                    <h3 className="font-bold text-cyan-900">Daily Drop Controls</h3>
+                    <h3 className="font-bold text-cyan-900">Daily Savings Controls</h3>
                     <p className="text-sm text-cyan-700">Daily Trigger (Run at 23:59)</p>
                 </div>
                 <Button

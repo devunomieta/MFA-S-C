@@ -45,6 +45,7 @@ export function PlanCard({ name, balance, currency = "$", expiryDate, index, tot
         <motion.div
             layout
             initial={false}
+            whileTap={{ scale: 0.98 }}
             animate={{
                 y: offset,
                 scale: scale,
@@ -52,7 +53,7 @@ export function PlanCard({ name, balance, currency = "$", expiryDate, index, tot
                 opacity: opacity,
             }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            onClick={onClick}
+            onTap={onClick}
             className={`absolute top-0 w-full aspect-[1.586] rounded-xl shadow-2xl overflow-hidden cursor-pointer border border-white/10 bg-gradient-to-br ${bgGradient}`}
             style={{ transformOrigin: "top center" }}
         >

@@ -414,7 +414,7 @@ export function Wallet() {
             }
         }
 
-        toast.success(`Loan Repayment Processed! ${amountToUser > 0 ? `$${amountToUser} withdrawn.` : ''}`);
+        toast.success(`Loan Repayment Processed! ${amountToUser > 0 ? `₦${amountToUser} withdrawn.` : ''}`);
 
         setOpen(false);
         setAmount("");
@@ -443,7 +443,7 @@ export function Wallet() {
             <div className="grid gap-4 py-4">
                 <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg flex justify-between items-center mb-2">
                     <span className="text-sm text-gray-500 dark:text-gray-400">Available to Withdraw</span>
-                    <span className="font-bold dark:text-white">${formatCurrency(withdrawableBalance)}</span>
+                    <span className="font-bold dark:text-white">₦{formatCurrency(withdrawableBalance)}</span>
                 </div>
 
                 <Tabs defaultValue="bank" className="w-full">
@@ -595,7 +595,7 @@ export function Wallet() {
                         {/* Withdrawable Balance Display */}
                         <div className="mt-4 p-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800 rounded-xl">
                             <p className="text-sm text-emerald-700 dark:text-emerald-400 font-medium mb-1">Withdrawable Balance</p>
-                            <p className="text-2xl font-bold text-emerald-800 dark:text-emerald-300">${formatCurrency(withdrawableBalance)}</p>
+                            <p className="text-2xl font-bold text-emerald-800 dark:text-emerald-300">₦{formatCurrency(withdrawableBalance)}</p>
                             <p className="text-xs text-emerald-600/70 dark:text-emerald-400/70 mt-1">Funds from matured plans available for payout.</p>
                         </div>
                     </div>
@@ -726,7 +726,7 @@ export function Wallet() {
                                                                 </span>
                                                             </TableCell>
                                                             <TableCell className={`text-right font-medium font-mono ${amountClass}`}>
-                                                                {amountPrefix}${formatCurrency(Math.abs(tx.amount))}
+                                                                {amountPrefix}₦{formatCurrency(Math.abs(tx.amount))}
                                                             </TableCell>
                                                             <TableCell className="text-right">
                                                                 <Button

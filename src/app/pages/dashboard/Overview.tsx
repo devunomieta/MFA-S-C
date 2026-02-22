@@ -32,7 +32,7 @@ export function Overview() {
         setLoading(true);
         try {
             // 1. Fetch Transactions (For Balance & Recent Activity)
-            const { data: txData, error: txError } = await supabase
+            const { data: txData } = await supabase
                 .from("transactions")
                 .select("*")
                 .eq("user_id", user?.id)
@@ -60,9 +60,9 @@ export function Overview() {
             }
 
             // 2. Fetch Active Plans
-            const { data: plansData, error: plansError } = await supabase
+            const { data: plansData } = await supabase
                 .from("user_plans")
-                .select("*, plans(name, service_charge)")
+                .select("*, plan:plans(name, service_charge)")
                 .eq("user_id", user?.id)
                 .eq("status", "active");
 
@@ -72,7 +72,7 @@ export function Overview() {
             }
 
             // 3. Fetch Loans (Outstanding)
-            const { data: loansData, error: loansError } = await supabase
+            const { data: loansData } = await supabase
                 .from("loans")
                 .select("*")
                 .eq("user_id", user?.id)
@@ -92,15 +92,16 @@ export function Overview() {
 
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('en-US', {
-            style: 'currency',
-            currency: 'USD',
+            style: 'decimal',
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
         }).format(amount);
     };
 
     const stats = [
         {
             title: "Total Balance",
-            value: formatCurrency(totalBalance),
+            value: `₦${formatCurrency(totalBalance)}`,
             change: "Available funds",
             icon: Wallet,
             color: "text-emerald-600",
@@ -116,7 +117,7 @@ export function Overview() {
         },
         {
             title: "Outstanding Loans",
-            value: formatCurrency(outstandingLoans),
+            value: `₦${formatCurrency(outstandingLoans)}`,
             change: outstandingLoans > 0 ? "Repayment active" : "No active loans",
             icon: CreditCard,
             color: "text-amber-600",
@@ -204,7 +205,7 @@ export function Overview() {
                                                 </div>
                                             </div>
                                             <span className={`font-medium text-sm ${isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-900 dark:text-white'}`}>
-                                                {isPositive ? '+' : '-'}{formatCurrency(tx.amount)}
+                                                {isPositive ? '+' : '-'}₦{formatCurrency(tx.amount)}
                                             </span>
                                         </div>
                                     );
@@ -237,10 +238,10 @@ export function Overview() {
                                     <div key={plan.id} className="p-3 border border-gray-100 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
                                         <div className="flex justify-between mb-2">
                                             <div>
-                                                <span className="font-medium text-sm text-gray-900 dark:text-white block">{plan.plans?.name}</span>
-                                                <span className="text-xs text-red-600 dark:text-red-400">${plan.plans?.service_charge} Charge</span>
+                                                <span className="font-medium text-sm text-gray-900 dark:text-white block">{plan.plan?.name}</span>
+                                                <span className="text-xs text-red-600 dark:text-red-400">₦{plan.plan?.service_charge} Charge</span>
                                             </div>
-                                            <span className="text-sm font-semibold text-gray-900 dark:text-white">{formatCurrency(plan.current_balance)}</span>
+                                            <span className="text-sm font-semibold text-gray-900 dark:text-white">₦{formatCurrency(plan.current_balance)}</span>
                                         </div>
                                         {/* Simple Progress Indicator (Visual only since no explicit target) */}
                                         <div className="h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden w-full">

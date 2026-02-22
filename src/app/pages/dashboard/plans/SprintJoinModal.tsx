@@ -68,11 +68,11 @@ export function SprintJoinModal({ plan, isOpen, onClose, onSuccess, customTitle,
     };
 
     const defaultTerms = [
-        "Duration: 30 Weeks (Rolling)",
+        "Duration: 30 Weeks",
         "Goal: Min. ₦3,000 / week",
         "Settlements: Every Sunday 11:59PM",
         "Penalty: ₦500 for missing a week",
-        "Auto-Recovery: Authorized from wallet"
+        "Withdrawal: Locked until completion"
     ];
 
     const displayTerms = customTerms || defaultTerms;
@@ -81,7 +81,7 @@ export function SprintJoinModal({ plan, isOpen, onClose, onSuccess, customTitle,
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
             <DialogContent className="sm:max-w-md">
                 <DialogHeader>
-                    <DialogTitle>{customTitle || `Join ${plan.name}`}</DialogTitle>
+                    <DialogTitle>{customTitle || `Join 30-Weeks Saving Sprint`}</DialogTitle>
                     <DialogDescription>
                         Commit to a disciplined savings challenge.
                     </DialogDescription>

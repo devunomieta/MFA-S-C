@@ -46,7 +46,7 @@ export function AnchorPlanCard({ plan, userPlan, onJoin, onDeposit }: AnchorPlan
                     <div className="flex justify-between items-start">
                         <div>
                             <div className="flex items-center gap-2 mb-2">
-                                <Badge variant="outline" className="text-indigo-700 border-indigo-200 bg-indigo-50">The Anchor</Badge>
+                                <Badge variant="outline" className="text-indigo-700 border-indigo-200 bg-indigo-50">{plan.name}</Badge>
                                 <Badge className="bg-indigo-600 hover:bg-indigo-700 text-white">Active</Badge>
                             </div>
                             <CardTitle className="text-xl font-bold text-gray-900 dark:text-gray-100">{plan.name}</CardTitle>
@@ -119,7 +119,7 @@ export function AnchorPlanCard({ plan, userPlan, onJoin, onDeposit }: AnchorPlan
                     <div className="flex justify-between items-start">
                         <div>
                             <Badge variant="secondary" className="mb-2 bg-indigo-50 text-indigo-700 border-indigo-100 hover:bg-indigo-100">
-                                The Anchor
+                                High Discipline
                             </Badge>
                             <CardTitle className="text-xl font-bold text-gray-900 dark:text-white">
                                 {plan.name}
@@ -127,30 +127,54 @@ export function AnchorPlanCard({ plan, userPlan, onJoin, onDeposit }: AnchorPlan
                         </div>
                     </div>
                     <p className="text-sm text-gray-500 dark:text-gray-400 font-medium leading-relaxed mt-1 line-clamp-2">
-                        Build a solid foundation. Weekly targets, strict discipline.
+                        Build a rock-solid financial foundation with a robust, year-round savings commitment.
                     </p>
                 </CardHeader>
 
                 <CardContent className="flex-1 space-y-6 pt-2">
                     <div className="flex justify-between items-end border-b border-gray-100 dark:border-gray-800 pb-4">
                         <div>
-                            <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Weekly Target</p>
-                            <p className="text-lg font-bold text-gray-900 dark:text-white">{formatCurrency(weeklyTarget)}</p>
+                            <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Weekly Min</p>
+                            <p className="text-lg font-bold text-gray-900 dark:text-white">₦3,000</p>
                         </div>
                         <div className="text-right">
                             <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Duration</p>
-                            <p className="text-lg font-bold text-gray-900 dark:text-white">{totalDuration} Weeks</p>
+                            <p className="text-lg font-bold text-gray-900 dark:text-white">48 Weeks</p>
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3 text-xs text-gray-500 dark:text-gray-400 font-medium">
-                        <div className="flex items-center gap-2">
-                            <TrendingUp className="w-3.5 h-3.5 text-indigo-600" />
-                            <span>Disciplined</span>
+                    <div className="space-y-4 pt-2">
+                        <div className="p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg border border-indigo-100 dark:border-indigo-800">
+                            <h4 className="text-[10px] font-bold text-indigo-800 dark:text-indigo-400 uppercase tracking-wider mb-2">Rules & Features</h4>
+                            <ul className="space-y-1.5">
+                                <li className="flex items-center gap-2 text-xs text-indigo-700 dark:text-indigo-400">
+                                    <div className="w-1 h-1 rounded-full bg-indigo-500" />
+                                    Robust 48-week savings commitment
+                                </li>
+                                <li className="flex items-center gap-2 text-xs text-indigo-700 dark:text-indigo-400">
+                                    <div className="w-1 h-1 rounded-full bg-indigo-500" />
+                                    Strictly locked; no early breakage
+                                </li>
+                                <li className="flex items-center gap-2 text-xs text-indigo-700 dark:text-indigo-400">
+                                    <div className="w-1 h-1 rounded-full bg-indigo-500" />
+                                    Weekly ₦500 penalty for missed days
+                                </li>
+                                <li className="flex items-center gap-2 text-xs text-indigo-700 dark:text-indigo-400">
+                                    <div className="w-1 h-1 rounded-full bg-indigo-500" />
+                                    Fund from matured plans anytime
+                                </li>
+                            </ul>
                         </div>
-                        <div className="flex items-center gap-2">
-                            <CheckCircle className="w-3.5 h-3.5 text-indigo-600" />
-                            <span>Auto-Recovery</span>
+
+                        <div className="grid grid-cols-2 gap-3 text-xs text-gray-500 dark:text-gray-400 font-medium">
+                            <div className="flex items-center gap-2">
+                                <TrendingUp className="w-3.5 h-3.5 text-indigo-600" />
+                                <span>Disciplined</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <CheckCircle className="w-3.5 h-3.5 text-indigo-600" />
+                                <span>Auto-Recovery</span>
+                            </div>
                         </div>
                     </div>
                 </CardContent>

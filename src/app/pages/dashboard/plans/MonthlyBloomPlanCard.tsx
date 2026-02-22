@@ -60,7 +60,7 @@ export function MonthlyBloomPlanCard({ plan, userPlan, onJoin, onDeposit }: Mont
                     <div className="flex justify-between items-start">
                         <div>
                             <div className="flex items-center gap-2 mb-2">
-                                <Badge variant="outline" className="text-pink-700 border-pink-200 bg-pink-50">Monthly Bloom</Badge>
+                                <Badge variant="outline" className="text-slate-700 border-slate-200 bg-slate-50">{plan.name}</Badge>
                                 <Badge className="bg-emerald-600 border-emerald-500 text-white">Active</Badge>
                             </div>
                             <CardTitle className="text-xl font-bold text-gray-900 dark:text-gray-100">{plan.name}</CardTitle>
@@ -153,8 +153,8 @@ export function MonthlyBloomPlanCard({ plan, userPlan, onJoin, onDeposit }: Mont
                 <CardHeader className="pb-4">
                     <div className="flex justify-between items-start">
                         <div>
-                            <Badge variant="secondary" className="mb-2 bg-pink-50 text-pink-700 border-pink-100 hover:bg-pink-100">
-                                Monthly Bloom
+                            <Badge variant="secondary" className="mb-2 bg-slate-50 text-slate-700 border-slate-100 hover:bg-slate-100">
+                                Monthly Plan
                             </Badge>
                             <CardTitle className="text-xl font-bold text-gray-900 dark:text-white">
                                 {plan.name}
@@ -162,7 +162,7 @@ export function MonthlyBloomPlanCard({ plan, userPlan, onJoin, onDeposit }: Mont
                         </div>
                     </div>
                     <p className="text-sm text-gray-500 dark:text-gray-400 font-medium leading-relaxed mt-1 line-clamp-2">
-                        Steady monthly contributions for your big goals.
+                        Perfect for business owners or salary earners looking to lock away a chunk of income monthly for major projects.
                     </p>
                 </CardHeader>
 
@@ -187,7 +187,7 @@ export function MonthlyBloomPlanCard({ plan, userPlan, onJoin, onDeposit }: Mont
                                 <Label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Monthly Target</Label>
                                 <Input
                                     type="number"
-                                    className="bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 h-9 font-semibold text-sm focus-visible:ring-pink-500"
+                                    className="bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 h-9 font-semibold text-sm focus-visible:ring-slate-500"
                                     value={targetAmount}
                                     onChange={(e) => setTargetAmount(e.target.value)}
                                     min={20000}
@@ -196,30 +196,54 @@ export function MonthlyBloomPlanCard({ plan, userPlan, onJoin, onDeposit }: Mont
                             </div>
                         </div>
 
-                        <div className="flex justify-between items-center text-xs text-pink-700 bg-pink-50 p-2 rounded border border-pink-100">
+                        <div className="flex justify-between items-center text-xs text-slate-700 bg-slate-50 p-2 rounded border border-slate-100">
                             <span className="font-semibold">Est. Total Savings:</span>
-                            <span className="font-bold text-sm bg-white px-2 py-0.5 rounded border border-pink-200 shadow-sm">{formatCurrency(parseInt(targetAmount || "0") * parseInt(duration))}</span>
+                            <span className="font-bold text-sm bg-white px-2 py-0.5 rounded border border-slate-200 shadow-sm">{formatCurrency(parseInt(targetAmount || "0") * parseInt(duration))}</span>
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3 text-xs text-gray-500 dark:text-gray-400 font-medium pt-2">
-                        <div className="flex items-center gap-2">
-                            <CheckCircle className="w-3.5 h-3.5 text-pink-600" />
-                            <span>Flexible Target</span>
+                    <div className="space-y-4 pt-2">
+                        <div className="p-3 bg-pink-50 dark:bg-pink-900/20 rounded-lg border border-pink-100 dark:border-pink-800">
+                            <h4 className="text-[10px] font-bold text-pink-800 dark:text-pink-400 uppercase tracking-wider mb-2">Rules & Features</h4>
+                            <ul className="space-y-1.5">
+                                <li className="flex items-center gap-2 text-xs text-pink-700 dark:text-pink-400">
+                                    <div className="w-1 h-1 rounded-full bg-pink-500" />
+                                    Flexible monthly savings target
+                                </li>
+                                <li className="flex items-center gap-2 text-xs text-pink-700 dark:text-pink-400">
+                                    <div className="w-1 h-1 rounded-full bg-pink-500" />
+                                    Lock Duration: 4 to 12 Months
+                                </li>
+                                <li className="flex items-center gap-2 text-xs text-pink-700 dark:text-pink-400">
+                                    <div className="w-1 h-1 rounded-full bg-pink-500" />
+                                    Service Charge: No extra charges
+                                </li>
+                                <li className="flex items-center gap-2 text-xs text-pink-700 dark:text-pink-400">
+                                    <div className="w-1 h-1 rounded-full bg-pink-500" />
+                                    Locked until total maturity reached
+                                </li>
+                            </ul>
                         </div>
-                        <div className="flex items-center gap-2">
-                            <Sprout className="w-3.5 h-3.5 text-pink-600" />
-                            <span>Growth Focused</span>
+
+                        <div className="grid grid-cols-2 gap-3 text-xs text-gray-500 dark:text-gray-400 font-medium pt-2">
+                            <div className="flex items-center gap-2">
+                                <CheckCircle className="w-3.5 h-3.5 text-pink-600" />
+                                <span>Flexible Target</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <Sprout className="w-3.5 h-3.5 text-pink-600" />
+                                <span>Growth Focused</span>
+                            </div>
                         </div>
                     </div>
                 </CardContent>
 
                 <CardFooter className="pt-2">
                     <Button
-                        className="w-full bg-pink-600 hover:bg-pink-700 text-white font-semibold"
+                        className="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold"
                         onClick={handleJoin}
                     >
-                        Start Monthly Bloom
+                        Start Saving Plan
                     </Button>
                 </CardFooter>
             </Card>
@@ -229,13 +253,12 @@ export function MonthlyBloomPlanCard({ plan, userPlan, onJoin, onDeposit }: Mont
                 onClose={() => setShowJoinModal(false)}
                 onSuccess={confirmJoin}
                 plan={plan}
-                customTitle="Confirm Monthly Bloom"
+                customTitle="Confirm Monthly Saving Plan"
                 customTerms={[
                     `Duration: ${duration} Months`,
                     `Monthly Target: ${formatCurrency(parseInt(targetAmount))}`,
-                    "Service Charge: ₦2,000 per month (deducted upfront or monthly)",
-                    "Withdrawal: Available after maturity",
-                    "Penalty: Late payment fees apply",
+                    "Service Charge: No extra charges",
+                    "Withdrawal: Locked until maturity",
                     "Aesthetics: Premium Growth"
                 ]}
             />

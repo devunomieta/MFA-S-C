@@ -36,7 +36,7 @@ export function SprintPlanCard({ plan, userPlan, onJoin, onDeposit }: SprintPlan
                     <div className="flex justify-between items-start">
                         <div>
                             <div className="flex items-center gap-2 mb-2">
-                                <Badge variant="outline" className="text-blue-700 border-blue-200 bg-blue-50">The Sprint</Badge>
+                                <Badge variant="outline" className="text-blue-700 border-blue-200 bg-blue-50">{plan.name}</Badge>
                                 <Badge className="bg-blue-600 hover:bg-blue-700 text-white">Active</Badge>
                             </div>
                             <CardTitle className="text-xl font-bold text-gray-900 dark:text-gray-100">{plan.name}</CardTitle>
@@ -105,7 +105,7 @@ export function SprintPlanCard({ plan, userPlan, onJoin, onDeposit }: SprintPlan
                 <div className="flex justify-between items-start">
                     <div>
                         <Badge variant="secondary" className="mb-2 bg-blue-50 text-blue-700 border-blue-100 hover:bg-blue-100">
-                            Fast Track
+                            Saving Sprint
                         </Badge>
                         <CardTitle className="text-xl font-bold text-gray-900 dark:text-white">
                             {plan.name}
@@ -113,30 +113,54 @@ export function SprintPlanCard({ plan, userPlan, onJoin, onDeposit }: SprintPlan
                     </div>
                 </div>
                 <p className="text-sm text-gray-500 dark:text-gray-400 font-medium leading-relaxed mt-1 line-clamp-2">
-                    Rolling 30-week challenge for quick goals.
+                    A fast-paced, rolling savings plan designed to help you crush your short-to-medium-term financial targets.
                 </p>
             </CardHeader>
 
             <CardContent className="flex-1 space-y-6 pt-2">
                 <div className="flex justify-between items-end border-b border-gray-100 dark:border-gray-800 pb-4">
                     <div>
-                        <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Weekly Target</p>
-                        <p className="text-lg font-bold text-gray-900 dark:text-white">{formatCurrency(3000)}</p>
+                        <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Weekly Min</p>
+                        <p className="text-lg font-bold text-gray-900 dark:text-white">₦3,000</p>
                     </div>
                     <div className="text-right">
-                        <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Cycle</p>
+                        <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Duration</p>
                         <p className="text-lg font-bold text-gray-900 dark:text-white">30 Weeks</p>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 text-xs text-gray-500 dark:text-gray-400 font-medium">
-                    <div className="flex items-center gap-2">
-                        <Timer className="w-3.5 h-3.5 text-blue-600" />
-                        <span>Starts Instantly</span>
+                <div className="space-y-4 pt-2">
+                    <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-100 dark:border-blue-800">
+                        <h4 className="text-[10px] font-bold text-blue-800 dark:text-blue-400 uppercase tracking-wider mb-2">Rules & Features</h4>
+                        <ul className="space-y-1.5">
+                            <li className="flex items-center gap-2 text-xs text-blue-700 dark:text-blue-400">
+                                <div className="w-1 h-1 rounded-full bg-blue-500" />
+                                30-week rolling savings cycle
+                            </li>
+                            <li className="flex items-center gap-2 text-xs text-blue-700 dark:text-blue-400">
+                                <div className="w-1 h-1 rounded-full bg-blue-500" />
+                                Starts instantly once joined
+                            </li>
+                            <li className="flex items-center gap-2 text-xs text-blue-700 dark:text-blue-400">
+                                <div className="w-1 h-1 rounded-full bg-blue-500" />
+                                Penalty for missed weeks: ₦500
+                            </li>
+                            <li className="flex items-center gap-2 text-xs text-blue-700 dark:text-blue-400">
+                                <div className="w-1 h-1 rounded-full bg-blue-500" />
+                                Withdrawal only after total completion
+                            </li>
+                        </ul>
                     </div>
-                    <div className="flex items-center gap-2">
-                        <Zap className="w-3.5 h-3.5 text-blue-600" />
-                        <span>Auto-recovery</span>
+
+                    <div className="grid grid-cols-2 gap-3 text-xs text-gray-500 dark:text-gray-400 font-medium">
+                        <div className="flex items-center gap-2">
+                            <Timer className="w-3.5 h-3.5 text-blue-600" />
+                            <span>Starts Instantly</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Zap className="w-3.5 h-3.5 text-blue-600" />
+                            <span>Auto-recovery</span>
+                        </div>
                     </div>
                 </div>
             </CardContent>

@@ -105,7 +105,7 @@ export function SprintAdminView({ plan }: SprintAdminViewProps) {
         <div className="space-y-6">
             <div className="flex justify-between items-center bg-blue-50 p-4 rounded-lg border border-blue-100 mb-4">
                 <div>
-                    <h3 className="font-bold text-blue-900">Sprint Controls</h3>
+                    <h3 className="font-bold text-blue-900">30-Weeks Saving Sprint Controls</h3>
                     <p className="text-sm text-blue-700">Manual triggers for recurring jobs.</p>
                 </div>
                 <Button

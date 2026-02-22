@@ -144,7 +144,7 @@ export function AjoCircleAdminView() {
         <div className="space-y-6">
             <div className="flex justify-between items-center bg-orange-0 p-4 rounded-lg border border-orange-100 dark:bg-orange-900/20 dark:border-orange-800">
                 <div>
-                    <h2 className="text-xl font-bold text-gray-900 dark:text-gray-900">Ajo Circle Management</h2>
+                    <h2 className="text-xl font-bold text-emerald-900">Digital Ajo Circle Dashboard</h2>
                     <p className="text-sm text-gray-600 dark:text-gray-700">Manage picking turns and weekly progress.</p>
                 </div>
                 <div className="flex gap-2">

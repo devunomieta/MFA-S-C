@@ -100,7 +100,7 @@ export function StepUpAdminView({ plan }: StepUpAdminViewProps) {
         <div className="space-y-6">
             <div className="flex justify-between items-center bg-purple-50 p-4 rounded-lg border border-purple-100 mb-4">
                 <div>
-                    <h3 className="font-bold text-purple-900">Step-Up Controls</h3>
+                    <h3 className="font-bold text-purple-900">Rapid Fixed Savings Controls</h3>
                     <p className="text-sm text-purple-700">Manual triggers for recurring jobs.</p>
                 </div>
                 <div className="flex gap-2">

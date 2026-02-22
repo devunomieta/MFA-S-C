@@ -282,7 +282,7 @@ export function Loans() {
             .single();
 
         if (!loanError && updatedLoanData) {
-            toast.success(`Repayment successful! Payment of $${formatCurrency(amountToRepay)} processed.`);
+            toast.success(`Repayment successful! Payment of ₦${formatCurrency(amountToRepay)} processed.`);
 
             setRepayOpen(false);
             setRepayAmount("");
@@ -356,8 +356,8 @@ export function Loans() {
             <div className="grid gap-2">
                 <Label htmlFor="amount" className="dark:text-gray-300">Loan Amount</Label>
                 <div className="flex justify-between text-xs mb-1">
-                    <span className="text-gray-500 dark:text-gray-400">Total Limit: <span className="font-medium">${formatCurrency(maxLoanAmount)}</span></span>
-                    <span className="text-emerald-600 dark:text-emerald-400 font-medium">Available: ${formatCurrency(availableLoanLimit)}</span>
+                    <span className="text-gray-500 dark:text-gray-400">Total Limit: <span className="font-medium">₦{formatCurrency(maxLoanAmount)}</span></span>
+                    <span className="text-emerald-600 dark:text-emerald-400 font-medium">Available: ₦{formatCurrency(availableLoanLimit)}</span>
                 </div>
                 <Input
                     id="amount"
@@ -401,7 +401,7 @@ export function Loans() {
                 </div>
                 <div className="border-t border-blue-200 dark:border-blue-800 my-2 pt-2 flex justify-between font-bold">
                     <span>Estimated Repayment:</span>
-                    <span>{amount ? `$${formatCurrency(parseFloat(amount) * 1.1)}` : '$0.00'}</span>
+                    <span>{amount ? `₦${formatCurrency(parseFloat(amount) * 1.1)}` : '₦0.00'}</span>
                 </div>
             </div>
         </div>
@@ -432,7 +432,7 @@ export function Loans() {
                             <DialogTitle className="dark:text-white">Request a Loan</DialogTitle>
                             <DialogDescription className="dark:text-gray-400">
                                 {isEligible
-                                    ? `You qualify for up to $${formatCurrency(maxLoanAmount)} (${accountAgeMonths >= 12 ? '70%' : '50%'} of balance).`
+                                    ? `You qualify for up to ₦${formatCurrency(maxLoanAmount)} (${accountAgeMonths >= 12 ? '70%' : '50%'} of balance).`
                                     : "All the following criteria MUST BE MET to access loans."
                                 }
                             </DialogDescription>
@@ -470,11 +470,11 @@ export function Loans() {
                             <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
                                 <div>
                                     <p className="text-xs text-gray-500">Original Amount</p>
-                                    <p className="font-medium dark:text-white">${formatCurrency(selectedLoan.amount)}</p>
+                                    <p className="font-medium dark:text-white">₦{formatCurrency(selectedLoan.amount)}</p>
                                 </div>
                                 <div>
                                     <p className="text-xs text-gray-500">Total Payable</p>
-                                    <p className="font-bold text-emerald-600 dark:text-emerald-400">${formatCurrency(selectedLoan.total_payable)}</p>
+                                    <p className="font-bold text-emerald-600 dark:text-emerald-400">₦{formatCurrency(selectedLoan.total_payable)}</p>
                                 </div>
                                 <div>
                                     <p className="text-xs text-gray-500">Interest Rate</p>
@@ -533,7 +533,7 @@ export function Loans() {
                                                 <span className="text-gray-500">{new Date(tx.created_at).toLocaleDateString()}</span>
                                                 <span className="font-medium">{tx.type === 'loan_repayment' ? 'Repayment' : 'Disbursement'}</span>
                                                 <span className={tx.type === 'loan_repayment' ? 'text-green-600' : 'text-gray-900 dark:text-white'}>
-                                                    {tx.type === 'loan_repayment' ? '-' : '+'}${formatCurrency(tx.amount)}
+                                                    {tx.type === 'loan_repayment' ? '-' : '+'}₦{formatCurrency(tx.amount)}
                                                 </span>
                                             </div>
                                         ))
@@ -597,8 +597,8 @@ export function Loans() {
                                     <TableRow key={loan.id}>
                                         <TableCell className="font-medium">{loan.loan_number || 'LN----'}</TableCell>
                                         <TableCell>{new Date(loan.created_at).toLocaleDateString()}</TableCell>
-                                        <TableCell>${formatCurrency(loan.amount)}</TableCell>
-                                        <TableCell>${formatCurrency(loan.total_payable)}</TableCell>
+                                        <TableCell>₦{formatCurrency(loan.amount)}</TableCell>
+                                        <TableCell>₦{formatCurrency(loan.total_payable)}</TableCell>
                                         <TableCell>{loan.duration_months} Month{loan.duration_months > 1 ? 's' : ''}</TableCell>
                                         <TableCell className={overdueColor}>{overdueStatus}</TableCell>
                                         <TableCell>

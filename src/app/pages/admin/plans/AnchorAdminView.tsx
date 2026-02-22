@@ -105,7 +105,7 @@ export function AnchorAdminView({ plan }: AnchorAdminViewProps) {
         <div className="space-y-6">
             <div className="flex justify-between items-center bg-indigo-50 p-4 rounded-lg border border-indigo-100 mb-4">
                 <div>
-                    <h3 className="font-bold text-indigo-900">Anchor Controls</h3>
+                    <h3 className="font-bold text-indigo-900">48-Weeks Saving Sprint Controls</h3>
                     <p className="text-sm text-indigo-700">Manual triggers. (Duration: 48 Weeks)</p>
                 </div>
                 <Button

@@ -35,7 +35,7 @@ export function LoanRepaymentDialog({
                         <DialogTitle>Outstanding Loan Detected</DialogTitle>
                     </div>
                     <DialogDescription className="dark:text-gray-400">
-                        You have an active loan of <span className="font-bold text-gray-900 dark:text-white">${loanAmount.toLocaleString()}</span>.
+                        You have an active loan of <span className="font-bold text-gray-900 dark:text-white">₦{loanAmount.toLocaleString()}</span>.
                         <br /><br />
                         To ensure platform sustainability, plan withdrawals are restricted while loans are active.
                     </DialogDescription>
@@ -63,7 +63,7 @@ export function LoanRepaymentDialog({
                                 <div className="text-left">
                                     <div className="font-bold">Pay Loan & Withdraw Remaining</div>
                                     <div className="text-xs opacity-90">
-                                        Instantly clears loan (${loanAmount}) and withdraws balance (${(withdrawalAmount - loanAmount).toLocaleString()})
+                                        Instantly clears loan (₦{loanAmount.toLocaleString()}) and withdraws balance (₦{(withdrawalAmount - loanAmount).toLocaleString()})
                                     </div>
                                 </div>
                             </div>
@@ -77,7 +77,7 @@ export function LoanRepaymentDialog({
                             <div className="flex items-center gap-3">
                                 <CheckCircle2 className="h-5 w-5" />
                                 <div className="text-left">
-                                    <div className="font-bold">Pay Partial Loan (${withdrawalAmount.toLocaleString()})</div>
+                                    <div className="font-bold">Pay Partial Loan (₦{withdrawalAmount.toLocaleString()})</div>
                                     <div className="text-xs opacity-90">
                                         Reduces your loan balance.
                                     </div>

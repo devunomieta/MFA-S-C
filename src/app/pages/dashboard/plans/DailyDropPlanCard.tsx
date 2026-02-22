@@ -100,7 +100,7 @@ export function DailyDropPlanCard({ plan, userPlan, onJoin, onDeposit }: DailyDr
                     <div className="flex justify-between items-start">
                         <div>
                             <div className="flex items-center gap-2 mb-2">
-                                <Badge variant="outline" className="text-cyan-700 border-cyan-200 bg-cyan-50">Daily Drop</Badge>
+                                <Badge variant="outline" className="text-cyan-700 border-cyan-200 bg-cyan-50">{plan.name}</Badge>
                                 <Badge className={`border-0 ${isFinished ? 'bg-emerald-600' : 'bg-cyan-600 text-white'}`}>
                                     {isFinished ? 'Completed' : 'Active'}
                                 </Badge>
@@ -187,7 +187,7 @@ export function DailyDropPlanCard({ plan, userPlan, onJoin, onDeposit }: DailyDr
                 <div className="flex justify-between items-start">
                     <div>
                         <Badge variant="secondary" className="mb-2 bg-cyan-50 text-cyan-700 border-cyan-100 hover:bg-cyan-100">
-                            Daily Drop
+                            Daily Savings
                         </Badge>
                         <CardTitle className="text-xl font-bold text-gray-900 dark:text-white">
                             {plan.name}
@@ -195,7 +195,7 @@ export function DailyDropPlanCard({ plan, userPlan, onJoin, onDeposit }: DailyDr
                     </div>
                 </div>
                 <p className="text-sm text-gray-500 dark:text-gray-400 font-medium leading-relaxed mt-1 line-clamp-2">
-                    Flexible daily savings. You choose how long.
+                    Save small, fixed amounts every day and watch it grow effortlessly.
                 </p>
             </CardHeader>
 

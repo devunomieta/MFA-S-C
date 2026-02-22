@@ -10,17 +10,28 @@ import {
     DropdownMenuTrigger,
 } from "@/app/components/ui/dropdown-menu";
 import { AccountSwitcher } from "@/app/components/AccountSwitcher";
-import { Menu, LogOut, Repeat, Megaphone, X } from "lucide-react";
+import { Menu, LogOut, Repeat, Megaphone, X, LayoutDashboard, PiggyBank, Wallet as WalletIcon, Banknote, User, Shield } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Button } from "@/app/components/ui/button";
 import { ThemeToggle } from "@/app/components/ThemeToggle";
 import { supabase } from "@/lib/supabase";
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/app/components/ui/sheet";
+import { Link, useLocation } from "react-router-dom";
 
 export function DashboardLayout() {
-    const { user, signOut } = useAuth();
+    const { user, signOut, isAdmin } = useAuth();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [showSwitcher, setShowSwitcher] = useState(false);
     const [announcement, setAnnouncement] = useState<any>(null);
+    const location = useLocation();
+
+    const sidebarItems = [
+        { icon: LayoutDashboard, label: "Overview", href: "/dashboard" },
+        { icon: PiggyBank, label: "Plans", href: "/dashboard/plans" },
+        { icon: WalletIcon, label: "Wallet", href: "/dashboard/wallet" },
+        { icon: Banknote, label: "Loans", href: "/dashboard/loans" },
+        { icon: User, label: "Profile", href: "/dashboard/profile" },
+    ];
 
     useEffect(() => {
         const fetchAnnouncement = async () => {
@@ -63,10 +74,59 @@ export function DashboardLayout() {
             <div className="flex-1 flex flex-col min-w-0">
                 <header className="bg-white border-b border-gray-200 h-16 flex items-center justify-between px-4 md:px-8 sticky top-0 z-10 dark:bg-gray-900 dark:border-gray-800 transition-colors">
                     <div className="flex items-center gap-4 md:hidden">
-                        <Button variant="ghost" size="icon" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="dark:text-white dark:hover:bg-gray-800">
-                            <Menu className="size-6" />
-                        </Button>
-                        <span className="text-xl font-bold text-emerald-600">AjoSave</span>
+                        <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+                            <SheetTrigger asChild>
+                                <Button variant="ghost" size="icon" className="dark:text-white dark:hover:bg-gray-800">
+                                    <Menu className="size-6" />
+                                </Button>
+                            </SheetTrigger>
+                            <SheetContent side="left" className="w-64 p-0 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800">
+                                <SheetHeader className="p-6 text-left border-b border-gray-100 dark:border-gray-800">
+                                    <SheetTitle className="text-2xl font-bold text-emerald-600">AjoSave</SheetTitle>
+                                </SheetHeader>
+                                <nav className="flex-1 px-4 py-6 space-y-2">
+                                    {sidebarItems.map((item) => {
+                                        const isActive = location.pathname === item.href;
+                                        return (
+                                            <Link
+                                                key={item.href}
+                                                to={item.href}
+                                                onClick={() => setIsMobileMenuOpen(false)}
+                                                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${isActive
+                                                    ? "bg-emerald-50 text-emerald-600 font-medium dark:bg-emerald-900/20 dark:text-emerald-400"
+                                                    : "text-gray-600 hover:bg-gray-50 hover:text-emerald-600 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-emerald-400"
+                                                    }`}
+                                            >
+                                                <item.icon className="size-5" />
+                                                {item.label}
+                                            </Link>
+                                        );
+                                    })}
+
+                                    {isAdmin && (
+                                        <Link
+                                            to="/admin"
+                                            onClick={() => setIsMobileMenuOpen(false)}
+                                            className="flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-purple-600 hover:bg-purple-50 hover:text-purple-700 dark:text-purple-400 dark:hover:bg-purple-900/20"
+                                        >
+                                            <Shield className="size-5" />
+                                            Admin Panel
+                                        </Link>
+                                    )}
+                                </nav>
+                                <div className="absolute bottom-0 w-full p-4 border-t border-gray-100 dark:border-gray-800">
+                                    <Button
+                                        variant="ghost"
+                                        className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/10"
+                                        onClick={signOut}
+                                    >
+                                        <LogOut className="size-5 mr-3" />
+                                        Sign Out
+                                    </Button>
+                                </div>
+                            </SheetContent>
+                        </Sheet>
+                        <span className="text-xl font-bold text-emerald-600 uppercase">AjoSave</span>
                     </div>
 
                     <div className="ml-auto flex items-center gap-4">
