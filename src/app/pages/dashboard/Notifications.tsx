@@ -20,6 +20,7 @@ import { Switch } from "@/app/components/ui/switch";
 import { Label } from "@/app/components/ui/label";
 import { Input } from "@/app/components/ui/input";
 import { notificationService, MTFNotification, NotificationSettings } from "@/lib/notification";
+import { useNotifications } from "@/app/context/NotificationContext";
 import { useAuth } from "@/app/context/AuthContext";
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
@@ -27,6 +28,7 @@ import { toast } from 'sonner';
 export function Notifications() {
     const navigate = useNavigate();
     const { user } = useAuth();
+    const { refreshUnreadCount } = useNotifications();
     const [notifications, setNotifications] = useState<MTFNotification[]>([]);
     const [settings, setSettings] = useState<NotificationSettings | null>(null);
     const [loading, setLoading] = useState(true);
@@ -112,6 +114,7 @@ export function Notifications() {
         try {
             await notificationService.markAsRead(id);
             setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
+            await refreshUnreadCount();
             toast.success('Marked as read');
         } catch (error) {
             toast.error('Failed to update notification');
@@ -122,6 +125,7 @@ export function Notifications() {
         try {
             await notificationService.deleteNotification(id);
             setNotifications(prev => prev.filter(n => n.id !== id));
+            await refreshUnreadCount();
             toast.success('Notification deleted');
         } catch (error) {
             toast.error('Failed to delete notification');
@@ -207,6 +211,7 @@ export function Notifications() {
                         onClick={async () => {
                             await notificationService.markAllAsRead();
                             setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+                            await refreshUnreadCount();
                             toast.success('All marked as read');
                         }}
                     >

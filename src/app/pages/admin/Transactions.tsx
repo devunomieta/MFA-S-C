@@ -5,7 +5,7 @@ import { Button } from "@/app/components/ui/button";
 import { toast } from "sonner";
 import { Check, X, FileText, ExternalLink, Mail, AlertCircle, Eye } from "lucide-react";
 import { Card, CardContent } from "@/app/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/app/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/app/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";

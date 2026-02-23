@@ -11,7 +11,7 @@ import {
     Bell
 } from "lucide-react";
 import { useAuth } from "@/app/context/AuthContext";
-import { notificationService } from "@/lib/notification";
+import { useNotifications } from "@/app/context/NotificationContext";
 import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
 import { supabase } from "@/lib/supabase";
@@ -22,8 +22,7 @@ export function Sidebar() {
     const { signOut, isAdmin, user } = useAuth();
     const [logoUrl, setLogoUrl] = useState<string | null>(null);
     const [appName] = useState("AjoSave");
-
-    const [unreadCount, setUnreadCount] = useState(0);
+    const { unreadCount } = useNotifications();
 
     const sidebarItems = [
         { icon: LayoutDashboard, label: "Overview", href: "/dashboard" },
@@ -43,21 +42,8 @@ export function Sidebar() {
             if (data?.value?.logo_url) {
                 setLogoUrl(data.value.logo_url);
             }
-
-            // Fetch unread notifications
-            const count = await notificationService.getUnreadCount();
-            setUnreadCount(count || 0);
         };
         fetchData();
-
-        // Subscribe to notifications
-        const subscription = notificationService.subscribeToNotifications(user.id, () => {
-            notificationService.getUnreadCount().then(c => setUnreadCount(c || 0));
-        });
-
-        return () => {
-            subscription.unsubscribe();
-        };
     }, [user]);
 
     return (

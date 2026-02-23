@@ -12,13 +12,14 @@ interface AjoCirclePlanCardProps {
     userPlan?: UserPlan;
     onJoin: (planId: string, amount: number) => void;
     onDeposit: () => void;
+    onWithdraw?: () => void;
 }
 
-export function AjoCirclePlanCard({ plan, userPlan, onJoin, onDeposit }: AjoCirclePlanCardProps) {
+export function AjoCirclePlanCard({ plan, userPlan, onJoin, onDeposit, onWithdraw }: AjoCirclePlanCardProps) {
     const [selectedAmount, setSelectedAmount] = useState<string>("");
+    const [withdrawing, setWithdrawing] = useState(false);
 
     const amounts = plan.config?.amounts || [10000, 15000, 20000, 25000, 30000, 50000, 100000];
-    const fees = plan.config?.fees || {};
 
     const formatCurrency = (value: number) => {
         return new Intl.NumberFormat('en-US', {
@@ -55,7 +56,10 @@ export function AjoCirclePlanCard({ plan, userPlan, onJoin, onDeposit }: AjoCirc
         const pickingTurns = metadata.picking_turns || [];
         const missedWeeks = metadata.missed_weeks || 0;
 
-        const isMyTurn = pickingTurns.includes(currentWeek);
+        const payoutHistory = metadata.payout_history || [];
+        const turnCount = pickingTurns.filter((t: any) => Number(t) === currentWeek).length;
+        const withdrawnCount = payoutHistory.filter((h: any) => Number(h) === currentWeek).length;
+        const canWithdraw = turnCount > withdrawnCount;
 
         return (
             <Card className="flex flex-col relative overflow-hidden bg-white dark:bg-gray-900 border-l-4 border-l-orange-500 shadow-sm hover:shadow-md transition-shadow">
@@ -114,9 +118,22 @@ export function AjoCirclePlanCard({ plan, userPlan, onJoin, onDeposit }: AjoCirc
                 </CardContent>
 
                 <CardFooter className="flex-col gap-2 pt-2">
-                    {isMyTurn ? (
-                        <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold">
-                            Withdraw Payout
+                    {turnCount > 0 ? (
+                        <Button
+                            className={`w-full font-semibold ${!canWithdraw ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700 text-white'}`}
+                            onClick={async () => {
+                                if (onWithdraw && canWithdraw) {
+                                    setWithdrawing(true);
+                                    await onWithdraw();
+                                    setWithdrawing(false);
+                                }
+                            }}
+                            disabled={withdrawing || !canWithdraw}
+                            variant={!canWithdraw ? 'ghost' : 'default'}
+                        >
+                            {withdrawing ? "Processing..." :
+                                !canWithdraw ? `Withdrawn ₦${formatCurrency(getPayout(fixedAmount))}` :
+                                    "Withdraw Payout"}
                         </Button>
                     ) : (
                         <Button className="w-full bg-gray-100 text-gray-400 border border-gray-200 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-500 cursor-not-allowed" variant="ghost" disabled>

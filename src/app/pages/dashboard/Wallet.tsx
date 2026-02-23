@@ -4,7 +4,7 @@ import { Button } from "@/app/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/app/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/app/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/app/components/ui/table";
 import { ArrowDownLeft, ArrowUpRight, Filter, Milestone } from "lucide-react";
 import { toast } from "sonner";
@@ -134,7 +134,7 @@ export function Wallet() {
         if (selectedPlanFilter === "all") {
             setFilteredTransactions(transactions);
         } else if (selectedPlanFilter === "general") {
-            setFilteredTransactions(transactions.filter(tx => !tx.plan_id));
+            setFilteredTransactions(transactions.filter(tx => !tx.plan_id || tx.plan?.type === 'ajo_payout'));
         } else {
             setFilteredTransactions(transactions.filter(tx => tx.plan_id === selectedPlanFilter));
         }
@@ -149,7 +149,7 @@ export function Wallet() {
     };
 
     async function fetchPlansData() {
-        const { data: plansData } = await supabase.from("plans").select("*");
+        const { data: plansData } = await supabase.from("plans").select("*").eq('is_active', true);
         if (plansData) setAllPlans(plansData);
     }
 
@@ -168,7 +168,7 @@ export function Wallet() {
             .from("transactions")
             .select(`
                 *,
-                plan:plans(name)
+                plan:plans(name, type)
             `)
             .eq("user_id", user?.id)
             .order("created_at", { ascending: false });
@@ -564,19 +564,20 @@ export function Wallet() {
                         </div>
 
                         <PlansDeck
-                            plans={userPlans}
+                            plans={userPlans.filter(p => p.plan.type !== 'ajo_payout')}
                             loading={loading}
                             walletBalance={balance}
-                            onActiveChange={(id, type, name) => {
+                            onActiveChange={(id, _type, _name) => {
                                 setSelectedPlanId(id === 'wallet' ? "" : id);
                             }}
                         />
+
 
                         {/* Withdrawable Balance Display */}
                         <div className="mt-4 p-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800 rounded-xl">
                             <p className="text-sm text-emerald-700 dark:text-emerald-400 font-medium mb-1">Withdrawable Balance</p>
                             <p className="text-2xl font-bold text-emerald-800 dark:text-emerald-300">₦{formatCurrency(withdrawableBalance)}</p>
-                            <p className="text-xs text-emerald-600/70 dark:text-emerald-400/70 mt-1">Funds from matured plans available for payout.</p>
+                            <p className="text-xs text-emerald-600/70 dark:text-emerald-400/70 mt-1">Funds available for immediate withdrawal to bank.</p>
                         </div>
                     </div>
 
@@ -679,7 +680,7 @@ export function Wallet() {
                                                     return true;
                                                 })
                                                 .map((tx) => {
-                                                    const isPositive = ['deposit', 'loan_disbursement', 'interest', 'limit_transfer'].includes(tx.type);
+                                                    const isPositive = ['deposit', 'loan_disbursement', 'interest', 'limit_transfer', 'payout'].includes(tx.type);
                                                     let amountClass = "text-gray-900 dark:text-gray-200";
                                                     let amountPrefix = "";
 

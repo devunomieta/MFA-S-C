@@ -333,6 +333,28 @@ export function Plans() {
         }
     }
 
+    async function handleWithdrawAjoPayout(planId: string) {
+        if (!user || processingAction) return;
+        setProcessingAction(true);
+        const { data, error } = await supabase.rpc('withdraw_ajo_payout', {
+            p_user_id: user.id,
+            p_plan_id: planId
+        });
+
+        if (error) {
+            toast.error(error.message || "Failed to withdraw payout.");
+        } else {
+            toast.success(`Payout of ₦${formatCurrency(data.amount)} successfully withdrawn to General Wallet!`);
+            logActivity({
+                userId: user.id,
+                action: 'WITHDRAWAL',
+                details: { plan_name: 'Digital Ajo Circle', amount: data.amount, display_name: user.user_metadata?.full_name?.split(' ')[0] || 'A user' }
+            });
+            fetchMyPlans();
+        }
+        setProcessingAction(false);
+    }
+
     async function handleBreakSavings() {
         if (!user || !breakingPlan) return;
         setProcessingAction(true);
@@ -379,7 +401,7 @@ export function Plans() {
         }).format(value);
     };
 
-    const activePlansList = myPlans.filter(p => p.status === 'active' || p.status === 'matured' || p.status === 'pending_activation');
+    const activePlansList = myPlans.filter(p => (p.status === 'active' || p.status === 'matured' || p.status === 'pending_activation') && p.plan.type !== 'ajo_payout');
 
     if (loading) {
         return (
@@ -493,6 +515,7 @@ export function Plans() {
                                     userPlan={viewingPlan.userPlan}
                                     onJoin={(p, a) => { handleJoinAjoCircle(p, a); setViewingPlan(null); }}
                                     onDeposit={() => { setSelectedPlanForDeposit(viewingPlan.plan.id); setViewingPlan(null); }}
+                                    onWithdraw={() => handleWithdrawAjoPayout(viewingPlan.plan.id)}
                                 />
                             )}
 

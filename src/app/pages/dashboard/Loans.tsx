@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/app/context/AuthContext";
 import { CheckCircle2, XCircle, AlertTriangle, Upload, FileText, Clock, Loader2 } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
+import { calculateBalance } from "@/lib/walletUtils";
 
 export function Loans() {
     const { user } = useAuth();
@@ -135,15 +136,7 @@ export function Loans() {
             .eq("user_id", user?.id);
 
         if (txData) {
-            const bal = txData.reduce((acc, curr) => {
-                const amt = Number(curr.amount);
-                const chg = Number(curr.charge || 0);
-                if (curr.type === 'deposit' || curr.type === 'loan_disbursement') return acc + amt - chg;
-                if (curr.type === 'withdrawal' || curr.type === 'loan_repayment') return acc - amt - chg;
-                if (curr.type === 'transfer') return acc - amt - chg;
-                if (curr.type === 'limit_transfer') return acc + amt - chg;
-                return acc;
-            }, 0);
+            const bal = calculateBalance(txData as any, null);
             setTotalBalance(bal);
 
             // Calculate Max Loan
@@ -280,12 +273,14 @@ export function Loans() {
 
         setRepaying(true);
 
-        // 1. Create COMPLETED transaction (Immediate deduction from wallet)
+        // 1. Create COMPLETED transaction
+        // The backend trigger 'handle_loan_repayment' will automatically 
+        // update the loan balance and status when this transaction is inserted.
         const { error: txError } = await supabase.from("transactions").insert({
             user_id: user?.id,
             amount: amountToRepay,
             type: 'loan_repayment',
-            status: 'completed', // Auto-Approved since it's from system wallet
+            status: 'completed',
             description: `Repayment for ${selectedLoan.loan_number || 'Loan'}`,
             plan_id: null,
             loan_id: selectedLoan.id,
@@ -298,35 +293,15 @@ export function Loans() {
             return;
         }
 
-        // 2. Update Loan Balance & Status
-        const currentTotal = parseFloat(selectedLoan.total_payable.toString());
-        const newLoanBalance = Math.max(0, currentTotal - amountToRepay);
+        toast.success(`Repayment submitted! Payment of ₦${formatCurrency(amountToRepay)} is being processed.`);
+        setRepayOpen(false);
+        setRepayAmount("");
+        setSelectedLoan(null);
 
-        const updates: any = { total_payable: newLoanBalance };
-        if (newLoanBalance <= 0) updates.status = 'paid';
-
-        const { data: updatedLoanData, error: loanError } = await supabase
-            .from('loans')
-            .update(updates)
-            .eq('id', selectedLoan.id)
-            .select()
-            .single();
-
-        if (!loanError && updatedLoanData) {
-            toast.success(`Repayment successful! Payment of ₦${formatCurrency(amountToRepay)} processed.`);
-
-            setRepayOpen(false);
-            setRepayAmount("");
-            setSelectedLoan(null); // Clear selection to force re-selection with new data
-
-            // Refresh all data
-            await fetchLoans(); // Ensure we await this
-            await fetchEligibilityData();
-            await fetchLoanTransactions();
-        } else {
-            console.error(loanError);
-            toast.error("Transaction recorded but failed to update loan balance. Please contact support.");
-        }
+        // Refresh all data
+        await fetchLoans();
+        await fetchEligibilityData();
+        await fetchLoanTransactions();
         setRepaying(false);
     }
 

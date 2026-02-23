@@ -98,66 +98,7 @@ export function AdminSidebar({ isOpen, setIsOpen }: SidebarProps) {
         },
     ];
 
-    const SidebarContent = () => (
-        <div className="flex flex-col h-full bg-slate-900 border-r border-slate-800 text-slate-100">
-            <div className="h-16 flex items-center px-6 border-b border-slate-800">
-                {logoUrl ? (
-                    <img src={logoUrl} alt="Logo" className="h-8 w-auto object-contain mr-2" />
-                ) : (
-                    <Shield className="h-6 w-6 text-emerald-500 mr-2" />
-                )}
-                <span className="text-xl font-bold">{logoUrl ? '' : 'Admin Panel'}</span>
-                {isMobile && setIsOpen && (
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="ml-auto text-slate-400 hover:text-white"
-                        onClick={() => setIsOpen(false)}
-                    >
-                        <X className="w-5 h-5" />
-                    </Button>
-                )}
-            </div>
 
-            <div className="flex-1 overflow-y-auto py-4">
-                <nav className="space-y-1 px-2">
-                    {routes.map((route) => (
-                        <Link
-                            key={route.href}
-                            to={route.href}
-                            onClick={() => isMobile && setIsOpen && setIsOpen(false)}
-                            className={cn(
-                                "flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-colors",
-                                route.active
-                                    ? "bg-emerald-600 text-white shadow-md shadow-emerald-900/20"
-                                    : "text-slate-400 hover:text-white hover:bg-slate-800"
-                            )}
-                        >
-                            <route.icon className="w-5 h-5" />
-                            {route.label}
-                        </Link>
-                    ))}
-                </nav>
-            </div>
-
-            <div className="p-4 border-t border-slate-800 space-y-2">
-                <Link
-                    to="/dashboard"
-                    className="flex items-center gap-3 w-full px-4 py-3 text-sm font-medium text-emerald-400 rounded-lg hover:bg-emerald-900/20 hover:text-emerald-300 transition-colors"
-                >
-                    <Home className="w-5 h-5" />
-                    User Dashboard
-                </Link>
-                <button
-                    onClick={signOut}
-                    className="flex items-center gap-3 w-full px-4 py-3 text-sm font-medium text-red-400 rounded-lg hover:bg-red-900/20 hover:text-red-300 transition-colors"
-                >
-                    <LogOut className="w-5 h-5" />
-                    Sign Out
-                </button>
-            </div>
-        </div>
-    );
 
     if (isMobile) {
         return (
@@ -175,7 +116,13 @@ export function AdminSidebar({ isOpen, setIsOpen }: SidebarProps) {
                         isOpen ? "translate-x-0" : "-translate-x-full"
                     )}
                 >
-                    <SidebarContent />
+                    <SidebarContent
+                        logoUrl={logoUrl}
+                        isMobile={isMobile}
+                        setIsOpen={setIsOpen}
+                        routes={routes}
+                        signOut={signOut}
+                    />
                 </div>
             </>
         );
@@ -183,7 +130,82 @@ export function AdminSidebar({ isOpen, setIsOpen }: SidebarProps) {
 
     return (
         <aside className="w-64 hidden md:block">
-            <SidebarContent />
+            <SidebarContent
+                logoUrl={logoUrl}
+                isMobile={isMobile}
+                setIsOpen={setIsOpen}
+                routes={routes}
+                signOut={signOut}
+            />
         </aside>
     );
 }
+
+interface SidebarContentProps {
+    logoUrl: string | null;
+    isMobile: boolean;
+    setIsOpen?: (isOpen: boolean) => void;
+    routes: any[];
+    signOut: () => void;
+}
+
+const SidebarContent = ({ logoUrl, isMobile, setIsOpen, routes, signOut }: SidebarContentProps) => (
+    <div className="flex flex-col h-full bg-slate-900 border-r border-slate-800 text-slate-100">
+        <div className="h-16 flex items-center px-6 border-b border-slate-800">
+            {logoUrl ? (
+                <img src={logoUrl} alt="Logo" className="h-8 w-auto object-contain mr-2" />
+            ) : (
+                <Shield className="h-6 w-6 text-emerald-500 mr-2" />
+            )}
+            <span className="text-xl font-bold">{logoUrl ? '' : 'Admin Panel'}</span>
+            {isMobile && setIsOpen && (
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className="ml-auto text-slate-400 hover:text-white"
+                    onClick={() => setIsOpen(false)}
+                >
+                    <X className="w-5 h-5" />
+                </Button>
+            )}
+        </div>
+
+        <div className="flex-1 overflow-y-auto py-4">
+            <nav className="space-y-1 px-2">
+                {routes.map((route) => (
+                    <Link
+                        key={route.href}
+                        to={route.href}
+                        onClick={() => isMobile && setIsOpen && setIsOpen(false)}
+                        className={cn(
+                            "flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-colors",
+                            route.active
+                                ? "bg-emerald-600 text-white shadow-md shadow-emerald-900/20"
+                                : "text-slate-400 hover:text-white hover:bg-slate-800"
+                        )}
+                    >
+                        <route.icon className="w-5 h-5" />
+                        {route.label}
+                    </Link>
+                ))}
+            </nav>
+        </div>
+
+        <div className="p-4 border-t border-slate-800 space-y-2">
+            <Link
+                to="/dashboard"
+                className="flex items-center gap-3 w-full px-4 py-3 text-sm font-medium text-emerald-400 rounded-lg hover:bg-emerald-900/20 hover:text-emerald-300 transition-colors"
+            >
+                <Home className="w-5 h-5" />
+                User Dashboard
+            </Link>
+            <button
+                onClick={signOut}
+                className="flex items-center gap-3 w-full px-4 py-3 text-sm font-medium text-red-400 rounded-lg hover:bg-red-900/20 hover:text-red-300 transition-colors"
+            >
+                <LogOut className="w-5 h-5" />
+                Sign Out
+            </button>
+        </div>
+    </div>
+);

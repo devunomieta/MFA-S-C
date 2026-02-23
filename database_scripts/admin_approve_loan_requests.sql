@@ -14,9 +14,10 @@ BEGIN
         RETURN;
     END IF;
 
-    -- 2. Update Loan Status to 'active'
+    -- 2. Update Loan Status to 'active' and set due_date
     UPDATE loans 
     SET status = 'active', 
+        due_date = NOW() + (v_loan.duration_months || ' months')::interval,
         updated_at = NOW()
     WHERE id = target_loan_id;
 

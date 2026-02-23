@@ -249,3 +249,91 @@ BEGIN
     RETURN jsonb_build_object('success', true);
 END;
 $$;
+
+
+-- 4. Withdraw Payout
+CREATE OR REPLACE FUNCTION withdraw_ajo_payout(
+    p_user_id UUID,
+    p_plan_id UUID
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    v_user_plan RECORD;
+    v_metadata JSONB;
+    v_current_week INTEGER;
+    v_picking_turns INT[];
+    v_payout_history JSONB;
+    v_fixed_amount NUMERIC;
+    v_duration_weeks INTEGER;
+    v_payout_amount NUMERIC;
+    v_is_my_turn BOOLEAN := false;
+BEGIN
+    -- Get User Plan
+    SELECT * INTO v_user_plan 
+    FROM user_plans 
+    WHERE user_id = p_user_id AND plan_id = p_plan_id AND status = 'active';
+
+    IF NOT FOUND THEN RAISE EXCEPTION 'Active Ajo Circle plan not found'; END IF;
+
+    v_metadata := v_user_plan.plan_metadata;
+    v_current_week := COALESCE((v_metadata->>'current_week')::INTEGER, 1);
+    v_fixed_amount := (v_metadata->>'fixed_amount')::NUMERIC;
+    v_duration_weeks := COALESCE((v_metadata->>'duration_weeks')::INTEGER, 10);
+    v_payout_amount := v_fixed_amount * v_duration_weeks;
+    
+    -- Convert picking_turns to array for check
+    -- Assume picking_turns is stored as a JSON array of integers in metadata
+    SELECT ARRAY(SELECT jsonb_array_elements_text(v_metadata->'picking_turns')::INT) INTO v_picking_turns;
+    
+    -- Check if Current Week is in Picking Turns
+    IF v_current_week = ANY(v_picking_turns) THEN
+        v_is_my_turn := true;
+    END IF;
+
+    IF NOT v_is_my_turn THEN
+        RAISE EXCEPTION 'It is not your turn to withdraw (Your weeks: %, Current week: %)', v_picking_turns, v_current_week;
+    END IF;
+
+    -- Check if already withdrawn for this week
+    v_payout_history := COALESCE(v_metadata->'payout_history', '[]'::jsonb);
+    IF v_payout_history ? v_current_week::TEXT THEN
+        RAISE EXCEPTION 'Payout for week % already withdrawn', v_current_week;
+    END IF;
+
+    -- 1. Transfer from Plan to General Wallet
+    -- Deduct from Plan Balance
+    UPDATE user_plans 
+    SET current_balance = current_balance - v_payout_amount,
+        plan_metadata = jsonb_set(
+            v_metadata, 
+            '{payout_history}', 
+            v_payout_history || jsonb_build_array(v_current_week)
+        ),
+        updated_at = NOW()
+    WHERE id = v_user_plan.id;
+
+    -- Credit General Wallet
+    UPDATE user_plans
+    SET current_balance = current_balance + v_payout_amount,
+        updated_at = NOW()
+    WHERE user_id = p_user_id AND plan_id IS NULL;
+
+    -- 2. Record Transactions
+    -- Debit Plan
+    INSERT INTO transactions (user_id, plan_id, amount, type, status, description, charge)
+    VALUES (p_user_id, p_plan_id, v_payout_amount, 'withdrawal', 'completed', 'Ajo Circle Payout Withdrawal', 0);
+
+    -- Credit Wallet
+    INSERT INTO transactions (user_id, plan_id, amount, type, status, description, charge)
+    VALUES (p_user_id, NULL, v_payout_amount, 'transfer', 'completed', 'Ajo Circle Payout Received', 0);
+
+    RETURN jsonb_build_object(
+        'success', true,
+        'amount', v_payout_amount,
+        'week', v_current_week
+    );
+END;
+$$;

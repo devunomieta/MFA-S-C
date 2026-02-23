@@ -9,6 +9,7 @@ import { Button } from "@/app/components/ui/button";
 import { ScrollArea } from "@/app/components/ui/scroll-area";
 import { Badge } from "@/app/components/ui/badge";
 import { notificationService, MTFNotification } from "@/lib/notification";
+import { useNotifications } from "@/app/context/NotificationContext";
 import { useAuth } from "@/app/context/AuthContext";
 import { formatDistanceToNow } from 'date-fns';
 import { Link } from 'react-router-dom';
@@ -16,52 +17,29 @@ import { Link } from 'react-router-dom';
 export function NotificationBell() {
     const { user } = useAuth();
     const [notifications, setNotifications] = useState<MTFNotification[]>([]);
-    const [unreadCount, setUnreadCount] = useState(0);
+    const { unreadCount, refreshUnreadCount } = useNotifications();
     const [isOpen, setIsOpen] = useState(false);
 
     useEffect(() => {
         if (!user) return;
-
         fetchNotifications();
-
-        const subscription = notificationService.subscribeToNotifications(user.id, (payload) => {
-            if (payload.eventType === 'INSERT') {
-                setNotifications(prev => [payload.new as MTFNotification, ...prev].slice(0, 50));
-            }
-            // Always refetch unread count to stay in sync
-            notificationService.getUnreadCount().then(c => setUnreadCount(c || 0));
-
-            // If it's an update or delete, we need to refresh the list to reflect accurate state
-            if (payload.eventType === 'UPDATE' || payload.eventType === 'DELETE') {
-                fetchNotifications();
-            }
-        });
-
-        return () => {
-            subscription.unsubscribe();
-        };
     }, [user]);
 
     const fetchNotifications = async () => {
         try {
-            const [notifsData, count] = await Promise.all([
-                notificationService.getNotifications({ limit: 10 }),
-                notificationService.getUnreadCount()
-            ]);
+            const notifsData = await notificationService.getNotifications({ limit: 10 });
             setNotifications(notifsData.notifications || []);
-            setUnreadCount(count || 0);
         } catch (error) {
             console.error('Error fetching notifications in bell:', error);
             setNotifications([]);
-            setUnreadCount(0);
         }
     };
 
     const handleMarkAllAsRead = async () => {
         try {
             await notificationService.markAllAsRead();
-            setUnreadCount(0);
             setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+            await refreshUnreadCount();
         } catch (error) {
             console.error('Error marking all as read:', error);
         }
@@ -70,8 +48,8 @@ export function NotificationBell() {
     const handleMarkAsRead = async (id: string) => {
         try {
             await notificationService.markAsRead(id);
-            setUnreadCount(prev => Math.max(0, prev - 1));
             setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
+            await refreshUnreadCount();
         } catch (error) {
             console.error('Error marking as read:', error);
         }

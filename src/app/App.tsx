@@ -30,6 +30,7 @@ import { AdminApprovals } from "@/app/pages/admin/Approvals";
 import { AdminProfile } from "@/app/pages/admin/Profile";
 import { useLayoutEffect } from "react";
 import { ThemeProvider } from "@/app/context/ThemeContext";
+import { NotificationProvider } from "@/app/context/NotificationContext";
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -41,19 +42,13 @@ function ScrollToTop() {
   return null;
 }
 
-function MainLayout() {
+// MainLayout is now just a wrapper for public pages
+function MainLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-white">
       <Navbar />
       <main>
-        <Routes>
-          <Route path="/" element={<Landing />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/update-password" element={<UpdatePassword />} />
-          <Route path="/test-connection" element={<TestSupabase />} />
-        </Routes>
+        {children}
       </main>
       <Footer />
     </div>
@@ -68,39 +63,49 @@ function AppRoutes() {
 
   return (
     <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme" forceTheme={isDashboard ? undefined : 'light'}>
-      <Toaster />
-      <ScrollToTop />
-      <Routes>
-        {/* Public Routes */}
-        <Route path="/*" element={<MainLayout />} />
-
-        {/* Protected Dashboard Routes */}
-        <Route element={<ProtectedRoute />}>
-          <Route path="/dashboard" element={<DashboardLayout />}>
-            <Route index element={<Overview />} />
-            <Route path="notifications" element={<Notifications />} />
-            <Route path="plans" element={<Plans />} />
-            <Route path="wallet" element={<Wallet />} />
-            <Route path="loans" element={<Loans />} />
-            <Route path="profile" element={<Profile />} />
-            <Route path="help" element={<Help />} />
+      <NotificationProvider>
+        <Toaster />
+        <ScrollToTop />
+        <Routes>
+          {/* Protected Dashboard Routes */}
+          <Route element={<ProtectedRoute />}>
+            <Route path="/dashboard" element={<DashboardLayout />}>
+              <Route index element={<Overview />} />
+              <Route path="notifications" element={<Notifications />} />
+              <Route path="plans" element={<Plans />} />
+              <Route path="wallet" element={<Wallet />} />
+              <Route path="loans" element={<Loans />} />
+              <Route path="profile" element={<Profile />} />
+              <Route path="help" element={<Help />} />
+            </Route>
           </Route>
-        </Route>
 
-        {/* Admin Routes (Protected by AdminLayout) */}
-        <Route element={<AdminLayout />}>
-          <Route path="/admin" element={<AdminOverview />} />
-          <Route path="/admin/loans" element={<AdminLoans />} />
-          <Route path="/admin/transactions" element={<AdminTransactions />} />
-          <Route path="/admin/users" element={<AdminUsers />} />
-          <Route path="/admin/users/:id" element={<AdminUserDetails />} />
-          <Route path="/admin/plans" element={<AdminPlans />} />
-          <Route path="/admin/settings" element={<AdminSettings />} />
-          <Route path="/admin/newsletter" element={<AdminNewsletter />} />
-          <Route path="/admin/approvals" element={<AdminApprovals />} />
-          <Route path="/admin/profile" element={<AdminProfile />} /> {/* Added AdminProfile route */}
-        </Route>
-      </Routes>
+          {/* Admin Routes (Protected by AdminLayout) */}
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route index element={<AdminOverview />} />
+            <Route path="loans" element={<AdminLoans />} />
+            <Route path="transactions" element={<AdminTransactions />} />
+            <Route path="users" element={<AdminUsers />} />
+            <Route path="users/:id" element={<AdminUserDetails />} />
+            <Route path="plans" element={<AdminPlans />} />
+            <Route path="settings" element={<AdminSettings />} />
+            <Route path="newsletter" element={<AdminNewsletter />} />
+            <Route path="approvals" element={<AdminApprovals />} />
+            <Route path="profile" element={<AdminProfile />} />
+          </Route>
+
+          {/* Public Routes */}
+          <Route path="/" element={<MainLayout><Landing /></MainLayout>} />
+          <Route path="/login" element={<MainLayout><Login /></MainLayout>} />
+          <Route path="/signup" element={<MainLayout><Signup /></MainLayout>} />
+          <Route path="/forgot-password" element={<MainLayout><ForgotPassword /></MainLayout>} />
+          <Route path="/update-password" element={<MainLayout><UpdatePassword /></MainLayout>} />
+          <Route path="/test-connection" element={<MainLayout><TestSupabase /></MainLayout>} />
+
+          {/* Catch-all to Home */}
+          <Route path="*" element={<MainLayout><Landing /></MainLayout>} />
+        </Routes>
+      </NotificationProvider>
     </ThemeProvider>
   );
 }

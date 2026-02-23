@@ -5,7 +5,7 @@
 
 export interface Transaction {
     id: string;
-    type: 'deposit' | 'withdrawal' | 'loan_disbursement' | 'loan_repayment' | 'interest' | 'transfer' | 'fee' | 'service_charge' | 'limit_transfer';
+    type: 'deposit' | 'withdrawal' | 'loan_disbursement' | 'loan_repayment' | 'interest' | 'transfer' | 'fee' | 'service_charge' | 'limit_transfer' | 'payout';
     status: 'pending' | 'completed' | 'failed';
     amount: number;
     charge?: number;
@@ -15,7 +15,7 @@ export interface Transaction {
 /**
  * Calculates the balance for a set of transactions.
  * Rules:
- * - Deposits, Loan Disbursements, Interest, Limit Transfers: Add if COMPLETED (minus charges)
+ * - Deposits, Loan Disbursements, Interest, Limit Transfers, Payouts: Add if COMPLETED (minus charges)
  * - Withdrawals, Loan Repayments: Deduct if COMPLETED or PENDING (to reserve funds)
  * - Transfers: 
  *      - If plan_id is null (General Wallet): Deduct if COMPLETED
@@ -31,14 +31,14 @@ export function calculateBalance(transactions: Transaction[], filterPlanId: stri
         if (!isPlanMatch) return acc;
 
         // INFLOWS
-        if (['deposit', 'loan_disbursement', 'interest', 'limit_transfer'].includes(curr.type)) {
+        if (['deposit', 'loan_disbursement', 'interest', 'limit_transfer', 'payout'].includes(curr.type)) {
             if (curr.status === 'completed') {
                 return acc + amt - chg;
             }
         }
 
         // OUTFLOWS
-        if (['withdrawal', 'loan_repayment'].includes(curr.type)) {
+        if (['withdrawal', 'loan_repayment', 'fee', 'service_charge'].includes(curr.type)) {
             if (['completed', 'pending'].includes(curr.status)) {
                 return acc - amt - chg;
             }

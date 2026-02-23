@@ -14,7 +14,7 @@ import { Menu, LogOut, Repeat, Megaphone, X, LayoutDashboard, PiggyBank, Wallet 
 import { useState, useEffect } from "react";
 import { Button } from "@/app/components/ui/button";
 import { NotificationBell } from "@/app/components/dashboard/NotificationBell";
-import { notificationService } from "@/lib/notification";
+import { useNotifications } from "@/app/context/NotificationContext";
 import { Badge } from "@/app/components/ui/badge";
 import { supabase } from "@/lib/supabase";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/app/components/ui/sheet";
@@ -26,8 +26,7 @@ export function DashboardLayout() {
     const [showSwitcher, setShowSwitcher] = useState(false);
     const [announcement, setAnnouncement] = useState<any>(null);
     const location = useLocation();
-
-    const [unreadCount, setUnreadCount] = useState(0);
+    const { unreadCount } = useNotifications();
 
     const sidebarItems = [
         { icon: LayoutDashboard, label: "Overview", href: "/dashboard" },
@@ -55,21 +54,8 @@ export function DashboardLayout() {
                 if (data.expires_at && new Date(data.expires_at) < new Date()) return;
                 setAnnouncement(data);
             }
-
-            // Unread count
-            const count = await notificationService.getUnreadCount();
-            setUnreadCount(count || 0);
         };
         fetchData();
-
-        // Subscription
-        const subscription = notificationService.subscribeToNotifications(user.id, () => {
-            notificationService.getUnreadCount().then(c => setUnreadCount(c || 0));
-        });
-
-        return () => {
-            subscription.unsubscribe();
-        };
     }, [user]);
 
     return (

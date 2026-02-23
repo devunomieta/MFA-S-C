@@ -173,7 +173,7 @@ export function Overview() {
                         ) : (
                             <div className="space-y-4">
                                 {recentTransactions.map((tx) => {
-                                    const isPositive = ['deposit', 'loan_disbursement', 'interest', 'limit_transfer'].includes(tx.type);
+                                    const isPositive = ['deposit', 'loan_disbursement', 'interest', 'limit_transfer', 'payout'].includes(tx.type);
                                     const Icon = isPositive ? ArrowUpRight : ArrowDownLeft;
                                     const color = isPositive ? "text-emerald-600" : "text-gray-600";
                                     const bg = isPositive ? "bg-emerald-100 dark:bg-emerald-900/20" : "bg-gray-100 dark:bg-gray-700";

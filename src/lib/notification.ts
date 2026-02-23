@@ -68,12 +68,19 @@ export const notificationService = {
     },
 
     /**
-     * Get count of unread notifications
+     * Get count of unread notifications for a specific user
      */
-    async getUnreadCount() {
+    async getUnreadCount(userId?: string) {
+        if (!userId) {
+            const { data: userData } = await supabase.auth.getUser();
+            userId = userData.user?.id;
+        }
+        if (!userId) return 0;
+
         const { count, error } = await supabase
             .from('notifications')
             .select('*', { count: 'exact', head: true })
+            .eq('user_id', userId)
             .eq('is_read', false);
 
         if (error) throw error;
