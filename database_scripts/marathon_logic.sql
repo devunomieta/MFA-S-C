@@ -13,19 +13,6 @@ DECLARE
     v_fee NUMERIC := 0;
     v_remaining_weeks INT;
 BEGIN
-    -- Rule: Free in last 5 weeks
-    -- We assume p_weeks_paid is the count BEFORE this deposit. 
-    -- If user selected 30 weeks, and has paid 25, the next one (26th) is NOT free yet?
-    -- "Last 5 weeks": Weeks 44, 45, 46, 47, 48 (for 48 week plan).
-    -- So if payment is for week_number > (total - 5).
-    
-    -- Let's define the week number we are paying for:
-    -- current_payment_week = p_weeks_paid + 1;
-    
-    IF (p_weeks_paid + 1) > (p_selected_duration - 5) THEN
-        RETURN 0;
-    END IF;
-
     -- Tier Logic
     -- Loop through tiers to find match
     FOR v_tier IN SELECT * FROM jsonb_array_elements(p_plan_config->'tiers')

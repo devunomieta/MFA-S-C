@@ -45,7 +45,7 @@ export function SprintJoinModal({ plan, isOpen, onClose, onSuccess, customTitle,
             user_id: user.id,
             plan_id: plan.id,
             current_balance: 0,
-            status: 'active',
+            status: 'pending_activation',
             plan_metadata: metadata
         });
 

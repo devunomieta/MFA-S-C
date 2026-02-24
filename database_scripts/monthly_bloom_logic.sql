@@ -16,10 +16,11 @@ DECLARE
     v_metadata JSONB;
     v_month_paid_so_far NUMERIC;
 BEGIN
-    SELECT * INTO v_user_plan FROM user_plans WHERE id = p_user_plan_id;
+    SELECT * INTO v_user_plan FROM user_plans 
+    WHERE id = p_user_plan_id AND status IN ('active', 'pending_activation');
 
     IF NOT FOUND THEN
-        RAISE EXCEPTION 'Plan not found';
+        RAISE EXCEPTION 'Active or Pending Plan not found';
     END IF;
 
     v_metadata := v_user_plan.plan_metadata;
@@ -29,6 +30,8 @@ BEGIN
     -- Update Plan
     UPDATE user_plans
     SET
+        status = 'active',
+        start_date = COALESCE(start_date, NOW()),
         current_balance = v_new_balance,
         plan_metadata = jsonb_set(
             jsonb_set(v_metadata, '{month_paid_so_far}', to_jsonb(v_month_paid_so_far)),

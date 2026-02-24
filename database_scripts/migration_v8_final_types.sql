@@ -13,7 +13,10 @@ CHECK (type IN (
     'transfer', 
     'fee', 
     'service_charge',
-    'limit_transfer'
+    'limit_transfer',
+    'payout',
+    'maturity_payout',
+    'internal_transfer'
 ));
 
 -- Ensure user_plans status includes all needed states

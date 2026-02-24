@@ -6,7 +6,7 @@ import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/app/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/app/components/ui/table";
-import { ArrowDownLeft, ArrowUpRight, Filter, Milestone } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, Filter, Milestone, ArrowRightLeft } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/app/context/AuthContext";
 import { Link, useSearchParams } from "react-router-dom";
@@ -41,7 +41,9 @@ interface UserPlan {
 
 export function Wallet() {
     const { user } = useAuth();
-    const [balance, setBalance] = useState(0);
+    const [generalBalance, setGeneralBalance] = useState(0);
+    const [withdrawableWalletBalance, setWithdrawableWalletBalance] = useState(0);
+    const [maturedPlansBalance, setMaturedPlansBalance] = useState(0);
     const [transactions, setTransactions] = useState<any[]>([]);
     const [filteredTransactions, setFilteredTransactions] = useState<any[]>([]);
     const [allPlans, setAllPlans] = useState<any[]>([]);
@@ -130,11 +132,15 @@ export function Wallet() {
         setLoading(false);
     }
 
+    const totalWithdrawable = withdrawableWalletBalance + maturedPlansBalance;
+
     useEffect(() => {
         if (selectedPlanFilter === "all") {
             setFilteredTransactions(transactions);
         } else if (selectedPlanFilter === "general") {
-            setFilteredTransactions(transactions.filter(tx => !tx.plan_id || tx.plan?.type === 'ajo_payout'));
+            setFilteredTransactions(transactions.filter(tx => !tx.plan_id));
+        } else if (selectedPlanFilter === "withdrawable") {
+            setFilteredTransactions(transactions.filter(tx => tx.plan?.type === 'withdrawable_wallet'));
         } else {
             setFilteredTransactions(transactions.filter(tx => tx.plan_id === selectedPlanFilter));
         }
@@ -176,8 +182,12 @@ export function Wallet() {
         if (data) {
             setTransactions(data);
             // Calculate General Wallet balance (plan_id is null)
-            const generalBal = calculateBalance(data as any, null);
-            setBalance(generalBal);
+            const gBal = calculateBalance(data as any, null);
+            setGeneralBalance(gBal);
+
+            // Calculate Withdrawable Wallet (System Plan) balance
+            const wBal = calculateBalance(data as any, null, 'withdrawable_wallet');
+            setWithdrawableWalletBalance(wBal);
         }
     }
 
@@ -187,11 +197,11 @@ export function Wallet() {
     useEffect(() => {
         if (userPlans.length > 0) {
             const maturedSum = userPlans
-                .filter(p => p.status === 'matured')
+                .filter(p => p.status === 'matured' && p.plan?.type !== 'withdrawable_wallet')
                 .reduce((acc, curr) => acc + (curr.current_balance || 0), 0);
-            setWithdrawableBalance(maturedSum);
+            setMaturedPlansBalance(maturedSum);
         } else {
-            setWithdrawableBalance(0);
+            setMaturedPlansBalance(0);
         }
     }, [userPlans]);
 
@@ -207,7 +217,7 @@ export function Wallet() {
         }
 
         const finalAmount = parseFloat(amount);
-        if (finalAmount > withdrawableBalance) {
+        if (finalAmount > totalWithdrawable) {
             toast.error("Insufficient withdrawable funds");
             return;
         }
@@ -423,7 +433,7 @@ export function Wallet() {
             <div className="grid gap-4 py-4">
                 <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg flex justify-between items-center mb-2">
                     <span className="text-sm text-gray-500 dark:text-gray-400">Available to Withdraw</span>
-                    <span className="font-bold dark:text-white">₦{formatCurrency(withdrawableBalance)}</span>
+                    <span className="font-bold dark:text-white">₦{formatCurrency(totalWithdrawable)}</span>
                 </div>
 
                 <Tabs defaultValue="bank" className="w-full">
@@ -476,7 +486,7 @@ export function Wallet() {
                         <Button
                             onClick={() => performWithdrawal('bank')}
                             className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
-                            disabled={uploading || !amount || !selectedBankId || parseFloat(amount) > withdrawableBalance || withdrawableBalance <= 0}
+                            disabled={uploading || !amount || !selectedBankId || parseFloat(amount) > totalWithdrawable || totalWithdrawable <= 0}
                         >
                             {uploading ? 'Processing...' : 'Withdraw to Bank'}
                         </Button>
@@ -499,7 +509,7 @@ export function Wallet() {
                         <Button
                             onClick={() => performWithdrawal('wallet')}
                             className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-                            disabled={uploading || !amount || parseFloat(amount) > withdrawableBalance || withdrawableBalance <= 0}
+                            disabled={uploading || !amount || parseFloat(amount) > totalWithdrawable || totalWithdrawable <= 0}
                         >
                             {uploading ? 'Processing...' : 'Transfer to Wallet'}
                         </Button>
@@ -535,7 +545,7 @@ export function Wallet() {
                         <Button
                             onClick={() => performWithdrawal('plan')}
                             className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
-                            disabled={uploading || !amount || !selectedPlanId || parseFloat(amount) > withdrawableBalance || withdrawableBalance <= 0}
+                            disabled={uploading || !amount || !selectedPlanId || parseFloat(amount) > totalWithdrawable || totalWithdrawable <= 0}
                         >
                             {uploading ? 'Processing...' : 'Fund Plan'}
                         </Button>
@@ -554,7 +564,7 @@ export function Wallet() {
 
             <div className="grid gap-8 md:grid-cols-3 items-start">
 
-                {/* Left Column: Plans Deck (1/3 width) */}
+                {/* Left Column: Cards & Accounts (1/3 width) */}
                 <div className="md:col-span-1 flex flex-col gap-6">
                     <div>
                         <div className="flex justify-between items-center px-1 mb-4">
@@ -564,64 +574,65 @@ export function Wallet() {
                         </div>
 
                         <PlansDeck
-                            plans={userPlans.filter(p => p.plan.type !== 'ajo_payout')}
+                            plans={userPlans.filter(p => !['withdrawable_wallet', 'ajo_payout'].includes(p.plan?.type))}
                             loading={loading}
-                            walletBalance={balance}
+                            walletBalance={generalBalance}
                             onActiveChange={(id, _type, _name) => {
                                 setSelectedPlanId(id === 'wallet' ? "" : id);
                             }}
                         />
-
-
-                        {/* Withdrawable Balance Display */}
-                        <div className="mt-4 p-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800 rounded-xl">
-                            <p className="text-sm text-emerald-700 dark:text-emerald-400 font-medium mb-1">Withdrawable Balance</p>
-                            <p className="text-2xl font-bold text-emerald-800 dark:text-emerald-300">₦{formatCurrency(withdrawableBalance)}</p>
-                            <p className="text-xs text-emerald-600/70 dark:text-emerald-400/70 mt-1">Funds available for immediate withdrawal to bank.</p>
-                        </div>
                     </div>
 
-                    {/* Contextual Actions */}
-                    <Card className="border-0 shadow-none bg-transparent">
-                        <CardContent className="p-0">
-                            <div className="grid grid-cols-2 gap-3">
-                                <Dialog open={open} onOpenChange={setOpen}>
-                                    <DialogTrigger asChild>
-                                        <Button onClick={() => { setType('deposit'); }} className="h-12 bg-gray-900 text-white hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200 shadow-xl transition-all rounded-xl border border-gray-900 dark:border-white">
-                                            <ArrowDownLeft className="mr-2 h-4 w-4" />
-                                            {selectedPlanId ? 'Add Funds' : 'Deposit'}
-                                        </Button>
-                                    </DialogTrigger>
-                                    <DialogTrigger asChild>
-                                        <Button
-                                            onClick={() => {
-                                                if (!withdrawalsEnabled) {
-                                                    toast.error("Withdrawals are currently disabled.");
-                                                    return;
-                                                }
-                                                setType('withdrawal');
-                                            }}
-                                            variant="outline"
-                                            className={`h-12 border-gray-200 text-white dark:border-gray-700 hover:bg-gray-100 hover:text-white dark:hover:bg-gray-800 transition-all rounded-xl shadow-sm bg-white dark:bg-gray-900 ${!withdrawalsEnabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                        >
-                                            <ArrowUpRight className="mr-2 h-4 w-4" /> Withdraw
-                                        </Button>
-                                    </DialogTrigger>
+                    {/* Contextual Actions & Withdrawable Balance */}
+                    <div className="flex flex-col gap-4 mt-auto">
+                        {/* Withdrawable Balance Card (Screenshot Style) */}
+                        <div className="p-5 bg-emerald-950/20 border border-emerald-500/30 rounded-2xl">
+                            <p className="text-sm text-emerald-500 font-medium mb-1">Withdrawable Balance</p>
+                            <p className="text-3xl font-bold text-emerald-400">₦{formatCurrency(totalWithdrawable)}</p>
+                            <p className="text-[11px] text-emerald-600/70 mt-1">Funds available for immediate withdrawal to bank.</p>
+                        </div>
 
-                                    {type === 'deposit' ? (
-                                        <DepositModal
-                                            onSuccess={() => {
-                                                fetchWalletData();
-                                                fetchUserPlans(); // Refresh plans too
-                                            }}
-                                            defaultPlanId={selectedPlanId}
-                                            onClose={() => setOpen(false)}
-                                        />
-                                    ) : renderWithdrawalDialog()}
-                                </Dialog>
-                            </div>
-                        </CardContent>
-                    </Card>
+                        <Card className="border-0 shadow-none bg-transparent">
+                            <CardContent className="p-0">
+                                <div className="grid grid-cols-2 gap-3">
+                                    <Dialog open={open} onOpenChange={setOpen}>
+                                        <DialogTrigger asChild>
+                                            <Button onClick={() => { setType('deposit'); }} className="h-14 bg-white text-gray-900 hover:bg-gray-100 shadow-lg transition-all rounded-2xl border border-gray-200 font-semibold">
+                                                <ArrowDownLeft className="mr-2 h-5 w-5" />
+                                                Deposit
+                                            </Button>
+                                        </DialogTrigger>
+                                        <DialogTrigger asChild>
+                                            <Button
+                                                onClick={() => {
+                                                    if (!withdrawalsEnabled) {
+                                                        toast.error("Withdrawals are currently disabled.");
+                                                        return;
+                                                    }
+                                                    setType('withdrawal');
+                                                }}
+                                                variant="outline"
+                                                className={`h-14 border-gray-700/50 text-white hover:bg-gray-800 transition-all rounded-2xl shadow-lg bg-gray-900/50 font-semibold ${!withdrawalsEnabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                            >
+                                                <ArrowUpRight className="mr-2 h-5 w-5" /> Withdraw
+                                            </Button>
+                                        </DialogTrigger>
+
+                                        {type === 'deposit' ? (
+                                            <DepositModal
+                                                onSuccess={() => {
+                                                    fetchWalletData();
+                                                    fetchUserPlans(); // Refresh plans too
+                                                }}
+                                                defaultPlanId={selectedPlanId}
+                                                onClose={() => setOpen(false)}
+                                            />
+                                        ) : renderWithdrawalDialog()}
+                                    </Dialog>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
                 </div>
 
                 {/* Right Column: Transaction History (2/3 width) */}
@@ -641,6 +652,7 @@ export function Wallet() {
                                 >
                                     <option value="all">All Transactions</option>
                                     <option value="general">General Wallet</option>
+                                    <option value="withdrawable">Withdrawable Wallet</option>
                                     {allPlans.map(plan => (
                                         <option key={plan.id} value={plan.id}>{plan.name}</option>
                                     ))}

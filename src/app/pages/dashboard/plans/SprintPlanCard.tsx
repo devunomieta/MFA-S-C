@@ -3,7 +3,7 @@ import { Button } from "@/app/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Plan, UserPlan } from "@/types";
 import { Link } from "react-router-dom";
-import { Timer, Zap, AlertTriangle, CheckCircle } from "lucide-react";
+import { Timer, Zap, AlertTriangle } from "lucide-react";
 
 interface SprintPlanCardProps {
     plan: Plan;
@@ -37,7 +37,13 @@ export function SprintPlanCard({ plan, userPlan, onJoin, onDeposit }: SprintPlan
                         <div>
                             <div className="flex items-center gap-2 mb-2">
                                 <Badge variant="outline" className="text-blue-700 border-blue-200 bg-blue-50">{plan.name}</Badge>
-                                <Badge className="bg-blue-600 hover:bg-blue-700 text-white">Active</Badge>
+                                <Badge className={
+                                    userPlan?.status === 'pending_activation'
+                                        ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200'
+                                        : 'bg-blue-600 hover:bg-blue-700 text-white'
+                                }>
+                                    {userPlan?.status === 'pending_activation' ? 'PENDING ACTIVATION' : 'Active'}
+                                </Badge>
                             </div>
                             <CardTitle className="text-xl font-bold text-gray-900 dark:text-gray-100">{plan.name}</CardTitle>
                         </div>
@@ -132,7 +138,7 @@ export function SprintPlanCard({ plan, userPlan, onJoin, onDeposit }: SprintPlan
                 <div className="space-y-4 pt-2">
                     <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-100 dark:border-blue-800">
                         <h4 className="text-[10px] font-bold text-blue-800 dark:text-blue-400 uppercase tracking-wider mb-2">Rules & Features</h4>
-                        <ul className="space-y-1.5">
+                        <ul className="space-y-1.5 mb-4">
                             <li className="flex items-center gap-2 text-xs text-blue-700 dark:text-blue-400">
                                 <div className="w-1 h-1 rounded-full bg-blue-500" />
                                 30-week rolling savings cycle
@@ -150,6 +156,31 @@ export function SprintPlanCard({ plan, userPlan, onJoin, onDeposit }: SprintPlan
                                 Withdrawal only after total completion
                             </li>
                         </ul>
+
+                        <div className="rounded border border-blue-100 dark:border-blue-800 overflow-hidden">
+                            <table className="w-full text-[10px] text-left">
+                                <thead className="bg-blue-100/50 dark:bg-blue-900/40 font-bold text-blue-800 dark:text-blue-400">
+                                    <tr>
+                                        <th className="px-2 py-1">Weekly Amount</th>
+                                        <th className="px-2 py-1 text-right">Service Charge</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-blue-50 dark:divide-blue-800 text-blue-700 dark:text-blue-400">
+                                    <tr>
+                                        <td className="px-2 py-1">₦3,000 - ₦14,000</td>
+                                        <td className="px-2 py-1 text-right font-bold">₦200</td>
+                                    </tr>
+                                    <tr>
+                                        <td className="px-2 py-1">₦14,500 - ₦23,000</td>
+                                        <td className="px-2 py-1 text-right font-bold">₦300</td>
+                                    </tr>
+                                    <tr>
+                                        <td className="px-2 py-1">₦23,500 and above</td>
+                                        <td className="px-2 py-1 text-right font-bold">₦500</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-3 text-xs text-gray-500 dark:text-gray-400 font-medium">

@@ -22,10 +22,10 @@ BEGIN
     -- Get User Plan
     SELECT id, plan_metadata INTO v_user_plan_id, v_plan_metadata
     FROM user_plans
-    WHERE user_id = p_user_id AND plan_id = p_plan_id AND status = 'active';
+    WHERE user_id = p_user_id AND plan_id = p_plan_id AND status IN ('active', 'pending_activation');
 
     IF v_user_plan_id IS NULL THEN
-        RAISE EXCEPTION 'Active Step-Up plan not found for user';
+        RAISE EXCEPTION 'Active or Pending Step-Up plan not found for user';
     END IF;
 
     v_target_amount := (v_plan_metadata->>'fixed_amount')::DECIMAL;
@@ -46,17 +46,21 @@ BEGIN
     BEGIN
         v_week_paid_so_far := COALESCE((v_plan_metadata->>'week_paid_so_far')::DECIMAL, 0);
         
-        -- Update user_plans metadata
+        -- Update user_plans metadata and status
         UPDATE user_plans
-        SET plan_metadata = jsonb_set(
-            jsonb_set(
-                plan_metadata,
-                '{week_paid_so_far}',
-                to_jsonb(v_week_paid_so_far + p_amount)
+        SET 
+            status = 'active',
+            start_date = COALESCE(start_date, NOW()),
+            plan_metadata = jsonb_set(
+                jsonb_set(
+                    plan_metadata,
+                    '{week_paid_so_far}',
+                    to_jsonb(v_week_paid_so_far + p_amount)
+                ),
+                '{last_deposit_date}',
+                to_jsonb(NOW())
             ),
-            '{last_deposit_date}',
-            to_jsonb(NOW())
-        )
+            updated_at = NOW()
         WHERE id = v_user_plan_id;
         
         RETURN json_build_object(
@@ -103,19 +107,16 @@ BEGIN
         IF v_week_paid < v_target THEN
             v_deficit := v_target - v_week_paid;
             
-            -- Check General Wallet Balance
-            -- Need to fetch General Wallet ID/Balance logic specifically.
-            -- Assuming 'profiles.balance' is General Wallet for now (based on previous pattern).
+            -- Check General Wallet Balance using centralized logic
+            v_balance := get_wallet_balance(r.user_id, NULL);
             
-            IF r.balance >= v_deficit THEN
+            IF v_balance >= v_deficit THEN
                 -- Deduct from Wallet
-                PERFORM transfer_funds(
-                    r.user_id, 
-                    v_deficit, 
-                    'general_wallet', -- From
-                    r.user_plan_id::TEXT, -- To (Plan)
-                    'Auto-Save for Step-Up Week'
-                );
+                INSERT INTO transactions (user_id, amount, type, status, description, plan_id, charge)
+                VALUES (r.user_id, v_deficit, 'transfer', 'completed', 'Auto-Save for Step-Up Week', NULL, 0);
+
+                -- Credit Step-Up
+                PERFORM process_step_up_deposit(r.user_id, v_plan_id, v_deficit);
                 
                 user_id := r.user_id;
                 status := 'success';
@@ -152,7 +153,7 @@ BEGIN
     SELECT id INTO v_plan_id FROM plans WHERE type = 'step_up' LIMIT 1;
 
     FOR r IN 
-        SELECT up.id, up.user_id, up.plan_metadata, up.balance 
+        SELECT up.id, up.user_id, up.plan_metadata, up.current_balance 
         FROM user_plans up
         WHERE up.plan_id = v_plan_id AND up.status = 'active'
     LOOP
@@ -172,7 +173,7 @@ BEGIN
             -- We assume the deposit was added to balance in `process_step_up_deposit`.
             
             UPDATE user_plans
-            SET balance = balance - v_charge,
+            SET current_balance = current_balance - v_charge,
                 plan_metadata = jsonb_set(
                         jsonb_set(
                             plan_metadata,
@@ -184,15 +185,15 @@ BEGIN
                 )
             WHERE id = r.id;
             
-            -- Log Charge Transaction?
+            -- Log Charge Transaction
              INSERT INTO transactions (user_id, type, amount, description, status, plan_id)
-             VALUES (r.user_id, 'charge', v_charge, 'Step-Up Weekly Service Charge', 'completed', v_plan_id);
+             VALUES (r.user_id, 'service_charge', v_charge, 'Step-Up Weekly Service Charge', 'completed', v_plan_id);
 
         ELSE
             -- Failure: Apply Penalty
             -- "Fee of 500 is to be deducted... from the already saved balance"
             UPDATE user_plans
-            SET balance = balance - v_penalty,
+            SET current_balance = current_balance - v_penalty,
                  plan_metadata = jsonb_set(
                     jsonb_set(
                         plan_metadata,
@@ -206,7 +207,7 @@ BEGIN
 
              -- Log Penalty
              INSERT INTO transactions (user_id, type, amount, description, status, plan_id)
-             VALUES (r.user_id, 'penalty', v_penalty, 'Step-Up Missed Week Penalty', 'completed', v_plan_id);
+             VALUES (r.user_id, 'fee', v_penalty, 'Step-Up Missed Week Penalty', 'completed', v_plan_id);
         END IF;
         
         -- Increment Current Week

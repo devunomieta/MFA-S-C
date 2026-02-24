@@ -12,7 +12,8 @@ export function Overview() {
     const [loading, setLoading] = useState(true);
 
     // Stats
-    const [totalBalance, setTotalBalance] = useState(0);
+    const [generalBalance, setGeneralBalance] = useState(0);
+    const [withdrawableBalance, setWithdrawableBalance] = useState(0);
     const [activePlansCount, setActivePlansCount] = useState(0);
     const [outstandingLoans, setOutstandingLoans] = useState(0);
 
@@ -24,7 +25,6 @@ export function Overview() {
         if (user?.id) {
             fetchDashboardData();
         } else {
-            // If no user, stop loading immediately (though ProtectedRoute handles this)
             setLoading(false);
         }
     }, [user?.id]);
@@ -32,28 +32,33 @@ export function Overview() {
     async function fetchDashboardData() {
         setLoading(true);
         try {
-            // 1. Fetch Transactions (For Balance & Recent Activity)
+            // 1. Fetch Transactions (With plan details for filtering)
             const { data: txData } = await supabase
                 .from("transactions")
-                .select("*")
+                .select("*, plan:plans(type, name)")
                 .eq("user_id", user?.id)
                 .order("created_at", { ascending: false });
 
             if (txData) {
-                // Calculate Balance using unified utility
-                const bal = calculateBalance(txData as any, null);
-                setTotalBalance(bal);
+                // Calculate General Balance (No plan_id)
+                const gBal = calculateBalance(txData as any, null);
+                setGeneralBalance(gBal);
+
+                // Calculate Withdrawable Balance (Specific plan type)
+                const wBal = calculateBalance(txData as any, null, 'withdrawable_wallet');
+                setWithdrawableBalance(wBal);
 
                 // Recent Transactions (Top 5)
                 setRecentTransactions(txData.slice(0, 5));
             }
 
-            // 2. Fetch Active Plans
+            // 2. Fetch Active Plans (Excluding the internal Withdrawable Wallet plan)
             const { data: plansData } = await supabase
                 .from("user_plans")
-                .select("*, plan:plans(name, service_charge)")
+                .select("*, plan:plans(name, type, service_charge)")
                 .eq("user_id", user?.id)
-                .eq("status", "active");
+                .eq("status", "active")
+                .not("plan.type", "eq", "withdrawable_wallet");
 
             if (plansData) {
                 setActivePlansCount(plansData.length);
@@ -89,10 +94,18 @@ export function Overview() {
 
     const stats = [
         {
-            title: "Total Balance",
-            value: `₦${formatCurrency(totalBalance)}`,
-            change: "Available funds",
+            title: "General Wallet",
+            value: `₦${formatCurrency(generalBalance)}`,
+            change: "For plan contributions",
             icon: Wallet,
+            color: "text-blue-600",
+            bg: "bg-blue-100",
+        },
+        {
+            title: "Withdrawable Wallet",
+            value: `₦${formatCurrency(withdrawableBalance)}`,
+            change: "Payouts & matured funds",
+            icon: ArrowRightLeft,
             color: "text-emerald-600",
             bg: "bg-emerald-100",
         },
@@ -101,8 +114,8 @@ export function Overview() {
             value: activePlansCount.toString(),
             change: `${userPlans.length} savings active`,
             icon: PiggyBank,
-            color: "text-blue-600",
-            bg: "bg-blue-100",
+            color: "text-purple-600",
+            bg: "bg-purple-100",
         },
         {
             title: "Outstanding Loans",
@@ -118,8 +131,8 @@ export function Overview() {
         return (
             <div className="space-y-6 animate-pulse">
                 <div className="h-8 bg-gray-200 rounded w-1/4 dark:bg-gray-700"></div>
-                <div className="grid gap-4 md:grid-cols-3">
-                    {[1, 2, 3].map(i => <div key={i} className="h-32 bg-gray-200 rounded dark:bg-gray-700"></div>)}
+                <div className="grid gap-4 md:grid-cols-4">
+                    {[1, 2, 3, 4].map(i => <div key={i} className="h-32 bg-gray-200 rounded dark:bg-gray-700"></div>)}
                 </div>
                 <div className="grid gap-4 md:grid-cols-2">
                     <div className="h-64 bg-gray-200 rounded dark:bg-gray-700"></div>
@@ -133,10 +146,10 @@ export function Overview() {
         <div className="space-y-6">
             <div>
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard Overview</h1>
-                <p className="text-gray-500 dark:text-gray-400">Welcome back! Here's what's happening with your wallet.</p>
+                <p className="text-gray-500 dark:text-gray-400">Welcome back! Manage your savings and payouts here.</p>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 {stats.map((stat, index) => (
                     <Card key={index} className="dark:bg-gray-800 dark:border-gray-700 transition-all hover:shadow-md">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -188,14 +201,19 @@ export function Overview() {
                                                     <p className="font-medium text-sm text-gray-900 dark:text-white capitalize">
                                                         {tx.type.replace('_', ' ')}
                                                     </p>
-                                                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                                                        {new Date(tx.created_at).toLocaleDateString()}
+                                                    <p className="text-[10px] text-gray-400">
+                                                        {tx.plan?.name || (tx.plan_id ? 'Plan' : 'Wallet')}
                                                     </p>
                                                 </div>
                                             </div>
-                                            <span className={`font-medium text-sm ${isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-900 dark:text-white'}`}>
-                                                {isPositive ? '+' : '-'}₦{formatCurrency(tx.amount)}
-                                            </span>
+                                            <div className="text-right">
+                                                <span className={`font-medium text-sm block ${isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-900 dark:text-white'}`}>
+                                                    {isPositive ? '+' : '-'}₦{formatCurrency(tx.amount)}
+                                                </span>
+                                                <span className="text-[10px] text-gray-400">
+                                                    {new Date(tx.created_at).toLocaleDateString()}
+                                                </span>
+                                            </div>
                                         </div>
                                     );
                                 })}

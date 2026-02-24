@@ -65,7 +65,7 @@ export function DailyDropPlanCard({ plan, userPlan, onJoin, onDeposit }: DailyDr
             const { error } = await supabase.from('user_plans').insert({
                 user_id: (await supabase.auth.getUser()).data.user?.id,
                 plan_id: plan.id,
-                status: 'active',
+                status: 'pending_activation',
                 plan_metadata: {
                     fixed_amount: amt,
                     selected_duration: parseInt(joinDuration),
@@ -112,8 +112,12 @@ export function DailyDropPlanCard({ plan, userPlan, onJoin, onDeposit }: DailyDr
                         <div>
                             <div className="flex items-center gap-2 mb-2">
                                 <Badge variant="outline" className="text-cyan-700 border-cyan-200 bg-cyan-50">{plan.name}</Badge>
-                                <Badge className={`border-0 ${isFinished ? 'bg-emerald-600' : 'bg-cyan-600 text-white'}`}>
-                                    {isFinished ? 'Completed' : 'Active'}
+                                <Badge className={
+                                    userPlan.status === 'pending_activation'
+                                        ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200'
+                                        : `border-0 ${isFinished ? 'bg-emerald-600' : 'bg-cyan-600 text-white'}`
+                                }>
+                                    {userPlan.status === 'pending_activation' ? 'PENDING ACTIVATION' : (isFinished ? 'Completed' : 'Active')}
                                 </Badge>
                             </div>
                             <CardTitle className="text-xl font-bold text-gray-900 dark:text-gray-100">{plan.name}</CardTitle>
@@ -240,9 +244,33 @@ export function DailyDropPlanCard({ plan, userPlan, onJoin, onDeposit }: DailyDr
                     </div>
                 </div>
 
-                <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 font-medium pt-2">
-                    <CheckCircle className="w-3.5 h-3.5 text-cyan-600" />
-                    <span>Consistent daily drops. No penalties.</span>
+                <div className="space-y-4 pt-2">
+                    <div className="p-3 bg-cyan-50 dark:bg-cyan-900/20 rounded-lg border border-cyan-100 dark:border-cyan-800">
+                        <h4 className="text-[10px] font-bold text-cyan-800 dark:text-cyan-400 uppercase tracking-wider mb-2">Rules & Features</h4>
+                        <ul className="space-y-1.5">
+                            <li className="flex items-center gap-2 text-xs text-cyan-700 dark:text-cyan-400">
+                                <div className="w-1 h-1 rounded-full bg-cyan-500" />
+                                Save small, fixed amounts every day
+                            </li>
+                            <li className="flex items-center gap-2 text-xs text-cyan-700 dark:text-cyan-400">
+                                <div className="w-1 h-1 rounded-full bg-cyan-500" />
+                                1st payment & subsequent monthly drops serve as service fees
+                            </li>
+                            <li className="flex items-center gap-2 text-xs text-cyan-700 dark:text-cyan-400">
+                                <div className="w-1 h-1 rounded-full bg-cyan-500" />
+                                Consistent daily drops; No penalties
+                            </li>
+                            <li className="flex items-center gap-2 text-xs text-cyan-700 dark:text-cyan-400">
+                                <div className="w-1 h-1 rounded-full bg-cyan-500" />
+                                Auto-debit from wallet if daily goal missed
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 font-medium">
+                        <CheckCircle className="w-3.5 h-3.5 text-cyan-600" />
+                        <span>Consistent daily drops. No penalties.</span>
+                    </div>
                 </div>
             </CardContent>
 
@@ -282,8 +310,8 @@ export function DailyDropPlanCard({ plan, userPlan, onJoin, onDeposit }: DailyDr
                             <div className="flex items-start gap-3 p-3 bg-amber-50 dark:bg-amber-900/10 rounded-lg border border-amber-100 dark:border-amber-800/50">
                                 <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
                                 <p className="text-xs text-amber-800 dark:text-amber-400 leading-relaxed">
-                                    <span className="font-bold uppercase tracking-tighter block mb-1">One-Time Service Fee</span>
-                                    Your first payment of <span className="font-bold">{formatCurrency(parseFloat(joinAmount))}</span> will be charged immediately as a service fee.
+                                    <span className="font-bold uppercase tracking-tighter block mb-1">Monthly Service Fee</span>
+                                    Your first payment of <span className="font-bold">{formatCurrency(parseFloat(joinAmount))}</span> and subsequent monthly drops will be charged as service fees.
                                 </p>
                             </div>
                         </AlertDialogDescription>

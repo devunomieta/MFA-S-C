@@ -31,6 +31,7 @@ import { AdminProfile } from "@/app/pages/admin/Profile";
 import { useLayoutEffect } from "react";
 import { ThemeProvider } from "@/app/context/ThemeContext";
 import { NotificationProvider } from "@/app/context/NotificationContext";
+import { AutoLogout } from "@/app/components/AutoLogout";
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -65,6 +66,7 @@ function AppRoutes() {
     <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme" forceTheme={isDashboard ? undefined : 'light'}>
       <NotificationProvider>
         <Toaster />
+        <AutoLogout />
         <ScrollToTop />
         <Routes>
           {/* Protected Dashboard Routes */}

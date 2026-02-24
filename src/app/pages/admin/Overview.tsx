@@ -61,7 +61,7 @@ export function AdminOverview() {
             const { data: feesData } = await supabase
                 .from('transactions')
                 .select('amount')
-                .eq('type', 'service_charge')
+                .in('type', ['service_charge', 'fee', 'penalty'])
                 .eq('status', 'completed');
 
             const totalFees = feesData?.reduce((acc, curr) => acc + Number(curr.amount), 0) || 0;
@@ -125,7 +125,7 @@ export function AdminOverview() {
                 if (curr.type === 'deposit') acc[date].deposits += amt;
                 else if (curr.type === 'withdrawal') acc[date].withdrawals += amt;
                 else if (curr.type === 'loan_disbursement') acc[date].loans += amt;
-                else if (curr.type === 'service_charge') acc[date].revenue += amt;
+                else if (['service_charge', 'fee', 'penalty'].includes(curr.type)) acc[date].revenue += amt;
 
                 return acc;
             }, {});
@@ -147,7 +147,7 @@ export function AdminOverview() {
         }
     }
 
-    const formatCurrency = (val: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val);
+    const formatCurrency = (val: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'NGN' }).format(val);
 
     const TransactionList = ({ title, data, icon: Icon, colorClass, emptyMsg }: any) => (
         <Card className="border-slate-100 shadow-sm bg-slate-50/50">

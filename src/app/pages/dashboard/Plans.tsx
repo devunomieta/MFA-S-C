@@ -98,7 +98,13 @@ const PlanTable = ({ items, type, onDetails, myPlans }: {
                                         <TableCell>
                                             {type === 'available' ? (
                                                 isJoined ? (
-                                                    <Badge variant="outline" className="text-emerald-600 border-emerald-200 bg-emerald-50 dark:bg-emerald-900/20">Active</Badge>
+                                                    <Badge className={
+                                                        userPlan?.status === 'pending_activation'
+                                                            ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200'
+                                                            : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30'
+                                                    }>
+                                                        {userPlan?.status === 'pending_activation' ? 'PENDING ACTIVATION' : 'Active'}
+                                                    </Badge>
                                                 ) : (
                                                     <Badge variant="outline" className="text-slate-500">Available</Badge>
                                                 )
@@ -106,9 +112,10 @@ const PlanTable = ({ items, type, onDetails, myPlans }: {
                                                 <Badge className={`
                                                     ${item.status === 'matured' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' :
                                                         item.status === 'active' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' :
-                                                            'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400'}
+                                                            item.status === 'pending_activation' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200' :
+                                                                'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400'}
                                                 `}>
-                                                    {item.status.replace('_', ' ')}
+                                                    {item.status === 'pending_activation' ? 'PENDING ACTIVATION' : item.status.replace('_', ' ').toUpperCase()}
                                                 </Badge>
                                             )}
                                         </TableCell>
@@ -313,8 +320,7 @@ export function Plans() {
             user_id: user.id,
             plan_id: planId,
             current_balance: 0,
-            status: 'active',
-            start_date: new Date().toISOString(),
+            status: 'pending_activation',
             plan_metadata: metadata
         });
 

@@ -53,8 +53,12 @@ export function StepUpPlanCard({ plan, userPlan, onJoin, onDeposit }: StepUpPlan
                         <div>
                             <div className="flex items-center gap-2 mb-2">
                                 <Badge variant="outline" className="text-teal-700 border-teal-200 bg-teal-50">{plan.name}</Badge>
-                                <Badge className={`border-0 ${isCompleted ? 'bg-emerald-600' : 'bg-teal-900 text-white'}`}>
-                                    {isCompleted ? 'Completed' : 'Active'}
+                                <Badge className={
+                                    userPlan.status === 'pending_activation'
+                                        ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200'
+                                        : `border-0 ${isCompleted ? 'bg-emerald-600' : 'bg-teal-900 text-white'}`
+                                }>
+                                    {userPlan.status === 'pending_activation' ? 'PENDING ACTIVATION' : (isCompleted ? 'Completed' : 'Active')}
                                 </Badge>
                             </div>
                             <CardTitle className="text-xl font-bold text-gray-900 dark:text-gray-100">{plan.name}</CardTitle>
@@ -186,7 +190,7 @@ export function StepUpPlanCard({ plan, userPlan, onJoin, onDeposit }: StepUpPlan
 
                     <div className="p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-100 dark:border-purple-800">
                         <h4 className="text-[10px] font-bold text-purple-800 dark:text-purple-400 uppercase tracking-wider mb-2">Rules & Features</h4>
-                        <ul className="space-y-1.5">
+                        <ul className="space-y-1.5 mb-4">
                             <li className="flex items-center gap-2 text-xs text-purple-700 dark:text-purple-400">
                                 <div className="w-1 h-1 rounded-full bg-purple-500" />
                                 High-value fixed weekly commitment
@@ -197,13 +201,42 @@ export function StepUpPlanCard({ plan, userPlan, onJoin, onDeposit }: StepUpPlan
                             </li>
                             <li className="flex items-center gap-2 text-xs text-purple-700 dark:text-purple-400">
                                 <div className="w-1 h-1 rounded-full bg-purple-500" />
-                                Strictly locked; no early breakage
+                                ₦500 penalty for missed weeks
                             </li>
                             <li className="flex items-center gap-2 text-xs text-purple-700 dark:text-purple-400">
                                 <div className="w-1 h-1 rounded-full bg-purple-500" />
-                                ₦500 penalty for missed weeks
+                                Weekly service charge auto-deducted
                             </li>
                         </ul>
+
+                        <div className="rounded border border-purple-100 dark:border-purple-800 overflow-hidden">
+                            <table className="w-full text-[10px] text-left">
+                                <thead className="bg-purple-100/50 dark:bg-purple-900/40 font-bold text-purple-800 dark:text-purple-400">
+                                    <tr>
+                                        <th className="px-2 py-1">Weekly Amount</th>
+                                        <th className="px-2 py-1 text-right">Service Charge</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-purple-50 dark:divide-purple-800 text-purple-700 dark:text-purple-400">
+                                    <tr>
+                                        <td className="px-2 py-1">₦5,000 - ₦10,000</td>
+                                        <td className="px-2 py-1 text-right font-bold">₦200</td>
+                                    </tr>
+                                    <tr>
+                                        <td className="px-2 py-1">₦15,000 - ₦20,000</td>
+                                        <td className="px-2 py-1 text-right font-bold">₦300</td>
+                                    </tr>
+                                    <tr>
+                                        <td className="px-2 py-1">₦25,000 - ₦30,000</td>
+                                        <td className="px-2 py-1 text-right font-bold">₦400</td>
+                                    </tr>
+                                    <tr>
+                                        <td className="px-2 py-1">₦40,000 - ₦50,000</td>
+                                        <td className="px-2 py-1 text-right font-bold">₦500</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
 

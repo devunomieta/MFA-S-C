@@ -104,9 +104,17 @@ export function MarathonPlanCard({ plan, userPlan, onJoin, onDeposit }: Marathon
                     <div className="grid grid-cols-2 gap-4">
                         <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-800">
                             <div className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-1">Status</div>
-                            <div className={`text-sm font-bold flex items-center gap-1.5 ${isCurrentWeekPaid ? 'text-emerald-600' : 'text-amber-600'}`}>
-                                {isCurrentWeekPaid ? <CheckCircle className="w-3.5 h-3.5" /> : <AlertTriangle className="w-3.5 h-3.5" />}
-                                {isCurrentWeekPaid ? 'Paid' : 'Pending'}
+                            <div className={`text-sm font-bold flex items-center gap-1.5 ${userPlan.status === 'pending_activation' ? 'text-amber-600' :
+                                    isCurrentWeekPaid ? 'text-emerald-600' : 'text-amber-600'
+                                }`}>
+                                {userPlan.status === 'pending_activation' ? (
+                                    <> <AlertTriangle className="w-3.5 h-3.5" /> PENDING ACTIVATION </>
+                                ) : (
+                                    <>
+                                        {isCurrentWeekPaid ? <CheckCircle className="w-3.5 h-3.5" /> : <AlertTriangle className="w-3.5 h-3.5" />}
+                                        {isCurrentWeekPaid ? 'Paid' : 'Pending'}
+                                    </>
+                                )}
                             </div>
                         </div>
                         <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-800">
@@ -210,7 +218,7 @@ export function MarathonPlanCard({ plan, userPlan, onJoin, onDeposit }: Marathon
                 <div className="space-y-4 pt-2">
                     <div className="p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-100 dark:border-emerald-800">
                         <h4 className="text-[10px] font-bold text-emerald-800 dark:text-emerald-400 uppercase tracking-wider mb-2">Rules & Features</h4>
-                        <ul className="space-y-1.5">
+                        <ul className="space-y-1.5 mb-4">
                             <li className="flex items-center gap-2 text-xs text-emerald-700 dark:text-emerald-400">
                                 <div className="w-1 h-1 rounded-full bg-emerald-500" />
                                 Starts 3rd week of January annually
@@ -225,9 +233,34 @@ export function MarathonPlanCard({ plan, userPlan, onJoin, onDeposit }: Marathon
                             </li>
                             <li className="flex items-center gap-2 text-xs text-emerald-700 dark:text-emerald-400">
                                 <div className="w-1 h-1 rounded-full bg-emerald-500" />
-                                ₦500 penalty for missed weeks
+                                Service charges auto-deducted per deposit
                             </li>
                         </ul>
+
+                        <div className="rounded border border-emerald-100 dark:border-emerald-800 overflow-hidden">
+                            <table className="w-full text-[10px] text-left">
+                                <thead className="bg-emerald-100/50 dark:bg-emerald-900/40 font-bold text-emerald-800 dark:text-emerald-400">
+                                    <tr>
+                                        <th className="px-2 py-1">Deposit Amount</th>
+                                        <th className="px-2 py-1 text-right">Service Charge</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-emerald-50 dark:divide-emerald-800 text-emerald-700 dark:text-emerald-400">
+                                    <tr>
+                                        <td className="px-2 py-1">₦3,000 - ₦14,000</td>
+                                        <td className="px-2 py-1 text-right font-bold">₦200</td>
+                                    </tr>
+                                    <tr>
+                                        <td className="px-2 py-1">₦14,500 - ₦23,000</td>
+                                        <td className="px-2 py-1 text-right font-bold">₦300</td>
+                                    </tr>
+                                    <tr>
+                                        <td className="px-2 py-1">₦23,500 and above</td>
+                                        <td className="px-2 py-1 text-right font-bold">₦500</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-3 text-xs text-gray-500 dark:text-gray-400 font-medium">

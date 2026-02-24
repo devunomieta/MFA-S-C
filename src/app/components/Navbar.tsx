@@ -21,7 +21,15 @@ export function Navbar() {
 
   useEffect(() => {
     const fetchBranding = async () => {
-      const { data } = await supabase.from('app_settings').select('value').eq('key', 'general').single();
+      console.log("Navbar: Fetching branding...");
+      const { data, error } = await supabase.from('app_settings').select('value').eq('key', 'general').single();
+
+      if (error) {
+        console.error("Navbar: Logo fetch error:", error);
+        return;
+      }
+
+      console.log("Navbar: Branding data received:", data);
       if (data?.value?.logo_url) {
         setLogoUrl(data.value.logo_url);
       }

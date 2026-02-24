@@ -56,10 +56,11 @@ export function AjoCirclePlanCard({ plan, userPlan, onJoin, onDeposit, onWithdra
         const pickingTurns = metadata.picking_turns || [];
         const missedWeeks = metadata.missed_weeks || 0;
 
-        const payoutHistory = metadata.payout_history || [];
+        const payoutHistory = (metadata as any).payout_history || [];
         const turnCount = pickingTurns.filter((t: any) => Number(t) === currentWeek).length;
         const withdrawnCount = payoutHistory.filter((h: any) => Number(h) === currentWeek).length;
-        const canWithdraw = turnCount > withdrawnCount;
+        const isMyTurn = turnCount > withdrawnCount;
+        const canWithdraw = isMyTurn;
 
         return (
             <Card className="flex flex-col relative overflow-hidden bg-white dark:bg-gray-900 border-l-4 border-l-orange-500 shadow-sm hover:shadow-md transition-shadow">
@@ -68,7 +69,13 @@ export function AjoCirclePlanCard({ plan, userPlan, onJoin, onDeposit, onWithdra
                         <div>
                             <div className="flex items-center gap-2 mb-2">
                                 <Badge variant="outline" className="text-emerald-700 border-emerald-200 bg-emerald-50">{plan.name}</Badge>
-                                <Badge className="bg-emerald-600 border-emerald-500 text-white">Active</Badge>
+                                <Badge className={
+                                    userPlan.status === 'pending_activation'
+                                        ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200'
+                                        : 'bg-emerald-600 border-emerald-500 text-white'
+                                }>
+                                    {userPlan.status === 'pending_activation' ? 'PENDING ACTIVATION' : 'Active'}
+                                </Badge>
                             </div>
                             <CardTitle className="text-xl font-bold text-gray-900 dark:text-gray-100">{plan.name}</CardTitle>
                         </div>
@@ -230,24 +237,53 @@ export function AjoCirclePlanCard({ plan, userPlan, onJoin, onDeposit, onWithdra
                     <div className="space-y-4 pt-2">
                         <div className="p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-100 dark:border-orange-800">
                             <h4 className="text-[10px] font-bold text-orange-800 dark:text-orange-400 uppercase tracking-wider mb-2">Ajo Circle Rules</h4>
-                            <ul className="space-y-1.5">
+                            <ul className="space-y-1.5 mb-4">
                                 <li className="flex items-center gap-2 text-xs text-orange-700 dark:text-orange-400">
                                     <div className="w-1 h-1 rounded-full bg-orange-500" />
-                                    Weekly contributions for {duration} weeks
+                                    Weekly contributions for {plan.config?.duration_weeks || duration} weeks
                                 </li>
                                 <li className="flex items-center gap-2 text-xs text-orange-700 dark:text-orange-400">
                                     <div className="w-1 h-1 rounded-full bg-orange-500" />
-                                    Service Fee: {selectedAmount ? `₦${formatCurrency(getFee(Number(selectedAmount)))}` : 'Calculated based on amount'}
-                                </li>
-                                <li className="flex items-center gap-2 text-xs text-orange-700 dark:text-orange-400">
-                                    <div className="w-1 h-1 rounded-full bg-orange-500" />
-                                    Payout Turn: Picking by 3rd week
+                                    Properly managed picking turn(s)
                                 </li>
                                 <li className="flex items-center gap-2 text-xs text-orange-700 dark:text-orange-400">
                                     <div className="w-1 h-1 rounded-full bg-orange-500" />
                                     Strict penalties for skipped payments
                                 </li>
+                                <li className="flex items-center gap-2 text-xs text-orange-700 dark:text-orange-400">
+                                    <div className="w-1 h-1 rounded-full bg-orange-500" />
+                                    Weekly payout fee auto-deducted
+                                </li>
                             </ul>
+
+                            <div className="rounded border border-orange-200 dark:border-orange-800 overflow-hidden">
+                                <table className="w-full text-[10px] text-left">
+                                    <thead className="bg-orange-100/50 dark:bg-orange-900/40 font-bold text-orange-800 dark:text-orange-400">
+                                        <tr>
+                                            <th className="px-2 py-1">Weekly Amount</th>
+                                            <th className="px-2 py-1 text-right">Payout Fee</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-orange-100 dark:divide-orange-800 text-orange-700 dark:text-orange-400">
+                                        <tr>
+                                            <td className="px-2 py-1">₦10,000 - ₦14,999</td>
+                                            <td className="px-2 py-1 text-right font-bold">₦200</td>
+                                        </tr>
+                                        <tr>
+                                            <td className="px-2 py-1">₦15,000 - ₦19,999</td>
+                                            <td className="px-2 py-1 text-right font-bold">₦300</td>
+                                        </tr>
+                                        <tr>
+                                            <td className="px-2 py-1">₦20,000 - ₦99,999</td>
+                                            <td className="px-2 py-1 text-right font-bold">₦500</td>
+                                        </tr>
+                                        <tr>
+                                            <td className="px-2 py-1">₦100,000 and above</td>
+                                            <td className="px-2 py-1 text-right font-bold">₦1,000</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
 
                         <div className="rounded-lg border-2 border-dashed border-gray-200 dark:border-gray-700 p-4 flex flex-col items-center justify-center text-center space-y-2 h-[120px] bg-white/50 dark:bg-black/20">

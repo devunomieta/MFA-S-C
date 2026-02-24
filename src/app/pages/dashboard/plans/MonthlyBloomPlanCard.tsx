@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plan, UserPlan } from "@/types";
 import { CheckCircle, AlertTriangle, TrendingUp, RefreshCw, Sprout, Calendar } from "lucide-react";
 import { Link } from "react-router-dom";
+import { toast } from "sonner";
 import { SprintJoinModal } from "./SprintJoinModal";
 
 interface MonthlyBloomPlanCardProps {
@@ -25,7 +26,7 @@ export function MonthlyBloomPlanCard({ plan, userPlan, onJoin, onDeposit }: Mont
 
     const formatCurrency = (val: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'NGN' }).format(val);
 
-    const isActive = userPlan?.status === 'active';
+    const isJoined = !!userPlan && userPlan.status !== 'archived';
     const isCompleted = userPlan?.status === 'completed' || userPlan?.status === 'matured';
     const meta = userPlan?.plan_metadata || {};
 
@@ -40,8 +41,8 @@ export function MonthlyBloomPlanCard({ plan, userPlan, onJoin, onDeposit }: Mont
 
     const handleJoin = () => {
         const amount = parseFloat(targetAmount);
-        if (amount < 20000) {
-            alert("Minimum monthly target is ₦20,000");
+        if (isNaN(amount) || amount < 20000) {
+            toast.error("Minimum monthly target is ₦20,000");
             return;
         }
         setShowJoinModal(true);
@@ -52,8 +53,8 @@ export function MonthlyBloomPlanCard({ plan, userPlan, onJoin, onDeposit }: Mont
     };
 
 
-    // Active State - Minimalist
-    if (isActive) {
+    // Joined State - Minimalist
+    if (isJoined && !isCompleted) {
         return (
             <Card className="flex flex-col relative overflow-hidden bg-white dark:bg-gray-900 border-l-4 border-l-pink-500 shadow-sm hover:shadow-md transition-shadow">
                 <CardHeader className="pb-2">
@@ -61,7 +62,13 @@ export function MonthlyBloomPlanCard({ plan, userPlan, onJoin, onDeposit }: Mont
                         <div>
                             <div className="flex items-center gap-2 mb-2">
                                 <Badge variant="outline" className="text-slate-700 border-slate-200 bg-slate-50">{plan.name}</Badge>
-                                <Badge className="bg-emerald-600 border-emerald-500 text-white">Active</Badge>
+                                <Badge className={
+                                    userPlan.status === 'pending_activation'
+                                        ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200'
+                                        : 'bg-emerald-600 border-emerald-500 text-white'
+                                }>
+                                    {userPlan.status === 'pending_activation' ? 'PENDING ACTIVATION' : 'Active'}
+                                </Badge>
                             </div>
                             <CardTitle className="text-xl font-bold text-gray-900 dark:text-gray-100">{plan.name}</CardTitle>
                         </div>
@@ -189,9 +196,16 @@ export function MonthlyBloomPlanCard({ plan, userPlan, onJoin, onDeposit }: Mont
                                     type="number"
                                     className="bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 h-9 font-semibold text-sm focus-visible:ring-slate-500"
                                     value={targetAmount}
-                                    onChange={(e) => setTargetAmount(e.target.value)}
-                                    min={20000}
-                                    step={1000}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        setTargetAmount(val);
+                                        const num = parseFloat(val);
+                                        if (val && !isNaN(num) && num < 20000) {
+                                            toast.warning("Monthly target must be at least ₦20,000", {
+                                                id: "monthly-bloom-min-warning", // Prevent duplicate toasts
+                                            });
+                                        }
+                                    }}
                                 />
                             </div>
                         </div>
@@ -216,7 +230,11 @@ export function MonthlyBloomPlanCard({ plan, userPlan, onJoin, onDeposit }: Mont
                                 </li>
                                 <li className="flex items-center gap-2 text-xs text-pink-700 dark:text-pink-400">
                                     <div className="w-1 h-1 rounded-full bg-pink-500" />
-                                    Service Charge: No extra charges
+                                    Monthly Service Charge: ₦2,000
+                                </li>
+                                <li className="flex items-center gap-2 text-xs text-pink-700 dark:text-pink-400">
+                                    <div className="w-1 h-1 rounded-full bg-pink-500" />
+                                    Charges are auto-deducted monthly
                                 </li>
                                 <li className="flex items-center gap-2 text-xs text-pink-700 dark:text-pink-400">
                                     <div className="w-1 h-1 rounded-full bg-pink-500" />

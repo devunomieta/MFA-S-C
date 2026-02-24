@@ -38,10 +38,10 @@ BEGIN
     -- Get User Plan
     SELECT * INTO v_user_plan 
     FROM user_plans 
-    WHERE user_id = p_user_id AND plan_id = p_plan_id
+    WHERE user_id = p_user_id AND plan_id = p_plan_id AND status IN ('active', 'pending_activation')
     LIMIT 1;
 
-    IF NOT FOUND THEN RAISE EXCEPTION 'User Plan not found'; END IF;
+    IF NOT FOUND THEN RAISE EXCEPTION 'Active or Pending User Plan not found'; END IF;
 
     -- Get Plan Config (for Fee verification)
     SELECT config INTO v_plan_config FROM plans WHERE id = p_plan_id;
@@ -72,17 +72,24 @@ BEGIN
     v_contribution_amount := v_fixed_amount;
 
     -- 1. Credit User Plan with Contribution Only
+    -- If it was pending activation, set start_week to current_week
     UPDATE user_plans
     SET 
+        status = 'active',
+        start_date = COALESCE(start_date, NOW()),
         current_balance = current_balance + v_contribution_amount,
         plan_metadata = jsonb_set(
             jsonb_set(
-                v_metadata, 
-                '{last_payment_date}', 
-                to_jsonb(NOW())
+                jsonb_set(
+                    v_metadata, 
+                    '{last_payment_date}', 
+                    to_jsonb(NOW())
+                ),
+                '{week_paid}',
+                to_jsonb(true)
             ),
-            '{week_paid}', -- Mark current week as paid? Or count totals?
-            to_jsonb(true) -- Simple flag for 'This week is paid'
+            '{start_week}',
+            COALESCE(v_metadata->'start_week', to_jsonb(v_current_week))
         ),
         updated_at = NOW()
     WHERE id = v_user_plan.id;
@@ -200,6 +207,7 @@ SECURITY DEFINER
 AS $$
 DECLARE
     v_plan_id UUID;
+    v_plan_config JSONB;
     v_user_plan RECORD;
     v_metadata JSONB;
     v_week_paid BOOLEAN;
@@ -208,8 +216,31 @@ DECLARE
     v_fixed_amount NUMERIC;
     v_missed_weeks INTEGER;
 BEGIN
-    SELECT id INTO v_plan_id FROM plans WHERE type = 'ajo_circle' LIMIT 1;
+    SELECT id, config INTO v_plan_id, v_plan_config FROM plans WHERE type = 'ajo_circle' LIMIT 1;
     
+    -- Check season start date
+    IF v_plan_config->>'season_start_date' IS NOT NULL AND (v_plan_config->>'season_start_date')::TIMESTAMP > NOW() THEN
+        RETURN jsonb_build_object('success', true, 'message', 'Season not started yet');
+    END IF;
+
+    -- Handle Pending Activation Plans (Removal logic)
+    FOR v_user_plan IN 
+        SELECT * FROM user_plans WHERE plan_id = v_plan_id AND status = 'pending_activation'
+    LOOP
+        v_metadata := v_user_plan.plan_metadata;
+        v_current_week := COALESCE((v_metadata->>'current_week')::INTEGER, 1);
+        
+        -- Requirement: If they haven't paid by Sunday 11:59PM of their join week, they are removed.
+        UPDATE user_plans 
+        SET status = 'cancelled',
+            updated_at = NOW()
+        WHERE id = v_user_plan.id;
+        
+        INSERT INTO transactions (user_id, plan_id, amount, type, status, description, charge)
+        VALUES (v_user_plan.user_id, v_plan_id, 0, 'other', 'completed', 'Ajo Circle Subscription Cancelled (No First Payment)', 0);
+    END LOOP;
+
+    -- Handle Active Plans
     FOR v_user_plan IN 
         SELECT * FROM user_plans WHERE plan_id = v_plan_id AND status = 'active'
     LOOP
@@ -221,7 +252,6 @@ BEGIN
 
         IF NOT v_week_paid THEN
             -- Apply Penalty
-            -- Deduct from SAVED balance
             UPDATE user_plans 
             SET current_balance = current_balance - v_penalty
             WHERE id = v_user_plan.id;
@@ -233,7 +263,6 @@ BEGIN
         END IF;
 
         -- Increment Week
-        -- Reset week_paid
         UPDATE user_plans 
         SET plan_metadata = jsonb_set(
             jsonb_set(
@@ -282,7 +311,11 @@ BEGIN
     v_current_week := COALESCE((v_metadata->>'current_week')::INTEGER, 1);
     v_fixed_amount := (v_metadata->>'fixed_amount')::NUMERIC;
     v_duration_weeks := COALESCE((v_metadata->>'duration_weeks')::INTEGER, 10);
-    v_payout_amount := v_fixed_amount * v_duration_weeks;
+    
+    -- Requirement: Payout calculated from week joined/activated till end.
+    -- v_start_week := (v_metadata->>'start_week')::INTEGER;
+    -- Payout = fixed_amount * (duration - start_week + 1)
+    v_payout_amount := v_fixed_amount * (v_duration_weeks - COALESCE((v_metadata->>'start_week')::INTEGER, 1) + 1);
     
     -- Convert picking_turns to array for check
     -- Assume picking_turns is stored as a JSON array of integers in metadata

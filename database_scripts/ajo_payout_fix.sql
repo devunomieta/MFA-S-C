@@ -17,25 +17,29 @@ CHECK (type IN (
     'payout'
 ));
 
--- 2. Seed the Ajo Payouts plan if it doesn't exist
+-- 2. Seed the Withdrawable Wallet plan if it doesn't exist
 DO $$
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM plans WHERE name = 'Ajo Payouts (Withdrawable)') THEN
+    IF NOT EXISTS (SELECT 1 FROM plans WHERE type = 'withdrawable_wallet') THEN
         INSERT INTO plans (name, description, service_charge, duration_weeks, duration_months, min_amount, type, is_active, contribution_type, config)
         VALUES (
-            'Ajo Payouts (Withdrawable)',
-            'Funds from matured Ajo Circle turns. Available for immediate withdrawal to bank.',
+            'Withdrawable Wallet',
+            'Receives all Ajo payouts, Approved Loans, and Matured Savings. Ready for bank withdrawal.',
             0,
             1,
             1,
             0,
-            'ajo_payout',
+            'withdrawable_wallet',
             false,
             'fixed',
             '{}'::jsonb
         );
     ELSE
-        UPDATE plans SET is_active = false WHERE name = 'Ajo Payouts (Withdrawable)';
+        UPDATE plans 
+        SET name = 'Withdrawable Wallet',
+            description = 'Receives all Ajo payouts, Approved Loans, and Matured Savings. Ready for bank withdrawal.',
+            type = 'withdrawable_wallet'
+        WHERE type = 'ajo_payout';
     END IF;
 END $$;
 
@@ -99,8 +103,8 @@ BEGIN
     END IF;
 
     -- 1. Identify Target "Withdrawable" Payout Plan
-    SELECT id INTO v_target_plan_id FROM plans WHERE type = 'ajo_payout' LIMIT 1;
-    IF v_target_plan_id IS NULL THEN RAISE EXCEPTION 'Target Payout Plan not configured'; END IF;
+    SELECT id INTO v_target_plan_id FROM plans WHERE type = 'withdrawable_wallet' LIMIT 1;
+    IF v_target_plan_id IS NULL THEN RAISE EXCEPTION 'Target Withdrawable Wallet not configured'; END IF;
 
     -- Get or Create the User's Payout Plan record
     SELECT id INTO v_target_user_plan_id FROM user_plans 

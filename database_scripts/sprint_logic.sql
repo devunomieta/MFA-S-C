@@ -34,9 +34,9 @@ DECLARE
 BEGIN
     -- Get User Plan
     SELECT * INTO v_user_plan FROM user_plans 
-    WHERE user_id = p_user_id AND plan_id = p_plan_id AND status = 'active';
+    WHERE user_id = p_user_id AND plan_id = p_plan_id AND status IN ('active', 'pending_activation');
     
-    IF NOT FOUND THEN RAISE EXCEPTION 'User is not active in this Sprint plan'; END IF;
+    IF NOT FOUND THEN RAISE EXCEPTION 'Active or Pending Sprint plan not found for user'; END IF;
 
     v_meta := v_user_plan.plan_metadata;
     v_week_total := COALESCE((v_meta->>'current_week_total')::NUMERIC, 0) + p_amount;
@@ -50,6 +50,8 @@ BEGIN
     SET 
         current_balance = v_new_balance,
         plan_metadata = v_meta,
+        status = 'active',
+        start_date = COALESCE(start_date, now()),
         updated_at = now()
     WHERE id = v_user_plan.id;
 

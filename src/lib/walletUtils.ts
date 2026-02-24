@@ -5,11 +5,15 @@
 
 export interface Transaction {
     id: string;
-    type: 'deposit' | 'withdrawal' | 'loan_disbursement' | 'loan_repayment' | 'interest' | 'transfer' | 'fee' | 'service_charge' | 'limit_transfer' | 'payout';
+    type: 'deposit' | 'withdrawal' | 'loan_disbursement' | 'loan_repayment' | 'interest' | 'transfer' | 'fee' | 'service_charge' | 'limit_transfer' | 'payout' | 'maturity_payout' | 'internal_transfer';
     status: 'pending' | 'completed' | 'failed';
     amount: number;
     charge?: number;
     plan_id?: string | null;
+    plan?: {
+        type: string;
+        name: string;
+    };
 }
 
 /**
@@ -22,51 +26,40 @@ export interface Transaction {
  *      - If plan_id is NOT null (Plan Wallet): Usually handled by the plan balance logic, 
  *        but here we treat it as an inflow to the plan.
  */
-export function calculateBalance(transactions: Transaction[], filterPlanId: string | null = null): number {
+export function calculateBalance(transactions: Transaction[], filterPlanId: string | null = null, filterPlanType: string | null = null): number {
     return transactions.reduce((acc, curr) => {
         const amt = Number(curr.amount);
         const chg = Number(curr.charge || 0);
         const isPlanMatch = curr.plan_id === filterPlanId;
 
-        if (!isPlanMatch) return acc;
+        // If we are filtering by plan_type (special case for Withdrawable Wallet), 
+        // we might not know the exact plan_id yet.
+        const isTypeMatch = filterPlanType && curr.plan?.type === filterPlanType;
 
-        // INFLOWS
-        if (['deposit', 'loan_disbursement', 'interest', 'limit_transfer', 'payout'].includes(curr.type)) {
+        if (!isPlanMatch && !isTypeMatch) return acc;
+
+        // --- INFLOWS ---
+        if (['deposit', 'loan_disbursement', 'interest', 'limit_transfer', 'payout', 'maturity_payout'].includes(curr.type)) {
             if (curr.status === 'completed') {
                 return acc + amt - chg;
             }
         }
 
-        // OUTFLOWS
-        if (['withdrawal', 'loan_repayment', 'fee', 'service_charge'].includes(curr.type)) {
+        // --- OUTFLOWS ---
+        if (['withdrawal', 'loan_repayment', 'fee', 'service_charge', 'penalty'].includes(curr.type)) {
             if (['completed', 'pending'].includes(curr.status)) {
                 return acc - amt - chg;
             }
         }
 
-        // TRANSFERS
-        if (curr.type === 'transfer') {
+        // --- TRANSFERS ---
+        if (curr.type === 'transfer' || curr.type === 'internal_transfer') {
             if (curr.status === 'completed') {
-                // If it's a transfer OUT of a location (e.g. out of Wallet to Plan)
-                // For General Wallet (plan_id null), this is a deduction.
-                // For a specific Plan, this would actually be an inflow if it was coming FROM wallet.
-                // However, the database records transfers TWICE: once for the source (minus) and once for the target (plus).
-                // Wait, let's verify if the logic in DepositModal/Wallet handles it this way.
-
-                // Usually, the debit record has plan_id = null and the credit record has plan_id = target_id.
-                // But sometimes researchers use negative amounts.
-                // Let's assume standard: Positive amount, type='transfer', status='completed'.
-                // If plan_id matches the one we are calculating for, it's an inflow? 
-                // No, in some parts of the code, transfers out of wallet have plan_id = null.
-
-                // Let's follow the existing logic in Wallet.tsx:
-                // if (curr.type === 'transfer' && curr.status === 'completed') { return acc - amt - chg; }
-                // This implies 'transfer' with plan_id=null is ALWAYS a deduction from Wallet.
-
-                if (filterPlanId === null) {
+                // Heuristic: If it's a transfer and plan_id is NULL, it's LEAVING the General Wallet.
+                // If it's a transfer and plan_id IS set, it's ENTERING that Plan.
+                if (filterPlanId === null && !filterPlanType) {
                     return acc - amt - chg;
                 } else {
-                    // For a Plan, a 'transfer' is usually an INFLOW from the wallet.
                     return acc + amt - chg;
                 }
             }

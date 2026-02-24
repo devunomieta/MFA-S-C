@@ -36,7 +36,7 @@ export function MarathonJoinModal({ plan, isOpen, onClose, onSuccess }: Marathon
             user_id: user.id,
             plan_id: plan.id,
             current_balance: 0,
-            status: 'active',
+            status: 'pending_activation',
             plan_metadata: {
                 selected_duration: weeks,
                 target_end_date: targetDate.toISOString(),

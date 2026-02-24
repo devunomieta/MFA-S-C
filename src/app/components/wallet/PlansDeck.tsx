@@ -100,6 +100,7 @@ export function PlansDeck({ plans, loading, walletBalance, onActiveChange }: Pla
                             name={item.type === 'wallet' ? 'General Wallet' : (item.plan?.name || "Savings Plan")}
                             balance={item.current_balance}
                             type={item.type}
+                            status={item.status}
                             expiryDate={getExpiry(item)}
                             onClick={rotateDeck}
                         />

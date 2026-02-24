@@ -24,9 +24,9 @@ BEGIN
 
     -- Get User Plan
     SELECT * INTO v_user_plan FROM user_plans 
-    WHERE user_id = p_user_id AND plan_id = p_plan_id AND status = 'active';
+    WHERE user_id = p_user_id AND plan_id = p_plan_id AND status IN ('active', 'pending_activation');
     
-    IF NOT FOUND THEN RAISE EXCEPTION 'User is not active in this plan'; END IF;
+    IF NOT FOUND THEN RAISE EXCEPTION 'Active or Pending Daily Drop plan not found for user'; END IF;
 
     v_meta := v_user_plan.plan_metadata;
     v_days_paid_total := COALESCE((v_meta->>'total_days_paid')::INT, 0);
@@ -37,20 +37,23 @@ BEGIN
     END IF;
 
     -- Charge Logic
-    -- Rule: "The selected fixed amount is automatically the charge and the first payment is deducted for this purpose."
-    -- We interpret this as: The VERY FIRST day they pay for is a fee.
-    -- Or simply: The first transaction ever?
-    -- Let's check if this is the first payment processing.
+    -- Rule: "The selected fixed amount is automatically the charge and it's charged monthly."
+    -- We track last_fee_date in metadata.
     
-    IF v_days_paid_total = 0 THEN
-        -- First Payment Logic
-        -- We deduct ONE DAY worth as Fee.
-        v_fee := v_fixed_amount;
+    DECLARE
+        v_last_fee_date TIMESTAMPTZ;
+    BEGIN
+        v_last_fee_date := (v_meta->>'last_fee_date')::TIMESTAMPTZ;
         
-        IF p_amount < v_fee THEN
-             RAISE EXCEPTION 'First deposit must cover the Service Charge (%s)', v_fee;
+        IF v_last_fee_date IS NULL OR v_last_fee_date <= (now() - INTERVAL '1 month') THEN
+            v_fee := v_fixed_amount;
+            v_meta := jsonb_set(v_meta, '{last_fee_date}', to_jsonb(now()));
+            
+            IF p_amount < v_fee THEN
+                 RAISE EXCEPTION 'This deposit must cover the Monthly Service Charge (%s)', v_fee;
+            END IF;
         END IF;
-    END IF;
+    END;
 
     v_net_amount := p_amount - v_fee;
     
@@ -71,6 +74,8 @@ BEGIN
     
     UPDATE user_plans 
     SET 
+        status = 'active',
+        start_date = COALESCE(start_date, now()),
         current_balance = v_new_balance,
         plan_metadata = v_meta,
         updated_at = now()
