@@ -26,9 +26,11 @@ interface DailyDropPlanCardProps {
     userPlan?: UserPlan;
     onJoin: () => void; // Used to refresh parent list
     onDeposit: () => void;
+    onAdvanceDeposit?: () => void;
+    onLeave?: () => void;
 }
 
-export function DailyDropPlanCard({ plan, userPlan, onJoin, onDeposit }: DailyDropPlanCardProps) {
+export function DailyDropPlanCard({ plan, userPlan, onJoin, onDeposit, onAdvanceDeposit, onLeave }: DailyDropPlanCardProps) {
     const isJoined = !!userPlan;
     const metadata = userPlan?.plan_metadata || {};
 
@@ -42,6 +44,8 @@ export function DailyDropPlanCard({ plan, userPlan, onJoin, onDeposit }: DailyDr
     const [joining, setJoining] = useState(false);
     const [showJoinConfirm, setShowJoinConfirm] = useState(false);
     const [showRejoinConfirm, setShowRejoinConfirm] = useState(false);
+    const [isChangingAmount, setIsChangingAmount] = useState(false);
+    const [newDailyAmount, setNewDailyAmount] = useState<string>(fixedAmount.toString());
 
     const isFinished = selectedDuration !== -1 && daysPaid >= selectedDuration;
 
@@ -103,6 +107,29 @@ export function DailyDropPlanCard({ plan, userPlan, onJoin, onDeposit }: DailyDr
         setShowRejoinConfirm(false);
     };
 
+    const handleChangeAmount = async () => {
+        const amt = parseFloat(newDailyAmount);
+        if (isNaN(amt) || amt < 500) {
+            toast.error("Minimum daily amount is ₦500");
+            return;
+        }
+
+        const { error } = await supabase.from('user_plans').update({
+            plan_metadata: {
+                ...metadata,
+                fixed_amount: amt
+            }
+        }).eq('id', userPlan?.id);
+
+        if (error) {
+            toast.error("Failed to update amount");
+        } else {
+            toast.success("Daily amount updated to " + formatCurrency(amt));
+            setIsChangingAmount(false);
+            onJoin(); // Refresh
+        }
+    };
+
     // Active State - Minimalist
     if (isJoined) {
         return (
@@ -159,8 +186,21 @@ export function DailyDropPlanCard({ plan, userPlan, onJoin, onDeposit }: DailyDr
                                     <div className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-1 flex items-center gap-1">
                                         <Droplets className="w-3 h-3" /> Daily Commit
                                     </div>
-                                    <div className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                                    <div className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center justify-between">
                                         {formatCurrency(fixedAmount)}
+                                        {daysPaid >= 31 && (
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="h-6 text-[10px] text-cyan-600 hover:text-cyan-700 p-1"
+                                                onClick={() => {
+                                                    setNewDailyAmount(fixedAmount.toString());
+                                                    setIsChangingAmount(true);
+                                                }}
+                                            >
+                                                Change
+                                            </Button>
+                                        )}
                                     </div>
                                 </div>
                                 <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-800">
@@ -172,23 +212,56 @@ export function DailyDropPlanCard({ plan, userPlan, onJoin, onDeposit }: DailyDr
                                     </div>
                                 </div>
                             </div>
+
+                            {isChangingAmount && (
+                                <div className="p-4 bg-cyan-50 dark:bg-cyan-900/20 rounded-lg border border-cyan-100 dark:border-cyan-800 space-y-3 animate-in fade-in slide-in-from-top-2">
+                                    <Label className="text-xs font-bold text-cyan-800">New Daily Amount</Label>
+                                    <div className="flex gap-2">
+                                        <Input
+                                            type="number"
+                                            value={newDailyAmount}
+                                            onChange={(e) => setNewDailyAmount(e.target.value)}
+                                            className="h-8 text-sm bg-white dark:bg-gray-800"
+                                        />
+                                        <Button size="sm" className="h-8 bg-cyan-600" onClick={handleChangeAmount}>Save</Button>
+                                        <Button size="sm" variant="ghost" className="h-8" onClick={() => setIsChangingAmount(false)}>Cancel</Button>
+                                    </div>
+                                    <p className="text-[10px] text-cyan-600">This will be your new fixed daily commitment until changed again.</p>
+                                </div>
+                            )}
                         </div>
                     )}
                 </CardContent>
 
-                <CardFooter className="grid grid-cols-2 gap-3 pt-2">
-                    {!isFinished && (
-                        <>
-                            <Button
-                                className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-semibold"
-                                onClick={onDeposit}
-                            >
-                                Drop Funds
-                            </Button>
-                            <Button variant="outline" asChild className="w-full">
-                                <Link to={`/dashboard/wallet?planId=${userPlan?.plan.id}`}>Details</Link>
-                            </Button>
-                        </>
+                <CardFooter className="flex flex-col gap-3 pt-2">
+                    <div className="grid grid-cols-2 gap-3 w-full">
+                        <Button
+                            className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-semibold"
+                            onClick={onDeposit}
+                        >
+                            Drop Funds
+                        </Button>
+                        <Button variant="outline" asChild className="w-full">
+                            <Link to={`/dashboard/wallet?planId=${userPlan?.plan.id}`}>Details</Link>
+                        </Button>
+                    </div>
+                    {userPlan.status === 'pending_activation' && onLeave && (
+                        <Button
+                            variant="ghost"
+                            className="w-full text-red-600 hover:text-red-700 hover:bg-red-50 text-xs font-semibold"
+                            onClick={onLeave}
+                        >
+                            Leave Plan
+                        </Button>
+                    )}
+                    {!isFinished && onAdvanceDeposit && (
+                        <Button
+                            variant="secondary"
+                            className="w-full bg-cyan-50 text-cyan-700 hover:bg-cyan-100 border border-cyan-200 font-bold"
+                            onClick={onAdvanceDeposit}
+                        >
+                            Pay in Advance
+                        </Button>
                     )}
                 </CardFooter>
             </Card>

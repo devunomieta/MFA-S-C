@@ -6,7 +6,7 @@ import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/app/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/app/components/ui/table";
-import { ArrowDownLeft, ArrowUpRight, Filter, Milestone, ArrowRightLeft } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, Filter, Milestone } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/app/context/AuthContext";
 import { Link, useSearchParams } from "react-router-dom";
@@ -29,6 +29,7 @@ interface Plan {
     fixed_amount: number;
     whatsapp_link?: string;
     start_date?: string;
+    type: string;
 }
 
 interface UserPlan {
@@ -37,6 +38,7 @@ interface UserPlan {
     current_balance: number;
     status: string;
     start_date: string;
+    plan_metadata?: any;
 }
 
 export function Wallet() {
@@ -60,6 +62,7 @@ export function Wallet() {
     const [open, setOpen] = useState(false);
     const [type, setType] = useState<'deposit' | 'withdrawal'>('deposit');
     const [selectedPlanId, setSelectedPlanId] = useState<string>("");
+    const [withdrawalTargetPlanId, setWithdrawalTargetPlanId] = useState<string>("");
 
     // Details Modal State
     const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
@@ -73,6 +76,7 @@ export function Wallet() {
     const [showLoanDialog, setShowLoanDialog] = useState(false);
     const [pendingWithdrawalParams, setPendingWithdrawalParams] = useState<{ target: 'bank' | 'wallet' | 'plan', amount: number } | null>(null);
     const [withdrawalsEnabled, setWithdrawalsEnabled] = useState(true);
+    const [isAdvanceMode, setIsAdvanceMode] = useState(false);
 
     // URL Params for filtering
     const [searchParams] = useSearchParams();
@@ -120,7 +124,7 @@ export function Wallet() {
             .from('user_plans')
             .select(`
                 *,
-                plan:plans(name, duration_weeks)
+                plan:plans(*)
             `)
             .eq('user_id', user?.id)
             .in('status', ['active', 'matured']);
@@ -191,8 +195,6 @@ export function Wallet() {
         }
     }
 
-    // Withdrawable Balance (Sum of Matured Plans)
-    const [withdrawableBalance, setWithdrawableBalance] = useState(0);
 
     useEffect(() => {
         if (userPlans.length > 0) {
@@ -226,9 +228,40 @@ export function Wallet() {
             toast.error("Please select a bank account");
             return;
         }
-        if (target === 'plan' && !selectedPlanId) {
+        if (target === 'plan' && !withdrawalTargetPlanId) {
             toast.error("Please select a target plan");
             return;
+        }
+
+        // Compliance Check for Plan Funding
+        if (target === 'plan') {
+            const targetUserPlan = userPlans.find(p => p.id === withdrawalTargetPlanId);
+            if (targetUserPlan) {
+                const planType = targetUserPlan.plan?.type;
+                const meta = targetUserPlan.plan_metadata || {};
+                let mandated = 0;
+
+                if (planType === 'ajo_circle' || planType === 'step_up' || planType === 'daily_drop' || targetUserPlan.plan?.contribution_type === 'fixed') {
+                    mandated = meta?.fixed_amount || targetUserPlan.plan?.fixed_amount || 0;
+                } else if (['marathon', 'sprint', 'anchor'].includes(planType)) {
+                    const currentWeekTotal = meta.current_week_total || 0;
+                    if (currentWeekTotal < 3000) mandated = 3000 - currentWeekTotal;
+                } else if (planType === 'monthly_bloom') {
+                    const currentMonthTotal = meta.current_month_total || 0;
+                    if (currentMonthTotal < 20000) mandated = 20000 - currentMonthTotal;
+                }
+
+                const isFlexibleGoalPlan = ['marathon', 'sprint', 'anchor', 'monthly_bloom'].includes(planType);
+                const effectiveMin = (isFlexibleGoalPlan && mandated === 0) ? 1 : mandated;
+
+                if (finalAmount < effectiveMin) {
+                    toast.error(mandated > 0
+                        ? `Transfer must be at least ₦${formatCurrency(mandated)} to meet the goal.`
+                        : `Minimum transfer for this plan is ₦${formatCurrency(effectiveMin)}`
+                    );
+                    return;
+                }
+            }
         }
 
         // STRICT LOAN CHECK
@@ -245,8 +278,16 @@ export function Wallet() {
     async function executeStandardWithdrawal(target: 'bank' | 'wallet' | 'plan', finalAmount: number, isRestricted = false) {
         setUploading(true);
         let remainingToWithdraw = finalAmount;
-        const maturedPlans = userPlans.filter(p => p.status === 'matured' && p.current_balance > 0);
-        maturedPlans.sort((a, b) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime());
+        // Include Matured plans AND the Withdrawable Wallet source
+        const maturedPlans = userPlans.filter(p =>
+            (p.status === 'matured' || p.plan?.type === 'withdrawable_wallet') &&
+            p.current_balance > 0
+        );
+        maturedPlans.sort((a, b) => {
+            // Prioritize matured plans over withdrawable wallet for depletion logic?
+            // Actually, sorting by date is fine.
+            return new Date(a.start_date).getTime() - new Date(b.start_date).getTime();
+        });
 
         for (const plan of maturedPlans) {
             if (remainingToWithdraw <= 0) break;
@@ -295,22 +336,47 @@ export function Wallet() {
                     charge: 0
                 });
             } else if (target === 'plan') {
-                const targetUserPlan = userPlans.find(p => p.plan.id === selectedPlanId);
+                const targetUserPlan = userPlans.find(p => p.id === withdrawalTargetPlanId);
                 if (targetUserPlan) {
-                    await supabase.from("transactions").insert({
-                        user_id: user?.id,
-                        amount: actualWithdrawn,
-                        type: 'transfer',
-                        status: 'completed',
-                        description: `Funded from matured plans`,
-                        plan_id: targetUserPlan.plan.id,
-                        charge: 0
-                    });
+                    const planType = targetUserPlan.plan?.type;
 
-                    const newTargetBal = targetUserPlan.current_balance + actualWithdrawn;
-                    const updates: any = { current_balance: newTargetBal };
-                    if (targetUserPlan.status === 'pending_activation') updates.status = 'active';
-                    await supabase.from('user_plans').update(updates).eq('id', targetUserPlan.id);
+                    if (['marathon', 'sprint', 'anchor', 'step_up', 'monthly_bloom', 'ajo_circle', 'daily_drop'].includes(planType)) {
+                        let rpcName = '';
+                        if (planType === 'marathon') rpcName = 'process_marathon_deposit';
+                        else if (planType === 'sprint') rpcName = 'process_sprint_deposit';
+                        else if (planType === 'anchor') rpcName = 'process_anchor_deposit';
+                        else if (planType === 'step_up') rpcName = 'process_step_up_deposit';
+                        else if (planType === 'monthly_bloom') rpcName = 'process_monthly_bloom_deposit';
+                        else if (planType === 'ajo_circle') rpcName = 'process_ajo_circle_deposit';
+                        else rpcName = 'process_daily_drop_deposit';
+
+                        const { error: rpcError } = await supabase.rpc(rpcName, {
+                            p_user_id: user?.id,
+                            p_plan_id: targetUserPlan.id,
+                            p_amount: actualWithdrawn
+                        });
+
+                        if (rpcError) {
+                            console.error(`${planType} Transfer RPC Error:`, rpcError);
+                            toast.error(`Matured funds deducted but plan update failed: ${rpcError.message}`);
+                        }
+                    } else {
+                        // Standard Plan Logic
+                        await supabase.from("transactions").insert({
+                            user_id: user?.id,
+                            amount: actualWithdrawn,
+                            type: 'transfer',
+                            status: 'completed',
+                            description: `Funded from matured plans`,
+                            plan_id: targetUserPlan.plan.id,
+                            charge: 0
+                        });
+
+                        const newTargetBal = targetUserPlan.current_balance + actualWithdrawn;
+                        const updates: any = { current_balance: newTargetBal };
+                        if (targetUserPlan.status === 'pending_activation') updates.status = 'active';
+                        await supabase.from('user_plans').update(updates).eq('id', targetUserPlan.id);
+                    }
                 }
             }
             toast.success("Transaction processed successfully!");
@@ -452,7 +518,7 @@ export function Wallet() {
                                 placeholder="0.00"
                                 value={amount}
                                 onChange={(e) => setAmount(e.target.value)}
-                                max={withdrawableBalance}
+                                max={totalWithdrawable}
                                 className="dark:bg-gray-800 dark:border-gray-700 dark:text-white"
                             />
                         </div>
@@ -501,7 +567,7 @@ export function Wallet() {
                                 placeholder="0.00"
                                 value={amount}
                                 onChange={(e) => setAmount(e.target.value)}
-                                max={withdrawableBalance}
+                                max={totalWithdrawable}
                                 className="dark:bg-gray-800 dark:border-gray-700 dark:text-white"
                             />
                             <p className="text-xs text-gray-500 dark:text-gray-400">Funds will be moved to your General Wallet.</p>
@@ -516,36 +582,147 @@ export function Wallet() {
                     </TabsContent>
 
                     <TabsContent value="plan" className="space-y-4">
+                        <div className="flex items-center justify-between mb-2">
+                            <Label htmlFor="advance_mode" className="text-sm font-medium cursor-pointer">Pay in Advance?</Label>
+                            <div className="flex items-center gap-2">
+                                <span className={`text-[10px] font-bold ${isAdvanceMode ? 'text-emerald-600' : 'text-gray-400'}`}>
+                                    {isAdvanceMode ? 'ON' : 'OFF'}
+                                </span>
+                                <button
+                                    id="advance_mode"
+                                    onClick={() => setIsAdvanceMode(!isAdvanceMode)}
+                                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${isAdvanceMode ? 'bg-emerald-600' : 'bg-gray-200 dark:bg-gray-700'}`}
+                                >
+                                    <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${isAdvanceMode ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                                </button>
+                            </div>
+                        </div>
                         <div className="grid gap-2">
                             <Label htmlFor="target_plan" className="dark:text-gray-300">Select Target Plan</Label>
                             <select
                                 id="target_plan"
                                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
-                                value={selectedPlanId}
-                                onChange={(e) => setSelectedPlanId(e.target.value)}
+                                value={withdrawalTargetPlanId}
+                                onChange={(e) => {
+                                    const planId = e.target.value;
+                                    setWithdrawalTargetPlanId(planId);
+
+                                    // Compliance Logic: Auto-fill for strict payments
+                                    const targetUserPlan = userPlans.find(p => p.id === planId);
+                                    if (targetUserPlan) {
+                                        const planType = targetUserPlan.plan?.type;
+                                        const meta = (targetUserPlan as any).plan_metadata || {};
+
+                                        let mandated: number = 0;
+
+                                        // 1. Strictly Fixed
+                                        if (planType === 'ajo_circle' || planType === 'step_up' || planType === 'daily_drop' || targetUserPlan.plan?.contribution_type === 'fixed') {
+                                            mandated = meta?.fixed_amount || targetUserPlan.plan?.fixed_amount || 0;
+                                        }
+                                        // 2. Flexible Weekly (Marathon, Sprint, Anchor)
+                                        else if (['marathon', 'sprint', 'anchor'].includes(planType)) {
+                                            const currentWeekTotal = meta.current_week_total || 0;
+                                            const target = 3000;
+                                            if (currentWeekTotal < target) {
+                                                mandated = target - currentWeekTotal;
+                                            }
+                                        }
+                                        // 3. Flexible Monthly (Monthly Bloom)
+                                        else if (planType === 'monthly_bloom') {
+                                            const currentMonthTotal = meta.current_month_total || 0;
+                                            const target = 20000;
+                                            if (currentMonthTotal < target) {
+                                                mandated = target - currentMonthTotal;
+                                            }
+                                        }
+
+                                        if (mandated > 0) {
+                                            setAmount(mandated.toString());
+                                        }
+                                    }
+                                }}
                             >
                                 <option value="">Select a plan...</option>
                                 {userPlans.filter(p => p.status === 'active' || p.status === 'pending_activation').map(p => (
-                                    <option key={p.id} value={p.plan.id}>{p.plan.name}</option>
+                                    <option key={p.id} value={p.id}>{p.plan.name}</option>
                                 ))}
                             </select>
                         </div>
                         <div className="grid gap-2">
                             <Label htmlFor="plan_amount" className="dark:text-gray-300">Amount</Label>
-                            <Input
-                                id="plan_amount"
-                                type="number"
-                                placeholder="0.00"
-                                value={amount}
-                                onChange={(e) => setAmount(e.target.value)}
-                                max={withdrawableBalance}
-                                className="dark:bg-gray-800 dark:border-gray-700 dark:text-white"
-                            />
+                            {(() => {
+                                const targetUserPlan = userPlans.find(p => p.id === withdrawalTargetPlanId);
+                                const planType = targetUserPlan?.plan?.type || targetUserPlan?.type;
+                                const meta = targetUserPlan?.plan_metadata || {};
+
+                                // Flexible Plans: Locked only if minimum not yet met
+                                let isLocked = false;
+                                let mandated = 0;
+
+                                if (planType === 'ajo_circle' || planType === 'step_up' || targetUserPlan?.plan?.contribution_type === 'fixed') {
+                                    isLocked = true;
+                                } else if (planType === 'daily_drop') {
+                                    isLocked = true;
+                                } else if (['marathon', 'sprint', 'anchor'].includes(planType)) {
+                                    const currentWeekTotal = meta.current_week_total || 0;
+                                    if (currentWeekTotal < 3000) {
+                                        mandated = 3000 - currentWeekTotal;
+                                    }
+                                } else if (planType === 'monthly_bloom') {
+                                    const currentMonthTotal = meta.current_month_total || 0;
+                                    if (currentMonthTotal < 20000) {
+                                        mandated = 20000 - currentMonthTotal;
+                                    }
+                                }
+
+                                // Final Locking Decision
+                                isLocked = !isAdvanceMode && mandated > 0;
+
+                                // Spread Logic Indicator
+                                const getPeriodsCovered = () => {
+                                    const amt = parseFloat(amount);
+                                    if (!amt || amt <= 0) return 0;
+                                    if (['marathon', 'sprint', 'anchor'].includes(planType)) return Math.floor(amt / 3000);
+                                    if (planType === 'monthly_bloom') return Math.floor(amt / 20000);
+                                    if (planType === 'daily_drop') {
+                                        const fixedAmt = meta.fixed_amount || targetUserPlan?.plan?.fixed_amount || 0;
+                                        return fixedAmt > 0 ? Math.floor(amt / fixedAmt) : 0;
+                                    }
+                                    return 0;
+                                };
+                                const periods = getPeriodsCovered();
+                                const label = planType === 'monthly_bloom' ? 'Month' : (planType === 'daily_drop' ? 'Day' : 'Week');
+
+                                return (
+                                    <div className="space-y-1">
+                                        <Input
+                                            id="plan_amount"
+                                            type="number"
+                                            placeholder="0.00"
+                                            value={amount}
+                                            onChange={(e) => setAmount(e.target.value)}
+                                            max={totalWithdrawable}
+                                            disabled={isLocked}
+                                            className={`dark:bg-gray-800 dark:border-gray-700 dark:text-white disabled:opacity-70 ${!isLocked && !isAdvanceMode && amount && parseFloat(amount) < mandated ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                                        />
+                                        {isAdvanceMode && periods > 0 && (
+                                            <p className="text-[10px] text-emerald-500 font-bold uppercase tracking-wider">
+                                                ✨ This covers {periods} {label}{periods > 1 ? 's' : ''} in advance
+                                            </p>
+                                        )}
+                                        {!isLocked && !isAdvanceMode && amount && parseFloat(amount) < mandated && (
+                                            <p className="text-[10px] text-red-500 font-medium">
+                                                Minimum transfer is ₦{formatCurrency(mandated)}
+                                            </p>
+                                        )}
+                                    </div>
+                                );
+                            })()}
                         </div>
                         <Button
                             onClick={() => performWithdrawal('plan')}
                             className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
-                            disabled={uploading || !amount || !selectedPlanId || parseFloat(amount) > totalWithdrawable || totalWithdrawable <= 0}
+                            disabled={uploading || !amount || !withdrawalTargetPlanId || parseFloat(amount) > totalWithdrawable || totalWithdrawable <= 0}
                         >
                             {uploading ? 'Processing...' : 'Fund Plan'}
                         </Button>

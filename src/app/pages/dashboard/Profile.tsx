@@ -7,9 +7,9 @@ import { Label } from "@/app/components/ui/label";
 import { useAuth } from "@/app/context/AuthContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/app/components/ui/avatar";
 import { toast } from "sonner";
-import { Trash2, Plus, Banknote, History, AlertTriangle, Edit2, X, Check, ShieldCheck, Upload, FileCheck, Info, Eye } from "lucide-react";
+import { Trash2, Plus, Banknote, History, AlertTriangle, Edit2, X, Check, ShieldCheck, Upload, FileCheck, Info, Eye, Camera } from "lucide-react";
 import { Badge } from "@/app/components/ui/badge";
-import { Dialog, DialogContent, DialogTrigger } from "@/app/components/ui/dialog";
+import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, DialogDescription } from "@/app/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
 import { User, KeyRound, UserCheck, Landmark, Shield, Mail } from "lucide-react";
 import { InputOTP, InputOTPGroup, InputOTPSeparator, InputOTPSlot } from "@/app/components/ui/input-otp";
@@ -72,6 +72,21 @@ export function Profile() {
     const [codeRequested, setCodeRequested] = useState(false);
     const [requestingCode, setRequestingCode] = useState(false);
     const [updatingPassword, setUpdatingPassword] = useState(false);
+
+    // Email Change State
+    const [showEmailForm, setShowEmailForm] = useState(false);
+    const [newEmail, setNewEmail] = useState("");
+    const [emailPassword, setEmailPassword] = useState("");
+    const [updatingEmail, setUpdatingEmail] = useState(false);
+
+    // Manual Recovery State
+    const [showManualChange, setShowManualChange] = useState(false);
+    const [manualEmail, setManualEmail] = useState("");
+    const [livePhoto, setLivePhoto] = useState<string | null>(null);
+    const [isCapturing, setIsCapturing] = useState(false);
+    const [submittingManual, setSubmittingManual] = useState(false);
+    const videoRef = useRef<HTMLVideoElement>(null);
+    const canvasRef = useRef<HTMLCanvasElement>(null);
 
     useEffect(() => {
         if (user) {
@@ -381,6 +396,137 @@ export function Profile() {
         setRequestingCode(false);
     }
 
+    async function handleEmailChange() {
+        if (!newEmail || !emailPassword) {
+            toast.error("Please enter your new email and current password");
+            return;
+        }
+
+        if (newEmail === user?.email) {
+            toast.error("New email must be different from current email");
+            return;
+        }
+
+        setUpdatingEmail(true);
+
+        // Verify password
+        const { error: authError } = await supabase.auth.signInWithPassword({
+            email: user?.email || "",
+            password: emailPassword,
+        });
+
+        if (authError) {
+            toast.error("Current password incorrect");
+            setUpdatingEmail(false);
+            return;
+        }
+
+        // Update email
+        const { error } = await supabase.auth.updateUser({ email: newEmail });
+
+        if (error) {
+            toast.error(error.message || "Failed to initiate email change");
+        } else {
+            toast.success("Change initiated! Please check both your old and new email addresses for confirmation links.");
+            setShowEmailForm(false);
+            setNewEmail("");
+            setEmailPassword("");
+
+            // Log Activity
+            supabase.from('activity_logs').insert({
+                user_id: user?.id,
+                action: 'EMAIL_CHANGE_INITIATED',
+                details: { new_email: newEmail }
+            });
+        }
+        setUpdatingEmail(false);
+    }
+
+    const startCamera = async () => {
+        setIsCapturing(true);
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+            if (videoRef.current) {
+                videoRef.current.srcObject = stream;
+            }
+        } catch (err) {
+            console.error("Camera Error:", err);
+            toast.error("Unable to access camera");
+            setIsCapturing(false);
+        }
+    };
+
+    const stopCamera = () => {
+        const stream = videoRef.current?.srcObject as MediaStream;
+        stream?.getTracks().forEach(track => track.stop());
+        setIsCapturing(false);
+    };
+
+    const capturePhoto = () => {
+        if (videoRef.current && canvasRef.current) {
+            const context = canvasRef.current.getContext('2d');
+            if (context) {
+                canvasRef.current.width = videoRef.current.videoWidth;
+                canvasRef.current.height = videoRef.current.videoHeight;
+                context.drawImage(videoRef.current, 0, 0);
+                const dataUrl = canvasRef.current.toDataURL('image/jpeg');
+                setLivePhoto(dataUrl);
+                stopCamera();
+            }
+        }
+    };
+
+    async function handleManualEmailChangeRequest() {
+        if (!manualEmail || !livePhoto) {
+            toast.error("Please enter new email and capture a live photo");
+            return;
+        }
+
+        setSubmittingManual(true);
+        try {
+            // Upload photo
+            const blob = await (await fetch(livePhoto)).blob();
+            const fileName = `manual-email/${user?.id}-${Date.now()}.jpg`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('kyc')
+                .upload(fileName, blob);
+
+            if (uploadError) throw uploadError;
+
+            const { data: { publicUrl } } = supabase.storage
+                .from('kyc')
+                .getPublicUrl(fileName);
+
+            // Create request
+            const { error: requestError } = await supabase
+                .from('email_change_requests')
+                .insert({
+                    user_id: user?.id,
+                    new_email: manualEmail,
+                    live_photo_url: publicUrl
+                });
+
+            if (requestError) throw requestError;
+
+            toast.success("Manual recovery request submitted! Admins will review your ID and live photo.");
+            setShowManualChange(false);
+            setManualEmail("");
+            setLivePhoto(null);
+
+            // Log Activity
+            supabase.from('activity_logs').insert({
+                user_id: user?.id,
+                action: 'MANUAL_EMAIL_CHANGE_REQUEST',
+                details: { new_email: manualEmail }
+            });
+
+        } catch (err: any) {
+            toast.error(err.message || "Failed to submit request");
+        } finally {
+            setSubmittingManual(false);
+        }
+    }
     async function handlePasswordChange() {
         if (!passwordData.new_password || !passwordData.confirm_password || !otpCode) {
             toast.error("Please fill all password fields and enter the verification code");
@@ -977,6 +1123,76 @@ export function Profile() {
                             <CardDescription className="dark:text-gray-400">Manage your password and security settings.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
+                            {/* Email Address Card */}
+                            {!showEmailForm ? (
+                                <div className="flex items-center gap-4 p-4 border rounded-lg dark:border-gray-700">
+                                    <div className="p-3 bg-gray-100 dark:bg-gray-900 rounded-full">
+                                        <Mail className="w-6 h-6 text-gray-600 dark:text-gray-400" />
+                                    </div>
+                                    <div className="flex-1">
+                                        <h4 className="font-semibold dark:text-white">Email Address</h4>
+                                        <p className="text-sm text-gray-500">{user?.email}</p>
+                                    </div>
+                                    <Button variant="outline" onClick={() => setShowEmailForm(true)}>Change Email</Button>
+                                </div>
+                            ) : (
+                                <div className="space-y-4 p-4 border rounded-lg dark:border-gray-700 bg-gray-50 dark:bg-gray-900/30">
+                                    <h4 className="font-semibold dark:text-white flex items-center gap-2">
+                                        <Mail className="w-4 h-4" /> Change Email Address
+                                    </h4>
+
+                                    <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded text-xs text-blue-800 dark:text-blue-300 flex items-start gap-2">
+                                        <Info className="w-4 h-4 shrink-0 mt-0.5" />
+                                        <span>For security, a confirmation link will be sent to BOTH your old and new email addresses. All links must be confirmed before the change takes effect.</span>
+                                    </div>
+
+                                    <div className="grid gap-2">
+                                        <Label className="dark:text-white text-sm font-medium">New Email Address</Label>
+                                        <Input
+                                            type="email"
+                                            placeholder="Enter new email"
+                                            value={newEmail}
+                                            onChange={(e) => setNewEmail(e.target.value)}
+                                            className="dark:bg-gray-800 dark:border-gray-700"
+                                        />
+                                    </div>
+
+                                    <div className="grid gap-2">
+                                        <Label className="dark:text-white text-sm font-medium">Confirm with Password</Label>
+                                        <Input
+                                            type="password"
+                                            placeholder="Enter current password"
+                                            value={emailPassword}
+                                            onChange={(e) => setEmailPassword(e.target.value)}
+                                            className="dark:bg-gray-800 dark:border-gray-700"
+                                        />
+                                    </div>
+
+                                    <div className="flex justify-between items-center pt-2">
+                                        <button
+                                            onClick={() => setShowManualChange(true)}
+                                            className="text-xs text-emerald-600 dark:text-emerald-400 hover:underline font-medium"
+                                        >
+                                            Lost access to your current email?
+                                        </button>
+                                        <div className="flex gap-2">
+                                            <Button variant="ghost" onClick={() => {
+                                                setShowEmailForm(false);
+                                                setNewEmail("");
+                                                setEmailPassword("");
+                                            }}>Cancel</Button>
+                                            <Button
+                                                className="bg-emerald-600 hover:bg-emerald-700"
+                                                onClick={handleEmailChange}
+                                                disabled={updatingEmail || !newEmail || !emailPassword}
+                                            >
+                                                {updatingEmail ? "Updating..." : "Update Email"}
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
                             {!showPasswordForm ? (
                                 <div className="flex items-center gap-4 p-4 border rounded-lg dark:border-gray-700">
                                     <div className="p-3 bg-gray-100 dark:bg-gray-900 rounded-full">
@@ -1084,6 +1300,102 @@ export function Profile() {
                     </Card>
                 </TabsContent>
             </Tabs>
+
+            {/* Manual Email Change Dialog */}
+            <Dialog open={showManualChange} onOpenChange={setShowManualChange}>
+                <DialogContent className="sm:max-w-[425px] dark:bg-gray-900 dark:border-gray-800">
+                    <DialogHeader>
+                        <DialogTitle className="dark:text-white flex items-center gap-2">
+                            <ShieldCheck className="w-5 h-5 text-emerald-500" />
+                            Manual Email Recovery
+                        </DialogTitle>
+                        <DialogDescription className="dark:text-gray-400">
+                            Use this if you no longer have access to your registered email.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    {profile.gov_id_status !== 'verified' ? (
+                        <div className="space-y-4 py-4">
+                            <div className="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-lg flex items-start gap-3">
+                                <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-500 shrink-0" />
+                                <div className="text-sm text-amber-800 dark:text-amber-400">
+                                    <p className="font-bold mb-1">KYC Verification Required</p>
+                                    <p>Manual recovery is only available to identity-verified users. Please complete your KYC verification first.</p>
+                                </div>
+                            </div>
+                            <Button className="w-full" onClick={() => setShowManualChange(false)}>Close</Button>
+                        </div>
+                    ) : (
+                        <div className="space-y-4 py-4">
+                            <div className="grid gap-2">
+                                <Label className="dark:text-white">New Email Address</Label>
+                                <Input
+                                    placeholder="Enter your new email"
+                                    value={manualEmail}
+                                    onChange={(e) => setManualEmail(e.target.value)}
+                                    className="dark:bg-gray-800 dark:border-gray-700"
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label className="dark:text-white">Identity Verification (Live Photo)</Label>
+                                <div className="border-2 border-dashed rounded-lg p-4 bg-gray-50 dark:bg-gray-800/50 dark:border-gray-700 flex flex-col items-center justify-center min-h-[200px]">
+                                    {livePhoto ? (
+                                        <div className="relative w-full">
+                                            <img src={livePhoto} alt="Live Capture" className="rounded-lg w-full h-auto shadow-md" />
+                                            <Button
+                                                size="sm"
+                                                variant="secondary"
+                                                className="absolute top-2 right-2 opacity-80"
+                                                onClick={() => setLivePhoto(null)}
+                                            >
+                                                <X className="w-4 h-4" />
+                                            </Button>
+                                        </div>
+                                    ) : isCapturing ? (
+                                        <div className="space-y-3 w-full flex flex-col items-center">
+                                            <video
+                                                ref={videoRef}
+                                                autoPlay
+                                                playsInline
+                                                className="rounded-lg w-full aspect-video bg-black shadow-inner"
+                                            />
+                                            <Button onClick={capturePhoto} className="bg-emerald-600 text-white w-full">
+                                                <Camera className="w-4 h-4 mr-2" /> Capture Photo
+                                            </Button>
+                                        </div>
+                                    ) : (
+                                        <div className="text-center space-y-3">
+                                            <div className="p-3 bg-white dark:bg-gray-800 rounded-full shadow-sm inline-block">
+                                                <Camera className="w-6 h-6 text-gray-400" />
+                                            </div>
+                                            <div className="text-xs text-gray-500">
+                                                <p>We need a live photo of you to match against your identity document.</p>
+                                            </div>
+                                            <Button variant="outline" size="sm" onClick={startCamera}>
+                                                Start Camera
+                                            </Button>
+                                        </div>
+                                    )}
+                                    <canvas ref={canvasRef} className="hidden" />
+                                </div>
+                            </div>
+
+                            <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded text-[10px] text-blue-800 dark:text-blue-400">
+                                <p><strong>Note:</strong> This process is manually reviewed by our security team. It may take up to 48 hours for your request to be processed.</p>
+                            </div>
+
+                            <Button
+                                className="w-full bg-emerald-600 hover:bg-emerald-700 font-bold"
+                                disabled={submittingManual || !manualEmail || !livePhoto}
+                                onClick={handleManualEmailChangeRequest}
+                            >
+                                {submittingManual ? "Submitting..." : "Submit Recovery Request"}
+                            </Button>
+                        </div>
+                    )}
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

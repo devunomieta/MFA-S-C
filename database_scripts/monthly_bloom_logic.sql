@@ -24,7 +24,27 @@ BEGIN
     END IF;
 
     v_metadata := v_user_plan.plan_metadata;
-    v_month_paid_so_far := COALESCE((v_metadata->>'month_paid_so_far')::NUMERIC, 0) + p_amount;
+    
+    -- [NEW] Spread Logic
+    DECLARE
+        v_total_available NUMERIC;
+        v_months_to_advance INT;
+        v_remainder NUMERIC;
+        v_months_done INT;
+        v_target_amount NUMERIC := 20000;
+    BEGIN
+        v_months_done := COALESCE((v_metadata->>'months_completed')::INT, 0);
+        v_total_available := COALESCE((v_metadata->>'month_paid_so_far')::NUMERIC, 0) + p_amount;
+        
+        v_months_to_advance := FLOOR(v_total_available / v_target_amount)::INT;
+        v_remainder := v_total_available % v_target_amount;
+        
+        v_months_done := v_months_done + v_months_to_advance;
+        v_month_paid_so_far := v_remainder;
+        
+        v_metadata := jsonb_set(v_metadata, '{months_completed}', to_jsonb(v_months_done));
+    END;
+
     v_new_balance := v_user_plan.current_balance + p_amount;
 
     -- Update Plan
@@ -97,7 +117,22 @@ BEGIN
         VALUES (v_user_plan.user_id, v_user_plan.id, v_service_charge, 'service_charge', 'completed', 'Monthly Bloom Service Charge', 0);
 
         -- 2. Check Target
-        IF v_month_paid < v_target_amount THEN
+        -- [NEW] Advance Payment Check
+    DECLARE
+        v_months_elapsed INT;
+    BEGIN
+        v_months_elapsed := FLOOR(EXTRACT(EPOCH FROM (NOW() - v_start_date)) / 2592000)::INT; -- ~30 days
+        
+        IF v_months_completed > v_months_elapsed THEN
+            v_metadata := jsonb_set(v_metadata, '{month_paid_so_far}', '0');
+            v_metadata := jsonb_set(v_metadata, '{last_settlement_date}', to_jsonb(NOW()));
+            
+            UPDATE user_plans SET plan_metadata = v_metadata WHERE id = p_user_plan_id;
+            RETURN jsonb_build_object('success', true, 'status', 'prepaid_skip');
+        END IF;
+    END;
+
+    IF v_month_paid < v_target_amount THEN
             -- Add deficit to Arrears
             v_arrears := v_arrears + (v_target_amount - v_month_paid);
         END IF;

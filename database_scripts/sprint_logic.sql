@@ -39,11 +39,29 @@ BEGIN
     IF NOT FOUND THEN RAISE EXCEPTION 'Active or Pending Sprint plan not found for user'; END IF;
 
     v_meta := v_user_plan.plan_metadata;
-    v_week_total := COALESCE((v_meta->>'current_week_total')::NUMERIC, 0) + p_amount;
+    
+    -- [NEW] Spread Logic
+    DECLARE
+        v_total_available NUMERIC;
+        v_weeks_to_advance INT;
+        v_remainder NUMERIC;
+        v_weeks_done INT;
+    BEGIN
+        v_weeks_done := COALESCE((v_meta->>'weeks_completed')::INT, 0);
+        v_total_available := COALESCE((v_meta->>'current_week_total')::NUMERIC, 0) + p_amount;
+        
+        v_weeks_to_advance := FLOOR(v_total_available / 3000)::INT;
+        v_remainder := v_total_available % 3000;
+        
+        -- Advance progress
+        v_weeks_done := v_weeks_done + v_weeks_to_advance;
+        v_week_total := v_remainder;
+        
+        v_meta := jsonb_set(v_meta, '{current_week_total}', to_jsonb(v_week_total));
+        v_meta := jsonb_set(v_meta, '{weeks_completed}', to_jsonb(v_weeks_done));
+    END;
+    
     v_new_balance := v_user_plan.current_balance + p_amount;
-
-    -- Update Metadata
-    v_meta := jsonb_set(v_meta, '{current_week_total}', to_jsonb(v_week_total));
     v_meta := jsonb_set(v_meta, '{last_deposit_date}', to_jsonb(now()));
 
     UPDATE user_plans 
@@ -91,6 +109,26 @@ BEGIN
     v_new_balance := v_up.current_balance;
     v_weeks_done := COALESCE((v_meta->>'weeks_completed')::INT, 0);
     v_arrears := COALESCE((v_meta->>'arrears_amount')::NUMERIC, 0);
+
+    -- [NEW] Advance Payment Check
+    -- If weeks_completed is already ahead of schedule, we don't need to penalize or requirement check.
+    -- Schedule check: weeks_elapsed = floor(now - start_date)
+    DECLARE
+        v_weeks_elapsed INT;
+    BEGIN
+        v_weeks_elapsed := FLOOR(EXTRACT(EPOCH FROM (NOW() - v_up.start_date)) / 604800)::INT;
+        
+        -- If user has already paid for more weeks than have elapsed...
+        IF v_weeks_done > v_weeks_elapsed THEN
+            -- Skip settlement (or just increment week if needed? No, week is already advanced).
+            -- Actually, settlement resets the week's total, so we should still do that but skip penalty.
+            v_meta := jsonb_set(v_meta, '{current_week_total}', '0');
+            v_meta := jsonb_set(v_meta, '{last_settlement_date}', to_jsonb(now()));
+            
+            UPDATE user_plans SET plan_metadata = v_meta WHERE id = v_up.id;
+            RETURN jsonb_build_object('success', true, 'status', 'prepaid_skip');
+        END IF;
+    END;
 
     IF v_week_total >= 3000 THEN
         -- Target Met: Deduct Fee

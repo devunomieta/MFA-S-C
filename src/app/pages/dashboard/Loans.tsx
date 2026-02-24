@@ -357,15 +357,25 @@ export function Loans() {
                     </div>
                 </div>
 
-                <div className="flex items-center justify-between p-2 rounded bg-gray-50 dark:bg-gray-800">
-                    <div className="flex items-center gap-2">
-                        <div className="w-5 h-5 flex items-center justify-center">
-                            <span className="text-xs font-bold text-gray-500">{accountAgeMonths}m</span>
+                <div className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-800 border border-transparent hover:border-gray-200 dark:hover:border-gray-700 transition-colors">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-full bg-blue-500/10 text-blue-500">
+                            <Clock className="w-4 h-4" />
                         </div>
                         <div>
-                            <span className="text-sm dark:text-gray-300 block">Account Age</span>
-                            <span className="text-xs text-gray-500">{accountAgeMonths >= 12 ? 'Qualified for 70%' : 'Qualified for 50%'}</span>
+                            <span className="text-sm font-semibold dark:text-gray-200 block">Account Age</span>
+                            <span className="text-[10px] text-gray-500 font-medium tracking-tight">
+                                Qualified for <span className="text-blue-500">{accountAgeMonths >= 12 ? '70%' : '50%'}</span> loan limit
+                            </span>
                         </div>
+                    </div>
+                    <div className="flex flex-col items-end">
+                        <span className="text-xl font-black text-blue-600 dark:text-blue-400 leading-none">
+                            {accountAgeMonths}
+                        </span>
+                        <span className="text-[9px] font-bold text-blue-500/70 uppercase tracking-widest mt-0.5">
+                            Months
+                        </span>
                     </div>
                 </div>
             </div>

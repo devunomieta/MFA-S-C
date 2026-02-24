@@ -10,15 +10,16 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/app/context/AuthContext";
 import { logActivity } from "@/lib/activity";
 import { validateFile } from "@/lib/validation";
-import { calculateBalance, Transaction } from "@/lib/walletUtils";
+import { calculateBalance } from "@/lib/walletUtils";
 
 interface DepositModalProps {
     onSuccess: () => void;
     defaultPlanId?: string;
     onClose: () => void;
+    initialAdvanceMode?: boolean;
 }
 
-export function DepositModal({ onSuccess, defaultPlanId, onClose }: DepositModalProps) {
+export function DepositModal({ onSuccess, defaultPlanId, onClose, initialAdvanceMode }: DepositModalProps) {
     const { user } = useAuth();
     const [amount, setAmount] = useState("");
     const [selectedPlanId, setSelectedPlanId] = useState<string>(defaultPlanId || "");
@@ -26,10 +27,12 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose }: DepositModal
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [uploading, setUploading] = useState(false);
     const [myPlans, setMyPlans] = useState<any[]>([]);
+    const [activeTab, setActiveTab] = useState<string>(defaultPlanId ? "wallet" : "external");
 
     // Wallet Payment State
     const [generalBalance, setGeneralBalance] = useState(0);
     const [loadingBalance, setLoadingBalance] = useState(true);
+    const [isAdvanceMode] = useState(initialAdvanceMode || false);
 
     useEffect(() => {
         if (user) {
@@ -41,7 +44,10 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose }: DepositModal
     useEffect(() => {
         if (defaultPlanId) {
             setSelectedPlanId(defaultPlanId);
+            setActiveTab("wallet"); // Automatically switch to wallet if a plan is targeted
             fetchPlans(); // Refresh plans to ensure the newly joined plan is found
+        } else {
+            setActiveTab("external");
         }
     }, [defaultPlanId]);
 
@@ -62,7 +68,8 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose }: DepositModal
         if (defaultPlanId) {
             // Contextual Mode (Join Plan or Specific Plan Deposit)
             // Show ONLY the specifically targeted plan (whether pending or active)
-            query = query.eq("plan_id", defaultPlanId);
+            // Filter out cancelled or Archived ones to prevent duplicates/confusion
+            query = query.eq("plan_id", defaultPlanId).in("status", ["active", "pending_activation"]);
         } else {
             // General Mode (Wallet Add Funds)
             // Show ONLY Active plans. Pending plans should not appear here.
@@ -72,16 +79,7 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose }: DepositModal
         const { data: userPlansData } = await query;
 
         if (userPlansData) {
-            // Filter duplicates visually (just in case DB has them)
-            const uniquePlansMap = new Map();
-            userPlansData.forEach((up: any) => {
-                // We map by PLAN ID (Generic) but store the USER PLAN object
-                // ensuring we have access to metadata
-                if (!uniquePlansMap.has(up.plan.id)) {
-                    uniquePlansMap.set(up.plan.id, up);
-                }
-            });
-            setMyPlans(Array.from(uniquePlansMap.values()));
+            setMyPlans(userPlansData);
         }
     }
 
@@ -138,13 +136,22 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose }: DepositModal
         if (!user || !amount) return;
 
         const finalAmount = parseFloat(amount);
-        const minAmount = selectedPlanObj?.plan?.min_amount || 500;
+        const isFlexibleGoalPlan = activeTab === 'wallet' && ['anchor', 'sprint', 'marathon', 'monthly_bloom'].includes(selectedPlanObj?.plan?.type || selectedPlanObj?.type);
+        const effectiveMin = (isFlexibleGoalPlan && mandatedAmount === 0) ? 1 : (activeTab === 'wallet' && selectedPlanObj?.plan?.min_amount ? selectedPlanObj.plan.min_amount : 500);
 
-        if (isNaN(finalAmount) || finalAmount < minAmount) {
-            toast.error(`Minimum amount for this plan is ₦${formatCurrency(minAmount)}`);
+        if (isNaN(finalAmount) || finalAmount < effectiveMin) {
+            toast.error(mandatedAmount > 0
+                ? `Minimum contribution is ₦${formatCurrency(mandatedAmount)}`
+                : `Minimum amount for this ${activeTab === 'external' ? 'deposit' : 'transfer'} is ₦${formatCurrency(effectiveMin)}`
+            );
             return;
         }
 
+        // Real-time compliance check for flexible plans (Anchor, Sprint, Marathon, Monthly Bloom)
+        if (!isAdvanceMode && finalAmount < mandatedAmount) {
+            toast.error(`Initial payment for this period must be at least ₦${formatCurrency(mandatedAmount)}`);
+            return;
+        }
         if (method === 'external' && !receiptFile) {
             toast.error("Please upload payment receipt");
             return;
@@ -195,8 +202,8 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose }: DepositModal
                 amount: finalAmount,
                 type: 'deposit',
                 status: 'pending',
-                description: selectedPlanId ? `Deposit to ${selectedPlanObj?.name}` : 'Wallet Top Up',
-                plan_id: selectedPlanId || null,
+                description: 'Wallet Top Up via External Deposit',
+                plan_id: null,
                 charge: 0,
                 receipt_url: receiptUrl
             });
@@ -398,21 +405,46 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose }: DepositModal
     // Derived state for the currently selected plan
     // myPlans now contains UserPlan objects. 
     // We try to match by Generic Plan ID (p.plan.id) OR UserPlan ID (p.id)
-    const selectedPlanObj = myPlans.find(p => p.plan.id === selectedPlanId || p.id === selectedPlanId);
+    const selectedPlanObj = myPlans.find(p => p.id === selectedPlanId || p.plan.id === selectedPlanId);
+
+    // Basic plan info
+    const planType = selectedPlanObj?.plan?.type || selectedPlanObj?.type;
 
     // Helper to get the mandated fixed amount (if any)
     const getMandatedAmount = (userPlan: any) => {
         if (!userPlan) return 0;
+        // Advance mode resets mandated amount to 0 (user chooses any amount)
+        // Wait, for Daily Drop, user says: "it's auto-calculated and allocated to days... based on their selected amount or duration."
+        // So for advance mode, we don't MANDATE, but we ALLOW anything.
+
+        const planType = userPlan.plan?.type || userPlan.type;
+        const meta = userPlan.plan_metadata || {};
 
         let amount: any = 0;
 
-        // 1. Ajo Circle (Priority: User Metadata)
-        if (userPlan.plan?.type === 'ajo_circle' || userPlan.type === 'ajo_circle') {
-            amount = userPlan.plan_metadata?.fixed_amount;
+        // 1. Monthly Bloom - Goal based flexible (CHECK THIS FIRST BECAUSE DB MIGHT BE MARKED AS FIXED)
+        if (planType === 'monthly_bloom' || userPlan.plan?.type === 'monthly_bloom') {
+            const currentMonthTotal = parseFloat(meta.month_paid_so_far || 0);
+            const target = parseFloat(meta.target_amount || 20000);
+            if (currentMonthTotal < target) {
+                amount = target - currentMonthTotal;
+            } else {
+                amount = 0;
+            }
         }
-        // 2. Standard Fixed Plan
-        else if (userPlan.plan?.contribution_type === 'fixed') {
-            amount = userPlan.plan.fixed_amount;
+        // 2. Ajo Circle, Daily Drop, Rapid Fixed (Strictly Fixed ALWAYS)
+        else if (planType === 'ajo_circle' || planType === 'daily_drop' || planType === 'step_up' || userPlan.plan?.contribution_type === 'fixed') {
+            amount = meta?.fixed_amount || userPlan.plan?.fixed_amount || 0;
+        }
+        // 3. Marathon, Sprint, Anchor (Flexible Weekly min ₦3k)
+        else if (['marathon', 'sprint', 'anchor'].includes(planType)) {
+            const currentWeekTotal = meta.current_week_total || 0;
+            const target = 3000;
+            if (currentWeekTotal < target) {
+                amount = target - currentWeekTotal;
+            } else {
+                amount = 0; // Met, flexible
+            }
         }
 
         // Ensure it's a number
@@ -420,17 +452,91 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose }: DepositModal
         return isNaN(num) ? 0 : num;
     };
 
-    const mandatedAmount = getMandatedAmount(selectedPlanObj);
-    const isFixedAmount = mandatedAmount > 0;
+    const mandatedAmount = activeTab === 'wallet' ? getMandatedAmount(selectedPlanObj) : 0;
+
+    // Logic for determining if the input should be disabled
+    const isInputLocked = () => {
+        if (activeTab === 'external') return false; // External target is always General Wallet, which is flexible
+        if (!selectedPlanObj) return false;
+        if (isAdvanceMode) return false; // Advance mode overrides everything
+
+        const plan = selectedPlanObj.plan || selectedPlanObj; // Get the actual plan object
+        const userPlan = selectedPlanObj; // The user_plan object
+        const planType = plan.type;
+        const meta = userPlan.plan_metadata || {};
+
+        // Strictly Fixed ALWAYS (Except Monthly Bloom which is flexible even if DB says fixed)
+        if ((planType === 'ajo_circle' || planType === 'step_up' || plan.contribution_type === 'fixed') && planType !== 'monthly_bloom') return true;
+
+        if (planType === 'daily_drop') {
+            // Check if they can change amount: After 1 month or initial duration
+            const startDate = new Date(userPlan.start_date || meta.start_date || userPlan.created_at);
+            const durationDays = meta.selected_duration || 31;
+
+            const oneMonthAgo = new Date();
+            oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+
+            const durationEndDate = new Date(startDate);
+            durationEndDate.setDate(durationEndDate.getDate() + durationDays);
+
+            const now = new Date();
+            const hasPassedOneMonth = startDate <= oneMonthAgo;
+            const hasPassedDuration = now >= durationEndDate;
+
+            if (hasPassedOneMonth || hasPassedDuration) {
+                return false; // Unlockable for changing amount
+            }
+            return true;
+        }
+
+        // For plans that are flexible but have a goal (Anchor, Sprint, Marathon, Monthly Bloom)
+        const isFlexibleGoalPlan = ['anchor', 'sprint', 'marathon', 'monthly_bloom'].includes(plan.type || planType);
+        if (isFlexibleGoalPlan) {
+            // Point 1: If goal is not met, lock input (must pay mandated amount)
+            // Point 2: Monthly Bloom is EXEMPT from locking by user request - allow manual input >= target
+            if (planType === 'monthly_bloom') return false;
+
+            return !isAdvanceMode && mandatedAmount > 0;
+        }
+
+        return false;
+    };
+
+    const getPeriodsCovered = () => {
+        if (!selectedPlanObj || !amount || parseFloat(amount) <= 0) return 0;
+        const planType = selectedPlanObj.plan?.type || selectedPlanObj.type;
+        const amt = parseFloat(amount);
+
+        if (['marathon', 'sprint', 'anchor'].includes(planType)) {
+            return Math.floor(amt / 3000);
+        }
+        if (planType === 'monthly_bloom') {
+            const target = parseFloat(selectedPlanObj?.plan_metadata?.target_amount || 20000);
+            return Math.floor(amt / target);
+        }
+        if (planType === 'daily_drop') {
+            const meta = selectedPlanObj.plan_metadata || {};
+            const fixedAmt = meta.fixed_amount || selectedPlanObj.plan?.fixed_amount || 0;
+            return fixedAmt > 0 ? Math.floor(amt / fixedAmt) : 0;
+        }
+        return 0;
+    };
+
+    const periodsCovered = getPeriodsCovered();
+    const periodLabel = selectedPlanObj?.plan?.type === 'monthly_bloom' ? 'Month' : (selectedPlanObj?.plan?.type === 'daily_drop' ? 'Day' : 'Week');
+
 
     useEffect(() => {
         if (selectedPlanObj) {
             const amt = getMandatedAmount(selectedPlanObj);
             if (amt > 0) {
                 setAmount(amt.toString());
+            } else {
+                // If no mandated amount, reset to empty to avoid stale values from previous plans
+                setAmount("");
             }
         }
-    }, [selectedPlanObj]);
+    }, [selectedPlanId, selectedPlanObj]);
 
     // Fee Logic for Ajo Circle - Specific table from User Review
     const getFee = () => {
@@ -455,7 +561,6 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose }: DepositModal
 
     return (
         <DialogContent className="dark:bg-gray-900 dark:border-gray-800 max-w-md max-h-[90vh] overflow-y-auto">
-            {/* Headers ... */}
             <DialogHeader>
                 <DialogTitle className="dark:text-white">Add Funds</DialogTitle>
                 <DialogDescription className="dark:text-gray-400">
@@ -463,16 +568,14 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose }: DepositModal
                 </DialogDescription>
             </DialogHeader>
 
-            <Tabs defaultValue="external" className="w-full">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                 <TabsList className="grid w-full grid-cols-2 mb-4 dark:bg-gray-800">
                     <TabsTrigger value="external" className="dark:data-[state=active]:bg-gray-700 dark:text-gray-400 dark:data-[state=active]:text-white">External Deposit</TabsTrigger>
                     <TabsTrigger value="wallet" className="dark:data-[state=active]:bg-gray-700 dark:text-gray-400 dark:data-[state=active]:text-white">Pay from Wallet</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="external" className="space-y-4">
-                    {/* ... Card UI ... */}
                     <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-indigo-900 via-indigo-800 to-emerald-900 p-6 text-white shadow-xl">
-                        {/* ... */}
                         <div className="absolute right-0 top-0 h-32 w-32 -translate-y-8 translate-x-8 rounded-full bg-white/5 blur-2xl"></div>
                         <div className="mb-8 flex justify-between items-start">
                             <div>
@@ -481,7 +584,6 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose }: DepositModal
                             </div>
                             <CreditCard className="h-8 w-8 text-white/80" />
                         </div>
-                        {/* ... */}
                         <div className="space-y-4">
                             <div>
                                 <p className="text-xs text-indigo-200">Bank Name</p>
@@ -503,18 +605,15 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose }: DepositModal
                     </div>
 
                     <div className="grid gap-2">
-                        <Label htmlFor="plan" className="dark:text-gray-300">Target Plan</Label>
-                        <select
-                            id="plan"
-                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
-                            value={selectedPlanId}
-                            onChange={(e) => setSelectedPlanId(e.target.value)}
-                        >
-                            <option value="">General Wallet (Top Up)</option>
-                            {myPlans.map(up => (
-                                <option key={up.plan.id} value={up.plan.id}>{up.plan.name}</option>
-                            ))}
-                        </select>
+                        <Label className="dark:text-gray-300">Target Destination</Label>
+                        <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <Wallet className="h-4 w-4 text-emerald-600" />
+                                <span className="text-sm font-medium dark:text-white">General Wallet</span>
+                            </div>
+                            <span className="text-[10px] bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 px-2 py-0.5 rounded font-bold uppercase">Auto-Selected</span>
+                        </div>
+                        <p className="text-[10px] text-gray-500 dark:text-gray-400">External deposits are processed into your general wallet. You can fund specific plans from the "Pay from Wallet" tab after approval.</p>
                     </div>
 
                     <div className="grid gap-2">
@@ -525,14 +624,24 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose }: DepositModal
                             placeholder="0.00"
                             value={amount}
                             onChange={(e) => setAmount(e.target.value)}
-                            disabled={isFixedAmount} // Disable if fixed
-                            className="dark:bg-gray-800 dark:border-gray-700 dark:text-white disabled:opacity-70 disabled:cursor-not-allowed"
+                            disabled={isInputLocked()}
+                            className={`dark:bg-gray-800 dark:border-gray-700 dark:text-white disabled:opacity-70 disabled:cursor-not-allowed ${!isInputLocked() && !isAdvanceMode && amount && parseFloat(amount) < mandatedAmount ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                         />
-                        {(isFixedAmount || fee > 0) && (
+                        {isAdvanceMode && periodsCovered > 0 && (
+                            <p className="text-[10px] text-emerald-500 font-bold uppercase tracking-wider">
+                                ✨ This covers {periodsCovered} {periodLabel}{periodsCovered > 1 ? 's' : ''} in advance
+                            </p>
+                        )}
+                        {!isInputLocked() && !isAdvanceMode && amount && parseFloat(amount) < mandatedAmount && (
+                            <p className="text-[10px] text-red-500 font-medium">
+                                Minimum contribution is ₦{formatCurrency(mandatedAmount)}
+                            </p>
+                        )}
+                        {(isInputLocked() || mandatedAmount > 0 || fee > 0) && (
                             <div className="mt-2 rounded-lg bg-gray-50 dark:bg-gray-800 p-3 border border-gray-100 dark:border-gray-700 space-y-2">
-                                {isFixedAmount && (
+                                {(isInputLocked() || mandatedAmount > 0) && (
                                     <div className="flex justify-between items-center text-xs">
-                                        <span className="text-gray-500 dark:text-gray-400">Fixed Contribution</span>
+                                        <span className="text-gray-500 dark:text-gray-400">{isInputLocked() ? "Fixed Contribution" : (planType === 'monthly_bloom' ? "Monthly Target" : "Minimum Target")}</span>
                                         <span className="font-medium text-gray-900 dark:text-white">₦{formatCurrency(mandatedAmount)}</span>
                                     </div>
                                 )}
@@ -550,7 +659,6 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose }: DepositModal
                         )}
                     </div>
 
-                    {/* Receipt Upload ... */}
                     <div className="grid gap-2">
                         <Label className="dark:text-gray-300">Payment Receipt</Label>
                         <div className="flex items-center justify-center w-full">
@@ -606,7 +714,6 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose }: DepositModal
                 </TabsContent>
 
                 <TabsContent value="wallet" className="space-y-4">
-                    {/* Wallet UI ... */}
                     <div className="p-4 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
                         <div className="flex items-center gap-3">
                             <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-full">
@@ -637,7 +744,7 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose }: DepositModal
                         >
                             <option value="" disabled>Select a Plan</option>
                             {myPlans.map(up => (
-                                <option key={up.plan.id} value={up.plan.id}>{up.plan.name}</option>
+                                <option key={up.id} value={up.id}>{up.plan.name}</option>
                             ))}
                         </select>
                     </div>
@@ -651,14 +758,19 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose }: DepositModal
                             value={amount}
                             onChange={(e) => setAmount(e.target.value)}
                             max={generalBalance}
-                            disabled={isFixedAmount} // Disable if fixed
-                            className="dark:bg-gray-800 dark:border-gray-700 dark:text-white disabled:opacity-70 disabled:cursor-not-allowed"
+                            disabled={isInputLocked()}
+                            className={`dark:bg-gray-800 dark:border-gray-700 dark:text-white disabled:opacity-70 disabled:cursor-not-allowed ${!isInputLocked() && !isAdvanceMode && amount && parseFloat(amount) < mandatedAmount ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                         />
-                        {(isFixedAmount || fee > 0) && (
+                        {isAdvanceMode && periodsCovered > 0 && (
+                            <p className="text-[10px] text-emerald-500 font-bold uppercase tracking-wider">
+                                ✨ This covers {periodsCovered} {periodLabel}{periodsCovered > 1 ? 's' : ''} in advance
+                            </p>
+                        )}
+                        {(isInputLocked() || mandatedAmount > 0 || fee > 0) && (
                             <div className="mt-2 rounded-lg bg-gray-50 dark:bg-gray-800 p-3 border border-gray-100 dark:border-gray-700 space-y-2">
-                                {isFixedAmount && (
+                                {(isInputLocked() || mandatedAmount > 0) && (
                                     <div className="flex justify-between items-center text-xs">
-                                        <span className="text-gray-500 dark:text-gray-400">Fixed Contribution</span>
+                                        <span className="text-gray-500 dark:text-gray-400">{isInputLocked() ? "Fixed Contribution" : (planType === 'monthly_bloom' ? "Monthly Target" : "Minimum Target")}</span>
                                         <span className="font-medium text-gray-900 dark:text-white">₦{formatCurrency(mandatedAmount)}</span>
                                     </div>
                                 )}
@@ -675,8 +787,6 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose }: DepositModal
                             </div>
                         )}
                     </div>
-                    {/* ... */}
-
 
                     <Button
                         onClick={() => handleDeposit('wallet')}

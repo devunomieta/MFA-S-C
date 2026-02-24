@@ -297,6 +297,25 @@ export function Notifications() {
                     )}
                 </TabsContent>
 
+                <TabsContent value="unread" className="space-y-6">
+                    {loading ? (
+                        <div className="space-y-4">
+                            {[1, 2, 3, 4].map(i => <div key={i} className="h-24 rounded-2xl animate-pulse bg-gray-100 dark:bg-gray-800/50" />)}
+                        </div>
+                    ) : (
+                        <div className="space-y-6">
+                            <NotificationList
+                                notifications={notifications.filter(n => !n.is_read)}
+                                onMarkRead={handleMarkAsRead}
+                                onDelete={handleDelete}
+                                onNotificationClick={handleNotificationClick}
+                                emptyStateTitle="No Unread Alerts"
+                                emptyStateMessage="You're all caught up! There are no unread notifications at the moment."
+                            />
+                        </div>
+                    )}
+                </TabsContent>
+
                 <TabsContent value="settings">
                     <Card className="border-2 dark:border-gray-800 rounded-3xl overflow-hidden">
                         <CardHeader className="bg-gray-50/50 dark:bg-gray-800/50 border-b dark:border-gray-800">
@@ -372,11 +391,13 @@ export function Notifications() {
     );
 }
 
-function NotificationList({ notifications, onMarkRead, onDelete, onNotificationClick }: {
+function NotificationList({ notifications, onMarkRead, onDelete, onNotificationClick, emptyStateTitle, emptyStateMessage }: {
     notifications: MTFNotification[],
     onMarkRead: (id: string) => void,
     onDelete: (id: string) => void,
-    onNotificationClick: (notif: MTFNotification) => void
+    onNotificationClick: (notif: MTFNotification) => void,
+    emptyStateTitle?: string,
+    emptyStateMessage?: string
 }) {
     if (notifications.length === 0) {
         return (
@@ -384,8 +405,8 @@ function NotificationList({ notifications, onMarkRead, onDelete, onNotificationC
                 <div className="h-20 w-20 rounded-full bg-gray-50 dark:bg-gray-800 flex items-center justify-center mb-6">
                     <Inbox className="size-10 text-gray-300 dark:text-gray-600" />
                 </div>
-                <h3 className="text-2xl font-black text-gray-900 dark:text-white mb-2">Clean Slate!</h3>
-                <p className="text-gray-500 font-medium text-center max-w-xs">No notifications match your active search or filters.</p>
+                <h3 className="text-2xl font-black text-gray-900 dark:text-white mb-2">{emptyStateTitle || "Clean Slate!"}</h3>
+                <p className="text-gray-500 font-medium text-center max-w-xs">{emptyStateMessage || "No notifications match your active search or filters."}</p>
             </div>
         );
     }

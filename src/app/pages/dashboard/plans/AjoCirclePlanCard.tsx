@@ -12,10 +12,12 @@ interface AjoCirclePlanCardProps {
     userPlan?: UserPlan;
     onJoin: (planId: string, amount: number) => void;
     onDeposit: () => void;
+    onAdvanceDeposit?: () => void;
     onWithdraw?: () => void;
+    onLeave?: () => void;
 }
 
-export function AjoCirclePlanCard({ plan, userPlan, onJoin, onDeposit, onWithdraw }: AjoCirclePlanCardProps) {
+export function AjoCirclePlanCard({ plan, userPlan, onJoin, onDeposit, onAdvanceDeposit, onWithdraw, onLeave }: AjoCirclePlanCardProps) {
     const [selectedAmount, setSelectedAmount] = useState<string>("");
     const [withdrawing, setWithdrawing] = useState(false);
 
@@ -124,7 +126,7 @@ export function AjoCirclePlanCard({ plan, userPlan, onJoin, onDeposit, onWithdra
                     </div>
                 </CardContent>
 
-                <CardFooter className="flex-col gap-2 pt-2">
+                <CardFooter className="flex flex-col gap-2 pt-2">
                     {turnCount > 0 ? (
                         <Button
                             className={`w-full font-semibold ${!canWithdraw ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700 text-white'}`}
@@ -156,6 +158,24 @@ export function AjoCirclePlanCard({ plan, userPlan, onJoin, onDeposit, onWithdra
                     {weekPaid && !isMyTurn && (
                         <Button className="w-full bg-emerald-50 text-emerald-700 border border-emerald-200 cursor-not-allowed font-medium text-sm" disabled>
                             <CheckCircle className="w-4 h-4 mr-2" /> Weekly Limit Reached
+                        </Button>
+                    )}
+                    {onAdvanceDeposit && (
+                        <Button
+                            variant="secondary"
+                            className="w-full bg-orange-50 text-orange-700 hover:bg-orange-100 border border-orange-200 font-bold"
+                            onClick={onAdvanceDeposit}
+                        >
+                            Pay in Advance
+                        </Button>
+                    )}
+                    {userPlan.status === 'pending_activation' && onLeave && (
+                        <Button
+                            variant="ghost"
+                            className="w-full text-red-600 hover:text-red-700 hover:bg-red-50 text-xs font-semibold"
+                            onClick={onLeave}
+                        >
+                            Leave Plan
                         </Button>
                     )}
                 </CardFooter>

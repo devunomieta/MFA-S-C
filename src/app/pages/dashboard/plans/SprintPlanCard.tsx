@@ -10,9 +10,11 @@ interface SprintPlanCardProps {
     userPlan?: UserPlan;
     onJoin: () => void;
     onDeposit: () => void;
+    onAdvanceDeposit?: () => void;
+    onLeave?: () => void;
 }
 
-export function SprintPlanCard({ plan, userPlan, onJoin, onDeposit }: SprintPlanCardProps) {
+export function SprintPlanCard({ plan, userPlan, onJoin, onDeposit, onAdvanceDeposit, onLeave }: SprintPlanCardProps) {
     const isJoined = !!userPlan;
     const metadata = userPlan?.plan_metadata || {};
 
@@ -89,16 +91,36 @@ export function SprintPlanCard({ plan, userPlan, onJoin, onDeposit }: SprintPlan
                     </div>
                 </CardContent>
 
-                <CardFooter className="grid grid-cols-2 gap-3 pt-2">
-                    <Button
-                        className="w-full bg-gray-900 hover:bg-gray-800 text-white dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
-                        onClick={onDeposit}
-                    >
-                        {arrears > 0 ? "Clear Arrears" : "Add Funds"}
-                    </Button>
-                    <Button variant="outline" asChild className="w-full">
-                        <Link to={`/dashboard/wallet?planId=${userPlan?.plan.id}`}>Details</Link>
-                    </Button>
+                <CardFooter className="flex flex-col gap-3 pt-2">
+                    <div className="grid grid-cols-2 gap-3 w-full">
+                        <Button
+                            className="w-full bg-gray-900 hover:bg-gray-800 text-white dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
+                            onClick={onDeposit}
+                        >
+                            {arrears > 0 ? "Clear Arrears" : "Add Funds"}
+                        </Button>
+                        <Button variant="outline" asChild className="w-full">
+                            <Link to={`/dashboard/wallet?planId=${userPlan?.plan.id}`}>Details</Link>
+                        </Button>
+                    </div>
+                    {onAdvanceDeposit && progress < 100 && (
+                        <Button
+                            variant="secondary"
+                            className="w-full bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 font-bold"
+                            onClick={onAdvanceDeposit}
+                        >
+                            Pay in Advance
+                        </Button>
+                    )}
+                    {userPlan.status === 'pending_activation' && onLeave && (
+                        <Button
+                            variant="ghost"
+                            className="w-full text-red-600 hover:text-red-700 hover:bg-red-50 text-xs font-semibold"
+                            onClick={onLeave}
+                        >
+                            Leave Plan
+                        </Button>
+                    )}
                 </CardFooter>
             </Card>
         );

@@ -24,9 +24,11 @@ interface MarathonPlanCardProps {
     userPlan?: UserPlan; // If user has joined
     onJoin: () => void;
     onDeposit: () => void;
+    onAdvanceDeposit?: () => void;
+    onLeave?: () => void;
 }
 
-export function MarathonPlanCard({ plan, userPlan, onJoin, onDeposit }: MarathonPlanCardProps) {
+export function MarathonPlanCard({ plan, userPlan, onJoin, onDeposit, onAdvanceDeposit, onLeave }: MarathonPlanCardProps) {
     const [extending, setExtending] = useState(false);
     const [showExtendDialog, setShowExtendDialog] = useState(false);
     const isJoined = !!userPlan;
@@ -105,7 +107,7 @@ export function MarathonPlanCard({ plan, userPlan, onJoin, onDeposit }: Marathon
                         <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-800">
                             <div className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-1">Status</div>
                             <div className={`text-sm font-bold flex items-center gap-1.5 ${userPlan.status === 'pending_activation' ? 'text-amber-600' :
-                                    isCurrentWeekPaid ? 'text-emerald-600' : 'text-amber-600'
+                                isCurrentWeekPaid ? 'text-emerald-600' : 'text-amber-600'
                                 }`}>
                                 {userPlan.status === 'pending_activation' ? (
                                     <> <AlertTriangle className="w-3.5 h-3.5" /> PENDING ACTIVATION </>
@@ -169,16 +171,36 @@ export function MarathonPlanCard({ plan, userPlan, onJoin, onDeposit }: Marathon
                     )}
                 </CardContent>
 
-                <CardFooter className="grid grid-cols-2 gap-3 pt-2">
-                    <Button
-                        className="w-full bg-gray-900 hover:bg-gray-800 text-white dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
-                        onClick={onDeposit}
-                    >
-                        {arrears > 0 ? "Pay Arrears" : "Add Funds"}
-                    </Button>
-                    <Button variant="outline" asChild className="w-full">
-                        <Link to={`/dashboard/wallet?planId=${userPlan?.plan.id}`}>Details</Link>
-                    </Button>
+                <CardFooter className="flex flex-col gap-3 pt-2">
+                    <div className="grid grid-cols-2 gap-3 w-full">
+                        <Button
+                            className="w-full bg-gray-900 hover:bg-gray-800 text-white dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
+                            onClick={onDeposit}
+                        >
+                            {arrears > 0 ? "Pay Arrears" : "Add Funds"}
+                        </Button>
+                        <Button variant="outline" asChild className="w-full">
+                            <Link to={`/dashboard/wallet?planId=${userPlan?.plan.id}`}>Details</Link>
+                        </Button>
+                    </div>
+                    {!isFinished && onAdvanceDeposit && (
+                        <Button
+                            variant="secondary"
+                            className="w-full bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 font-bold"
+                            onClick={onAdvanceDeposit}
+                        >
+                            Pay in Advance
+                        </Button>
+                    )}
+                    {userPlan.status === 'pending_activation' && onLeave && (
+                        <Button
+                            variant="ghost"
+                            className="w-full text-red-600 hover:text-red-700 hover:bg-red-50 text-xs font-semibold"
+                            onClick={onLeave}
+                        >
+                            Leave Plan
+                        </Button>
+                    )}
                 </CardFooter>
             </Card>
         );

@@ -12,9 +12,11 @@ interface AnchorPlanCardProps {
     userPlan?: UserPlan;
     onJoin: () => void;
     onDeposit: (planId: string) => void;
+    onAdvanceDeposit?: (planId: string) => void;
+    onLeave?: () => void;
 }
 
-export function AnchorPlanCard({ plan, userPlan, onJoin, onDeposit }: AnchorPlanCardProps) {
+export function AnchorPlanCard({ plan, userPlan, onJoin, onDeposit, onAdvanceDeposit, onLeave }: AnchorPlanCardProps) {
     const [showJoinModal, setShowJoinModal] = useState(false);
 
 
@@ -102,16 +104,36 @@ export function AnchorPlanCard({ plan, userPlan, onJoin, onDeposit }: AnchorPlan
                     </div>
                 </CardContent>
 
-                <CardFooter className="grid grid-cols-2 gap-3 pt-2">
-                    <Button
-                        className="w-full bg-gray-900 hover:bg-gray-800 text-white dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
-                        onClick={() => onDeposit(plan.id)}
-                    >
-                        Add Funds
-                    </Button>
-                    <Button variant="outline" asChild className="w-full">
-                        <a href={plan.whatsapp_link} target="_blank">Group Chat</a>
-                    </Button>
+                <CardFooter className="flex flex-col gap-3 pt-2">
+                    <div className="grid grid-cols-2 gap-3 w-full">
+                        <Button
+                            className="w-full bg-gray-900 hover:bg-gray-800 text-white dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
+                            onClick={() => onDeposit(plan.id)}
+                        >
+                            Add Funds
+                        </Button>
+                        <Button variant="outline" asChild className="w-full">
+                            <a href={plan.whatsapp_link} target="_blank">Group Chat</a>
+                        </Button>
+                    </div>
+                    {onAdvanceDeposit && totalProgress < 100 && (
+                        <Button
+                            variant="secondary"
+                            className="w-full bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 font-bold"
+                            onClick={() => onAdvanceDeposit(plan.id)}
+                        >
+                            Pay in Advance
+                        </Button>
+                    )}
+                    {userPlan.status === 'pending_activation' && onLeave && (
+                        <Button
+                            variant="ghost"
+                            className="w-full text-red-600 hover:text-red-700 hover:bg-red-50 text-xs font-semibold"
+                            onClick={onLeave}
+                        >
+                            Leave Plan
+                        </Button>
+                    )}
                 </CardFooter>
             </Card>
         );

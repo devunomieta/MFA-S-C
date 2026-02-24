@@ -70,7 +70,15 @@ BEGIN
 
     -- Update Balance and Metadata
     v_new_balance := v_user_plan.current_balance + v_net_amount;
-    v_weeks_paid := v_weeks_paid + 1;
+    
+    -- [NEW] Calculate how many weeks this payment covers (Auto-Spread)
+    -- Mandated minimum is 3000 for Marathon.
+    v_weeks_paid := v_weeks_paid + FLOOR(p_amount / 3000)::INT;
+    
+    -- Ensure we don't exceed duration
+    IF v_weeks_paid > v_selected_duration THEN
+        v_weeks_paid := v_selected_duration;
+    END IF;
     
     -- Update JSON metadata safely
     v_meta := jsonb_set(v_meta, '{total_weeks_paid}', to_jsonb(v_weeks_paid));

@@ -13,12 +13,14 @@ interface StepUpPlanCardProps {
     userPlan?: UserPlan;
     onJoin: (planId: string, amount: number, duration: number) => void;
     onDeposit: () => void;
+    onAdvanceDeposit?: () => void;
+    onLeave?: () => void;
 }
 
 const DURATIONS = [10, 15, 20];
 const AMOUNTS = [5000, 10000, 15000, 20000, 25000, 30000, 40000, 50000];
 
-export function StepUpPlanCard({ plan, userPlan, onJoin, onDeposit }: StepUpPlanCardProps) {
+export function StepUpPlanCard({ plan, userPlan, onJoin, onDeposit, onAdvanceDeposit, onLeave }: StepUpPlanCardProps) {
     const isJoined = !!userPlan;
     const isCompleted = userPlan?.status === 'completed';
     const metadata = userPlan?.plan_metadata || {};
@@ -118,19 +120,35 @@ export function StepUpPlanCard({ plan, userPlan, onJoin, onDeposit }: StepUpPlan
                     )}
                 </CardContent>
 
-                <CardFooter className="grid grid-cols-2 gap-3 pt-2">
-                    {!isCompleted && (
-                        <>
-                            <Button
-                                className="w-full bg-gray-900 hover:bg-gray-800 text-white dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
-                                onClick={onDeposit}
-                            >
-                                {arrears > 0 ? "Pay Arrears" : "Add Funds"}
-                            </Button>
-                            <Button variant="outline" asChild className="w-full">
-                                <Link to={`/dashboard/wallet?planId=${userPlan?.plan.id}`}>Details</Link>
-                            </Button>
-                        </>
+                <CardFooter className="flex flex-col gap-3 pt-2">
+                    <div className="grid grid-cols-2 gap-3 w-full">
+                        <Button
+                            className="w-full bg-gray-900 hover:bg-gray-800 text-white dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
+                            onClick={onDeposit}
+                        >
+                            {arrears > 0 ? "Pay Arrears" : "Add Funds"}
+                        </Button>
+                        <Button variant="outline" asChild className="w-full">
+                            <Link to={`/dashboard/wallet?planId=${userPlan?.plan.id}`}>Details</Link>
+                        </Button>
+                    </div>
+                    {!isCompleted && onAdvanceDeposit && (
+                        <Button
+                            variant="secondary"
+                            className="w-full bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 font-bold"
+                            onClick={onAdvanceDeposit}
+                        >
+                            Pay in Advance
+                        </Button>
+                    )}
+                    {userPlan.status === 'pending_activation' && onLeave && (
+                        <Button
+                            variant="ghost"
+                            className="w-full text-red-600 hover:text-red-700 hover:bg-red-50 text-xs font-semibold"
+                            onClick={onLeave}
+                        >
+                            Leave Plan
+                        </Button>
                     )}
                 </CardFooter>
             </Card>

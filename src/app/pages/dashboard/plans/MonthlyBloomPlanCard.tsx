@@ -1,13 +1,12 @@
 import { useState } from "react";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Button } from "@/app/components/ui/button";
-import { Progress } from "@/app/components/ui/progress";
 import { Badge } from "@/app/components/ui/badge";
 import { Label } from "@/app/components/ui/label";
 import { Input } from "@/app/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
 import { Plan, UserPlan } from "@/types";
-import { CheckCircle, AlertTriangle, TrendingUp, RefreshCw, Sprout, Calendar } from "lucide-react";
+import { CheckCircle, AlertTriangle, Sprout, RefreshCw } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { SprintJoinModal } from "./SprintJoinModal";
@@ -17,16 +16,18 @@ interface MonthlyBloomPlanCardProps {
     userPlan?: UserPlan;
     onJoin: (planId: string, targetAmount: number, duration: number) => void;
     onDeposit: () => void;
+    onAdvanceDeposit?: () => void;
+    onLeave?: () => void;
 }
 
-export function MonthlyBloomPlanCard({ plan, userPlan, onJoin, onDeposit }: MonthlyBloomPlanCardProps) {
+export function MonthlyBloomPlanCard({ plan, userPlan, onJoin, onDeposit, onAdvanceDeposit, onLeave }: MonthlyBloomPlanCardProps) {
     const [duration, setDuration] = useState<string>("4");
     const [targetAmount, setTargetAmount] = useState<string>("20000");
     const [showJoinModal, setShowJoinModal] = useState(false);
 
     const formatCurrency = (val: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'NGN' }).format(val);
 
-    const isJoined = !!userPlan && userPlan.status !== 'archived';
+    const isJoined = !!userPlan && userPlan.status !== 'cancelled';
     const isCompleted = userPlan?.status === 'completed' || userPlan?.status === 'matured';
     const meta = userPlan?.plan_metadata || {};
 
@@ -107,16 +108,36 @@ export function MonthlyBloomPlanCard({ plan, userPlan, onJoin, onDeposit }: Mont
                     </div>
                 </CardContent>
 
-                <CardFooter className="grid grid-cols-2 gap-3 pt-2">
-                    <Button
-                        className="w-full bg-gray-900 hover:bg-gray-800 text-white dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
-                        onClick={onDeposit}
-                    >
-                        Add Funds
-                    </Button>
-                    <Button variant="outline" asChild className="w-full">
-                        <Link to={`/dashboard/wallet?planId=${userPlan?.plan.id}`}>Details</Link>
-                    </Button>
+                <CardFooter className="flex flex-col gap-3 pt-2">
+                    <div className="grid grid-cols-2 gap-3 w-full">
+                        <Button
+                            className="w-full bg-gray-900 hover:bg-gray-800 text-white dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
+                            onClick={onDeposit}
+                        >
+                            Add Funds
+                        </Button>
+                        <Button variant="outline" asChild className="w-full">
+                            <Link to={`/dashboard/wallet?planId=${userPlan?.plan.id}`}>Details</Link>
+                        </Button>
+                    </div>
+                    {onAdvanceDeposit && progressPercent < 100 && (
+                        <Button
+                            variant="secondary"
+                            className="w-full bg-pink-50 text-pink-700 hover:bg-pink-100 border border-pink-200 font-bold"
+                            onClick={onAdvanceDeposit}
+                        >
+                            Pay in Advance
+                        </Button>
+                    )}
+                    {userPlan.status === 'pending_activation' && onLeave && (
+                        <Button
+                            variant="ghost"
+                            className="w-full text-red-600 hover:text-red-700 hover:bg-red-50 text-xs font-semibold"
+                            onClick={onLeave}
+                        >
+                            Leave Plan
+                        </Button>
+                    )}
                 </CardFooter>
             </Card>
         );
@@ -269,7 +290,8 @@ export function MonthlyBloomPlanCard({ plan, userPlan, onJoin, onDeposit }: Mont
             <SprintJoinModal
                 isOpen={showJoinModal}
                 onClose={() => setShowJoinModal(false)}
-                onSuccess={confirmJoin}
+                onSuccess={() => { }} // SUCCESS handled by Plans.tsx handleJoinMonthlyBloom
+                onJoinWithMetadata={confirmJoin}
                 plan={plan}
                 customTitle="Confirm Monthly Saving Plan"
                 customTerms={[

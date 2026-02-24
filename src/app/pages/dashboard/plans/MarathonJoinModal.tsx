@@ -23,6 +23,7 @@ export function MarathonJoinModal({ plan, isOpen, onClose, onSuccess }: Marathon
 
     const handleJoin = async () => {
         if (!user || !duration) return;
+
         setLoading(true);
 
         // 1. Calculate Target End Date (rough approx, server logic handles precise cycles)

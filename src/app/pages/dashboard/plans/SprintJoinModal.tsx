@@ -10,15 +10,16 @@ import { useAuth } from "@/app/context/AuthContext";
 import { logActivity } from "@/lib/activity";
 
 interface GenericJoinModalProps {
-    plan: Plan; // Or partial plan details
+    plan: Plan;
     isOpen: boolean;
     onClose: () => void;
     onSuccess: () => void;
+    onJoinWithMetadata?: (metadata: any) => void;
     customTitle?: string;
     customTerms?: string[];
 }
 
-export function SprintJoinModal({ plan, isOpen, onClose, onSuccess, customTitle, customTerms }: GenericJoinModalProps) {
+export function SprintJoinModal({ plan, isOpen, onClose, onSuccess, onJoinWithMetadata, customTitle, customTerms }: GenericJoinModalProps) {
     const { user } = useAuth();
     const [loading, setLoading] = useState(false);
     const [agreed, setAgreed] = useState(false);
@@ -30,7 +31,14 @@ export function SprintJoinModal({ plan, isOpen, onClose, onSuccess, customTitle,
             return;
         }
 
+        if (onJoinWithMetadata) {
+            onJoinWithMetadata({}); // The caller will provide specific metadata
+            onClose();
+            return;
+        }
+
         setLoading(true);
+        // ... rest of the original logic for Sprint
 
         // Initialize Metadata
         const metadata = {

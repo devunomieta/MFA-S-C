@@ -39,8 +39,10 @@ export interface UserPlan {
     created_at: string;
     updated_at?: string;
     plan_metadata?: {
-        // Marathon specific
+        // Shared/Common
         selected_duration?: number;
+
+        // Marathon specific
         total_weeks_paid?: number;
         current_week_paid?: boolean;
         arrears_amount?: number;
@@ -50,7 +52,6 @@ export interface UserPlan {
         weeks_completed?: number;
         current_week_total?: number;
         last_settlement_date?: string;
-        start_date?: string;
 
         // Daily Drop specific
         fixed_amount?: number;
@@ -64,7 +65,6 @@ export interface UserPlan {
         month_paid_so_far?: number;
         target_amount?: number;
         months_completed?: number;
-        months_duration?: number;
         arrears?: number;
 
         // Ajo Circle specific

@@ -156,7 +156,7 @@ export function Plans() {
     const { user } = useAuth();
     const [availablePlans, setAvailablePlans] = useState<Plan[]>([]);
     const [myPlans, setMyPlans] = useState<UserPlan[]>([]);
-    const [selectedPlanForDeposit, setSelectedPlanForDeposit] = useState<string | null>(null);
+    const [selectedPlanForDeposit, setSelectedPlanForDeposit] = useState<{ id: string, isAdvance?: boolean } | null>(null);
     const [breakingPlan, setBreakingPlan] = useState<UserPlan | null>(null);
     const [processingAction, setProcessingAction] = useState(false);
 
@@ -251,7 +251,7 @@ export function Plans() {
                 details: { plan_name: plan.name, display_name: user.user_metadata?.full_name?.split(' ')[0] || 'A user' }
             });
             toast.success(`Plan initiated! Please make a deposit to activate.`);
-            setSelectedPlanForDeposit(plan.id);
+            setSelectedPlanForDeposit({ id: plan.id });
             setProcessingAction(false);
         }
     }
@@ -280,6 +280,7 @@ export function Plans() {
             });
             toast.success("Joined Rapid Fixed Savings! Please make your first deposit.");
             fetchMyPlans();
+            setSelectedPlanForDeposit({ id: planId }); // Auto-open deposit modal
             setProcessingAction(false);
         }
     }
@@ -308,6 +309,7 @@ export function Plans() {
             });
             toast.success("Joined Monthly Saving Plan! Please make your first deposit.");
             fetchMyPlans();
+            setSelectedPlanForDeposit({ id: planId }); // Auto-open deposit modal
             setProcessingAction(false);
         }
     }
@@ -399,6 +401,24 @@ export function Plans() {
         setProcessingAction(false);
     }
 
+    async function handleLeavePlan(userPlanId: string) {
+        if (!user || processingAction) return;
+        setProcessingAction(true);
+
+        const { error } = await supabase
+            .from("user_plans")
+            .update({ status: 'cancelled' })
+            .eq('id', userPlanId);
+
+        if (error) {
+            toast.error("Failed to leave plan.");
+        } else {
+            toast.success("You have left the plan.");
+            fetchMyPlans();
+        }
+        setProcessingAction(false);
+    }
+
     const formatCurrency = (value: number) => {
         return new Intl.NumberFormat('en-US', {
             style: 'decimal',
@@ -407,7 +427,7 @@ export function Plans() {
         }).format(value);
     };
 
-    const activePlansList = myPlans.filter(p => (p.status === 'active' || p.status === 'matured' || p.status === 'pending_activation') && p.plan.type !== 'ajo_payout');
+    const activePlansList = myPlans.filter(p => (p.status === 'active' || p.status === 'matured' || p.status === 'pending_activation'));
 
     if (loading) {
         return (
@@ -452,7 +472,8 @@ export function Plans() {
             {/* Deposit Modal */}
             <Dialog open={!!selectedPlanForDeposit} onOpenChange={(open) => !open && setSelectedPlanForDeposit(null)}>
                 <DepositModal
-                    defaultPlanId={selectedPlanForDeposit || ""}
+                    defaultPlanId={selectedPlanForDeposit?.id || ""}
+                    initialAdvanceMode={selectedPlanForDeposit?.isAdvance}
                     onSuccess={() => fetchMyPlans()}
                     onClose={() => setSelectedPlanForDeposit(null)}
                 />
@@ -471,8 +492,10 @@ export function Plans() {
                                 <MarathonPlanCard
                                     plan={viewingPlan.plan}
                                     userPlan={viewingPlan.userPlan}
-                                    onJoin={() => { setJoiningMarathonPlan(viewingPlan.plan); setViewingPlan(null); }}
-                                    onDeposit={() => { setSelectedPlanForDeposit(viewingPlan.plan.id); setViewingPlan(null); }}
+                                    onJoin={() => { fetchMyPlans(); setSelectedPlanForDeposit({ id: viewingPlan.plan.id }); setViewingPlan(null); }}
+                                    onDeposit={() => { setSelectedPlanForDeposit({ id: viewingPlan.plan.id }); setViewingPlan(null); }}
+                                    onAdvanceDeposit={() => { setSelectedPlanForDeposit({ id: viewingPlan.plan.id, isAdvance: true }); setViewingPlan(null); }}
+                                    onLeave={viewingPlan.userPlan ? () => { handleLeavePlan(viewingPlan.userPlan!.id); setViewingPlan(null); } : undefined}
                                 />
                             )}
                             {viewingPlan.plan.type === 'sprint' && (
@@ -480,23 +503,29 @@ export function Plans() {
                                     plan={viewingPlan.plan}
                                     userPlan={viewingPlan.userPlan}
                                     onJoin={() => { setJoiningSprintPlan(viewingPlan.plan); setViewingPlan(null); }}
-                                    onDeposit={() => { setSelectedPlanForDeposit(viewingPlan.plan.id); setViewingPlan(null); }}
+                                    onDeposit={() => { setSelectedPlanForDeposit({ id: viewingPlan.plan.id }); setViewingPlan(null); }}
+                                    onAdvanceDeposit={() => { setSelectedPlanForDeposit({ id: viewingPlan.plan.id, isAdvance: true }); setViewingPlan(null); }}
+                                    onLeave={viewingPlan.userPlan ? () => { handleLeavePlan(viewingPlan.userPlan!.id); setViewingPlan(null); } : undefined}
                                 />
                             )}
                             {viewingPlan.plan.type === 'anchor' && (
                                 <AnchorPlanCard
                                     plan={viewingPlan.plan}
                                     userPlan={viewingPlan.userPlan}
-                                    onJoin={() => { joinStandardPlan(viewingPlan.plan); setViewingPlan(null); }}
-                                    onDeposit={() => { setSelectedPlanForDeposit(viewingPlan.plan.id); setViewingPlan(null); }}
+                                    onJoin={() => { fetchMyPlans(); setSelectedPlanForDeposit({ id: viewingPlan.plan.id }); setViewingPlan(null); }}
+                                    onDeposit={() => { setSelectedPlanForDeposit({ id: viewingPlan.plan.id }); setViewingPlan(null); }}
+                                    onAdvanceDeposit={() => { setSelectedPlanForDeposit({ id: viewingPlan.plan.id, isAdvance: true }); setViewingPlan(null); }}
+                                    onLeave={viewingPlan.userPlan ? () => { handleLeavePlan(viewingPlan.userPlan!.id); setViewingPlan(null); } : undefined}
                                 />
                             )}
                             {viewingPlan.plan.type === 'daily_drop' && (
                                 <DailyDropPlanCard
                                     plan={viewingPlan.plan}
                                     userPlan={viewingPlan.userPlan}
-                                    onJoin={() => { joinStandardPlan(viewingPlan.plan); setViewingPlan(null); }}
-                                    onDeposit={() => { setSelectedPlanForDeposit(viewingPlan.plan.id); setViewingPlan(null); }}
+                                    onJoin={() => { fetchMyPlans(); setSelectedPlanForDeposit({ id: viewingPlan.plan.id }); setViewingPlan(null); }}
+                                    onDeposit={() => { setSelectedPlanForDeposit({ id: viewingPlan.plan.id }); setViewingPlan(null); }}
+                                    onAdvanceDeposit={() => { setSelectedPlanForDeposit({ id: viewingPlan.plan.id, isAdvance: true }); setViewingPlan(null); }}
+                                    onLeave={viewingPlan.userPlan ? () => { handleLeavePlan(viewingPlan.userPlan!.id); setViewingPlan(null); } : undefined}
                                 />
                             )}
                             {viewingPlan.plan.type === 'step_up' && (
@@ -504,7 +533,9 @@ export function Plans() {
                                     plan={viewingPlan.plan}
                                     userPlan={viewingPlan.userPlan}
                                     onJoin={(p, a, d) => { handleJoinStepUp(p, a, d); setViewingPlan(null); }}
-                                    onDeposit={() => { setSelectedPlanForDeposit(viewingPlan.plan.id); setViewingPlan(null); }}
+                                    onDeposit={() => { setSelectedPlanForDeposit({ id: viewingPlan.plan.id }); setViewingPlan(null); }}
+                                    onAdvanceDeposit={() => { setSelectedPlanForDeposit({ id: viewingPlan.plan.id, isAdvance: true }); setViewingPlan(null); }}
+                                    onLeave={viewingPlan.userPlan ? () => { handleLeavePlan(viewingPlan.userPlan!.id); setViewingPlan(null); } : undefined}
                                 />
                             )}
                             {viewingPlan.plan.type === 'monthly_bloom' && (
@@ -512,7 +543,9 @@ export function Plans() {
                                     plan={viewingPlan.plan}
                                     userPlan={viewingPlan.userPlan}
                                     onJoin={(p, a, d) => { handleJoinMonthlyBloom(p, a, d); setViewingPlan(null); }}
-                                    onDeposit={() => { setSelectedPlanForDeposit(viewingPlan.plan.id); setViewingPlan(null); }}
+                                    onDeposit={() => { setSelectedPlanForDeposit({ id: viewingPlan.plan.id }); setViewingPlan(null); }}
+                                    onAdvanceDeposit={() => { setSelectedPlanForDeposit({ id: viewingPlan.plan.id, isAdvance: true }); setViewingPlan(null); }}
+                                    onLeave={viewingPlan.userPlan ? () => { handleLeavePlan(viewingPlan.userPlan!.id); setViewingPlan(null); } : undefined}
                                 />
                             )}
                             {viewingPlan.plan.type === 'ajo_circle' && (
@@ -520,7 +553,9 @@ export function Plans() {
                                     plan={viewingPlan.plan}
                                     userPlan={viewingPlan.userPlan}
                                     onJoin={(p, a) => { handleJoinAjoCircle(p, a); setViewingPlan(null); }}
-                                    onDeposit={() => { setSelectedPlanForDeposit(viewingPlan.plan.id); setViewingPlan(null); }}
+                                    onDeposit={() => { setSelectedPlanForDeposit({ id: viewingPlan.plan.id }); setViewingPlan(null); }}
+                                    onAdvanceDeposit={() => { setSelectedPlanForDeposit({ id: viewingPlan.plan.id, isAdvance: true }); setViewingPlan(null); }}
+                                    onLeave={viewingPlan.userPlan ? () => { handleLeavePlan(viewingPlan.userPlan!.id); setViewingPlan(null); } : undefined}
                                     onWithdraw={() => handleWithdrawAjoPayout(viewingPlan.plan.id)}
                                 />
                             )}
@@ -559,7 +594,7 @@ export function Plans() {
                     plan={joiningMarathonPlan}
                     isOpen={!!joiningMarathonPlan}
                     onClose={() => setJoiningMarathonPlan(null)}
-                    onSuccess={() => fetchMyPlans()}
+                    onSuccess={() => { fetchMyPlans(); setSelectedPlanForDeposit({ id: joiningMarathonPlan.id }); setJoiningMarathonPlan(null); }}
                 />
             )}
             {joiningSprintPlan && (
@@ -567,7 +602,7 @@ export function Plans() {
                     plan={joiningSprintPlan}
                     isOpen={!!joiningSprintPlan}
                     onClose={() => setJoiningSprintPlan(null)}
-                    onSuccess={() => fetchMyPlans()}
+                    onSuccess={() => { fetchMyPlans(); setSelectedPlanForDeposit({ id: joiningSprintPlan.id }); setJoiningSprintPlan(null); }}
                 />
             )}
 

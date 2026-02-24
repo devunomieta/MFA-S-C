@@ -30,11 +30,10 @@ export function calculateBalance(transactions: Transaction[], filterPlanId: stri
     return transactions.reduce((acc, curr) => {
         const amt = Number(curr.amount);
         const chg = Number(curr.charge || 0);
-        const isPlanMatch = curr.plan_id === filterPlanId;
-
-        // If we are filtering by plan_type (special case for Withdrawable Wallet), 
-        // we might not know the exact plan_id yet.
-        const isTypeMatch = filterPlanType && curr.plan?.type === filterPlanType;
+        // If filterPlanType is provided, we ONLY match by type.
+        // If filterPlanType is null, we match by filterPlanId (which defaults to null for General Wallet).
+        const isPlanMatch = filterPlanType === null && curr.plan_id === filterPlanId;
+        const isTypeMatch = filterPlanType !== null && curr.plan?.type === filterPlanType;
 
         if (!isPlanMatch && !isTypeMatch) return acc;
 

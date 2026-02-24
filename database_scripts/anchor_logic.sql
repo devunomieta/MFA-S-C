@@ -47,15 +47,29 @@ BEGIN
         WHERE user_id = p_user_id AND plan_id = p_plan_id;
     END IF;
 
-    -- Update Week Total
-    v_new_total := v_current_week_total + p_amount;
+    -- [NEW] Spread Logic
+    DECLARE
+        v_total_available DECIMAL;
+        v_weeks_to_advance INT;
+        v_remainder DECIMAL;
+    BEGIN
+        v_total_available := v_current_week_total + p_amount;
+        v_weeks_to_advance := FLOOR(v_total_available / 3000)::INT;
+        v_remainder := v_total_available % 3000;
+        
+        v_weeks_completed := v_weeks_completed + v_weeks_to_advance;
+        v_new_total := v_remainder;
+    END;
 
     -- Update Plan
     UPDATE user_plans
     SET 
         current_balance = current_balance + p_amount,
         plan_metadata = jsonb_set(
-            jsonb_set(v_plan_metadata, '{current_week_total}', to_jsonb(v_new_total)),
+            jsonb_set(
+                jsonb_set(v_plan_metadata, '{current_week_total}', to_jsonb(v_new_total)),
+                '{weeks_completed}', to_jsonb(v_weeks_completed)
+            ),
             '{last_activity}', to_jsonb(NOW())
         ),
         updated_at = NOW()
@@ -103,6 +117,24 @@ BEGIN
     -- 1. Deduct 500 Penalty from Balance.
     -- 2. Add 3000 to Arrears (To be recovered).
     -- 3. Week NOT incremented? Or Incremented? Usually in fixed duration, week increments even if missed. Let's increment.
+
+    -- [NEW] Advance Payment Check
+    DECLARE
+        v_weeks_elapsed INT;
+    BEGIN
+        v_weeks_elapsed := FLOOR(EXTRACT(EPOCH FROM (NOW() - r.start_date)) / 604800)::INT;
+        
+        IF v_weeks_completed > v_weeks_elapsed THEN
+            UPDATE user_plans
+            SET plan_metadata = plan_metadata || jsonb_build_object(
+                'current_week_total', 0,
+                'last_settlement_date', NOW()
+            )
+            WHERE id = p_user_plan_id;
+            
+            RETURN jsonb_build_object('status', 'success', 'context', 'prepaid_skip');
+        END IF;
+    END;
 
     IF v_current_week_total >= 3000 THEN
         -- Success Case
