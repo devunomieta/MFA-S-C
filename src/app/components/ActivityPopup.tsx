@@ -129,7 +129,15 @@ export function ActivityPopup() {
                         initial={{ opacity: 0, x: -40, scale: 0.9 }}
                         animate={{ opacity: 1, x: 0, scale: 1 }}
                         exit={{ opacity: 0, x: -20, scale: 0.95 }}
-                        className="pointer-events-auto"
+                        drag="x"
+                        dragConstraints={{ left: 0, right: 0 }}
+                        dragElastic={0.7}
+                        onDragEnd={(_, info) => {
+                            if (Math.abs(info.offset.x) > 100) {
+                                setActivity(null);
+                            }
+                        }}
+                        className="pointer-events-auto cursor-grab active:cursor-grabbing"
                     >
                         <div className="bg-white/95 backdrop-blur-xl border border-slate-200 p-4 rounded-2xl shadow-2xl flex items-center gap-4 max-w-sm ring-1 ring-black/5">
                             <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${getActionDetails(activity.action).color}`}>

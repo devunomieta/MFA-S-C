@@ -34,13 +34,32 @@ export function Login() {
             toast.success("login successful");
             navigate("/dashboard");
         } catch (error: any) {
-            console.error(error);
-            if (error.message === "Invalid login credentials") {
-                toast.error("incorrect");
-            } else if (error.message.includes("Email not confirmed")) {
+            console.error("Login Error:", error);
+            let errorMessage = "Failed to login";
+
+            if (error?.message) {
+                errorMessage = error.message;
+            } else if (typeof error === 'string') {
+                errorMessage = error;
+            } else if (error && typeof error === 'object') {
+                try {
+                    const str = JSON.stringify(error);
+                    if (str !== "{}") errorMessage = str;
+                } catch (e) {
+                    errorMessage = String(error);
+                }
+            }
+
+            if (errorMessage === "{}" || errorMessage === "[object Object]") {
+                errorMessage = "Failed to login. Please check your credentials.";
+            }
+
+            if (errorMessage === "Invalid login credentials") {
+                toast.error("incorrect email or password");
+            } else if (errorMessage.includes("Email not confirmed")) {
                 toast.error("Please verify your email address");
             } else {
-                toast.error(error.message || "Failed to login");
+                toast.error(errorMessage);
             }
         } finally {
             setLoading(false);

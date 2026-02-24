@@ -12,33 +12,17 @@ import { notificationService, MTFNotification } from "@/lib/notification";
 import { useNotifications } from "@/app/context/NotificationContext";
 import { useAuth } from "@/app/context/AuthContext";
 import { formatDistanceToNow } from 'date-fns';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 export function NotificationBell() {
     const { user } = useAuth();
-    const [notifications, setNotifications] = useState<MTFNotification[]>([]);
-    const { unreadCount, refreshUnreadCount } = useNotifications();
+    const { unreadCount, notifications, refreshUnreadCount } = useNotifications();
     const [isOpen, setIsOpen] = useState(false);
-
-    useEffect(() => {
-        if (!user) return;
-        fetchNotifications();
-    }, [user]);
-
-    const fetchNotifications = async () => {
-        try {
-            const notifsData = await notificationService.getNotifications({ limit: 10 });
-            setNotifications(notifsData.notifications || []);
-        } catch (error) {
-            console.error('Error fetching notifications in bell:', error);
-            setNotifications([]);
-        }
-    };
+    const navigate = useNavigate();
 
     const handleMarkAllAsRead = async () => {
         try {
             await notificationService.markAllAsRead();
-            setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
             await refreshUnreadCount();
         } catch (error) {
             console.error('Error marking all as read:', error);
@@ -48,7 +32,6 @@ export function NotificationBell() {
     const handleMarkAsRead = async (id: string) => {
         try {
             await notificationService.markAsRead(id);
-            setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
             await refreshUnreadCount();
         } catch (error) {
             console.error('Error marking as read:', error);

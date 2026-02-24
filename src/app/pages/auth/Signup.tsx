@@ -55,8 +55,6 @@ export function Signup() {
 
             if (error) throw error;
 
-            if (error) throw error;
-
             if (data.session || data.user) {
                 const user = data.user!;
                 // Log public join activity
@@ -74,7 +72,27 @@ export function Signup() {
                 navigate("/dashboard");
             }
         } catch (error: any) {
-            toast.error(error.message || "Failed to create account");
+            console.error("Signup Error:", error);
+            let errorMessage = "Failed to create account";
+
+            if (error?.message) {
+                errorMessage = error.message;
+            } else if (typeof error === 'string') {
+                errorMessage = error;
+            } else if (error && typeof error === 'object') {
+                try {
+                    const str = JSON.stringify(error);
+                    if (str !== "{}") errorMessage = str;
+                } catch (e) {
+                    errorMessage = String(error);
+                }
+            }
+
+            if (errorMessage === "{}" || errorMessage === "[object Object]") {
+                errorMessage = "Failed to create account. Please ensure all details are correct.";
+            }
+
+            toast.error(errorMessage);
         } finally {
             setLoading(false);
         }

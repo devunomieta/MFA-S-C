@@ -57,6 +57,7 @@ export function Navbar() {
       setVerifyPassword("");
       navigate("/dashboard");
     } catch (error: any) {
+      console.error("Dashboard Access Verification Error:", error);
       toast.error(error.message || "Incorrect password");
     } finally {
       setVerifying(false);

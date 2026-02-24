@@ -31,7 +31,27 @@ export function UpdatePassword() {
             toast.success("Password updated successfully!");
             navigate("/dashboard");
         } catch (error: any) {
-            toast.error(error.message || "Failed to update password");
+            console.error("Update Password Error:", error);
+            let errorMessage = "Failed to update password";
+
+            if (error?.message) {
+                errorMessage = error.message;
+            } else if (typeof error === 'string') {
+                errorMessage = error;
+            } else if (error && typeof error === 'object') {
+                try {
+                    const str = JSON.stringify(error);
+                    if (str !== "{}") errorMessage = str;
+                } catch (e) {
+                    errorMessage = String(error);
+                }
+            }
+
+            if (errorMessage === "{}" || errorMessage === "[object Object]") {
+                errorMessage = "Failed to update password. Please check your connection and try again.";
+            }
+
+            toast.error(errorMessage);
         } finally {
             setLoading(false);
         }

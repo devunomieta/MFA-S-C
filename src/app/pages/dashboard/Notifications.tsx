@@ -28,7 +28,7 @@ import { toast } from 'sonner';
 export function Notifications() {
     const navigate = useNavigate();
     const { user } = useAuth();
-    const { refreshUnreadCount } = useNotifications();
+    const { refreshUnreadCount, lastEvent } = useNotifications();
     const [notifications, setNotifications] = useState<MTFNotification[]>([]);
     const [settings, setSettings] = useState<NotificationSettings | null>(null);
     const [loading, setLoading] = useState(true);
@@ -42,24 +42,27 @@ export function Notifications() {
     useEffect(() => {
         if (!user) return;
         fetchInitialData();
+    }, [user, filter, searchQuery, dateRange, page]);
 
-        const subscription = notificationService.subscribeToNotifications(user.id, (payload) => {
-            if (payload.eventType === 'INSERT') {
-                // If on first page and no filters, prepend. Otherwise refetch.
-                if (page === 1 && !searchQuery && filter === 'all') {
-                    setNotifications(prev => [payload.new as MTFNotification, ...prev].slice(0, 25));
-                } else {
-                    fetchInitialData();
-                }
-            } else if (payload.eventType === 'UPDATE' || payload.eventType === 'DELETE') {
+    useEffect(() => {
+        if (!lastEvent) return;
+
+        if (lastEvent.eventType === 'INSERT') {
+            // If on first page and no filters, prepend. Otherwise refetch.
+            if (page === 1 && !searchQuery && filter === 'all') {
+                // Deduplicate to prevent double triggers
+                setNotifications(prev => {
+                    const exists = prev.some(n => n.id === lastEvent.new.id);
+                    if (exists) return prev;
+                    return [lastEvent.new as MTFNotification, ...prev].slice(0, 25);
+                });
+            } else {
                 fetchInitialData();
             }
-        });
-
-        return () => {
-            subscription.unsubscribe();
-        };
-    }, [user, filter, searchQuery, dateRange, page]);
+        } else if (lastEvent.eventType === 'UPDATE' || lastEvent.eventType === 'DELETE') {
+            fetchInitialData();
+        }
+    }, [lastEvent]);
 
     const fetchInitialData = async () => {
         try {

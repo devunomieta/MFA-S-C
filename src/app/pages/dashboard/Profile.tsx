@@ -363,7 +363,17 @@ export function Profile() {
         const { error: otpError } = await supabase.auth.resetPasswordForEmail(user?.email || "");
 
         if (otpError) {
-            toast.error(otpError.message);
+            console.error("OTP Request Error:", otpError);
+            let errorMessage = "Failed to send verification code. Please try again.";
+            if (otpError.message) {
+                errorMessage = otpError.message;
+            } else if (typeof otpError === 'object' && JSON.stringify(otpError) !== "{}") {
+                errorMessage = JSON.stringify(otpError);
+            }
+            if (errorMessage === "{}" || errorMessage === "[object Object]") {
+                errorMessage = "Failed to send verification code. Please ensure your email is correct.";
+            }
+            toast.error(errorMessage);
         } else {
             toast.success("Verification code sent to your email");
             setCodeRequested(true);
@@ -413,7 +423,17 @@ export function Profile() {
         });
 
         if (error) {
-            toast.error(error.message);
+            console.error("Password Update Error:", error);
+            let errorMessage = "Failed to update password. Please check your connection and try again.";
+            if (error.message) {
+                errorMessage = error.message;
+            } else if (typeof error === 'object' && JSON.stringify(error) !== "{}") {
+                errorMessage = JSON.stringify(error);
+            }
+            if (errorMessage === "{}" || errorMessage === "[object Object]") {
+                errorMessage = "Failed to update password. Please try again.";
+            }
+            toast.error(errorMessage);
         } else {
             toast.success("Password updated successfully");
             setPasswordData({ current_password: "", new_password: "", confirm_password: "" });
@@ -489,12 +509,13 @@ export function Profile() {
                 });
 
             } catch (error: any) {
+                console.error("Avatar Upload Error:", error);
                 toast.error(error.message || "Failed to upload avatar");
             } finally {
                 setUploadingAvatar(false);
             }
         }
-    };
+    }
 
     async function handleUploadId() {
         if (!previewUrl || !fileInputRef.current?.files?.[0]) {

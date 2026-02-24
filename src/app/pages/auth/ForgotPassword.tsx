@@ -25,7 +25,28 @@ export function ForgotPassword() {
             setSubmitted(true);
             toast.success("Password reset email sent!");
         } catch (error: any) {
-            toast.error(error.message || "Failed to send reset email");
+            console.error("Password Reset Error:", error);
+            // Harden error handling to prevent toasting "{}" or "null"
+            let errorMessage = "Failed to send reset email";
+
+            // Extract all possible info
+            const details = error?.message || error?.error_description;
+
+            if (details) {
+                errorMessage = details;
+            } else if (typeof error === 'string') {
+                errorMessage = error;
+            } else {
+                // Handle objects like AuthRetryableFetchError
+                errorMessage = "Connection issue with the authentication server. Please try again later.";
+            }
+
+            // Final safety check for "{}" or "[object Object]"
+            if (errorMessage.includes("{}") || errorMessage.includes("[object Object]") || errorMessage === "Failed to send reset email") {
+                errorMessage = `Authentication server timeout (504). This usually means the email service is temporarily unavailable. Please contact support.`;
+            }
+
+            toast.error(errorMessage);
         } finally {
             setLoading(false);
         }
