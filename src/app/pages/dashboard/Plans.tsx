@@ -45,7 +45,7 @@ const PlanTable = ({ items, type, onDetails, myPlans }: {
         }).format(value);
     };
 
-    const hasJoinedPlan = (planId: string) => myPlans.some(p => p.plan_id === planId && p.status !== 'cancelled' && p.status !== 'completed');
+    const hasJoinedPlan = (planId: string) => myPlans.some(p => p.plan_id === planId && p.status !== 'cancelled');
 
     return (
         <div className="rounded-md border border-gray-200 dark:border-gray-800 overflow-hidden bg-white dark:bg-gray-900 shadow-sm">
@@ -101,9 +101,12 @@ const PlanTable = ({ items, type, onDetails, myPlans }: {
                                                     <Badge className={
                                                         userPlan?.status === 'pending_activation'
                                                             ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200'
-                                                            : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30'
+                                                            : userPlan?.status === 'completed'
+                                                                ? 'bg-emerald-600 text-white'
+                                                                : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30'
                                                     }>
-                                                        {userPlan?.status === 'pending_activation' ? 'PENDING ACTIVATION' : 'Active'}
+                                                        {userPlan?.status === 'pending_activation' ? 'PENDING ACTIVATION' :
+                                                            userPlan?.status === 'completed' ? 'COMPLETED' : 'Active'}
                                                     </Badge>
                                                 ) : (
                                                     <Badge variant="outline" className="text-slate-500">Available</Badge>
@@ -427,7 +430,7 @@ export function Plans() {
         }).format(value);
     };
 
-    const activePlansList = myPlans.filter(p => (p.status === 'active' || p.status === 'matured' || p.status === 'pending_activation'));
+    const activePlansList = myPlans.filter(p => (p.status === 'active' || p.status === 'matured' || p.status === 'pending_activation' || p.status === 'completed'));
 
     if (loading) {
         return (
@@ -481,7 +484,7 @@ export function Plans() {
 
             {/* Plan Details Modal */}
             <Dialog open={!!viewingPlan} onOpenChange={(open) => !open && setViewingPlan(null)}>
-                <DialogContent className="max-w-xl p-0 overflow-hidden bg-white dark:bg-gray-900 border-none shadow-2xl rounded-xl">
+                <DialogContent className="max-w-xl p-0 overflow-hidden bg-white dark:bg-gray-900 border-none shadow-2xl rounded-xl max-h-[95vh] flex flex-col">
                     <DialogHeader className="sr-only">
                         <DialogTitle>Plan details for {viewingPlan?.plan.name}</DialogTitle>
                         <DialogDescription>Rules and features of the selected plan.</DialogDescription>
@@ -523,6 +526,7 @@ export function Plans() {
                                     plan={viewingPlan.plan}
                                     userPlan={viewingPlan.userPlan}
                                     onJoin={() => { fetchMyPlans(); setSelectedPlanForDeposit({ id: viewingPlan.plan.id }); setViewingPlan(null); }}
+                                    onRefresh={() => fetchMyPlans()}
                                     onDeposit={() => { setSelectedPlanForDeposit({ id: viewingPlan.plan.id }); setViewingPlan(null); }}
                                     onAdvanceDeposit={() => { setSelectedPlanForDeposit({ id: viewingPlan.plan.id, isAdvance: true }); setViewingPlan(null); }}
                                     onLeave={viewingPlan.userPlan ? () => { handleLeavePlan(viewingPlan.userPlan!.id); setViewingPlan(null); } : undefined}
@@ -565,7 +569,7 @@ export function Plans() {
                                     <CardHeader>
                                         <CardTitle>{viewingPlan.plan.name}</CardTitle>
                                     </CardHeader>
-                                    <CardContent className="space-y-4">
+                                    <CardContent className="space-y-4 overflow-y-auto max-h-[60vh] custom-scrollbar">
                                         <p className="text-sm text-gray-500">{viewingPlan.plan.description}</p>
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded">

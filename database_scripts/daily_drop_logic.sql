@@ -17,19 +17,21 @@ DECLARE
     v_fee NUMERIC := 0;
     v_net_amount NUMERIC;
     v_new_balance NUMERIC;
+    v_selected_duration INT;
 BEGIN
-    -- Get Plan Details
-    SELECT * INTO v_plan FROM plans WHERE id = p_plan_id;
-    IF NOT FOUND THEN RAISE EXCEPTION 'Plan not found'; END IF;
-
     -- Get User Plan
     SELECT * INTO v_user_plan FROM user_plans 
-    WHERE user_id = p_user_id AND plan_id = p_plan_id AND status IN ('active', 'pending_activation');
+    WHERE id = p_plan_id AND user_id = p_user_id AND status IN ('active', 'pending_activation');
     
     IF NOT FOUND THEN RAISE EXCEPTION 'Active or Pending Daily Drop plan not found for user'; END IF;
 
+    -- Get Plan Details (Template)
+    SELECT * INTO v_plan FROM plans WHERE id = v_user_plan.plan_id;
+    IF NOT FOUND THEN RAISE EXCEPTION 'Plan not found'; END IF;
+    
     v_meta := v_user_plan.plan_metadata;
     v_days_paid_total := COALESCE((v_meta->>'total_days_paid')::INT, 0);
+    v_selected_duration := COALESCE((v_meta->>'selected_duration')::INT, 31);
     v_fixed_amount := (v_meta->>'fixed_amount')::NUMERIC;
     
     IF v_fixed_amount IS NULL OR v_fixed_amount = 0 THEN
@@ -67,7 +69,13 @@ BEGIN
     v_new_balance := v_user_plan.current_balance + v_net_amount;
     
     -- Update Metadata
-    v_days_paid_total := v_days_paid_total + v_days_advanced;
+    v_days_paid_total := floor(v_new_balance / v_fixed_amount);
+    
+    IF v_selected_duration > 0 THEN
+        IF v_days_paid_total >= v_selected_duration THEN
+            v_days_paid_total := v_selected_duration;
+        END IF;
+    END IF;
     
     v_meta := jsonb_set(v_meta, '{total_days_paid}', to_jsonb(v_days_paid_total));
     v_meta := jsonb_set(v_meta, '{last_payment_date}', to_jsonb(now())); -- Important for Auto-Save
@@ -85,7 +93,7 @@ BEGIN
     INSERT INTO transactions (
         user_id, plan_id, amount, type, description, reference, status
     ) VALUES (
-        p_user_id, p_plan_id, p_amount, 'deposit', 
+        p_user_id, v_user_plan.plan_id, p_amount, 'deposit', 
         'Daily Drop: ' || v_days_advanced || ' Days Advanced', 
         'DROP-' || floor(extract(epoch from now())), 
         'completed'
@@ -95,7 +103,7 @@ BEGIN
          INSERT INTO transactions (
             user_id, plan_id, amount, type, description, status
         ) VALUES (
-            p_user_id, p_plan_id, v_fee, 'fee', 
+            p_user_id, v_user_plan.plan_id, v_fee, 'fee', 
             'Service Charge (First Payment)', 
             'completed'
         );
@@ -188,5 +196,60 @@ BEGIN
             END IF;
         END IF;
     END LOOP;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 3. Withdrawal Logic for Daily Drop
+-- Transfers current_balance to Withdrawable Wallet upon reaching target.
+CREATE OR REPLACE FUNCTION withdraw_daily_drop_payout(
+    p_user_id UUID,
+    p_user_plan_id UUID
+) RETURNS JSONB AS $$
+DECLARE
+    v_user_plan RECORD;
+    v_amount NUMERIC;
+    v_meta JSONB;
+    v_target_plan_id UUID;
+BEGIN
+    -- Get User Plan
+    SELECT * INTO v_user_plan FROM user_plans 
+    WHERE id = p_user_plan_id AND user_id = p_user_id AND status = 'active';
+    
+    IF NOT FOUND THEN RAISE EXCEPTION 'Active Daily Drop plan not found for user'; END IF;
+
+    -- Find Withdrawable Wallet Plan ID
+    SELECT id INTO v_target_plan_id FROM plans WHERE type = 'withdrawable_wallet' LIMIT 1;
+    IF v_target_plan_id IS NULL THEN RAISE EXCEPTION 'Withdrawable Wallet plan type not found'; END IF;
+
+    v_meta := v_user_plan.plan_metadata;
+    v_amount := v_user_plan.current_balance;
+
+    IF v_amount <= 0 THEN
+        RAISE EXCEPTION 'No funds available to withdraw.';
+    END IF;
+
+    -- Update User Plan: set withdrawn = true and store amount in metadata
+    v_meta := jsonb_set(v_meta, '{withdrawn}', 'true'::jsonb);
+    v_meta := jsonb_set(v_meta, '{withdrawn_amount}', to_jsonb(v_amount));
+
+    UPDATE user_plans 
+    SET 
+        current_balance = 0,
+        plan_metadata = v_meta,
+        updated_at = now()
+    WHERE id = v_user_plan.id;
+
+    -- Deduct funds from plan
+    INSERT INTO transactions (user_id, plan_id, amount, type, status, description, charge)
+    VALUES (p_user_id, v_user_plan.plan_id, v_amount, 'withdrawal', 'completed', 'Goal Payout to Withdrawable Wallet', 0);
+
+    -- Credit Withdrawable Wallet (Virtual Plan)
+    INSERT INTO transactions (user_id, plan_id, amount, type, status, description, charge)
+    VALUES (p_user_id, v_target_plan_id, v_amount, 'transfer', 'completed', 'Daily Drop Payout Received', 0);
+
+    RETURN jsonb_build_object(
+        'success', true,
+        'amount_withdrawn', v_amount
+    );
 END;
 $$ LANGUAGE plpgsql;

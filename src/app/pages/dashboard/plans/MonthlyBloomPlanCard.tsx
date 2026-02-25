@@ -6,7 +6,7 @@ import { Label } from "@/app/components/ui/label";
 import { Input } from "@/app/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
 import { Plan, UserPlan } from "@/types";
-import { CheckCircle, AlertTriangle, Sprout, RefreshCw } from "lucide-react";
+import { CheckCircle, AlertTriangle, Sprout, RefreshCw, Trophy } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { SprintJoinModal } from "./SprintJoinModal";
@@ -38,7 +38,13 @@ export function MonthlyBloomPlanCard({ plan, userPlan, onJoin, onDeposit, onAdva
     const target = meta.target_amount || 20000;
     const arrears = meta.arrears || 0;
 
-    const progressPercent = Math.min((monthPaid / target) * 100, 100);
+    const isTargetMet = monthsCompleted >= selectedDuration;
+    const progressPercent = isTargetMet ? 100 : Math.min((monthPaid / target) * 100, 100);
+
+    const totalTarget = target * selectedDuration;
+    const totalSaved = userPlan?.current_balance || 0;
+    const overallProgressPercent = Math.min((totalSaved / totalTarget) * 100, 100);
+    const excessAmount = Math.max(0, totalSaved - totalTarget);
 
     const handleJoin = () => {
         const amount = parseFloat(targetAmount);
@@ -52,7 +58,6 @@ export function MonthlyBloomPlanCard({ plan, userPlan, onJoin, onDeposit, onAdva
     const confirmJoin = () => {
         onJoin(plan.id, parseFloat(targetAmount), parseInt(duration));
     };
-
 
     // Joined State - Minimalist
     if (isJoined && !isCompleted) {
@@ -80,30 +85,76 @@ export function MonthlyBloomPlanCard({ plan, userPlan, onJoin, onDeposit, onAdva
                     </div>
                 </CardHeader>
 
-                <CardContent className="space-y-6 flex-1 pt-4">
-                    {arrears > 0 ? (
-                        <div className="bg-red-50 p-2 rounded border border-red-100 flex items-center gap-2 text-xs text-red-700 font-medium animate-pulse">
-                            <AlertTriangle className="w-3.5 h-3.5 text-red-500" />
-                            Arrears: {formatCurrency(arrears)}
-                        </div>
-                    ) : (
-                        <div className="flex items-center gap-2 p-2 bg-emerald-50 text-emerald-700 rounded-md text-xs border border-emerald-100 font-bold">
-                            <CheckCircle className="w-3.5 h-3.5" />
-                            <span>On Track</span>
-                        </div>
-                    )}
+                <CardContent className="space-y-6 flex-1 pt-4 overflow-y-auto max-h-[60vh] custom-scrollbar">
+                    <div className="flex flex-col gap-2">
+                        {arrears > 0 ? (
+                            <div className="bg-red-50 p-2 rounded border border-red-100 flex items-center gap-2 text-xs text-red-700 font-medium animate-pulse">
+                                <AlertTriangle className="w-3.5 h-3.5 text-red-500" />
+                                Arrears: {formatCurrency(arrears)}
+                            </div>
+                        ) : isTargetMet ? (
+                            <div className="flex flex-col gap-1">
+                                <div className="flex items-center gap-2 p-2 bg-emerald-50 text-emerald-700 rounded-md text-xs border border-emerald-100 font-bold">
+                                    <Trophy className="w-3.5 h-3.5 text-emerald-500" />
+                                    <span>Goal Achieved! You reached your target.</span>
+                                </div>
+                                {excessAmount > 0 && (
+                                    <div className="text-[10px] text-emerald-600 font-bold ml-1">
+                                        You saved an extra {formatCurrency(excessAmount)}! Congratulations! 🌸
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-2 p-2 bg-emerald-50 text-emerald-700 rounded-md text-xs border border-emerald-100 font-bold">
+                                <CheckCircle className="w-3.5 h-3.5" />
+                                <span>On Track</span>
+                            </div>
+                        )}
 
+                        {monthsCompleted > 0 && !isTargetMet && (
+                            <div className="flex items-center gap-2 p-2 bg-blue-50 text-blue-700 rounded-md text-[10px] border border-blue-100 font-bold">
+                                <RefreshCw className="w-3 h-3 text-blue-500" />
+                                <span>Advance Payment: {monthsCompleted} {monthsCompleted === 1 ? 'Month' : 'Months'} Covered</span>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Monthly Progress */}
                     <div className="space-y-2">
                         <div className="flex justify-between text-sm">
-                            <span className="text-gray-600 dark:text-gray-400 font-medium">Target Progress</span>
-                            <span className="font-bold text-gray-900 dark:text-gray-200">{formatCurrency(monthPaid)} / {formatCurrency(target)}</span>
+                            <span className="text-gray-600 dark:text-gray-400 font-medium">
+                                {isTargetMet ? 'Monthly Progress (Completed)' : `Monthly Progress (Month ${monthsCompleted + 1})`}
+                            </span>
+                            <span className="font-bold text-gray-900 dark:text-gray-200">
+                                {isTargetMet ? formatCurrency(target) : formatCurrency(monthPaid)} / {formatCurrency(target)}
+                            </span>
                         </div>
                         <div className="h-2 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                            <div className="h-full bg-pink-500 rounded-full" style={{ width: `${progressPercent}%` }} />
+                            <div
+                                className={`h-full rounded-full transition-all duration-500 ${isTargetMet ? 'bg-emerald-500' : 'bg-pink-500'}`}
+                                style={{ width: `${progressPercent}%` }}
+                            />
                         </div>
                         <div className="flex justify-between text-[10px] text-gray-400 font-medium">
-                            <span>Month {monthsCompleted + 1} of {selectedDuration}</span>
-                            <span>{Math.round(progressPercent)}%</span>
+                            <span>{isTargetMet ? '100%' : `${Math.round(progressPercent)}%`} of Current Month</span>
+                            {monthsCompleted > 0 && !isTargetMet && <span>Advanced {monthsCompleted} Mo</span>}
+                        </div>
+                    </div>
+
+                    {/* Overall Progress */}
+                    <div className="pt-2 border-t border-gray-50 dark:border-gray-800 space-y-2">
+                        <div className="flex justify-between text-sm">
+                            <span className="text-gray-600 dark:text-gray-400 font-medium">Overall Plan Progress</span>
+                            <span className="font-bold text-gray-900 dark:text-gray-200">
+                                {formatCurrency(totalSaved)} / {formatCurrency(totalTarget)}
+                            </span>
+                        </div>
+                        <div className="h-1.5 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                            <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${overallProgressPercent}%` }} />
+                        </div>
+                        <div className="flex justify-between text-[10px] text-gray-400 font-medium">
+                            <span>Month {monthsCompleted} of {selectedDuration} Completed</span>
+                            <span>{Math.round(overallProgressPercent)}% Total</span>
                         </div>
                     </div>
                 </CardContent>

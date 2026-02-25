@@ -47,6 +47,8 @@ export interface UserPlan {
         current_week_paid?: boolean;
         arrears_amount?: number;
         last_payment_date?: string;
+        last_fee_date?: string;
+        start_date?: string;
 
         // Sprint specific
         weeks_completed?: number;

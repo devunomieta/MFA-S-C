@@ -56,7 +56,7 @@ export function SprintPlanCard({ plan, userPlan, onJoin, onDeposit, onAdvanceDep
                     </div>
                 </CardHeader>
 
-                <CardContent className="space-y-6 flex-1 pt-4">
+                <CardContent className="space-y-6 flex-1 pt-4 overflow-y-auto max-h-[60vh] custom-scrollbar">
                     {arrears > 0 && (
                         <div className="flex items-center gap-2 p-2 bg-red-50 text-red-700 rounded-md text-xs border border-red-100 font-medium">
                             <AlertTriangle className="w-3.5 h-3.5" />

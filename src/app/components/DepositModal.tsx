@@ -4,7 +4,7 @@ import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/app/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
-import { CreditCard, Copy, Upload, Trash2, Wallet } from "lucide-react";
+import { CreditCard, Copy, Upload, Trash2, Wallet, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/app/context/AuthContext";
@@ -32,7 +32,11 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose, initialAdvance
     // Wallet Payment State
     const [generalBalance, setGeneralBalance] = useState(0);
     const [loadingBalance, setLoadingBalance] = useState(true);
-    const [isAdvanceMode] = useState(initialAdvanceMode || false);
+    const [isAdvanceMode, setIsAdvanceMode] = useState(initialAdvanceMode || false);
+
+    useEffect(() => {
+        setIsAdvanceMode(initialAdvanceMode || false);
+    }, [initialAdvanceMode]);
 
     useEffect(() => {
         if (user) {
@@ -229,7 +233,7 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose, initialAdvance
             // Special Handling for Marathon/Sprint/Anchor Plans: Use RPC Logic
             const planType = selectedPlanObj?.plan?.type || selectedPlanObj?.type; // Safe access
 
-            if (planType === 'marathon' || planType === 'sprint' || planType === 'anchor' || planType === 'step_up' || planType === 'monthly_bloom' || planType === 'ajo_circle') {
+            if (planType === 'marathon' || planType === 'sprint' || planType === 'anchor' || planType === 'step_up' || planType === 'monthly_bloom' || planType === 'ajo_circle' || planType === 'daily_drop') {
                 // 1. Deduct from General Wallet
                 const { error: deductError } = await supabase.from("transactions").insert({
                     user_id: user.id,
@@ -253,14 +257,14 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose, initialAdvance
                 else if (planType === 'sprint') rpcName = 'process_sprint_deposit';
                 else if (planType === 'anchor') rpcName = 'process_anchor_deposit';
                 else if (planType === 'step_up') rpcName = 'process_step_up_deposit';
-                else if (planType === 'step_up') rpcName = 'process_step_up_deposit';
                 else if (planType === 'monthly_bloom') rpcName = 'process_monthly_bloom_deposit';
                 else if (planType === 'ajo_circle') rpcName = 'process_ajo_circle_deposit';
+                else if (planType === 'daily_drop') rpcName = 'process_daily_drop_deposit';
                 else rpcName = 'process_daily_drop_deposit';
 
                 const { data: rpcData, error: rpcError } = await supabase.rpc(rpcName, {
                     p_user_id: user.id,
-                    p_plan_id: selectedPlanId,
+                    p_plan_id: selectedPlanObj.id, // Mandatory: User Plan Primary Key
                     p_amount: finalAmount
                 });
 
@@ -336,13 +340,13 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose, initialAdvance
         setUploading(false);
     }
 
-    async function updatePlanBalance(planId: string) {
+    async function updatePlanBalance(userPlanId: string) {
         try {
             // Recalculate balance from transaction history for accuracy
             const { data: txs, error: txError } = await supabase
                 .from('transactions')
                 .select('amount, charge, type')
-                .eq('plan_id', planId)
+                .eq('plan_id', selectedPlanId)
                 .eq('status', 'completed');
 
             if (txError) {
@@ -373,8 +377,7 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose, initialAdvance
             const { error: updateError } = await supabase
                 .from('user_plans')
                 .update(updates)
-                .eq('user_id', user?.id)
-                .eq('plan_id', planId);
+                .eq('id', userPlanId);
 
             if (updateError) {
                 console.error("Error updating plan balance/status:", updateError);
@@ -466,7 +469,7 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose, initialAdvance
         const meta = userPlan.plan_metadata || {};
 
         // Strictly Fixed ALWAYS (Except Monthly Bloom which is flexible even if DB says fixed)
-        if ((planType === 'ajo_circle' || planType === 'step_up' || plan.contribution_type === 'fixed') && planType !== 'monthly_bloom') return true;
+        if ((planType === 'ajo_circle' || plan.contribution_type === 'fixed') && planType !== 'monthly_bloom' && planType !== 'step_up') return true;
 
         if (planType === 'daily_drop') {
             // Check if they can change amount: After 1 month or initial duration
@@ -486,7 +489,7 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose, initialAdvance
             if (hasPassedOneMonth || hasPassedDuration) {
                 return false; // Unlockable for changing amount
             }
-            return true;
+            return !isAdvanceMode;
         }
 
         // For plans that are flexible but have a goal (Anchor, Sprint, Marathon, Monthly Bloom)
@@ -524,6 +527,21 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose, initialAdvance
 
     const periodsCovered = getPeriodsCovered();
     const periodLabel = selectedPlanObj?.plan?.type === 'monthly_bloom' ? 'Month' : (selectedPlanObj?.plan?.type === 'daily_drop' ? 'Day' : 'Week');
+
+    const remainingToGoal = (() => {
+        if (planType === 'daily_drop' && selectedPlanObj) {
+            const meta = selectedPlanObj.plan_metadata || {};
+            const duration = meta.selected_duration || 31;
+            const fixedAmt = meta.fixed_amount || selectedPlanObj.plan?.fixed_amount || 0;
+            if (duration === -1) return Infinity;
+            const target = fixedAmt * duration;
+            const current = selectedPlanObj.current_balance || 0;
+            return Math.max(0, target - current);
+        }
+        return Infinity;
+    })();
+
+    const isExcess = planType === 'daily_drop' && amount && parseFloat(amount) > remainingToGoal && remainingToGoal !== Infinity;
 
 
     useEffect(() => {
@@ -632,6 +650,14 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose, initialAdvance
                                 ✨ This covers {periodsCovered} {periodLabel}{periodsCovered > 1 ? 's' : ''} in advance
                             </p>
                         )}
+                        {isExcess && (
+                            <p className="text-[10px] text-amber-600 font-bold bg-amber-50 dark:bg-amber-900/20 p-2 rounded border border-amber-100 dark:border-amber-800 flex items-center gap-2">
+                                <AlertTriangle className="w-3 h-3 text-amber-500" />
+                                <span>
+                                    Exceeds goal! You only need <strong>₦{formatCurrency(remainingToGoal)}</strong> to reach your target.
+                                </span>
+                            </p>
+                        )}
                         {!isInputLocked() && !isAdvanceMode && amount && parseFloat(amount) < mandatedAmount && (
                             <p className="text-[10px] text-red-500 font-medium">
                                 Minimum contribution is ₦{formatCurrency(mandatedAmount)}
@@ -708,8 +734,12 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose, initialAdvance
                         </div>
                     </div>
 
-                    <Button onClick={() => handleDeposit('external')} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white" disabled={uploading || !amount || !receiptFile}>
-                        {uploading ? 'Processing...' : 'Confirm External Deposit'}
+                    <Button
+                        onClick={() => handleDeposit('external')}
+                        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
+                        disabled={uploading || !amount || !receiptFile || isExcess}
+                    >
+                        {uploading ? 'Processing...' : isExcess ? 'Amount Exceeds Target' : 'Confirm External Deposit'}
                     </Button>
                 </TabsContent>
 
@@ -766,6 +796,14 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose, initialAdvance
                                 ✨ This covers {periodsCovered} {periodLabel}{periodsCovered > 1 ? 's' : ''} in advance
                             </p>
                         )}
+                        {isExcess && (
+                            <p className="text-[10px] text-amber-600 font-bold bg-amber-50 dark:bg-amber-900/20 p-2 rounded border border-amber-100 dark:border-amber-800 flex items-center gap-2">
+                                <AlertTriangle className="w-3 h-3 text-amber-500" />
+                                <span>
+                                    Exceeds goal! You only need <strong>₦{formatCurrency(remainingToGoal)}</strong> to reach your target.
+                                </span>
+                            </p>
+                        )}
                         {(isInputLocked() || mandatedAmount > 0 || fee > 0) && (
                             <div className="mt-2 rounded-lg bg-gray-50 dark:bg-gray-800 p-3 border border-gray-100 dark:border-gray-700 space-y-2">
                                 {(isInputLocked() || mandatedAmount > 0) && (
@@ -791,9 +829,9 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose, initialAdvance
                     <Button
                         onClick={() => handleDeposit('wallet')}
                         className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
-                        disabled={uploading || !amount || !selectedPlanId || generalBalance < parseFloat(amount || '0')}
+                        disabled={uploading || !amount || !selectedPlanId || generalBalance < parseFloat(amount || '0') || isExcess}
                     >
-                        {uploading ? 'Processing...' : 'Confirm Transfer'}
+                        {uploading ? 'Processing...' : isExcess ? 'Amount Exceeds Target' : 'Confirm Transfer'}
                     </Button>
                 </TabsContent>
             </Tabs>

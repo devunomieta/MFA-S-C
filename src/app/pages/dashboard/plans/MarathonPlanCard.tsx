@@ -37,6 +37,7 @@ export function MarathonPlanCard({ plan, userPlan, onJoin, onDeposit, onAdvanceD
     const weeksPaid = metadata.total_weeks_paid || 0;
     const isCurrentWeekPaid = metadata.current_week_paid;
     const arrears = metadata.arrears_amount || 0;
+    const isFinished = weeksPaid >= duration;
 
     const progress = Math.min((weeksPaid / duration) * 100, 100);
 
@@ -85,21 +86,35 @@ export function MarathonPlanCard({ plan, userPlan, onJoin, onDeposit, onAdvanceD
                     </div>
                 </CardHeader>
 
-                <CardContent className="space-y-6 flex-1 pt-4">
-                    {arrears > 0 && (
-                        <div className="flex items-center gap-2 p-2 bg-red-50 text-red-700 rounded-md text-xs border border-red-100 font-medium">
-                            <AlertTriangle className="w-3.5 h-3.5" />
-                            <span>Arrears: {formatCurrency(arrears)}</span>
-                        </div>
-                    )}
+                <CardContent className="space-y-6 flex-1 pt-4 overflow-y-auto max-h-[60vh] custom-scrollbar">
+                    <div className="flex flex-col gap-2">
+                        {arrears > 0 && (
+                            <div className="flex items-center gap-2 p-2 bg-red-50 text-red-700 rounded-md text-xs border border-red-100 font-medium animate-pulse">
+                                <AlertTriangle className="w-3.5 h-3.5" />
+                                <span>Arrears: {formatCurrency(arrears)}</span>
+                            </div>
+                        )}
 
-                    <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                            <span className="text-gray-600 dark:text-gray-400 font-medium">Progress</span>
-                            <span className="font-bold text-gray-900 dark:text-gray-200">{weeksPaid} / {duration} Weeks</span>
+                        <div className={`flex items-center gap-2 p-2 rounded-md text-xs border font-bold ${isCurrentWeekPaid ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-amber-50 text-amber-700 border-amber-100 shadow-sm'
+                            }`}>
+                            {isCurrentWeekPaid ? <CheckCircle className="w-3.5 h-3.5" /> : <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                            <span>{isCurrentWeekPaid ? 'Current Week Paid' : 'Current Week Pending Deposit'}</span>
                         </div>
-                        <div className="h-2 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                            <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${progress}%` }} />
+                    </div>
+
+                    <div className="space-y-4 pt-2 border-t border-gray-50 dark:border-gray-800">
+                        <div className="space-y-2">
+                            <div className="flex justify-between text-sm">
+                                <span className="text-gray-600 dark:text-gray-400 font-medium">Goal Progress</span>
+                                <span className="font-bold text-gray-900 dark:text-gray-200">{weeksPaid} / {duration} Weeks</span>
+                            </div>
+                            <div className="h-2 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                                <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${progress}%` }} />
+                            </div>
+                            <div className="flex justify-between text-[10px] text-gray-400 font-medium">
+                                <span>Week {weeksPaid} of {duration} Completed</span>
+                                <span>{Math.round(progress)}% of Total Goal</span>
+                            </div>
                         </div>
                     </div>
 

@@ -3,8 +3,9 @@
 -- 1. Process Manual Deposit
 -- Called after funds are deducted from General Wallet
 CREATE OR REPLACE FUNCTION process_monthly_bloom_deposit(
-    p_user_plan_id UUID,
-    p_amount NUMERIC
+    p_amount NUMERIC,
+    p_plan_id UUID,
+    p_user_id UUID
 )
 RETURNS JSONB
 LANGUAGE plpgsql
@@ -17,7 +18,7 @@ DECLARE
     v_month_paid_so_far NUMERIC;
 BEGIN
     SELECT * INTO v_user_plan FROM user_plans 
-    WHERE id = p_user_plan_id AND status IN ('active', 'pending_activation');
+    WHERE id = p_plan_id AND user_id = p_user_id AND status IN ('active', 'pending_activation');
 
     IF NOT FOUND THEN
         RAISE EXCEPTION 'Active or Pending Plan not found';
@@ -31,23 +32,31 @@ BEGIN
         v_months_to_advance INT;
         v_remainder NUMERIC;
         v_months_done INT;
-        v_target_amount NUMERIC := 20000;
+        v_target_amount NUMERIC;
+        v_selected_duration INT;
     BEGIN
+        v_target_amount := COALESCE((v_metadata->>'target_amount')::NUMERIC, 20000);
+        v_selected_duration := COALESCE((v_metadata->>'selected_duration')::INT, 10);
         v_months_done := COALESCE((v_metadata->>'months_completed')::INT, 0);
         v_total_available := COALESCE((v_metadata->>'month_paid_so_far')::NUMERIC, 0) + p_amount;
         
         v_months_to_advance := FLOOR(v_total_available / v_target_amount)::INT;
-        v_remainder := v_total_available % v_target_amount;
         
-        v_months_done := v_months_done + v_months_to_advance;
-        v_month_paid_so_far := v_remainder;
+        -- Cap months_done at selected_duration
+        IF (v_months_done + v_months_to_advance) >= v_selected_duration THEN
+            v_month_paid_so_far := v_total_available - ((v_selected_duration - v_months_done) * v_target_amount);
+            v_months_done := v_selected_duration;
+        ELSE
+            v_months_done := v_months_done + v_months_to_advance;
+            v_month_paid_so_far := v_total_available % v_target_amount;
+        END IF;
         
         v_metadata := jsonb_set(v_metadata, '{months_completed}', to_jsonb(v_months_done));
     END;
 
     v_new_balance := v_user_plan.current_balance + p_amount;
-
-    -- Update Plan
+    
+    -- [RESTORED] Update Plan
     UPDATE user_plans
     SET
         status = 'active',
@@ -59,7 +68,11 @@ BEGIN
             to_jsonb(NOW())
         ),
         updated_at = NOW()
-    WHERE id = p_user_plan_id;
+    WHERE id = p_plan_id;
+
+    -- Record Transaction
+    INSERT INTO transactions (user_id, plan_id, amount, type, status, description, charge)
+    VALUES (p_user_id, v_user_plan.plan_id, p_amount, 'deposit', 'completed', 'Monthly Bloom Contribution', 0);
 
     RETURN jsonb_build_object(
         'success', true,
@@ -121,13 +134,13 @@ BEGIN
     DECLARE
         v_months_elapsed INT;
     BEGIN
-        v_months_elapsed := FLOOR(EXTRACT(EPOCH FROM (NOW() - v_start_date)) / 2592000)::INT; -- ~30 days
+        v_months_elapsed := FLOOR(EXTRACT(EPOCH FROM (NOW() - v_user_plan.start_date)) / 2592000)::INT; -- ~30 days
         
         IF v_months_completed > v_months_elapsed THEN
             v_metadata := jsonb_set(v_metadata, '{month_paid_so_far}', '0');
             v_metadata := jsonb_set(v_metadata, '{last_settlement_date}', to_jsonb(NOW()));
             
-            UPDATE user_plans SET plan_metadata = v_metadata WHERE id = p_user_plan_id;
+            UPDATE user_plans SET plan_metadata = v_metadata WHERE id = v_user_plan.id;
             RETURN jsonb_build_object('success', true, 'status', 'prepaid_skip');
         END IF;
     END;

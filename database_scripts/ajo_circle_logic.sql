@@ -38,13 +38,13 @@ BEGIN
     -- Get User Plan
     SELECT * INTO v_user_plan 
     FROM user_plans 
-    WHERE user_id = p_user_id AND plan_id = p_plan_id AND status IN ('active', 'pending_activation')
+    WHERE id = p_plan_id AND user_id = p_user_id AND status IN ('active', 'pending_activation')
     LIMIT 1;
 
     IF NOT FOUND THEN RAISE EXCEPTION 'Active or Pending User Plan not found'; END IF;
 
     -- Get Plan Config (for Fee verification)
-    SELECT config INTO v_plan_config FROM plans WHERE id = p_plan_id;
+    SELECT config INTO v_plan_config FROM plans WHERE id = v_user_plan.plan_id;
     v_fees := v_plan_config->'fees';
     
     v_metadata := v_user_plan.plan_metadata;
@@ -95,28 +95,12 @@ BEGIN
     WHERE id = v_user_plan.id;
 
     -- 2. Record Fee Transaction
-    -- Since the funds came into the Plan temporarily (via the Transfer to Plan_ID),
-    -- we technically need to Debit the Fee OUT of the plan?
-    -- Method:
-    -- Wallet -> (Transfer Total) -> Plan Balance increased by Total (temporarily or via logic?)
-    -- Wait, `process_...` is called. The caller (DepositModal) does:
-    -- 1. Wallet Debit check.
-    -- 2. RPC Call.
-    -- The RPC is responsible for updating the plan balance.
-    -- So `p_amount` is just a number. It hasn't been "added" to `user_plans.current_balance` yet unless we do it here.
-    
-    -- Correct Flow:
-    -- Caller: Debits Wallet (Gross).
-    -- RPC: 
-    --   Adds Net (Contribution) to Plan Balance.
-    --   Records 'Service Charge' Transaction for the Fee (Plan ID associated, but Amount is Fee).
-
     INSERT INTO transactions (user_id, plan_id, amount, type, status, description, charge)
-    VALUES (p_user_id, p_plan_id, v_expected_fee, 'service_charge', 'completed', 'Ajo Circle Weekly Fee', 0);
+    VALUES (p_user_id, v_user_plan.plan_id, v_expected_fee, 'service_charge', 'completed', 'Ajo Circle Weekly Fee', 0);
     
     -- We also need to record the Deposit Transaction for the Contribution
     INSERT INTO transactions (user_id, plan_id, amount, type, status, description, charge)
-    VALUES (p_user_id, p_plan_id, v_contribution_amount, 'deposit', 'completed', 'Ajo Circle Contribution', 0);
+    VALUES (p_user_id, v_user_plan.plan_id, v_contribution_amount, 'deposit', 'completed', 'Ajo Circle Contribution', 0);
 
     RETURN jsonb_build_object(
         'success', true,

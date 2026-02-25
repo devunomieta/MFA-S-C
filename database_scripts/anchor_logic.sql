@@ -26,13 +26,19 @@ DECLARE
     v_current_week_total DECIMAL;
     v_new_total DECIMAL;
     v_plan_status TEXT;
+    v_template_id UUID;
 BEGIN
     -- Get current state
-    SELECT plan_metadata, current_balance, status 
-    INTO v_plan_metadata, v_current_balance, v_plan_status
+    -- We assume p_plan_id is the primary key of user_plans
+    SELECT plan_metadata, current_balance, status, plan_id
+    INTO v_plan_metadata, v_current_balance, v_plan_status, v_template_id
     FROM user_plans 
-    WHERE user_id = p_user_id AND plan_id = p_plan_id;
+    WHERE id = p_plan_id AND user_id = p_user_id;
     
+    IF v_template_id IS NULL THEN
+        RAISE EXCEPTION 'Active or Pending Anchor plan not found for user';
+    END IF;
+
     -- Initialize if null
     IF v_plan_metadata IS NULL THEN
         v_plan_metadata := '{}'::jsonb;
@@ -44,7 +50,7 @@ BEGIN
     -- Activate if pending
     IF v_plan_status = 'pending_activation' THEN
         UPDATE user_plans SET status = 'active', start_date = NOW() 
-        WHERE user_id = p_user_id AND plan_id = p_plan_id;
+        WHERE id = p_plan_id;
     END IF;
 
     -- [NEW] Spread Logic
@@ -52,13 +58,19 @@ BEGIN
         v_total_available DECIMAL;
         v_weeks_to_advance INT;
         v_remainder DECIMAL;
+        v_target_amount DECIMAL;
     BEGIN
+        v_target_amount := COALESCE((v_plan_metadata->>'target_amount')::DECIMAL, 3000);
         v_total_available := v_current_week_total + p_amount;
-        v_weeks_to_advance := FLOOR(v_total_available / 3000)::INT;
-        v_remainder := v_total_available % 3000;
+        v_weeks_to_advance := FLOOR(v_total_available / v_target_amount)::INT;
         
-        v_weeks_completed := v_weeks_completed + v_weeks_to_advance;
-        v_new_total := v_remainder;
+        IF (v_weeks_completed + v_weeks_to_advance) >= 48 THEN
+            v_new_total := v_total_available - ((48 - v_weeks_completed) * v_target_amount);
+            v_weeks_completed := 48;
+        ELSE
+            v_weeks_completed := v_weeks_completed + v_weeks_to_advance;
+            v_new_total := v_total_available % v_target_amount;
+        END IF;
     END;
 
     -- Update Plan
@@ -73,11 +85,11 @@ BEGIN
             '{last_activity}', to_jsonb(NOW())
         ),
         updated_at = NOW()
-    WHERE user_id = p_user_id AND plan_id = p_plan_id;
+    WHERE id = p_plan_id;
     
     -- Log Deposit Transaction
     INSERT INTO transactions (user_id, plan_id, amount, type, status, description, charge)
-    VALUES (p_user_id, p_plan_id, p_amount, 'deposit', 'completed', 'Anchor Deposit', 0);
+    VALUES (p_user_id, v_template_id, p_amount, 'deposit', 'completed', 'Anchor Deposit', 0);
 
     RETURN jsonb_build_object(
         'success', true, 

@@ -34,7 +34,7 @@ DECLARE
 BEGIN
     -- Get User Plan
     SELECT * INTO v_user_plan FROM user_plans 
-    WHERE user_id = p_user_id AND plan_id = p_plan_id AND status IN ('active', 'pending_activation');
+    WHERE id = p_plan_id AND user_id = p_user_id AND status IN ('active', 'pending_activation');
     
     IF NOT FOUND THEN RAISE EXCEPTION 'Active or Pending Sprint plan not found for user'; END IF;
 
@@ -46,17 +46,24 @@ BEGIN
         v_weeks_to_advance INT;
         v_remainder NUMERIC;
         v_weeks_done INT;
+        v_target_amount NUMERIC;
+        v_selected_duration INT;
     BEGIN
+        v_target_amount := COALESCE((v_meta->>'target_amount')::NUMERIC, 3000);
+        v_selected_duration := COALESCE((v_meta->>'selected_duration')::INT, 12);
         v_weeks_done := COALESCE((v_meta->>'weeks_completed')::INT, 0);
         v_total_available := COALESCE((v_meta->>'current_week_total')::NUMERIC, 0) + p_amount;
         
-        v_weeks_to_advance := FLOOR(v_total_available / 3000)::INT;
-        v_remainder := v_total_available % 3000;
-        
-        -- Advance progress
-        v_weeks_done := v_weeks_done + v_weeks_to_advance;
-        v_week_total := v_remainder;
-        
+        v_weeks_to_advance := FLOOR(v_total_available / v_target_amount)::INT;
+
+        IF (v_weeks_done + v_weeks_to_advance) >= v_selected_duration THEN
+            v_week_total := v_total_available - ((v_selected_duration - v_weeks_done) * v_target_amount);
+            v_weeks_done := v_selected_duration;
+        ELSE
+            v_weeks_done := v_weeks_done + v_weeks_to_advance;
+            v_week_total := v_total_available % v_target_amount;
+        END IF;
+
         v_meta := jsonb_set(v_meta, '{current_week_total}', to_jsonb(v_week_total));
         v_meta := jsonb_set(v_meta, '{weeks_completed}', to_jsonb(v_weeks_done));
     END;
@@ -77,7 +84,7 @@ BEGIN
     INSERT INTO transactions (
         user_id, plan_id, amount, type, description, reference, status
     ) VALUES (
-        p_user_id, p_plan_id, p_amount, 'deposit', 
+        p_user_id, v_user_plan.plan_id, p_amount, 'deposit', 
         'Sprint Contribution', 'SPR-' || floor(extract(epoch from now())), 'completed'
     );
 

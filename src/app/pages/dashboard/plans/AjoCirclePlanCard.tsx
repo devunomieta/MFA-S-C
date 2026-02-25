@@ -31,16 +31,6 @@ export function AjoCirclePlanCard({ plan, userPlan, onJoin, onDeposit, onAdvance
         }).format(value);
     };
 
-    const getFee = (amt: number) => {
-        if (amt >= 100000) return 1000;
-        if (amt >= 50000) return 500;
-        if (amt >= 30000) return 500;
-        if (amt >= 25000) return 500;
-        if (amt >= 20000) return 500;
-        if (amt >= 15000) return 300;
-        if (amt >= 10000) return 200;
-        return 0;
-    };
     const duration = plan.config?.duration_weeks || 10;
     const getPayout = (amt: number) => amt * duration;
 
@@ -88,7 +78,7 @@ export function AjoCirclePlanCard({ plan, userPlan, onJoin, onDeposit, onAdvance
                     </div>
                 </CardHeader>
 
-                <CardContent className="space-y-6 flex-1 pt-4">
+                <CardContent className="space-y-6 flex-1 pt-4 overflow-y-auto max-h-[60vh] custom-scrollbar">
                     <div className="grid grid-cols-2 gap-3">
                         <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-800">
                             <div className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-1 flex items-center gap-1.5">
@@ -106,23 +96,32 @@ export function AjoCirclePlanCard({ plan, userPlan, onJoin, onDeposit, onAdvance
                         </div>
                     </div>
 
-                    <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                            <span className="text-gray-600 dark:text-gray-400 font-medium">Weekly Contribution</span>
-                            <span className="font-bold text-gray-900 dark:text-gray-200">₦{formatCurrency(fixedAmount)}</span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                            <span className="text-gray-600 dark:text-gray-400 font-medium">Status</span>
-                            <span className={`font-bold ${weekPaid ? 'text-emerald-600' : 'text-amber-600'}`}>
-                                {weekPaid ? 'Paid' : 'Due'}
-                            </span>
-                        </div>
+                    <div className="flex flex-col gap-2">
                         {missedWeeks > 0 && (
-                            <div className="flex items-center gap-2 p-2 bg-red-50 text-red-700 rounded-md text-xs border border-red-100 font-medium">
+                            <div className="flex items-center gap-2 p-2 bg-red-50 text-red-700 rounded-md text-xs border border-red-100 font-medium animate-pulse">
                                 <AlertTriangle className="w-3.5 h-3.5" /> {missedWeeks} Missed (₦{formatCurrency(missedWeeks * 500)} Penalty)
                             </div>
                         )}
-                        <Progress value={(currentWeek / duration) * 100} className="h-2 bg-gray-100 dark:bg-gray-800 rounded-full" />
+
+                        <div className={`flex items-center gap-2 p-2 rounded-md text-xs border font-bold ${weekPaid ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-amber-50 text-amber-700 border-amber-100 shadow-sm'
+                            }`}>
+                            {weekPaid ? <CheckCircle className="w-3.5 h-3.5" /> : <Timer className="w-3.5 h-3.5 animate-pulse" />}
+                            <span>{weekPaid ? 'Weekly Contribution Paid' : 'Weekly Contribution Due'}</span>
+                        </div>
+                    </div>
+
+                    <div className="space-y-4 pt-2 border-t border-gray-50 dark:border-gray-800">
+                        <div className="space-y-2">
+                            <div className="flex justify-between text-sm">
+                                <span className="text-gray-600 dark:text-gray-400 font-medium">Payout Progress</span>
+                                <span className="font-bold text-gray-900 dark:text-gray-200">Week {currentWeek} / {duration}</span>
+                            </div>
+                            <Progress value={(currentWeek / duration) * 100} className="h-2 bg-gray-100 dark:bg-gray-800 rounded-full" />
+                            <div className="flex justify-between text-[10px] text-gray-400 font-medium">
+                                <span>{Math.round((currentWeek / duration) * 100)}% through Season</span>
+                                <span>₦{formatCurrency(getPayout(fixedAmount))} Total Payout</span>
+                            </div>
+                        </div>
                     </div>
                 </CardContent>
 

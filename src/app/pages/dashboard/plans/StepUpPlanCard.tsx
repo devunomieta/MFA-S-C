@@ -3,7 +3,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/app/comp
 import { Badge } from "@/app/components/ui/badge";
 import { Plan, UserPlan } from "@/types";
 import { Link } from "react-router-dom";
-import { TrendingUp, CheckCircle, AlertTriangle, RotateCcw } from "lucide-react";
+import { TrendingUp, CheckCircle, AlertTriangle, RotateCcw, Trophy } from "lucide-react";
 import { useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
 import { Label } from "@/app/components/ui/label";
@@ -30,12 +30,13 @@ export function StepUpPlanCard({ plan, userPlan, onJoin, onDeposit, onAdvanceDep
     const [selectedAmount, setSelectedAmount] = useState<string>("5000");
 
     // Metadata
-    const totalDuration = metadata.selected_duration || 0;
+    const totalDuration = metadata.selected_duration || 10;
     const weeksCompleted = metadata.weeks_completed || 0;
     const weekPaidSoFar = metadata.week_paid_so_far || 0;
     const fixedAmount = metadata.fixed_amount || 0;
     const arrears = metadata.arrears_amount || 0;
 
+    const isTargetMet = weeksCompleted >= totalDuration;
     const formatCurrency = (val: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'NGN' }).format(val);
 
     const handleJoin = () => {
@@ -44,7 +45,11 @@ export function StepUpPlanCard({ plan, userPlan, onJoin, onDeposit, onAdvanceDep
 
     // Calculate Progress
     const progress = totalDuration > 0 ? Math.min((weeksCompleted / totalDuration) * 100, 100) : 0;
-    const weekProgress = fixedAmount > 0 ? Math.min((weekPaidSoFar / fixedAmount) * 100, 100) : 0;
+    const weekProgress = isTargetMet ? 100 : (fixedAmount > 0 ? Math.min((weekPaidSoFar / fixedAmount) * 100, 100) : 0);
+
+    const totalSaved = userPlan?.current_balance || 0;
+    const totalTarget = fixedAmount * totalDuration;
+    const excessAmount = Math.max(0, totalSaved - totalTarget);
 
     // Active State (Joined) - Minimalist
     if (isJoined) {
@@ -72,7 +77,7 @@ export function StepUpPlanCard({ plan, userPlan, onJoin, onDeposit, onAdvanceDep
                     </div>
                 </CardHeader>
 
-                <CardContent className="space-y-6 flex-1 pt-4">
+                <CardContent className="space-y-6 flex-1 pt-4 overflow-y-auto max-h-[60vh] custom-scrollbar">
                     {isCompleted ? (
                         <div className="text-center py-6 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl border border-emerald-100 dark:border-emerald-800">
                             <CheckCircle className="w-10 h-10 text-emerald-500 mx-auto mb-3" />
@@ -84,12 +89,38 @@ export function StepUpPlanCard({ plan, userPlan, onJoin, onDeposit, onAdvanceDep
                         </div>
                     ) : (
                         <>
-                            {arrears > 0 && (
-                                <div className="flex items-center gap-2 p-2 bg-red-50 text-red-700 rounded-md text-xs border border-red-100 font-medium">
-                                    <AlertTriangle className="w-3.5 h-3.5" />
-                                    <span>Arrears: {formatCurrency(arrears)}</span>
-                                </div>
-                            )}
+                            <div className="flex flex-col gap-2">
+                                {arrears > 0 ? (
+                                    <div className="flex items-center gap-2 p-2 bg-red-50 text-red-700 rounded-md text-xs border border-red-100 font-medium">
+                                        <AlertTriangle className="w-3.5 h-3.5" />
+                                        <span>Arrears: {formatCurrency(arrears)}</span>
+                                    </div>
+                                ) : isTargetMet ? (
+                                    <div className="flex flex-col gap-1">
+                                        <div className="flex items-center gap-2 p-2 bg-emerald-50 text-emerald-700 rounded-md text-xs border border-emerald-100 font-bold">
+                                            <Trophy className="w-3.5 h-3.5 text-emerald-500" />
+                                            <span>Goal Achieved! You reached your target.</span>
+                                        </div>
+                                        {excessAmount > 0 && (
+                                            <div className="text-[10px] text-emerald-600 font-bold ml-1">
+                                                You saved an extra {formatCurrency(excessAmount)}! Congratulations! 🚀
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center gap-2 p-2 bg-emerald-50 text-emerald-700 rounded-md text-xs border border-emerald-100 font-bold">
+                                        <CheckCircle className="w-3.5 h-3.5" />
+                                        <span>On Track</span>
+                                    </div>
+                                )}
+
+                                {weeksCompleted > 0 && !isTargetMet && (
+                                    <div className="flex items-center gap-2 p-2 bg-blue-50 text-blue-700 rounded-md text-[10px] border border-blue-100 font-bold">
+                                        <RotateCcw className="w-3 h-3 text-blue-500" />
+                                        <span>Advance Payment: {weeksCompleted} {weeksCompleted === 1 ? 'Week' : 'Weeks'} Covered</span>
+                                    </div>
+                                )}
+                            </div>
 
                             <div className="space-y-2">
                                 <div className="flex justify-between text-sm">
@@ -97,24 +128,39 @@ export function StepUpPlanCard({ plan, userPlan, onJoin, onDeposit, onAdvanceDep
                                     <span className="font-bold text-gray-900 dark:text-gray-200">{weeksCompleted} / {totalDuration} Weeks</span>
                                 </div>
                                 <div className="h-2 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                                    <div className="h-full bg-purple-500 rounded-full" style={{ width: `${progress}%` }} />
+                                    <div
+                                        className={`h-full rounded-full transition-all duration-500 ${isTargetMet ? 'bg-emerald-500' : 'bg-purple-500'}`}
+                                        style={{ width: `${progress}%` }}
+                                    />
                                 </div>
                             </div>
 
-                            <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-800 space-y-2">
-                                <div className="flex justify-between text-xs font-bold text-gray-700 dark:text-gray-300">
-                                    <span className="flex items-center gap-1.5 uppercase tracking-wider text-[10px] text-gray-500"><TrendingUp className="w-3.5 h-3.5" /> This Week</span>
-                                    <span className={weekPaidSoFar >= fixedAmount ? 'text-emerald-600' : 'text-amber-600'}>
-                                        {weekPaidSoFar >= fixedAmount ? 'Goal Met 🌟' : `${formatCurrency(weekPaidSoFar)} / ${formatCurrency(fixedAmount)}`}
+                            <div className="p-4 bg-gray-50/50 dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-800">
+                                <div className="flex justify-between items-center mb-2">
+                                    <div className="flex items-center gap-2">
+                                        <TrendingUp className="w-4 h-4 text-purple-500" />
+                                        <span className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+                                            {isTargetMet ? 'Weekly Status (Goal Met)' : `Week ${weeksCompleted + 1} Progress`}
+                                        </span>
+                                    </div>
+                                    <span className="text-sm font-bold text-purple-600 dark:text-purple-300">
+                                        {isTargetMet ? formatCurrency(fixedAmount) : formatCurrency(weekPaidSoFar)} / {formatCurrency(fixedAmount)}
                                     </span>
                                 </div>
-                                <div className="h-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                                <div className="h-1.5 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden mb-1">
                                     <div
-                                        className={`h-full rounded-full transition-all duration-500 ${weekPaidSoFar >= fixedAmount ? 'bg-emerald-500' : 'bg-purple-500'}`}
+                                        className={`h-full rounded-full transition-all duration-500 ${isTargetMet ? 'bg-emerald-500' : 'bg-purple-500'}`}
                                         style={{ width: `${weekProgress}%` }}
                                     />
                                 </div>
-                                <p className="text-[10px] text-gray-400 text-right">Resets Sunday 11:59PM</p>
+                                {!isTargetMet && weeksCompleted > 0 ? (
+                                    <div className="flex justify-between text-[10px] text-gray-400 font-medium italic">
+                                        <span>Advanced {weeksCompleted} Weeks</span>
+                                        <span>Resets Sunday 11:59PM</span>
+                                    </div>
+                                ) : !isTargetMet && (
+                                    <div className="text-[10px] text-gray-400 text-right font-medium italic">Resets Sunday 11:59PM</div>
+                                )}
                             </div>
                         </>
                     )}

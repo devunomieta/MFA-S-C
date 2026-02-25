@@ -45,15 +45,15 @@ DECLARE
     v_selected_duration INT;
     v_meta JSONB;
 BEGIN
-    -- Get Plan Details
-    SELECT * INTO v_plan FROM plans WHERE id = p_plan_id;
-    IF NOT FOUND THEN RAISE EXCEPTION 'Plan not found'; END IF;
-
     -- Get User Plan (Allow active or pending_activation)
     SELECT * INTO v_user_plan FROM user_plans 
-    WHERE user_id = p_user_id AND plan_id = p_plan_id AND status IN ('active', 'pending_activation');
+    WHERE id = p_plan_id AND user_id = p_user_id AND status IN ('active', 'pending_activation');
     
     IF NOT FOUND THEN RAISE EXCEPTION 'User is not active in this plan'; END IF;
+
+    -- Get Plan Details (Template)
+    SELECT * INTO v_plan FROM plans WHERE id = v_user_plan.plan_id;
+    IF NOT FOUND THEN RAISE EXCEPTION 'Plan not found'; END IF;
 
     v_meta := v_user_plan.plan_metadata;
     v_weeks_paid := COALESCE((v_meta->>'total_weeks_paid')::INT, 0);
@@ -72,8 +72,19 @@ BEGIN
     v_new_balance := v_user_plan.current_balance + v_net_amount;
     
     -- [NEW] Calculate how many weeks this payment covers (Auto-Spread)
-    -- Mandated minimum is 3000 for Marathon.
-    v_weeks_paid := v_weeks_paid + FLOOR(p_amount / 3000)::INT;
+    -- Use dynamic target from metadata if available, otherwise default to 3000
+    -- Cap at selected_duration
+    DECLARE
+        v_base_target NUMERIC := COALESCE((v_meta->>'fixed_amount')::NUMERIC, 3000);
+        v_new_weeks_done INT;
+    BEGIN
+        v_new_weeks_done := v_weeks_paid + FLOOR(p_amount / v_base_target)::INT;
+        IF v_new_weeks_done > v_selected_duration THEN
+            v_weeks_paid := v_selected_duration;
+        ELSE
+            v_weeks_paid := v_new_weeks_done;
+        END IF;
+    END;
     
     -- Ensure we don't exceed duration
     IF v_weeks_paid > v_selected_duration THEN
@@ -106,7 +117,7 @@ BEGIN
         status
     ) VALUES (
         p_user_id,
-        p_plan_id,
+        v_user_plan.plan_id,
         p_amount,
         'deposit',
         'Weekly Contribution (Week ' || v_weeks_paid || ')',
@@ -115,7 +126,6 @@ BEGIN
     );
     
     -- If fee > 0, record fee transaction? 
-    -- Usually better to just record the NET deposit or record Gross + separate Fee.
     -- Let's record the FEE separately for transparency.
     IF v_fee > 0 THEN
         INSERT INTO transactions (
@@ -127,7 +137,7 @@ BEGIN
             status
         ) VALUES (
             p_user_id,
-            p_plan_id,
+            v_user_plan.plan_id,
             v_fee,
             'fee',
             'Service Charge (Week ' || v_weeks_paid || ')',

@@ -14,62 +14,72 @@ AS $$
 DECLARE
     v_user_plan_id UUID;
     v_plan_metadata JSONB;
-    v_current_week INT;
-    v_weeks_paid INT;
-    v_target_amount DECIMAL; -- Fixed Amount selected by user
-    v_total_paid DECIMAL;
+    v_week_paid_so_far DECIMAL;
+    v_weeks_to_advance INT;
+    v_weeks_completed INT;
+    v_total_available DECIMAL;
+    v_target_amount DECIMAL;
+    v_selected_duration INT;
 BEGIN
     -- Get User Plan
     SELECT id, plan_metadata INTO v_user_plan_id, v_plan_metadata
     FROM user_plans
-    WHERE user_id = p_user_id AND plan_id = p_plan_id AND status IN ('active', 'pending_activation');
+    WHERE id = p_plan_id AND user_id = p_user_id AND status IN ('active', 'pending_activation');
 
     IF v_user_plan_id IS NULL THEN
         RAISE EXCEPTION 'Active or Pending Step-Up plan not found for user';
     END IF;
 
-    v_target_amount := (v_plan_metadata->>'fixed_amount')::DECIMAL;
-    v_weeks_paid := COALESCE((v_plan_metadata->>'weeks_paid')::INT, 0);
-    v_current_week := COALESCE((v_plan_metadata->>'current_week')::INT, 1);
+    v_target_amount := COALESCE((v_plan_metadata->>'fixed_amount')::DECIMAL, 5000);
+    v_weeks_completed := COALESCE((v_plan_metadata->>'weeks_completed')::INT, 0);
+    v_week_paid_so_far := COALESCE((v_plan_metadata->>'week_paid_so_far')::DECIMAL, 0);
+    v_selected_duration := COALESCE((v_plan_metadata->>'selected_duration')::INT, 12);
+    
+    v_total_available := v_week_paid_so_far + p_amount;
+    v_weeks_to_advance := FLOOR(v_total_available / v_target_amount)::INT;
+    
+    -- Implement Capping & Spread
+    IF (v_weeks_completed + v_weeks_to_advance) >= v_selected_duration THEN
+        v_week_paid_so_far := v_total_available - ((v_selected_duration - v_weeks_completed) * v_target_amount);
+        v_weeks_completed := v_selected_duration;
+    ELSE
+        v_weeks_completed := v_weeks_completed + v_weeks_to_advance;
+        v_week_paid_so_far := v_total_available % v_target_amount;
+    END IF;
 
-    -- Check if Amount matches Fixed Amount (Strict)
-    -- Allow multiple payments? Requirement says "Fixed saving amount". Usually implies exact match.
-    -- But if they pay in chunks? Let's assume they must pay the full fixed amount or accumulate it.
-    -- However, "Frequency is WEEKLY".
-    
-    -- Update Metadata
-    -- Simply add to balance. The "Settlement" logic handles the "Week Count" and "Charges".
-    -- WAIT: "Show how much has been paid for the week - resets counter on Sunday"
-    
-    DECLARE
-        v_week_paid_so_far DECIMAL;
-    BEGIN
-        v_week_paid_so_far := COALESCE((v_plan_metadata->>'week_paid_so_far')::DECIMAL, 0);
-        
-        -- Update user_plans metadata and status
-        UPDATE user_plans
-        SET 
-            status = 'active',
-            start_date = COALESCE(start_date, NOW()),
-            plan_metadata = jsonb_set(
+    -- Update user_plans
+    UPDATE user_plans
+    SET 
+        status = 'active',
+        start_date = COALESCE(start_date, NOW()),
+        current_balance = current_balance + p_amount,
+        plan_metadata = jsonb_set(
+            jsonb_set(
                 jsonb_set(
                     plan_metadata,
                     '{week_paid_so_far}',
-                    to_jsonb(v_week_paid_so_far + p_amount)
+                    to_jsonb(v_week_paid_so_far)
                 ),
-                '{last_deposit_date}',
-                to_jsonb(NOW())
+                '{weeks_completed}',
+                to_jsonb(v_weeks_completed)
             ),
-            updated_at = NOW()
-        WHERE id = v_user_plan_id;
+            '{last_deposit_date}',
+            to_jsonb(NOW())
+        ),
+        updated_at = NOW()
+    WHERE id = v_user_plan_id;
+
+        -- Record Transaction
+        INSERT INTO transactions (user_id, plan_id, amount, type, status, description, charge)
+        SELECT p_user_id, plan_id, p_amount, 'deposit', 'completed', 'Step-Up Contribution', 0
+        FROM user_plans WHERE id = v_user_plan_id;
         
         RETURN json_build_object(
             'success', true, 
             'message', 'Deposit processed. Week progress updated.',
-            'week_paid', v_week_paid_so_far + p_amount,
+            'week_paid', v_week_paid_so_far,
             'target', v_target_amount
         )::JSONB;
-    END;
 END;
 $$;
 
@@ -116,7 +126,7 @@ BEGIN
                 VALUES (r.user_id, v_deficit, 'transfer', 'completed', 'Auto-Save for Step-Up Week', NULL, 0);
 
                 -- Credit Step-Up
-                PERFORM process_step_up_deposit(r.user_id, v_plan_id, v_deficit);
+                PERFORM process_step_up_deposit(r.user_id, r.user_plan_id, v_deficit);
                 
                 user_id := r.user_id;
                 status := 'success';
@@ -178,10 +188,10 @@ BEGIN
                         jsonb_set(
                             plan_metadata,
                             '{week_paid_so_far}',
-                            '0'
+                            to_jsonb(0)
                         ),
-                        '{weeks_paid}',
-                        to_jsonb(COALESCE((plan_metadata->>'weeks_paid')::INT, 0) + 1)
+                        '{weeks_completed}',
+                        to_jsonb(COALESCE((plan_metadata->>'weeks_completed')::INT, 0) + 1)
                 )
             WHERE id = r.id;
             
@@ -197,11 +207,11 @@ BEGIN
                  plan_metadata = jsonb_set(
                     jsonb_set(
                         plan_metadata,
-                        '{arrears}',
-                         to_jsonb(COALESCE((plan_metadata->>'arrears')::DECIMAL, 0) + (v_target - v_week_paid))
+                        '{arrears_amount}',
+                         to_jsonb(COALESCE((plan_metadata->>'arrears_amount')::DECIMAL, 0) + (v_target - v_week_paid))
                     ),
                     '{week_paid_so_far}',
-                    '0'
+                    to_jsonb(0)
                 )
             WHERE id = r.id;
 
@@ -244,7 +254,7 @@ BEGIN
           AND plan_id = v_step_up_plan_id 
           AND status = 'active';
           
-        v_arrears := COALESCE((v_plan_metadata->>'arrears')::DECIMAL, 0);
+        v_arrears := COALESCE((v_plan_metadata->>'arrears_amount')::DECIMAL, 0);
         
         IF v_user_plan_id IS NOT NULL AND v_arrears > 0 THEN
             -- Check if Wallet (NEW.amount + existing balance) covers arrears? 
@@ -263,8 +273,8 @@ BEGIN
             IF NEW.amount >= v_arrears THEN
                  -- Full Recovery
                  UPDATE user_plans 
-                 SET balance = balance + v_arrears,
-                     plan_metadata = jsonb_set(plan_metadata, '{arrears}', '0')
+                 SET current_balance = current_balance + v_arrears,
+                     plan_metadata = jsonb_set(plan_metadata, '{arrears_amount}', '0')
                  WHERE id = v_user_plan_id;
                  
                  -- Deduct from Wallet (Profile)
