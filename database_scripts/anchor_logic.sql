@@ -1,20 +1,6 @@
 -- Logic for "The Anchor" (48 Weeks)
 
--- 1. Helper: Calculate Fee based on Tiers
-CREATE OR REPLACE FUNCTION calculate_anchor_fee(amount DECIMAL) 
-RETURNS DECIMAL AS $$
-BEGIN
-    IF amount >= 3000 AND amount <= 14000 THEN
-        RETURN 200;
-    ELSIF amount >= 14500 AND amount <= 23000 THEN
-        RETURN 300;
-    ELSIF amount >= 23500 THEN
-        RETURN 500;
-    ELSE
-        RETURN 0; -- Below minimum or invalid ranges (though min is enforced elsewhere)
-    END IF;
-END;
-$$ LANGUAGE plpgsql;
+-- Fees are now handled by shared calculate_plan_service_charge function
 
 -- 2. Process Anchor Deposit (Called via RPC)
 CREATE OR REPLACE FUNCTION process_anchor_deposit(p_user_id UUID, p_plan_id UUID, p_amount DECIMAL)
@@ -27,13 +13,16 @@ DECLARE
     v_new_total DECIMAL;
     v_plan_status TEXT;
     v_template_id UUID;
+    v_fee NUMERIC := 0;
+    v_net_amount NUMERIC;
+    v_last_fee_date TIMESTAMPTZ;
+    v_weeks_to_advance INT := 0;
 BEGIN
     -- Get current state
-    -- We assume p_plan_id is the primary key of user_plans
     SELECT plan_metadata, current_balance, status, plan_id
     INTO v_plan_metadata, v_current_balance, v_plan_status, v_template_id
     FROM user_plans 
-    WHERE id = p_plan_id AND user_id = p_user_id;
+    WHERE id = p_plan_id AND user_id = p_user_id AND status IN ('active', 'pending_activation');
     
     IF v_template_id IS NULL THEN
         RAISE EXCEPTION 'Active or Pending Anchor plan not found for user';
@@ -46,22 +35,35 @@ BEGIN
 
     v_weeks_completed := COALESCE((v_plan_metadata->>'weeks_completed')::INT, 0);
     v_current_week_total := COALESCE((v_plan_metadata->>'current_week_total')::DECIMAL, 0);
+    v_last_fee_date := (v_plan_metadata->>'last_fee_date')::TIMESTAMPTZ;
 
-    -- Activate if pending
-    IF v_plan_status = 'pending_activation' THEN
-        UPDATE user_plans SET status = 'active', start_date = NOW() 
-        WHERE id = p_plan_id;
+    -- Charge Logic: Immediate deduction if it's been more than a week or first payment
+    IF v_last_fee_date IS NULL OR v_last_fee_date <= (now() - INTERVAL '1 week') THEN
+        v_fee := calculate_plan_service_charge(v_template_id, p_amount);
+        
+        IF p_amount < v_fee THEN
+            RAISE EXCEPTION 'This deposit must cover the Service Charge (%s)', v_fee;
+        END IF;
+        
+        v_plan_metadata := jsonb_set(v_plan_metadata, '{last_fee_date}', to_jsonb(now()));
+        
+        -- Distribute Fee to Admin
+        PERFORM distribute_service_charge(p_user_id, v_template_id, v_fee, 'Anchor Weekly Service Charge');
+        
+        -- Record Fee Transaction
+        INSERT INTO transactions (user_id, plan_id, amount, type, status, description, charge)
+        VALUES (p_user_id, v_template_id, v_fee, 'fee', 'completed', 'Weekly Service Charge (Immediate)', 0);
     END IF;
+
+    v_net_amount := p_amount - v_fee;
 
     -- [NEW] Spread Logic
     DECLARE
         v_total_available DECIMAL;
-        v_weeks_to_advance INT;
-        v_remainder DECIMAL;
         v_target_amount DECIMAL;
     BEGIN
         v_target_amount := COALESCE((v_plan_metadata->>'target_amount')::DECIMAL, 3000);
-        v_total_available := v_current_week_total + p_amount;
+        v_total_available := v_current_week_total + v_net_amount;
         v_weeks_to_advance := FLOOR(v_total_available / v_target_amount)::INT;
         
         IF (v_weeks_completed + v_weeks_to_advance) >= 48 THEN
@@ -76,7 +78,7 @@ BEGIN
     -- Update Plan
     UPDATE user_plans
     SET 
-        current_balance = current_balance + p_amount,
+        current_balance = current_balance + v_net_amount,
         plan_metadata = jsonb_set(
             jsonb_set(
                 jsonb_set(v_plan_metadata, '{current_week_total}', to_jsonb(v_new_total)),
@@ -84,17 +86,20 @@ BEGIN
             ),
             '{last_activity}', to_jsonb(NOW())
         ),
+        status = 'active', 
+        start_date = COALESCE(start_date, NOW()),
         updated_at = NOW()
     WHERE id = p_plan_id;
     
-    -- Log Deposit Transaction
+    -- Log Deposit Transaction (Net)
     INSERT INTO transactions (user_id, plan_id, amount, type, status, description, charge)
-    VALUES (p_user_id, v_template_id, p_amount, 'deposit', 'completed', 'Anchor Deposit', 0);
+    VALUES (p_user_id, v_template_id, v_net_amount, 'deposit', 'completed', 'Anchor Deposit', 0);
 
     RETURN jsonb_build_object(
         'success', true, 
         'week_total', v_new_total,
-        'weeks_completed', v_weeks_completed
+        'weeks_completed', v_weeks_completed,
+        'fee_charged', v_fee
     );
 END;
 $$ LANGUAGE plpgsql;
@@ -111,24 +116,14 @@ DECLARE
     v_current_week_total DECIMAL;
     v_new_balance DECIMAL;
     v_arrears DECIMAL;
+    v_last_fee_date TIMESTAMPTZ;
 BEGIN
     SELECT * INTO r FROM user_plans WHERE id = p_user_plan_id;
     
     v_weeks_completed := COALESCE((r.plan_metadata->>'weeks_completed')::INT, 0);
     v_current_week_total := COALESCE((r.plan_metadata->>'current_week_total')::DECIMAL, 0);
     v_arrears := COALESCE((r.plan_metadata->>'arrears_amount')::DECIMAL, 0);
-
-    -- Logic:
-    -- If total >= 3000: Goal Met. Deduct Fee. Increment Week.
-    -- If total < 3000: Goal Missed. Deduct Penalty (500) from balance. Add Penalty to Arrears? 
-    -- Requirement: "Fee of 500 is to be deducted... from the already saved balance. The account should be kept on auto debit... deducting 3k without charge"
-    -- Interpretation: If missed, user pays nothing now. But Balance reduces by 500 (Real Loss). And next time they pay, we take 3k for this missed week? Or just arrears?
-    -- "Auto debit... deducting 3k... immediately there is a top up" implies Arrears = 3000 (the principal missed) + maybe the penalty?
-    -- Actually request says: "deducting 3k without the usual charge".
-    -- So:
-    -- 1. Deduct 500 Penalty from Balance.
-    -- 2. Add 3000 to Arrears (To be recovered).
-    -- 3. Week NOT incremented? Or Incremented? Usually in fixed duration, week increments even if missed. Let's increment.
+    v_last_fee_date := (r.plan_metadata->>'last_fee_date')::TIMESTAMPTZ;
 
     -- [NEW] Advance Payment Check
     DECLARE
@@ -150,21 +145,30 @@ BEGIN
 
     IF v_current_week_total >= 3000 THEN
         -- Success Case
-        v_fee := calculate_anchor_fee(v_current_week_total);
-        
+        -- Check if fee was already paid this week
+        IF v_last_fee_date IS NULL OR v_last_fee_date <= (now() - INTERVAL '1 week') THEN
+            v_fee := calculate_plan_service_charge(r.plan_id, v_current_week_total);
+            
+            UPDATE user_plans
+            SET current_balance = current_balance - v_fee
+            WHERE id = p_user_plan_id;
+
+            -- Log Fee & Credit Admin
+            PERFORM distribute_service_charge(r.user_id, r.plan_id, v_fee, 'Weekly Service Charge (Anchor)');
+
+            INSERT INTO transactions (user_id, plan_id, amount, type, status, description, charge)
+            VALUES (r.user_id, r.plan_id, v_fee, 'charge', 'completed', 'Weekly Service Charge (Anchor)', 0);
+        ELSE
+            v_fee := 0;
+        END IF;
+
         UPDATE user_plans
-        SET 
-            current_balance = current_balance - v_fee, -- Charge deducted from balance
-            plan_metadata = plan_metadata || jsonb_build_object(
+        SET plan_metadata = plan_metadata || jsonb_build_object(
                 'weeks_completed', v_weeks_completed + 1,
                 'current_week_total', 0,
                 'last_settlement_date', NOW()
             )
         WHERE id = p_user_plan_id;
-
-        -- Log Fee
-        INSERT INTO transactions (user_id, plan_id, amount, type, status, description, charge)
-        VALUES (r.user_id, r.plan_id, v_fee, 'charge', 'completed', 'Weekly Service Charge (Anchor)', 0);
         
         RETURN jsonb_build_object('status', 'success', 'fee', v_fee);
 
@@ -175,9 +179,9 @@ BEGIN
         SET 
             current_balance = current_balance - v_penalty,
             plan_metadata = plan_metadata || jsonb_build_object(
-                'weeks_completed', v_weeks_completed + 1, -- We move on, strict time
+                'weeks_completed', v_weeks_completed + 1, 
                 'current_week_total', 0,
-                'arrears_amount', v_arrears + 3000, -- Monitor this to recover 3k later
+                'arrears_amount', v_arrears + 3000, 
                 'last_settlement_date', NOW()
             )
         WHERE id = p_user_plan_id;

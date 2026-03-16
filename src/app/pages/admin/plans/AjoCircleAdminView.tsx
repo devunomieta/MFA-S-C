@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from "@/app/components/ui/input";
 import { Loader2, Calendar, Play, Settings } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
+import { ActionConfirmModal } from "@/app/components/ui/ActionConfirmModal";
 
 export function AjoCircleAdminView() {
     const [subscribers, setSubscribers] = useState<any[]>([]);
@@ -16,6 +17,8 @@ export function AjoCircleAdminView() {
     const [processing, setProcessing] = useState(false);
     const [newDuration, setNewDuration] = useState(10);
     const [newStartDate, setNewStartDate] = useState("");
+    const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+    const [confirmAction, setConfirmAction] = useState<{ title: string; desc: string; action: () => Promise<void> } | null>(null);
 
 
     useEffect(() => {
@@ -84,28 +87,43 @@ export function AjoCircleAdminView() {
     };
 
     const triggerWeeklySettlement = async () => {
-        if (!confirm("Are you sure you want to settle the week? This will apply penalties for missed payments and advance the week.")) return;
-        setProcessing(true);
-        const { error } = await supabase.rpc('settle_ajo_circle_week');
-        if (error) {
-            toast.error(`Settlement failed: ${error.message}`);
-        } else {
-            toast.success("Weekly settlement completed.");
-            fetchSubscribers();
-        }
-        setProcessing(false);
+        setConfirmAction({
+            title: "Settle Ajo Week",
+            desc: "Are you sure you want to settle the week? This will apply penalties for missed payments and advance the week.",
+            action: async () => {
+                setProcessing(true);
+                const { error } = await supabase.rpc('settle_ajo_circle_week');
+                if (error) {
+                    toast.error(`Settlement failed: ${error.message}`);
+                } else {
+                    toast.success("Weekly settlement completed.");
+                    fetchSubscribers();
+                }
+                setProcessing(false);
+                setIsConfirmOpen(false);
+            }
+        });
+        setIsConfirmOpen(true);
     };
 
     const triggerAutoSave = async () => {
-        setProcessing(true);
-        const { error } = await supabase.rpc('trigger_ajo_circle_auto_save');
-        if (error) {
-            toast.error(`Auto-Save failed: ${error.message}`);
-        } else {
-            toast.success("Auto-Save trigger executed. Check logs/results.");
-            fetchSubscribers();
-        }
-        setProcessing(false);
+        setConfirmAction({
+            title: "Trigger Ajo Auto-Save",
+            desc: "This will attempt to auto-debit funds from users' General Wallets for their Ajo contributions. Continue?",
+            action: async () => {
+                setProcessing(true);
+                const { error } = await supabase.rpc('trigger_ajo_circle_auto_save');
+                if (error) {
+                    toast.error(`Auto-Save failed: ${error.message}`);
+                } else {
+                    toast.success("Auto-Save trigger executed. Check logs/results.");
+                    fetchSubscribers();
+                }
+                setProcessing(false);
+                setIsConfirmOpen(false);
+            }
+        });
+        setIsConfirmOpen(true);
     };
 
     const updateSeasonConfig = async () => {
@@ -189,6 +207,17 @@ export function AjoCircleAdminView() {
                     </Button>
                 </div>
             </div>
+
+            <ActionConfirmModal
+                isOpen={isConfirmOpen}
+                onOpenChange={setIsConfirmOpen}
+                onConfirm={confirmAction?.action || (() => { })}
+                title={confirmAction?.title || "Confirm Action"}
+                description={confirmAction?.desc || "Are you sure?"}
+                confirmText="Proceed"
+                variant={confirmAction?.title.includes("Settle") ? "destructive" : "info"}
+                isLoading={processing}
+            />
 
             <Card>
                 <CardHeader>

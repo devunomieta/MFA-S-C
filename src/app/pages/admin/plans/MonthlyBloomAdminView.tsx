@@ -4,6 +4,7 @@ import { Button } from "@/app/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/app/components/ui/table";
 import { Badge } from "@/app/components/ui/badge";
 import { supabase } from "@/lib/supabase";
+import { ActionConfirmModal } from "@/app/components/ui/ActionConfirmModal";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
@@ -11,6 +12,9 @@ export function MonthlyBloomAdminView() {
     const [loading, setLoading] = useState(true);
     const [plans, setPlans] = useState<any[]>([]);
     const [processingId, setProcessingId] = useState<string | null>(null);
+    const [isSettleOpen, setIsSettleOpen] = useState(false);
+    const [isAutoSaveOpen, setIsAutoSaveOpen] = useState(false);
+    const [isProcessing, setIsProcessing] = useState(false);
 
     const fetchPlans = async () => {
         setLoading(true);
@@ -49,8 +53,8 @@ export function MonthlyBloomAdminView() {
     }, []);
 
     const handleSettleMonth = async () => {
-        if (!confirm("Are you sure you want to FORCE SETTLE the month? This should usually happen on the last day of the month.")) return;
         setProcessingId("settle");
+        setIsProcessing(true);
         try {
             const { data, error } = await supabase.rpc('settle_monthly_bloom_month');
             if (error) throw error;
@@ -60,21 +64,25 @@ export function MonthlyBloomAdminView() {
             toast.error(error.message);
         } finally {
             setProcessingId(null);
+            setIsProcessing(false);
+            setIsSettleOpen(false);
         }
     };
 
     const handleTriggerAutoSave = async () => {
         setProcessingId("autosave");
+        setIsProcessing(true);
         try {
             const { error } = await supabase.rpc('trigger_monthly_bloom_auto_save');
-            // Data is an array of results
             if (error) throw error;
-            toast.success(`Auto-Save Triggered.`);
+            toast.success(`Auto-Save Job Executed.`);
             fetchPlans();
         } catch (error: any) {
             toast.error(error.message);
         } finally {
             setProcessingId(null);
+            setIsProcessing(false);
+            setIsAutoSaveOpen(false);
         }
     };
 
@@ -111,7 +119,7 @@ export function MonthlyBloomAdminView() {
                         <Button
                             variant="outline"
                             size="sm"
-                            onClick={handleSettleMonth}
+                            onClick={() => setIsSettleOpen(true)}
                             disabled={!!processingId}
                             className="text-orange-600 border-orange-200 hover:bg-orange-50"
                         >
@@ -121,13 +129,35 @@ export function MonthlyBloomAdminView() {
                         <Button
                             variant="outline"
                             size="sm"
-                            onClick={handleTriggerAutoSave}
+                            onClick={() => setIsAutoSaveOpen(true)}
                             disabled={!!processingId}
                             className="text-blue-600 border-blue-200 hover:bg-blue-50"
                         >
                             {processingId === 'autosave' && <Loader2 className="w-3 h-3 animate-spin mr-1" />}
                             Trigger Auto-Save
                         </Button>
+
+                        <ActionConfirmModal
+                            isOpen={isSettleOpen}
+                            onOpenChange={setIsSettleOpen}
+                            onConfirm={handleSettleMonth}
+                            title="Force Month Settlement"
+                            description="Are you sure you want to FORCE SETTLE the month? This should usually happen on the last day of the month."
+                            confirmText="Settle Now"
+                            variant="warning"
+                            isLoading={isProcessing}
+                        />
+
+                        <ActionConfirmModal
+                            isOpen={isAutoSaveOpen}
+                            onOpenChange={setIsAutoSaveOpen}
+                            onConfirm={handleTriggerAutoSave}
+                            title="Trigger Auto-Save"
+                            description="Run AUTO-SAVE Logic for Monthly Bloom? It will attempt to cover deficits from General Wallet."
+                            confirmText="Run Now"
+                            variant="info"
+                            isLoading={isProcessing}
+                        />
                     </CardContent>
                 </Card>
             </div>

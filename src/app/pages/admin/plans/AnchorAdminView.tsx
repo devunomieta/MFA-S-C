@@ -14,6 +14,7 @@ import { Badge } from "@/app/components/ui/badge";
 import { Input } from "@/app/components/ui/input";
 import { Button } from "@/app/components/ui/button";
 import { Search, AlertTriangle, Play } from "lucide-react";
+import { ActionConfirmModal } from "@/app/components/ui/ActionConfirmModal";
 import { toast } from "sonner";
 
 interface AnchorAdminViewProps {
@@ -33,6 +34,10 @@ export function AnchorAdminView({ plan }: AnchorAdminViewProps) {
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
     const [processingId, setProcessingId] = useState<string | null>(null);
+    const [isAutoSaveOpen, setIsAutoSaveOpen] = useState(false);
+    const [isSettleOpen, setIsSettleOpen] = useState(false);
+    const [selectedUserPlanId, setSelectedUserPlanId] = useState<string | null>(null);
+    const [isProcessing, setIsProcessing] = useState(false);
 
     useEffect(() => {
         fetchSubscribers();
@@ -52,11 +57,15 @@ export function AnchorAdminView({ plan }: AnchorAdminViewProps) {
         setLoading(false);
     }
 
-    async function handleSettleWeek(userPlanId: string) {
-        if (!confirm("Force Settle Week for this user? This will check if they met the 3k target, apply fees or penalties, and reset their weekly counter. Only do this if you know what you are doing (e.g. testing or missed cron job).")) return;
+    async function handleSettleWeek() {
+        if (!selectedUserPlanId) return;
 
-        setProcessingId(userPlanId);
-        const { error, data } = await supabase.rpc('settle_anchor_week', { p_user_plan_id: userPlanId });
+        setProcessingId(selectedUserPlanId);
+        setIsProcessing(true);
+        const { error, data } = await supabase.rpc('settle_anchor_week', { p_user_plan_id: selectedUserPlanId });
+        setIsProcessing(false);
+        setIsSettleOpen(false);
+        setSelectedUserPlanId(null);
 
         if (error) {
             toast.error("Settlement Failed: " + error.message);
@@ -69,11 +78,10 @@ export function AnchorAdminView({ plan }: AnchorAdminViewProps) {
     }
 
     async function handleTriggerAutoSave() {
-        if (!confirm("Run AUTO-SAVE Logic? \n\nThis simulates the Sunday 6:00 AM Cron Job for THE ANCHOR.\nIt will check all active users, and if they haven't met the ₦3,000 target, it will attempt to pull funds from their General Wallet to avoid penalties.")) return;
-
-        setLoading(true);
+        setIsProcessing(true);
         const { data, error } = await supabase.rpc('trigger_anchor_auto_save');
-        setLoading(false);
+        setIsProcessing(false);
+        setIsAutoSaveOpen(false);
 
         if (error) {
             toast.error("Auto-Save Job Failed: " + error.message);
@@ -83,7 +91,7 @@ export function AnchorAdminView({ plan }: AnchorAdminViewProps) {
 
             toast.success(`Complete! Covered: ${covered.length}, Failed: ${failed.length}`, {
                 duration: 5000,
-                description: failed.length > 0 ? `Failed for: ${failed.map((f: any) => f.full_name).join(', ')}` : "All deficits covered."
+                description: failed.length > 0 ? `Failed for: ${failed.map((f: any) => f.user_full_name).join(', ')}` : "All deficits covered."
             });
             fetchSubscribers();
         }
@@ -109,13 +117,36 @@ export function AnchorAdminView({ plan }: AnchorAdminViewProps) {
                     <p className="text-sm text-indigo-700">Manual triggers. (Duration: 48 Weeks)</p>
                 </div>
                 <Button
-                    onClick={handleTriggerAutoSave}
+                    onClick={() => setIsAutoSaveOpen(true)}
                     variant="default"
                     className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                    disabled={isProcessing}
                 >
                     <Play className="w-4 h-4 mr-2" /> Trigger Sunday Auto-Save
                 </Button>
             </div>
+
+            <ActionConfirmModal
+                isOpen={isAutoSaveOpen}
+                onOpenChange={setIsAutoSaveOpen}
+                onConfirm={handleTriggerAutoSave}
+                title="Trigger Sunday Auto-Save"
+                description={`Run AUTO-SAVE Logic?\n\nThis simulates the Sunday 6:00 AM Cron Job for THE ANCHOR.\nIt will check all active users, and if they haven't met the ₦3,000 target, it will attempt to pull funds from their General Wallet to avoid penalties.`}
+                confirmText="Run Now"
+                variant="info"
+                isLoading={isProcessing}
+            />
+
+            <ActionConfirmModal
+                isOpen={isSettleOpen}
+                onOpenChange={setIsSettleOpen}
+                onConfirm={handleSettleWeek}
+                title="Force Week Settlement"
+                description="Force Settle Week for this user? This will check if they met the 3k target, apply fees or penalties, and reset their weekly counter. Only do this if you know what you are doing (e.g. testing or missed cron job)."
+                confirmText="Settle Now"
+                variant="destructive"
+                isLoading={isProcessing}
+            />
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Card>
@@ -240,8 +271,11 @@ export function AnchorAdminView({ plan }: AnchorAdminViewProps) {
                                                 variant="outline"
                                                 size="sm"
                                                 className="h-7 text-xs border-slate-200"
-                                                onClick={() => handleSettleWeek(sub.id)}
-                                                disabled={processingId === sub.id}
+                                                onClick={() => {
+                                                    setSelectedUserPlanId(sub.id);
+                                                    setIsSettleOpen(true);
+                                                }}
+                                                disabled={isProcessing}
                                             >
                                                 <Play className="w-3 h-3 mr-1" />
                                                 {processingId === sub.id ? "Settling..." : "Settle Week"}

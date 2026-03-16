@@ -13,10 +13,15 @@ SECURITY DEFINER
 AS $$
 DECLARE
     v_user_plan RECORD;
+    v_plan RECORD;
     v_new_balance NUMERIC;
     v_metadata JSONB;
     v_month_paid_so_far NUMERIC;
+    v_fee NUMERIC := 0;
+    v_net_amount NUMERIC;
+    v_last_fee_date TIMESTAMPTZ;
 BEGIN
+    -- Get User Plan
     SELECT * INTO v_user_plan FROM user_plans 
     WHERE id = p_plan_id AND user_id = p_user_id AND status IN ('active', 'pending_activation');
 
@@ -24,8 +29,32 @@ BEGIN
         RAISE EXCEPTION 'Active or Pending Plan not found';
     END IF;
 
+    -- Get Plan Template
+    SELECT * INTO v_plan FROM plans WHERE id = v_user_plan.plan_id;
+
     v_metadata := v_user_plan.plan_metadata;
-    
+    v_last_fee_date := (v_metadata->>'last_fee_date')::TIMESTAMPTZ;
+
+    -- Charge Logic: Immediate deduction if due
+    IF v_last_fee_date IS NULL OR v_last_fee_date <= (now() - INTERVAL '1 month') THEN
+        v_fee := calculate_plan_service_charge(v_user_plan.plan_id, (v_metadata->>'target_amount')::NUMERIC);
+        
+        IF p_amount < v_fee THEN
+            RAISE EXCEPTION 'This deposit must cover the Monthly Service Charge (%s)', v_fee;
+        END IF;
+        
+        v_metadata := jsonb_set(v_metadata, '{last_fee_date}', to_jsonb(now()));
+        
+        -- Distribute Fee to Admin
+        PERFORM distribute_service_charge(p_user_id, v_user_plan.plan_id, v_fee, 'Monthly Bloom Service Charge');
+        
+        -- Record Fee Transaction
+        INSERT INTO transactions (user_id, plan_id, amount, type, status, description, charge)
+        VALUES (p_user_id, v_user_plan.plan_id, v_fee, 'fee', 'completed', 'Monthly Service Charge (Immediate)', 0);
+    END IF;
+
+    v_net_amount := p_amount - v_fee;
+
     -- [NEW] Spread Logic
     DECLARE
         v_total_available NUMERIC;
@@ -38,7 +67,7 @@ BEGIN
         v_target_amount := COALESCE((v_metadata->>'target_amount')::NUMERIC, 20000);
         v_selected_duration := COALESCE((v_metadata->>'selected_duration')::INT, 10);
         v_months_done := COALESCE((v_metadata->>'months_completed')::INT, 0);
-        v_total_available := COALESCE((v_metadata->>'month_paid_so_far')::NUMERIC, 0) + p_amount;
+        v_total_available := COALESCE((v_metadata->>'month_paid_so_far')::NUMERIC, 0) + v_net_amount;
         
         v_months_to_advance := FLOOR(v_total_available / v_target_amount)::INT;
         
@@ -54,7 +83,7 @@ BEGIN
         v_metadata := jsonb_set(v_metadata, '{months_completed}', to_jsonb(v_months_done));
     END;
 
-    v_new_balance := v_user_plan.current_balance + p_amount;
+    v_new_balance := v_user_plan.current_balance + v_net_amount;
     
     -- [RESTORED] Update Plan
     UPDATE user_plans
@@ -70,14 +99,15 @@ BEGIN
         updated_at = NOW()
     WHERE id = p_plan_id;
 
-    -- Record Transaction
+    -- Record Deposit Transaction (Net)
     INSERT INTO transactions (user_id, plan_id, amount, type, status, description, charge)
-    VALUES (p_user_id, v_user_plan.plan_id, p_amount, 'deposit', 'completed', 'Monthly Bloom Contribution', 0);
+    VALUES (p_user_id, v_user_plan.plan_id, v_net_amount, 'deposit', 'completed', 'Monthly Bloom Contribution', 0);
 
     RETURN jsonb_build_object(
         'success', true,
         'new_balance', v_new_balance,
-        'month_paid_so_far', v_month_paid_so_far
+        'month_paid_so_far', v_month_paid_so_far,
+        'fee_charged', v_fee
     );
 END;
 $$;
@@ -99,7 +129,7 @@ DECLARE
     v_months_completed INTEGER;
     v_selected_duration INTEGER;
     v_arrears NUMERIC;
-    v_service_charge NUMERIC := 2000;
+    v_service_charge NUMERIC;
     v_count INTEGER := 0;
 BEGIN
     -- Get Plan ID
@@ -117,6 +147,9 @@ BEGIN
         v_months_completed := COALESCE((v_metadata->>'months_completed')::INTEGER, 0);
         v_selected_duration := COALESCE((v_metadata->>'selected_duration')::INTEGER, 4);
         v_arrears := COALESCE((v_metadata->>'arrears')::NUMERIC, 0);
+        
+        -- Calculate Service Charge dynamically
+        v_service_charge := calculate_plan_service_charge(v_plan.id, v_target_amount);
 
         -- 1. Deduct Service Charge (2000)
         -- Deducted from CURRENT BALANCE (already saved funds) per requirement
@@ -125,7 +158,9 @@ BEGIN
         SET current_balance = current_balance - v_service_charge
         WHERE id = v_user_plan.id;
 
-        -- Record Charge Transaction
+        -- Record Charge Transaction & Credit Admin
+        PERFORM distribute_service_charge(v_user_plan.user_id, v_user_plan.id, v_service_charge, 'Monthly Bloom Service Charge');
+
         INSERT INTO transactions (user_id, plan_id, amount, type, status, description, charge)
         VALUES (v_user_plan.user_id, v_user_plan.id, v_service_charge, 'service_charge', 'completed', 'Monthly Bloom Service Charge', 0);
 
@@ -195,9 +230,11 @@ $$;
 
 -- 3. Auto-Save (Last Day of Month)
 -- Retries every 6h (Managed by Cron Schedule, this function just attempts ONCE)
+DROP FUNCTION IF EXISTS trigger_monthly_bloom_auto_save();
 CREATE OR REPLACE FUNCTION trigger_monthly_bloom_auto_save()
 RETURNS TABLE (
     user_id UUID,
+    user_full_name TEXT,
     amount_covered NUMERIC,
     status TEXT
 )
@@ -212,6 +249,7 @@ DECLARE
     v_target_amount NUMERIC;
     v_deficit NUMERIC;
     v_wallet_balance NUMERIC;
+    v_full_name TEXT;
 BEGIN
     SELECT id INTO v_plan_id FROM plans WHERE type = 'monthly_bloom' LIMIT 1;
 
@@ -227,9 +265,21 @@ BEGIN
         v_deficit := v_target_amount - v_month_paid;
 
         IF v_deficit > 0 THEN
+            -- Get Profile Name
+            SELECT profiles.full_name INTO v_full_name FROM profiles WHERE id = v_user_plan.user_id;
+
             -- Check General Wallet
-            SELECT current_balance INTO v_wallet_balance FROM user_plans 
-            WHERE user_id = v_user_plan.user_id AND plan_id IS NULL; -- General Wallet
+            -- Standard balance lookup
+            SELECT COALESCE(SUM(
+                CASE
+                    WHEN type IN ('deposit', 'loan_disbursement', 'limit_transfer') AND status = 'completed' THEN amount
+                    WHEN type IN ('withdrawal', 'loan_repayment') AND status IN ('completed', 'pending') THEN -amount - COALESCE(charge, 0)
+                    WHEN type = 'transfer' AND status = 'completed' THEN -amount - COALESCE(charge, 0) 
+                    ELSE 0
+                END
+            ), 0) INTO v_wallet_balance
+            FROM transactions
+            WHERE transactions.user_id = v_user_plan.user_id AND plan_id IS NULL;
 
             IF v_wallet_balance >= v_deficit THEN
                 -- Debit Wallet
@@ -239,18 +289,20 @@ BEGIN
                 INSERT INTO transactions (user_id, amount, type, status, description, plan_id, charge)
                 VALUES (v_user_plan.user_id, v_deficit, 'debit', 'completed', 'Auto-Save: Monthly Bloom', NULL, 0);
 
-                -- Credit Plan
-                UPDATE user_plans SET 
-                    current_balance = current_balance + v_deficit,
-                    plan_metadata = jsonb_set(v_metadata, '{month_paid_so_far}', to_jsonb(v_month_paid + v_deficit))
-                WHERE id = v_user_plan.id;
+                -- Credit Plan (Pass the actual user_plan_id)
+                PERFORM process_monthly_bloom_deposit(v_deficit, v_user_plan.id, v_user_plan.user_id);
 
-                INSERT INTO transactions (user_id, amount, type, status, description, plan_id, charge)
-                VALUES (v_user_plan.user_id, v_deficit, 'deposit', 'completed', 'Auto-Save: Monthly Bloom', v_user_plan.id, 0);
-
-                RETURN QUERY SELECT v_user_plan.user_id, v_deficit, 'Covered';
+                user_id := v_user_plan.user_id;
+                user_full_name := v_full_name;
+                amount_covered := v_deficit;
+                status := 'Covered';
+                RETURN NEXT;
             ELSE
-                 RETURN QUERY SELECT v_user_plan.user_id, v_deficit, 'Insufficient Funds';
+                 user_id := v_user_plan.user_id;
+                 user_full_name := v_full_name;
+                 amount_covered := v_deficit;
+                 status := 'Insufficient Funds';
+                 RETURN NEXT;
             END IF;
         END IF;
     END LOOP;

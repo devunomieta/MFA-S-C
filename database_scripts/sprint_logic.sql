@@ -1,23 +1,6 @@
 -- Logic for "The Sprint" Plan
 
--- 1. Helper to Calculate Logic
-CREATE OR REPLACE FUNCTION calculate_sprint_fee(
-    p_amount NUMERIC,
-    p_tier_config JSONB
-) RETURNS NUMERIC AS $$
-DECLARE
-    v_tier JSONB;
-BEGIN
-    FOR v_tier IN SELECT * FROM jsonb_array_elements(p_tier_config)
-    LOOP
-        IF p_amount >= (v_tier->>'min')::NUMERIC AND p_amount <= (v_tier->>'max')::NUMERIC THEN
-            RETURN (v_tier->>'fee')::NUMERIC;
-        END IF;
-    END LOOP;
-    -- Default fallback if above max range (though last tier should cover it)
-    RETURN 500; 
-END;
-$$ LANGUAGE plpgsql;
+-- Fees are now handled by shared calculate_plan_service_charge function
 
 -- 2. Process Sprint Deposit (RPC)
 -- Called when user transfers to sprint plan
@@ -28,9 +11,13 @@ CREATE OR REPLACE FUNCTION process_sprint_deposit(
 ) RETURNS JSONB AS $$
 DECLARE
     v_user_plan RECORD;
+    v_plan RECORD;
     v_meta JSONB;
     v_week_total NUMERIC;
     v_new_balance NUMERIC;
+    v_fee NUMERIC := 0;
+    v_net_amount NUMERIC;
+    v_last_fee_date TIMESTAMPTZ;
 BEGIN
     -- Get User Plan
     SELECT * INTO v_user_plan FROM user_plans 
@@ -38,7 +25,31 @@ BEGIN
     
     IF NOT FOUND THEN RAISE EXCEPTION 'Active or Pending Sprint plan not found for user'; END IF;
 
+    -- Get Plan Template
+    SELECT * INTO v_plan FROM plans WHERE id = v_user_plan.plan_id;
+
     v_meta := v_user_plan.plan_metadata;
+    v_last_fee_date := (v_meta->>'last_fee_date')::TIMESTAMPTZ;
+
+    -- Charge Logic: Immediate deduction if due
+    IF v_last_fee_date IS NULL OR v_last_fee_date <= (now() - INTERVAL '1 week') THEN
+        v_fee := calculate_plan_service_charge(v_user_plan.plan_id, p_amount);
+        
+        IF p_amount < v_fee THEN
+            RAISE EXCEPTION 'This deposit must cover the Service Charge (%s)', v_fee;
+        END IF;
+        
+        v_meta := jsonb_set(v_meta, '{last_fee_date}', to_jsonb(now()));
+        
+        -- Distribute Fee to Admin
+        PERFORM distribute_service_charge(p_user_id, v_user_plan.plan_id, v_fee, 'Sprint Weekly Service Charge');
+        
+        -- Record Fee Transaction
+        INSERT INTO transactions (user_id, plan_id, amount, type, status, description, charge)
+        VALUES (p_user_id, v_user_plan.plan_id, v_fee, 'fee', 'completed', 'Weekly Service Charge (Immediate)', 0);
+    END IF;
+
+    v_net_amount := p_amount - v_fee;
     
     -- [NEW] Spread Logic
     DECLARE
@@ -52,7 +63,7 @@ BEGIN
         v_target_amount := COALESCE((v_meta->>'target_amount')::NUMERIC, 3000);
         v_selected_duration := COALESCE((v_meta->>'selected_duration')::INT, 12);
         v_weeks_done := COALESCE((v_meta->>'weeks_completed')::INT, 0);
-        v_total_available := COALESCE((v_meta->>'current_week_total')::NUMERIC, 0) + p_amount;
+        v_total_available := COALESCE((v_meta->>'current_week_total')::NUMERIC, 0) + v_net_amount;
         
         v_weeks_to_advance := FLOOR(v_total_available / v_target_amount)::INT;
 
@@ -68,7 +79,7 @@ BEGIN
         v_meta := jsonb_set(v_meta, '{weeks_completed}', to_jsonb(v_weeks_done));
     END;
     
-    v_new_balance := v_user_plan.current_balance + p_amount;
+    v_new_balance := v_user_plan.current_balance + v_net_amount;
     v_meta := jsonb_set(v_meta, '{last_deposit_date}', to_jsonb(now()));
 
     UPDATE user_plans 
@@ -80,15 +91,15 @@ BEGIN
         updated_at = now()
     WHERE id = v_user_plan.id;
 
-    -- Record Transaction
+    -- Record Deposit Transaction (Net)
     INSERT INTO transactions (
         user_id, plan_id, amount, type, description, reference, status
     ) VALUES (
-        p_user_id, v_user_plan.plan_id, p_amount, 'deposit', 
+        p_user_id, v_user_plan.plan_id, v_net_amount, 'deposit', 
         'Sprint Contribution', 'SPR-' || floor(extract(epoch from now())), 'completed'
     );
 
-    RETURN jsonb_build_object('success', true, 'new_balance', v_new_balance, 'week_total', v_week_total);
+    RETURN jsonb_build_object('success', true, 'new_balance', v_new_balance, 'week_total', v_week_total, 'fee_charged', v_fee);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -107,6 +118,7 @@ DECLARE
     v_new_balance NUMERIC;
     v_arrears NUMERIC := 0;
     v_weeks_done INT;
+    v_last_fee_date TIMESTAMPTZ;
 BEGIN
     SELECT * INTO v_up FROM user_plans WHERE id = p_user_plan_id;
     SELECT * INTO v_plan FROM plans WHERE id = v_up.plan_id;
@@ -116,19 +128,15 @@ BEGIN
     v_new_balance := v_up.current_balance;
     v_weeks_done := COALESCE((v_meta->>'weeks_completed')::INT, 0);
     v_arrears := COALESCE((v_meta->>'arrears_amount')::NUMERIC, 0);
+    v_last_fee_date := (v_meta->>'last_fee_date')::TIMESTAMPTZ;
 
     -- [NEW] Advance Payment Check
-    -- If weeks_completed is already ahead of schedule, we don't need to penalize or requirement check.
-    -- Schedule check: weeks_elapsed = floor(now - start_date)
     DECLARE
         v_weeks_elapsed INT;
     BEGIN
         v_weeks_elapsed := FLOOR(EXTRACT(EPOCH FROM (NOW() - v_up.start_date)) / 604800)::INT;
         
-        -- If user has already paid for more weeks than have elapsed...
         IF v_weeks_done > v_weeks_elapsed THEN
-            -- Skip settlement (or just increment week if needed? No, week is already advanced).
-            -- Actually, settlement resets the week's total, so we should still do that but skip penalty.
             v_meta := jsonb_set(v_meta, '{current_week_total}', '0');
             v_meta := jsonb_set(v_meta, '{last_settlement_date}', to_jsonb(now()));
             
@@ -138,19 +146,24 @@ BEGIN
     END;
 
     IF v_week_total >= 3000 THEN
-        -- Target Met: Deduct Fee
-        v_fee := calculate_sprint_fee(v_week_total, v_plan.config->'tiers');
-        v_new_balance := v_new_balance - v_fee;
-        
-        IF v_fee > 0 THEN
-             INSERT INTO transactions (user_id, plan_id, amount, type, description, status)
-             VALUES (v_up.user_id, v_up.plan_id, v_fee, 'fee', 'Weekly Service Charge', 'completed');
+        -- Target Met: Deduct Fee if not already paid
+        IF v_last_fee_date IS NULL OR v_last_fee_date <= (now() - INTERVAL '1 week') THEN
+            v_fee := calculate_plan_service_charge(v_plan.id, v_week_total);
+            v_new_balance := v_new_balance - v_fee;
+            
+            IF v_fee > 0 THEN
+                 -- Credit Admin Wallet
+                 PERFORM distribute_service_charge(v_up.user_id, v_up.plan_id, v_fee, 'Sprint Weekly Service Charge');
+
+                 INSERT INTO transactions (user_id, plan_id, amount, type, description, status)
+                 VALUES (v_up.user_id, v_up.plan_id, v_fee, 'fee', 'Weekly Service Charge', 'completed');
+            END IF;
         END IF;
 
     ELSE
         -- Target Missed: Deduct Penalty & Add to Arrears
         v_penalty := (v_plan.config->>'penalty_amount')::NUMERIC;
-        v_new_balance := v_new_balance - v_penalty; -- Can go negative or eat into savings? "Deducted from already saved balance"
+        v_new_balance := v_new_balance - v_penalty; 
         
         -- Add 3000 to arrears
         v_arrears := v_arrears + 3000;

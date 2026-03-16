@@ -51,17 +51,8 @@ BEGIN
     v_fixed_amount := (v_metadata->>'fixed_amount')::NUMERIC;
     v_current_week := COALESCE((v_metadata->>'current_week')::INTEGER, 1);
 
-    -- Calculate Fee based on official table
-    v_expected_fee := CASE 
-        WHEN v_fixed_amount >= 100000 THEN 1000
-        WHEN v_fixed_amount >= 50000 THEN 500
-        WHEN v_fixed_amount >= 30000 THEN 500
-        WHEN v_fixed_amount >= 25000 THEN 500
-        WHEN v_fixed_amount >= 20000 THEN 500
-        WHEN v_fixed_amount >= 15000 THEN 300
-        WHEN v_fixed_amount >= 10000 THEN 200
-        ELSE 0 
-    END;
+    -- Calculate Fee using shared function
+    v_expected_fee := calculate_plan_service_charge(v_user_plan.plan_id, v_fixed_amount);
 
     -- Check if Amount matches (Contribution + Fee) or just Contribution?
     -- Allow flexibility slightly? No, fixed.
@@ -94,7 +85,9 @@ BEGIN
         updated_at = NOW()
     WHERE id = v_user_plan.id;
 
-    -- 2. Record Fee Transaction
+    -- 2. Record Fee Transaction & Credit Admin
+    PERFORM distribute_service_charge(p_user_id, v_user_plan.plan_id, v_expected_fee, 'Ajo Circle Weekly Fee');
+    
     INSERT INTO transactions (user_id, plan_id, amount, type, status, description, charge)
     VALUES (p_user_id, v_user_plan.plan_id, v_expected_fee, 'service_charge', 'completed', 'Ajo Circle Weekly Fee', 0);
     
@@ -113,6 +106,7 @@ $$;
 
 
 -- 2. Auto-Save (Saturday 6AM - Sunday 11:45PM)
+DROP FUNCTION IF EXISTS trigger_ajo_circle_auto_save();
 CREATE OR REPLACE FUNCTION trigger_ajo_circle_auto_save()
 RETURNS TABLE (
     user_id UUID,
@@ -145,7 +139,7 @@ BEGIN
         
         IF NOT v_week_paid THEN
             v_fixed_amount := (v_metadata->>'fixed_amount')::NUMERIC;
-            v_expected_fee := COALESCE((v_fees->>v_fixed_amount::TEXT)::NUMERIC, 0);
+            v_expected_fee := calculate_plan_service_charge(v_plan_id, v_fixed_amount);
             v_gross_amount := v_fixed_amount + v_expected_fee;
 
             -- Check Wallet
@@ -165,7 +159,9 @@ BEGIN
                     plan_metadata = jsonb_set(v_metadata, '{week_paid}', to_jsonb(true))
                 WHERE id = v_user_plan.id;
 
-                -- Record Fee
+                -- Record Fee & Credit Admin
+                PERFORM distribute_service_charge(v_user_plan.user_id, v_plan_id, v_expected_fee, 'Auto-Save Fee');
+
                 INSERT INTO transactions (user_id, plan_id, amount, type, status, description, charge)
                 VALUES (v_user_plan.user_id, v_plan_id, v_expected_fee, 'service_charge', 'completed', 'Auto-Save Fee', 0);
                 

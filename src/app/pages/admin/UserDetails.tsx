@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/app/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
 import { ArrowLeft, CreditCard, Banknote, History } from "lucide-react";
+import { ActionConfirmModal } from "@/app/components/ui/ActionConfirmModal";
 
 
 export function AdminUserDetails() {
@@ -18,6 +19,8 @@ export function AdminUserDetails() {
     const [bankAccounts, setBankAccounts] = useState<any[]>([]);
     const [activityLogs, setActivityLogs] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+    const [confirmAction, setConfirmAction] = useState<{ title: string; desc: string; action: () => Promise<void> } | null>(null);
 
     useEffect(() => {
         if (id) fetchUserDetails();
@@ -279,13 +282,20 @@ export function AdminUserDetails() {
                                                 size="sm"
                                                 variant="destructive"
                                                 onClick={async () => {
-                                                    if (!confirm("Are you sure you want to remove this bank account? This cannot be undone.")) return;
-                                                    const { error } = await supabase.from('bank_accounts').delete().eq('id', acc.id);
-                                                    if (error) toast.error("Failed to delete");
-                                                    else {
-                                                        toast.success("Bank account removed");
-                                                        setBankAccounts(prev => prev.filter(p => p.id !== acc.id));
-                                                    }
+                                                    setConfirmAction({
+                                                        title: "Remove Bank Account",
+                                                        desc: "Are you sure you want to remove this bank account? This cannot be undone.",
+                                                        action: async () => {
+                                                            const { error } = await supabase.from('bank_accounts').delete().eq('id', acc.id);
+                                                            if (error) toast.error("Failed to delete");
+                                                            else {
+                                                                toast.success("Bank account removed");
+                                                                setBankAccounts(prev => prev.filter(p => p.id !== acc.id));
+                                                            }
+                                                            setIsConfirmOpen(false);
+                                                        }
+                                                    });
+                                                    setIsConfirmOpen(true);
                                                 }}
                                             >
                                                 Remove
@@ -329,6 +339,16 @@ export function AdminUserDetails() {
                     )}
                 </TabsContent>
             </Tabs>
+
+            <ActionConfirmModal
+                isOpen={isConfirmOpen}
+                onOpenChange={setIsConfirmOpen}
+                onConfirm={confirmAction?.action || (() => { })}
+                title={confirmAction?.title || "Confirm Action"}
+                description={confirmAction?.desc || "Are you sure?"}
+                confirmText="Proceed"
+                variant="destructive"
+            />
         </div >
     );
 }

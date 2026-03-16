@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/ta
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { AdminTransactionDetails } from "./AdminTransactionDetails";
+import { ActionConfirmModal } from "@/app/components/ui/ActionConfirmModal";
 
 export function AdminTransactions() {
     const [transactions, setTransactions] = useState<any[]>([]);
@@ -26,6 +27,9 @@ export function AdminTransactions() {
     const [rejectAction, setRejectAction] = useState<'reject' | 'refund_wallet'>('reject');
     const [refundAmount, setRefundAmount] = useState("");
     const [rejectReason, setRejectReason] = useState("");
+
+    const [isActionConfirmOpen, setIsActionConfirmOpen] = useState(false);
+    const [actionConfirmData, setActionConfirmData] = useState<{ title: string; desc: string; onConfirm: () => Promise<void> } | null>(null);
 
     useEffect(() => {
         fetchData();
@@ -92,55 +96,42 @@ export function AdminTransactions() {
         try {
             // Withdrawal Rejection Logic: Refund to Plan
             if (tx.type === 'withdrawal' && action === 'reject') {
-                if (!confirm(`Rejecting this withdrawal will refund $${tx.amount} back to the user's plan balance. Continue?`)) return;
-
-                if (tx.plan_id) {
-                    // Refetch plan balance to be safe or just increment
-                    const { error: refundError } = await supabase.rpc('increment_user_plan_balance', {
-                        p_user_id: tx.user_id,
-                        p_plan_id: tx.plan_id,
-                        p_amount: Number(tx.amount)
-                    });
-
-                    // Fallback if RPC doesn't exist (simpler direct update for now)
-                    if (refundError) {
-                        // Fetch current
-                        const { data: up } = await supabase.from('user_plans').select('current_balance').eq('user_id', tx.user_id).eq('plan_id', tx.plan_id).single();
-                        if (up) {
-                            await supabase.from('user_plans').update({ current_balance: up.current_balance + Number(tx.amount) }).eq('user_id', tx.user_id).eq('plan_id', tx.plan_id);
-                        }
+                setActionConfirmData({
+                    title: "Reject Withdrawal",
+                    desc: `Rejecting this withdrawal will refund $${tx.amount} back to the user's plan balance. Continue?`,
+                    onConfirm: async () => {
+                        await executeStatusUpdate(tx, action);
+                        setIsActionConfirmOpen(false);
                     }
-                } else if (!tx.plan_id) {
-                    // Refund to General Wallet? (Not tracked in DB explicitly, just sum of txs. So we just mark tx as failed. 
-                    // WAIT: General wallet balance is sum of completed txs. 
-                    // Withdrawal (pending) doesn't deduct from General Wallet usually until completed? 
-                    // Let's check Wallet.tsx: "performWithdrawal" -> Inserts 'withdrawal' (pending) -> DOES NOT UPDATE user_plans if general.
-                    // Actually Wallet.tsx calculates balance from ALL transactions.
-                    // If type='withdrawal' and status='pending', does it deduct? 
-                    // Wallet.tsx: "if (curr.type === 'withdrawal' ...) return acc - amt". 
-                    // YES, it subtracts withdrawals regardless of status if we look closely at logic?
-                    // Wallet.tsx: "if (curr.type === 'withdrawal' || curr.type === 'loan_repayment') return acc - amt - chg;"
-                    // It sums ALL txs? "const { data } = await supabase...select()...eq('user_id', user.id)"
-                    // It does NOT filter by status='completed' for general wallet in Wallet.tsx line 182 approx.
-                    // So Pending Withdrawal reduces balance.
-                    // So rejecting (setting status='failed') will naturally "refund" it because 'failed' txs should probably be excluded from balance calc?
-                    // Let's assume 'failed' status transactions are NOT included in Wallet Balance Calc. 
-                    // Wallet.tsx needs to be checked if it filters 'failed'. 
-                    // Checking Wallet.tsx line 177: "const generalTx = data.filter(tx => !tx.plan_id);"
-                    // Then sum. 
-                    // **CRITICAL**: We need to make sure 'failed' transactions are NOT included in Wallet Balance Calc.
-                    // Use 'failed' status for rejected withdrawals.
-                }
+                });
+                setIsActionConfirmOpen(true);
+                return;
             }
 
-            // Execute Status Update
-            const newStatus = action === 'confirm' ? 'completed' : 'failed';
-            const { error } = await supabase
-                .from('transactions')
-                .update({ status: newStatus })
-                .eq('id', tx.id);
+            await executeStatusUpdate(tx, action);
+        } catch (err: any) {
+            toast.error(`Failed to ${action}: ${err.message}`);
+        }
+    }
 
-            if (error) throw error;
+    async function executeStatusUpdate(tx: any, action: 'confirm' | 'reject') {
+        try {
+            if (tx.type === 'withdrawal' && action === 'reject' && tx.plan_id) {
+                // Refetch plan balance to be safe or just increment
+                const { error: refundError } = await supabase.rpc('increment_user_plan_balance', {
+                    p_user_id: tx.user_id,
+                    p_plan_id: tx.plan_id,
+                    p_amount: Number(tx.amount)
+                });
+
+                // Fallback if RPC doesn't exist
+                if (refundError) {
+                    const { data: up } = await supabase.from('user_plans').select('current_balance').eq('user_id', tx.user_id).eq('plan_id', tx.plan_id).single();
+                    if (up) {
+                        await supabase.from('user_plans').update({ current_balance: up.current_balance + Number(tx.amount) }).eq('user_id', tx.user_id).eq('plan_id', tx.plan_id);
+                    }
+                }
+            }
 
             // Deposit Confirm Logic: Update Plan Balance
             if (tx.type === 'deposit' && action === 'confirm' && tx.plan_id) {
@@ -665,6 +656,16 @@ export function AdminTransactions() {
                 onOpenChange={setDetailsOpen}
                 onApprove={(tx) => handleTransactionAction(tx, 'confirm')}
                 onReject={(tx) => handleTransactionAction(tx, 'reject')}
+            />
+
+            <ActionConfirmModal
+                isOpen={isActionConfirmOpen}
+                onOpenChange={setIsActionConfirmOpen}
+                onConfirm={actionConfirmData?.onConfirm || (async () => { })}
+                title={actionConfirmData?.title || "Confirm Action"}
+                description={actionConfirmData?.desc || "Are you sure?"}
+                confirmText="Proceed"
+                variant="destructive"
             />
         </div>
     );

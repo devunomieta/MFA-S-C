@@ -14,6 +14,7 @@ import { Badge } from "@/app/components/ui/badge";
 import { Input } from "@/app/components/ui/input";
 import { Button } from "@/app/components/ui/button";
 import { Search, Play, Calendar } from "lucide-react";
+import { ActionConfirmModal } from "@/app/components/ui/ActionConfirmModal";
 import { toast } from "sonner";
 
 interface DailyDropAdminViewProps {
@@ -32,6 +33,8 @@ export function DailyDropAdminView({ plan }: DailyDropAdminViewProps) {
     const [subscribers, setSubscribers] = useState<UserPlanWithProfile[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
+    const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+    const [isProcessing, setIsProcessing] = useState(false);
 
     useEffect(() => {
         fetchSubscribers();
@@ -52,11 +55,10 @@ export function DailyDropAdminView({ plan }: DailyDropAdminViewProps) {
     }
 
     async function handleTriggerAutoSave() {
-        if (!confirm("Run AUTO-DROP Logic? \n\nThis simulates the Daily 11:59PM Cron Job.\nIt will check all active users, and if they haven't made a deposit TODAY, it will attempt to pull their FIXED AMOUNT from their General Wallet.")) return;
-
-        setLoading(true);
+        setIsProcessing(true);
         const { data, error } = await supabase.rpc('trigger_daily_drop_auto_save');
-        setLoading(false);
+        setIsProcessing(false);
+        setIsConfirmOpen(false);
 
         if (error) {
             toast.error("Auto-Drop Job Failed: " + error.message);
@@ -66,7 +68,7 @@ export function DailyDropAdminView({ plan }: DailyDropAdminViewProps) {
 
             toast.success(`Complete! Covered: ${covered.length}, Failed: ${failed.length}`, {
                 duration: 5000,
-                description: failed.length > 0 ? `Failed for: ${failed.map((f: any) => f.full_name).join(', ')}` : "All deficits covered."
+                description: failed.length > 0 ? `Failed for: ${failed.map((f: any) => f.user_full_name).join(', ')}` : "All deficits covered."
             });
             fetchSubscribers();
         }
@@ -93,13 +95,25 @@ export function DailyDropAdminView({ plan }: DailyDropAdminViewProps) {
                     <p className="text-sm text-cyan-700">Daily Trigger (Run at 23:59)</p>
                 </div>
                 <Button
-                    onClick={handleTriggerAutoSave}
+                    onClick={() => setIsConfirmOpen(true)}
                     variant="default"
                     className="bg-cyan-600 hover:bg-cyan-700 text-white"
+                    disabled={isProcessing}
                 >
                     <Play className="w-4 h-4 mr-2" /> Trigger Daily Auto-Drop
                 </Button>
             </div>
+
+            <ActionConfirmModal
+                isOpen={isConfirmOpen}
+                onOpenChange={setIsConfirmOpen}
+                onConfirm={handleTriggerAutoSave}
+                title="Trigger Daily Auto-Drop"
+                description={`Run AUTO-DROP Logic?\n\nThis simulates the Daily 11:59PM Cron Job.\nIt will check all active users, and if they haven't made a deposit TODAY, it will attempt to pull their FIXED AMOUNT from their General Wallet.`}
+                confirmText="Run Now"
+                variant="info"
+                isLoading={isProcessing}
+            />
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Card>

@@ -484,13 +484,13 @@ export function Plans() {
 
             {/* Plan Details Modal */}
             <Dialog open={!!viewingPlan} onOpenChange={(open) => !open && setViewingPlan(null)}>
-                <DialogContent className="max-w-xl p-0 overflow-hidden bg-white dark:bg-gray-900 border-none shadow-2xl rounded-xl max-h-[95vh] flex flex-col">
+                <DialogContent className="max-w-xl p-0 overflow-y-auto bg-white dark:bg-gray-900 border-none shadow-2xl rounded-xl max-h-[95vh] flex flex-col">
                     <DialogHeader className="sr-only">
                         <DialogTitle>Plan details for {viewingPlan?.plan.name}</DialogTitle>
                         <DialogDescription>Rules and features of the selected plan.</DialogDescription>
                     </DialogHeader>
                     {viewingPlan && (
-                        <div className="w-full">
+                        <div className="w-full flex-1 overflow-hidden flex flex-col">
                             {viewingPlan.plan.type === 'marathon' && (
                                 <MarathonPlanCard
                                     plan={viewingPlan.plan}

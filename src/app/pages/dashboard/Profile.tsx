@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, Dialog
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
 import { User, KeyRound, UserCheck, Landmark, Shield, Mail } from "lucide-react";
 import { InputOTP, InputOTPGroup, InputOTPSeparator, InputOTPSlot } from "@/app/components/ui/input-otp";
+import { ActionConfirmModal } from "@/app/components/ui/ActionConfirmModal";
 import { validateFile, validatePassword } from "@/lib/validation";
 
 export function Profile() {
@@ -78,6 +79,9 @@ export function Profile() {
     const [newEmail, setNewEmail] = useState("");
     const [emailPassword, setEmailPassword] = useState("");
     const [updatingEmail, setUpdatingEmail] = useState(false);
+
+    const [isBankDeleteConfirmOpen, setIsBankDeleteConfirmOpen] = useState(false);
+    const [bankToDelete, setBankToDelete] = useState<string | null>(null);
 
     // Manual Recovery State
     const [showManualChange, setShowManualChange] = useState(false);
@@ -283,22 +287,29 @@ export function Profile() {
     }
 
     async function deleteBankAccount(id: string) {
-        if (!confirm("Are you sure you want to remove this account?")) return;
+        setBankToDelete(id);
+        setIsBankDeleteConfirmOpen(true);
+    }
 
-        const { error } = await supabase.from("bank_accounts").delete().eq("id", id);
+    async function confirmDeleteBankAccount() {
+        if (!bankToDelete) return;
+
+        const { error } = await supabase.from("bank_accounts").delete().eq("id", bankToDelete);
         if (error) {
             toast.error("Failed to remove bank account");
         } else {
             toast.success("Bank account removed");
-            setBankAccounts(bankAccounts.filter(acc => acc.id !== id));
+            setBankAccounts(bankAccounts.filter(acc => acc.id !== bankToDelete));
 
             // Log Activity
             supabase.from('activity_logs').insert({
                 user_id: user?.id,
                 action: 'BANK_DELETE',
-                details: { id }
+                details: { id: bankToDelete }
             });
         }
+        setBankToDelete(null);
+        setIsBankDeleteConfirmOpen(false);
     }
 
     async function updateProfile() {
@@ -1396,6 +1407,16 @@ export function Profile() {
                     )}
                 </DialogContent>
             </Dialog>
+
+            <ActionConfirmModal
+                isOpen={isBankDeleteConfirmOpen}
+                onOpenChange={setIsBankDeleteConfirmOpen}
+                onConfirm={confirmDeleteBankAccount}
+                title="Remove Bank Account"
+                description="Are you sure you want to remove this bank account? This action cannot be undone."
+                confirmText="Remove Account"
+                variant="destructive"
+            />
         </div>
     );
 }

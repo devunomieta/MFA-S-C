@@ -14,6 +14,7 @@ import { Badge } from "@/app/components/ui/badge";
 import { Input } from "@/app/components/ui/input";
 import { Button } from "@/app/components/ui/button";
 import { Search, AlertTriangle, Play } from "lucide-react";
+import { ActionConfirmModal } from "@/app/components/ui/ActionConfirmModal";
 import { toast } from "sonner";
 
 interface StepUpAdminViewProps {
@@ -27,12 +28,13 @@ interface UserPlanWithProfile extends UserPlan {
         email: string;
     };
 }
-
 export function StepUpAdminView({ plan }: StepUpAdminViewProps) {
     const [subscribers, setSubscribers] = useState<UserPlanWithProfile[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
-    // Removed unused processingId state as it wasn't used in the simplified handleSettleWeek
+    const [isSettleOpen, setIsSettleOpen] = useState(false);
+    const [isAutoSaveOpen, setIsAutoSaveOpen] = useState(false);
+    const [isProcessing, setIsProcessing] = useState(false);
 
     useEffect(() => {
         fetchSubscribers();
@@ -53,11 +55,12 @@ export function StepUpAdminView({ plan }: StepUpAdminViewProps) {
     }
 
     async function handleSettleWeek() {
-        if (!confirm("Force Settle Week for ALL active users? \n\nThis will check if they met their FIXED TARGET, apply charges or penalties, and reset their weekly counter. \n\nOnly do this if you know what you are doing (e.g. testing or missed Sunday cron job).")) return;
-
         setLoading(true);
+        setIsProcessing(true);
         const { error, data } = await supabase.rpc('settle_step_up_week');
         setLoading(false);
+        setIsProcessing(false);
+        setIsSettleOpen(false);
 
         if (error) {
             toast.error("Settlement Failed: " + error.message);
@@ -69,11 +72,12 @@ export function StepUpAdminView({ plan }: StepUpAdminViewProps) {
     }
 
     async function handleTriggerAutoSave() {
-        if (!confirm("Run AUTO-SAVE Logic? \n\nThis simulates the Sunday 6:00 AM Cron Job.\nIt will attempt to cover deficits from General Wallet.")) return;
-
         setLoading(true);
+        setIsProcessing(true);
         const { error } = await supabase.rpc('trigger_step_up_auto_save');
         setLoading(false);
+        setIsProcessing(false);
+        setIsAutoSaveOpen(false);
 
         if (error) {
             toast.error("Auto-Save Job Failed: " + error.message);
@@ -105,22 +109,46 @@ export function StepUpAdminView({ plan }: StepUpAdminViewProps) {
                 </div>
                 <div className="flex gap-2">
                     <Button
-                        onClick={handleSettleWeek}
+                        onClick={() => setIsSettleOpen(true)}
                         variant="destructive"
                         size="sm"
+                        disabled={isProcessing}
                     >
                         <Play className="w-4 h-4 mr-2" /> Force Week Settlement
                     </Button>
                     <Button
-                        onClick={handleTriggerAutoSave}
+                        onClick={() => setIsAutoSaveOpen(true)}
                         variant="default"
                         className="bg-purple-600 hover:bg-purple-700 text-white"
                         size="sm"
+                        disabled={isProcessing}
                     >
                         <Play className="w-4 h-4 mr-2" /> Trigger Auto-Save
                     </Button>
                 </div>
             </div>
+
+            <ActionConfirmModal
+                isOpen={isSettleOpen}
+                onOpenChange={setIsSettleOpen}
+                onConfirm={handleSettleWeek}
+                title="Force Week Settlement"
+                description={`Force Settle Week for ALL active users? \n\nThis will check if they met their FIXED TARGET, apply charges or penalties, and reset their weekly counter. \n\nOnly do this if you know what you are doing (e.g. testing or missed Sunday cron job).`}
+                confirmText="Settle All"
+                variant="destructive"
+                isLoading={isProcessing}
+            />
+
+            <ActionConfirmModal
+                isOpen={isAutoSaveOpen}
+                onOpenChange={setIsAutoSaveOpen}
+                onConfirm={handleTriggerAutoSave}
+                title="Trigger Auto-Save"
+                description={`Run AUTO-SAVE Logic?\n\nThis simulates the Sunday 6:00 AM Cron Job.\nIt will attempt to cover deficits from General Wallet.`}
+                confirmText="Run Now"
+                variant="info"
+                isLoading={isProcessing}
+            />
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Card>

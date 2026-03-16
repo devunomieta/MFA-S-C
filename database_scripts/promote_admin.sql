@@ -3,7 +3,7 @@
 
 UPDATE profiles
 SET is_admin = true
-WHERE email = 'admin@marysthrift.com'; -- CHANGE THIS EMAIL
+WHERE email = 'marysthriftservice@gmail.com';
 
 -- Verification
 SELECT * FROM profiles WHERE is_admin = true;

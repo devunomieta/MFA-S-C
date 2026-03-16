@@ -1,31 +1,6 @@
 -- MARATHON SAVINGS BACKEND LOGIC
 
--- 1. Helper: Calculate Fee based on Amount and Plan Config
--- Returns the fee amount.
-CREATE OR REPLACE FUNCTION calculate_marathon_fee(
-    p_amount NUMERIC,
-    p_plan_config JSONB,
-    p_selected_duration INT,
-    p_weeks_paid INT
-) RETURNS NUMERIC AS $$
-DECLARE
-    v_tier JSONB;
-    v_fee NUMERIC := 0;
-    v_remaining_weeks INT;
-BEGIN
-    -- Tier Logic
-    -- Loop through tiers to find match
-    FOR v_tier IN SELECT * FROM jsonb_array_elements(p_plan_config->'tiers')
-    LOOP
-        IF p_amount >= (v_tier->>'min')::NUMERIC AND p_amount <= (v_tier->>'max')::NUMERIC THEN
-            v_fee := (v_tier->>'fee')::NUMERIC;
-            EXIT; -- Found tier
-        END IF;
-    END LOOP;
-
-    RETURN v_fee;
-END;
-$$ LANGUAGE plpgsql;
+-- Fees are now handled by shared calculate_plan_service_charge function
 
 
 -- 2. Transaction Processor for Marathon
@@ -38,12 +13,13 @@ CREATE OR REPLACE FUNCTION process_marathon_deposit(
 DECLARE
     v_user_plan RECORD;
     v_plan RECORD;
-    v_fee NUMERIC;
+    v_fee NUMERIC := 0;
     v_net_amount NUMERIC;
     v_new_balance NUMERIC;
     v_weeks_paid INT;
     v_selected_duration INT;
     v_meta JSONB;
+    v_last_fee_date TIMESTAMPTZ;
 BEGIN
     -- Get User Plan (Allow active or pending_activation)
     SELECT * INTO v_user_plan FROM user_plans 
@@ -58,27 +34,42 @@ BEGIN
     v_meta := v_user_plan.plan_metadata;
     v_weeks_paid := COALESCE((v_meta->>'total_weeks_paid')::INT, 0);
     v_selected_duration := COALESCE((v_meta->>'selected_duration')::INT, v_plan.duration_weeks);
+    v_last_fee_date := (v_meta->>'last_fee_date')::TIMESTAMPTZ;
 
     -- Check if Plan is completed
     IF v_weeks_paid >= v_selected_duration THEN
         RAISE EXCEPTION 'Plan completed. No more deposits allowed.';
     END IF;
 
-    -- Calculate Fee
-    v_fee := calculate_marathon_fee(p_amount, v_plan.config, v_selected_duration, v_weeks_paid);
+    -- Charge Logic: Immediate deduction if due (Weekly)
+    IF v_last_fee_date IS NULL OR v_last_fee_date <= (now() - INTERVAL '1 week') THEN
+        v_fee := calculate_plan_service_charge(v_plan.id, p_amount);
+        
+        IF p_amount < v_fee THEN
+            RAISE EXCEPTION 'This deposit must cover the Service Charge (%s)', v_fee;
+        END IF;
+        
+        v_meta := jsonb_set(v_meta, '{last_fee_date}', to_jsonb(now()));
+        
+        -- Distribute Fee to Admin
+        PERFORM distribute_service_charge(p_user_id, v_user_plan.plan_id, v_fee, 'Marathon Weekly Service Charge');
+        
+        -- Record Fee Transaction
+        INSERT INTO transactions (user_id, plan_id, amount, type, status, description, charge)
+        VALUES (p_user_id, v_user_plan.plan_id, v_fee, 'fee', 'completed', 'Weekly Service Charge (Immediate)', 0);
+    END IF;
+
     v_net_amount := p_amount - v_fee;
 
     -- Update Balance and Metadata
     v_new_balance := v_user_plan.current_balance + v_net_amount;
     
     -- [NEW] Calculate how many weeks this payment covers (Auto-Spread)
-    -- Use dynamic target from metadata if available, otherwise default to 3000
-    -- Cap at selected_duration
     DECLARE
         v_base_target NUMERIC := COALESCE((v_meta->>'fixed_amount')::NUMERIC, 3000);
         v_new_weeks_done INT;
     BEGIN
-        v_new_weeks_done := v_weeks_paid + FLOOR(p_amount / v_base_target)::INT;
+        v_new_weeks_done := v_weeks_paid + FLOOR(v_net_amount / v_base_target)::INT;
         IF v_new_weeks_done > v_selected_duration THEN
             v_weeks_paid := v_selected_duration;
         ELSE
@@ -86,65 +77,28 @@ BEGIN
         END IF;
     END;
     
-    -- Ensure we don't exceed duration
-    IF v_weeks_paid > v_selected_duration THEN
-        v_weeks_paid := v_selected_duration;
-    END IF;
-    
     -- Update JSON metadata safely
     v_meta := jsonb_set(v_meta, '{total_weeks_paid}', to_jsonb(v_weeks_paid));
     v_meta := jsonb_set(v_meta, '{last_payment_date}', to_jsonb(now()));
     
-    -- TODO: Arrears calculation should be re-evaluated here or in a separate job
-    -- For now, we assume this deposit might clear one week of arrears if it existed
-
     UPDATE user_plans 
     SET 
         current_balance = v_new_balance,
         plan_metadata = v_meta,
-        status = 'active', -- Activate plan if it was pending
+        status = 'active', 
+        start_date = COALESCE(start_date, now()),
         updated_at = now()
     WHERE id = v_user_plan.id;
 
-    -- Record Transaction
+    -- Record Deposit Transaction (Net)
     INSERT INTO transactions (
-        user_id, 
-        plan_id, 
-        amount, 
-        type, 
-        description, 
-        reference, 
-        status
+        user_id, plan_id, amount, type, description, reference, status
     ) VALUES (
-        p_user_id,
-        v_user_plan.plan_id,
-        p_amount,
-        'deposit',
-        'Weekly Contribution (Week ' || v_weeks_paid || ')',
-        'MAR-' || floor(extract(epoch from now())),
-        'completed'
+        p_user_id, v_user_plan.plan_id, v_net_amount, 'deposit', 
+        'Weekly Contribution (Week ' || v_weeks_paid || ')', 
+        'MAR-' || floor(extract(epoch from now())), 'completed'
     );
     
-    -- If fee > 0, record fee transaction? 
-    -- Let's record the FEE separately for transparency.
-    IF v_fee > 0 THEN
-        INSERT INTO transactions (
-            user_id, 
-            plan_id, 
-            amount, 
-            type, 
-            description, 
-            status
-        ) VALUES (
-            p_user_id,
-            v_user_plan.plan_id,
-            v_fee,
-            'fee',
-            'Service Charge (Week ' || v_weeks_paid || ')',
-            'completed'
-        );
-    END IF;
-
     RETURN jsonb_build_object(
         'success', true, 
         'new_balance', v_new_balance, 
@@ -160,10 +114,11 @@ $$ LANGUAGE plpgsql;
 -- If they haven't paid for the "current chronological week" (determined by start_date vs now), try to deduct from Wallet.
 -- Marathon is flexible, but "Auto-Save" implies keeping up with the schedule.
 -- We assume "Schedule" = 1 week per week since start.
+DROP FUNCTION IF EXISTS trigger_marathon_auto_save();
 CREATE OR REPLACE FUNCTION trigger_marathon_auto_save()
 RETURNS TABLE (
     user_id UUID,
-    full_name TEXT,
+    user_full_name TEXT,
     amount_needed NUMERIC,
     status TEXT
 ) AS $$
@@ -173,7 +128,7 @@ DECLARE
     weeks_elapsed INT;
     weeks_paid INT;
     min_amount NUMERIC := 3000; -- Default min
-    p_profile RECORD;
+    v_full_name TEXT;
 BEGIN
     FOR r IN
         SELECT 
@@ -197,7 +152,7 @@ BEGIN
         IF weeks_elapsed > weeks_paid THEN
             
             -- Get Profile Name
-            SELECT full_name INTO p_profile FROM profiles WHERE id = r.user_id;
+            SELECT profiles.full_name INTO v_full_name FROM profiles WHERE id = r.user_id;
 
             -- Check General Wallet Balance
             SELECT COALESCE(SUM(
@@ -209,24 +164,24 @@ BEGIN
                 END
             ), 0) INTO wallet_bal
             FROM transactions
-            WHERE user_id = r.user_id AND plan_id IS NULL;
+            WHERE transactions.user_id = r.user_id AND plan_id IS NULL;
 
             IF wallet_bal >= min_amount THEN
                 -- Deduct from Wallet
                 INSERT INTO transactions (user_id, amount, type, status, description, plan_id, charge)
                 VALUES (r.user_id, min_amount, 'transfer', 'completed', 'Auto-Save for Marathon', NULL, 0);
 
-                -- Credit Marathon via RPC
-                PERFORM process_marathon_deposit(r.user_id, r.plan_id, min_amount);
+                -- Credit Marathon via RPC (USE user_plan_id)
+                PERFORM process_marathon_deposit(r.user_id, r.user_plan_id, min_amount);
 
                 user_id := r.user_id;
-                full_name := p_profile.full_name;
+                user_full_name := v_full_name;
                 amount_needed := min_amount;
                 status := 'Covered';
                 RETURN NEXT;
             ELSE
                  user_id := r.user_id;
-                 full_name := p_profile.full_name;
+                 user_full_name := v_full_name;
                  amount_needed := min_amount;
                  status := 'Insufficient Funds';
                  RETURN NEXT;

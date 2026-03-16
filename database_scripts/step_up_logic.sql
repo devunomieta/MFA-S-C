@@ -20,9 +20,13 @@ DECLARE
     v_total_available DECIMAL;
     v_target_amount DECIMAL;
     v_selected_duration INT;
+    v_plan_template_id UUID;
+    v_fee NUMERIC := 0;
+    v_net_amount NUMERIC;
+    v_last_fee_date TIMESTAMPTZ;
 BEGIN
     -- Get User Plan
-    SELECT id, plan_metadata INTO v_user_plan_id, v_plan_metadata
+    SELECT id, plan_metadata, plan_id INTO v_user_plan_id, v_plan_metadata, v_plan_template_id
     FROM user_plans
     WHERE id = p_plan_id AND user_id = p_user_id AND status IN ('active', 'pending_activation');
 
@@ -30,12 +34,34 @@ BEGIN
         RAISE EXCEPTION 'Active or Pending Step-Up plan not found for user';
     END IF;
 
+    v_last_fee_date := (v_plan_metadata->>'last_fee_date')::TIMESTAMPTZ;
+
+    -- Charge Logic: Immediate deduction if due (Weekly)
+    IF v_last_fee_date IS NULL OR v_last_fee_date <= (now() - INTERVAL '1 week') THEN
+        v_fee := calculate_plan_service_charge(v_plan_template_id, p_amount);
+        
+        IF p_amount < v_fee THEN
+            RAISE EXCEPTION 'This deposit must cover the Service Charge (%s)', v_fee;
+        END IF;
+        
+        v_plan_metadata := jsonb_set(v_plan_metadata, '{last_fee_date}', to_jsonb(now()));
+        
+        -- Distribute Fee to Admin
+        PERFORM distribute_service_charge(p_user_id, v_plan_template_id, v_fee, 'Step-Up Weekly Service Charge');
+        
+        -- Record Fee Transaction
+        INSERT INTO transactions (user_id, plan_id, amount, type, status, description, charge)
+        VALUES (p_user_id, v_plan_template_id, v_fee, 'fee', 'completed', 'Weekly Service Charge (Immediate)', 0);
+    END IF;
+
+    v_net_amount := p_amount - v_fee;
+
     v_target_amount := COALESCE((v_plan_metadata->>'fixed_amount')::DECIMAL, 5000);
     v_weeks_completed := COALESCE((v_plan_metadata->>'weeks_completed')::INT, 0);
     v_week_paid_so_far := COALESCE((v_plan_metadata->>'week_paid_so_far')::DECIMAL, 0);
     v_selected_duration := COALESCE((v_plan_metadata->>'selected_duration')::INT, 12);
     
-    v_total_available := v_week_paid_so_far + p_amount;
+    v_total_available := v_week_paid_so_far + v_net_amount;
     v_weeks_to_advance := FLOOR(v_total_available / v_target_amount)::INT;
     
     -- Implement Capping & Spread
@@ -52,11 +78,11 @@ BEGIN
     SET 
         status = 'active',
         start_date = COALESCE(start_date, NOW()),
-        current_balance = current_balance + p_amount,
+        current_balance = current_balance + v_net_amount,
         plan_metadata = jsonb_set(
             jsonb_set(
                 jsonb_set(
-                    plan_metadata,
+                    v_plan_metadata,
                     '{week_paid_so_far}',
                     to_jsonb(v_week_paid_so_far)
                 ),
@@ -69,27 +95,29 @@ BEGIN
         updated_at = NOW()
     WHERE id = v_user_plan_id;
 
-        -- Record Transaction
-        INSERT INTO transactions (user_id, plan_id, amount, type, status, description, charge)
-        SELECT p_user_id, plan_id, p_amount, 'deposit', 'completed', 'Step-Up Contribution', 0
-        FROM user_plans WHERE id = v_user_plan_id;
-        
-        RETURN json_build_object(
-            'success', true, 
-            'message', 'Deposit processed. Week progress updated.',
-            'week_paid', v_week_paid_so_far,
-            'target', v_target_amount
-        )::JSONB;
+    -- Record Deposit Transaction (Net)
+    INSERT INTO transactions (user_id, plan_id, amount, type, status, description, charge)
+    VALUES (p_user_id, v_plan_template_id, v_net_amount, 'deposit', 'completed', 'Step-Up Contribution', 0);
+    
+    RETURN json_build_object(
+        'success', true, 
+        'message', 'Deposit processed. Week progress updated.',
+        'week_paid', v_week_paid_so_far,
+        'target', v_target_amount,
+        'fee_charged', v_fee
+    )::JSONB;
 END;
 $$;
 
 -- 2. Trigger Auto-Save (Sunday 6am - 11:59pm)
 -- This function is called by the Admin Button (or cron)
+DROP FUNCTION IF EXISTS trigger_step_up_auto_save();
 CREATE OR REPLACE FUNCTION trigger_step_up_auto_save()
 RETURNS TABLE (
     user_id UUID,
-    status TEXT,
-    amount_deducted DECIMAL
+    user_full_name TEXT,
+    amount_deducted DECIMAL,
+    status TEXT
 )
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -101,14 +129,14 @@ DECLARE
     v_target DECIMAL;
     v_week_paid DECIMAL;
     v_deficit DECIMAL;
+    v_full_name TEXT;
 BEGIN
     -- Get Step-Up Plan ID
     SELECT id INTO v_plan_id FROM plans WHERE type = 'step_up' LIMIT 1;
     
     FOR r IN 
-        SELECT up.id AS user_plan_id, up.user_id, up.plan_metadata, p.balance 
+        SELECT up.id AS user_plan_id, up.user_id, up.plan_metadata 
         FROM user_plans up
-        JOIN profiles p ON up.user_id = p.id
         WHERE up.plan_id = v_plan_id AND up.status = 'active'
     LOOP
         v_target := (r.plan_metadata->>'fixed_amount')::DECIMAL;
@@ -117,6 +145,9 @@ BEGIN
         IF v_week_paid < v_target THEN
             v_deficit := v_target - v_week_paid;
             
+            -- Get Profile Name
+            SELECT profiles.full_name INTO v_full_name FROM profiles WHERE id = r.user_id;
+
             -- Check General Wallet Balance using centralized logic
             v_balance := get_wallet_balance(r.user_id, NULL);
             
@@ -125,17 +156,19 @@ BEGIN
                 INSERT INTO transactions (user_id, amount, type, status, description, plan_id, charge)
                 VALUES (r.user_id, v_deficit, 'transfer', 'completed', 'Auto-Save for Step-Up Week', NULL, 0);
 
-                -- Credit Step-Up
+                -- Credit Step-Up (USE user_plan_id)
                 PERFORM process_step_up_deposit(r.user_id, r.user_plan_id, v_deficit);
                 
                 user_id := r.user_id;
-                status := 'success';
+                user_full_name := v_full_name;
+                status := 'Covered';
                 amount_deducted := v_deficit;
                 RETURN NEXT;
             ELSE
-                 -- Log failed attempt (optional)
+                 -- Log failed attempt
                  user_id := r.user_id;
-                 status := 'insufficient_funds';
+                 user_full_name := v_full_name;
+                 status := 'Insufficient Funds';
                  amount_deducted := 0;
                  RETURN NEXT;
             END IF;
@@ -171,12 +204,8 @@ BEGIN
         v_week_paid := COALESCE((r.plan_metadata->>'week_paid_so_far')::DECIMAL, 0);
         
         -- Determine Charge based on Tier
-        IF v_target BETWEEN 5000 AND 10000 THEN v_charge := 200;
-        ELSIF v_target BETWEEN 15000 AND 20000 THEN v_charge := 300;
-        ELSIF v_target BETWEEN 25000 AND 30000 THEN v_charge := 400;
-        ELSIF v_target BETWEEN 40000 AND 50000 THEN v_charge := 500;
-        ELSE v_charge := 200; -- Fallback
-        END IF;
+        -- Calculate Service Charge dynamically
+        v_charge := calculate_plan_service_charge(v_plan_id, v_target);
 
         IF v_week_paid >= v_target THEN
             -- Success: Deduct Charge from PLAN BALANCE (as per requirement: "Charges are deducted from total of what they paid")
@@ -195,7 +224,9 @@ BEGIN
                 )
             WHERE id = r.id;
             
-            -- Log Charge Transaction
+            -- Record Charge Transaction & Credit Admin
+             PERFORM distribute_service_charge(r.user_id, r.id, v_charge, 'Step-Up Weekly Service Charge');
+
              INSERT INTO transactions (user_id, type, amount, description, status, plan_id)
              VALUES (r.user_id, 'service_charge', v_charge, 'Step-Up Weekly Service Charge', 'completed', v_plan_id);
 

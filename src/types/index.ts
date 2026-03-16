@@ -2,7 +2,11 @@ export interface Plan {
     id: string;
     name: string;
     description: string;
-    service_charge: number;
+    service_charge: number; // For compatibility, can be used as the 'fixed' amount
+    service_charge_type: 'fixed' | 'percentage' | 'tiered';
+    service_charge_fixed?: number;
+    service_charge_percentage?: number;
+    service_charge_tiers?: { min: number; max: number; fee: number }[];
     duration_weeks: number;
     duration_months: number;
     min_amount: number;

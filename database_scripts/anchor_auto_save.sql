@@ -1,10 +1,11 @@
 -- Function to be called via Cron (Sunday 6am, 12pm, 6pm, 11:59pm)
 -- Checks all Anchor users. If week total < 3000, tries to take from General Wallet.
 
+DROP FUNCTION IF EXISTS trigger_anchor_auto_save();
 CREATE OR REPLACE FUNCTION trigger_anchor_auto_save()
 RETURNS TABLE (
     user_id UUID,
-    full_name TEXT,
+    user_full_name TEXT,
     amount_needed NUMERIC,
     status TEXT
 ) AS $$
@@ -12,7 +13,7 @@ DECLARE
     r RECORD;
     wallet_bal NUMERIC;
     deficit NUMERIC;
-    p_profile RECORD;
+    v_full_name TEXT;
 BEGIN
     FOR r IN
         SELECT 
@@ -29,7 +30,7 @@ BEGIN
             deficit := 3000 - r.current_week_total;
 
             -- Get User Name for Report
-            SELECT full_name INTO p_profile FROM profiles WHERE id = r.user_id;
+            SELECT profiles.full_name INTO v_full_name FROM profiles WHERE id = r.user_id;
 
             -- 2. Check General Wallet Balance
             -- Helper query to check available funds
@@ -42,7 +43,7 @@ BEGIN
                 END
             ), 0) INTO wallet_bal
             FROM transactions
-            WHERE user_id = r.user_id AND plan_id IS NULL;
+            WHERE transactions.user_id = r.user_id AND plan_id IS NULL;
 
             -- 3. If funds available, transfer
             IF wallet_bal >= deficit THEN
@@ -50,17 +51,17 @@ BEGIN
                 INSERT INTO transactions (user_id, amount, type, status, description, plan_id, charge)
                 VALUES (r.user_id, deficit, 'transfer', 'completed', 'Auto-Save for Anchor (Sunday Check)', NULL, 0);
 
-                -- Credit Anchor via RPC
-                PERFORM process_anchor_deposit(r.user_id, r.plan_id, deficit);
+                -- Credit Anchor via RPC (Pass the actual user_plan_id)
+                PERFORM process_anchor_deposit(r.user_id, r.user_plan_id, deficit);
 
                 user_id := r.user_id;
-                full_name := p_profile.full_name;
+                user_full_name := v_full_name;
                 amount_needed := deficit;
                 status := 'Covered';
                 RETURN NEXT;
             ELSE
                  user_id := r.user_id;
-                 full_name := p_profile.full_name;
+                 user_full_name := v_full_name;
                  amount_needed := deficit;
                  status := 'Insufficient Funds';
                  RETURN NEXT;

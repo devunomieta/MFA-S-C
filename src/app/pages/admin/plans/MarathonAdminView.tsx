@@ -16,6 +16,7 @@ import { Search, AlertTriangle, CheckCircle, Clock } from "lucide-react";
 
 import { Button } from "@/app/components/ui/button";
 import { toast } from "sonner";
+import { ActionConfirmModal } from "@/app/components/ui/ActionConfirmModal";
 
 interface MarathonAdminViewProps {
     plan: Plan;
@@ -33,6 +34,8 @@ export function MarathonAdminView({ plan }: MarathonAdminViewProps) {
     const [subscribers, setSubscribers] = useState<UserPlanWithProfile[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
+    const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+    const [isProcessing, setIsProcessing] = useState(false);
 
     useEffect(() => {
         fetchSubscribers();
@@ -53,9 +56,10 @@ export function MarathonAdminView({ plan }: MarathonAdminViewProps) {
     }
 
     const handleTriggerAutoSave = async () => {
-        if (!confirm("This will attempt to auto-debit funds from the Wallet for ALL active Marathon users who are behind schedule.\n\nContinue?")) return;
-
+        setIsProcessing(true);
         const { data, error } = await supabase.rpc('trigger_marathon_auto_save');
+        setIsProcessing(false);
+        setIsConfirmOpen(false);
 
         if (error) {
             toast.error("Auto-Save failed: " + error.message);
@@ -86,12 +90,24 @@ export function MarathonAdminView({ plan }: MarathonAdminViewProps) {
                     <p className="text-sm text-emerald-700">Manual triggers. (30 or 48 Weeks)</p>
                 </div>
                 <Button
-                    onClick={handleTriggerAutoSave}
+                    onClick={() => setIsConfirmOpen(true)}
                     className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                    disabled={isProcessing}
                 >
                     <Clock className="w-4 h-4 mr-2" /> Trigger Auto-Save
                 </Button>
             </div>
+
+            <ActionConfirmModal
+                isOpen={isConfirmOpen}
+                onOpenChange={setIsConfirmOpen}
+                onConfirm={handleTriggerAutoSave}
+                title="Trigger Marathon Auto-Save"
+                description={`This will attempt to auto-debit funds from the Wallet for ALL active Marathon users who are behind schedule.\n\nThis simulates the recurring background job.`}
+                confirmText="Run Now"
+                variant="info"
+                isLoading={isProcessing}
+            />
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Card>

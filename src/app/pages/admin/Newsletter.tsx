@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { Mail, Send, CheckCircle, Clock } from "lucide-react";
 import { Switch } from "@/app/components/ui/switch";
 import { Badge } from "@/app/components/ui/badge";
+import { ActionConfirmModal } from "@/app/components/ui/ActionConfirmModal";
 
 export function AdminNewsletter() {
     const [loading, setLoading] = useState(false);
@@ -18,6 +19,7 @@ export function AdminNewsletter() {
     const [subject, setSubject] = useState("");
     const [content, setContent] = useState("");
     const [sendToAll, setSendToAll] = useState(true);
+    const [isConfirmOpen, setIsConfirmOpen] = useState(false);
     // const [selectedUsers, setSelectedUsers] = useState<string[]>([]); // For future: Multi-select users
 
     useEffect(() => {
@@ -42,7 +44,11 @@ export function AdminNewsletter() {
             return;
         }
 
-        if (!confirm(`Are you sure you want to send this email to ${sendToAll ? 'ALL USERS' : 'selected users'}? This action cannot be undone.`)) return;
+        setIsConfirmOpen(true);
+    }
+
+    async function confirmSend() {
+        setIsConfirmOpen(false);
 
         setLoading(true);
         try {
@@ -186,6 +192,17 @@ export function AdminNewsletter() {
                     </Card>
                 </div>
             </div>
+
+            <ActionConfirmModal
+                isOpen={isConfirmOpen}
+                onOpenChange={setIsConfirmOpen}
+                onConfirm={confirmSend}
+                title="Send Newsletter"
+                description={`Are you sure you want to send this email to ${sendToAll ? 'ALL USERS' : 'selected users'}? This action cannot be undone.`}
+                confirmText="Send Now"
+                variant="info"
+                isLoading={loading}
+            />
         </div>
     );
 }

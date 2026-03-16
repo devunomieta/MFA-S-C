@@ -162,12 +162,14 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose, initialAdvance
         }
 
         if (method === 'wallet') {
-            if (finalAmount > generalBalance) {
-                toast.error("Insufficient wallet balance");
+            if (totalDeduction > generalBalance) {
+                toast.error(`Insufficient wallet balance. You need ₦${formatCurrency(totalDeduction)} (incl. ₦${formatCurrency(fee)} fee)`);
+                setUploading(false);
                 return;
             }
             if (!selectedPlanId) {
                 toast.error("Please select a target plan for wallet transfer");
+                setUploading(false);
                 return;
             }
         }
@@ -234,13 +236,13 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose, initialAdvance
             const planType = selectedPlanObj?.plan?.type || selectedPlanObj?.type; // Safe access
 
             if (planType === 'marathon' || planType === 'sprint' || planType === 'anchor' || planType === 'step_up' || planType === 'monthly_bloom' || planType === 'ajo_circle' || planType === 'daily_drop') {
-                // 1. Deduct from General Wallet
+                // 1. Deduct from General Wallet (Include Fee)
                 const { error: deductError } = await supabase.from("transactions").insert({
                     user_id: user.id,
-                    amount: finalAmount,
+                    amount: totalDeduction,
                     type: 'transfer',
                     status: 'completed',
-                    description: `Transfer to ${selectedPlanObj?.plan?.name || 'Savings Plan'}`,
+                    description: `Transfer to ${selectedPlanObj?.plan?.name || 'Savings Plan'} (Incl. Service Charge)`,
                     plan_id: null,
                     charge: 0
                 });
@@ -251,7 +253,7 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose, initialAdvance
                     return;
                 }
 
-                // 2. Process Deposit via RPC
+                // 2. Process Deposit via RPC (Pass Gross Amount)
                 let rpcName = '';
                 if (planType === 'marathon') rpcName = 'process_marathon_deposit';
                 else if (planType === 'sprint') rpcName = 'process_sprint_deposit';
@@ -265,7 +267,7 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose, initialAdvance
                 const { data: rpcData, error: rpcError } = await supabase.rpc(rpcName, {
                     p_user_id: user.id,
                     p_plan_id: selectedPlanObj.id, // Mandatory: User Plan Primary Key
-                    p_amount: finalAmount
+                    p_amount: totalDeduction
                 });
 
                 if (rpcError) {
@@ -541,7 +543,7 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose, initialAdvance
         return Infinity;
     })();
 
-    const isExcess = planType === 'daily_drop' && amount && parseFloat(amount) > remainingToGoal && remainingToGoal !== Infinity;
+    const isExcess = Boolean(planType === 'daily_drop' && amount && parseFloat(amount) > remainingToGoal && remainingToGoal !== Infinity);
 
 
     useEffect(() => {
@@ -558,23 +560,28 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose, initialAdvance
 
     // Fee Logic for Ajo Circle - Specific table from User Review
     const getFee = () => {
-        if (selectedPlanObj?.plan?.type === 'ajo_circle' || selectedPlanObj?.type === 'ajo_circle') {
-            const amt = Number(amount) || mandatedAmount || 0;
+        if (!selectedPlanObj) return 0;
+        const plan = selectedPlanObj.plan || selectedPlanObj;
+        const amt = Number(amount) || mandatedAmount || 0;
 
-            // Explicit Ajo Fee Table
-            if (amt >= 100000) return 1000;
-            if (amt >= 50000) return 500;
-            if (amt >= 30000) return 500;
-            if (amt >= 25000) return 500;
-            if (amt >= 20000) return 500;
-            if (amt >= 15000) return 300;
-            if (amt >= 10000) return 200;
-
-            return 0;
+        if (plan.service_charge_type === 'percentage') {
+            return (amt * (plan.service_charge_percentage || 0)) / 100;
         }
-        return 0;
+
+        if (plan.service_charge_type === 'tiered' && plan.service_charge_tiers) {
+            const tiers = plan.service_charge_tiers as { min: number; max: number; fee: number }[];
+            const tier = tiers.find(t => amt >= t.min && (amt <= t.max || t.max === 0));
+            return tier ? tier.fee : 0;
+        }
+
+        // Default to fixed or existing service_charge
+        return Number(plan.service_charge_fixed || plan.service_charge || 0);
     };
     const fee = getFee();
+    // CRITICAL: Total deduction from WALLET is amount + fee
+    // But for the user, it often feels like fee is "inside" the deposit. 
+    // Requirement says: "immediately deducted during payments... MUST BE DEDUCTED immediately"
+    // So if they want to save 10k, we take 10k + fee.
     const totalDeduction = (Number(amount) || 0) + fee;
 
     return (
@@ -681,6 +688,19 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose, initialAdvance
                                     <span className="text-gray-700 dark:text-gray-300">Total Deduction</span>
                                     <span className="text-emerald-600 dark:text-emerald-400">₦{formatCurrency(totalDeduction)}</span>
                                 </div>
+                                {fee > 0 && (
+                                    <div className="mt-2 p-2 bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-800 rounded flex items-start gap-2">
+                                        <AlertTriangle className="w-3.5 h-3.5 text-amber-500 mt-0.5 shrink-0" />
+                                        <div className="space-y-1">
+                                            <p className="text-[10px] text-amber-700 dark:text-amber-400 leading-tight font-bold">
+                                                Deduction Notice
+                                            </p>
+                                            <p className="text-[10px] text-amber-600 dark:text-amber-500 leading-tight">
+                                                A service charge of ₦{formatCurrency(fee)} will be deducted immediately from your general wallet in addition to your contribution. Total: ₦{formatCurrency(totalDeduction)}.
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>
@@ -822,6 +842,19 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose, initialAdvance
                                     <span className="text-gray-700 dark:text-gray-300">Total Deduction</span>
                                     <span className="text-emerald-600 dark:text-emerald-400">₦{formatCurrency(totalDeduction)}</span>
                                 </div>
+                                {fee > 0 && (
+                                    <div className="mt-2 p-2 bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-800 rounded flex items-start gap-2">
+                                        <AlertTriangle className="w-3.5 h-3.5 text-amber-500 mt-0.5 shrink-0" />
+                                        <div className="space-y-1">
+                                            <p className="text-[10px] text-amber-700 dark:text-amber-400 leading-tight font-bold">
+                                                Immediate Deduction
+                                            </p>
+                                            <p className="text-[10px] text-amber-600 dark:text-amber-500 leading-tight">
+                                                ₦{formatCurrency(fee)} service charge + ₦{formatCurrency(Number(amount) || 0)} contribution will be deducted from your wallet.
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>
@@ -829,7 +862,7 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose, initialAdvance
                     <Button
                         onClick={() => handleDeposit('wallet')}
                         className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
-                        disabled={uploading || !amount || !selectedPlanId || generalBalance < parseFloat(amount || '0') || isExcess}
+                        disabled={uploading || !amount || !selectedPlanId || generalBalance < totalDeduction || isExcess}
                     >
                         {uploading ? 'Processing...' : isExcess ? 'Amount Exceeds Target' : 'Confirm Transfer'}
                     </Button>

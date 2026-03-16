@@ -495,7 +495,7 @@ export function DailyDropPlanCard({ plan, userPlan, onJoin, onRefresh, onDeposit
                 </p>
             </CardHeader>
 
-            <CardContent className="flex-1 space-y-6 pt-2">
+            <CardContent className="flex-1 space-y-6 pt-2 overflow-y-auto max-h-[60vh] custom-scrollbar">
                 {/* Input Section - Minimalist UI */}
                 <div className="space-y-4 pt-2">
                     <div className="space-y-1.5">
@@ -533,9 +533,33 @@ export function DailyDropPlanCard({ plan, userPlan, onJoin, onRefresh, onDeposit
                                 <div className="w-1 h-1 rounded-full bg-cyan-500" />
                                 Save small, fixed amounts every day
                             </li>
-                            <li className="flex items-center gap-2 text-xs text-cyan-700 dark:text-cyan-400">
-                                <div className="w-1 h-1 rounded-full bg-cyan-500" />
-                                1st payment & subsequent monthly drops serve as service fees
+                            <li className="flex flex-col gap-2 text-xs text-cyan-700 dark:text-cyan-400">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-1 h-1 rounded-full bg-cyan-500" />
+                                    Service Fee: {plan.service_charge_type === 'percentage' ? `${plan.service_charge_percentage}% of your daily drop` : 
+                                                  plan.service_charge_type === 'fixed' ? `₦${(plan.service_charge_fixed || plan.service_charge || 0).toLocaleString()}` : 
+                                                  'See table below'}
+                                </div>
+                                {plan.service_charge_type === 'tiered' && plan.service_charge_tiers && plan.service_charge_tiers.length > 0 && (
+                                    <div className="rounded border border-cyan-100 dark:border-cyan-800 overflow-hidden mt-1 mx-2">
+                                        <table className="w-full text-[10px] text-left">
+                                            <thead className="bg-cyan-100/50 dark:bg-cyan-900/40 font-bold text-cyan-800 dark:text-cyan-400">
+                                                <tr>
+                                                    <th className="px-2 py-1">Daily Amount</th>
+                                                    <th className="px-2 py-1 text-right">Fee</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-cyan-50 dark:divide-cyan-800 text-cyan-700 dark:text-cyan-400">
+                                                {plan.service_charge_tiers.map((tier: any, idx: number) => (
+                                                    <tr key={idx}>
+                                                        <td className="px-2 py-1">₦{formatCurrency(tier.min).replace('NGN', '').trim()} - {tier.max > 0 && tier.max < 9999999 ? `₦${formatCurrency(tier.max).replace('NGN', '').trim()}` : 'Above'}</td>
+                                                        <td className="px-2 py-1 text-right font-bold">₦{formatCurrency(tier.fee).replace('NGN', '').trim()}</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )}
                             </li>
                             <li className="flex items-center gap-2 text-xs text-cyan-700 dark:text-cyan-400">
                                 <div className="w-1 h-1 rounded-full bg-cyan-500" />
@@ -592,7 +616,13 @@ export function DailyDropPlanCard({ plan, userPlan, onJoin, onRefresh, onDeposit
                                 <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
                                 <p className="text-xs text-amber-800 dark:text-amber-400 leading-relaxed">
                                     <span className="font-bold uppercase tracking-tighter block mb-1">Monthly Service Fee</span>
-                                    Your first payment of <span className="font-bold">{formatCurrency(parseFloat(joinAmount))}</span> and subsequent monthly drops will be charged as service fees.
+                                    {plan.service_charge_type === 'percentage' ? (
+                                        <>Your first payment of <span className="font-bold">{formatCurrency((parseFloat(joinAmount) * (plan.service_charge_percentage || 100)) / 100)}</span> and subsequent monthly drops will be charged as service fees.</>
+                                    ) : plan.service_charge_type === 'fixed' ? (
+                                        <>A fixed monthly fee of <span className="font-bold">{formatCurrency(plan.service_charge_fixed || plan.service_charge || 0)}</span> will be charged.</>
+                                    ) : (
+                                        <>A tiered service fee will be applied based on your daily drop amount.</>
+                                    )}
                                 </p>
                             </div>
                         </AlertDialogDescription>

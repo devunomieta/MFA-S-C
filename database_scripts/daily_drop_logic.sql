@@ -39,8 +39,8 @@ BEGIN
     END IF;
 
     -- Charge Logic
-    -- Rule: "The selected fixed amount is automatically the charge and it's charged monthly."
-    -- We track last_fee_date in metadata.
+    -- Rule: Charges are applied monthly (including first payment).
+    -- Admin manages the charge amount via the plans table.
     
     DECLARE
         v_last_fee_date TIMESTAMPTZ;
@@ -48,7 +48,9 @@ BEGIN
         v_last_fee_date := (v_meta->>'last_fee_date')::TIMESTAMPTZ;
         
         IF v_last_fee_date IS NULL OR v_last_fee_date <= (now() - INTERVAL '1 month') THEN
-            v_fee := v_fixed_amount;
+            -- Use dynamic charge calculation
+            v_fee := calculate_plan_service_charge(v_user_plan.plan_id, v_fixed_amount);
+            
             v_meta := jsonb_set(v_meta, '{last_fee_date}', to_jsonb(now()));
             
             IF p_amount < v_fee THEN
@@ -100,6 +102,9 @@ BEGIN
     );
 
     IF v_fee > 0 THEN
+         -- Credit Admin Wallet
+         PERFORM distribute_service_charge(p_user_id, v_user_plan.plan_id, v_fee, 'Daily Drop Service Charge');
+
          INSERT INTO transactions (
             user_id, plan_id, amount, type, description, status
         ) VALUES (
@@ -124,10 +129,11 @@ $$ LANGUAGE plpgsql;
 -- Logic: If last_payment_date < Today (beginning of day), then they haven't paid today.
 -- OR: We assume "Daily" means simply they must increment their day count every 24h.
 -- "Deposit must be made daily before 11:59PM - if no deposit, general wallet will auto debit".
+DROP FUNCTION IF EXISTS trigger_daily_drop_auto_save();
 CREATE OR REPLACE FUNCTION trigger_daily_drop_auto_save()
 RETURNS TABLE (
     user_id UUID,
-    full_name TEXT,
+    user_full_name TEXT,
     amount_deducted NUMERIC,
     status TEXT
 ) AS $$
@@ -136,7 +142,7 @@ DECLARE
     v_fixed_amount NUMERIC;
     v_last_payment TIMESTAMPTZ;
     v_wallet_bal NUMERIC;
-    p_profile RECORD;
+    v_full_name TEXT;
 BEGIN
     FOR r IN
         SELECT 
@@ -153,14 +159,13 @@ BEGIN
         v_last_payment := (r.plan_metadata->>'last_payment_date')::TIMESTAMPTZ;
         
         -- If Last Payment was BEFORE Today (i.e., Yesterday or earlier)
-        -- AND it is currently past 23:58 (or we assume this job triggers at 23:59 or next day 00:01)
         -- Simplifying: If they haven't made a payment strictly TODAY.
         
         IF v_last_payment IS NULL OR v_last_payment < current_date THEN
              -- Attempt Debit
              
-             -- Get Profile
-             SELECT full_name INTO p_profile FROM profiles WHERE id = r.user_id;
+             -- Get Profile Name
+             SELECT profiles.full_name INTO v_full_name FROM profiles WHERE id = r.user_id;
              
               -- Check Wallet
             SELECT COALESCE(SUM(
@@ -172,24 +177,24 @@ BEGIN
                 END
             ), 0) INTO v_wallet_bal
             FROM transactions
-            WHERE user_id = r.user_id AND plan_id IS NULL;
+            WHERE transactions.user_id = r.user_id AND plan_id IS NULL;
             
             IF v_wallet_bal >= v_fixed_amount THEN
                 -- Debit Wallet
                 INSERT INTO transactions (user_id, amount, type, status, description, plan_id, charge)
                 VALUES (r.user_id, v_fixed_amount, 'transfer', 'completed', 'Auto-Drop from Wallet', NULL, 0);
                 
-                -- Credit Plan
-                PERFORM process_daily_drop_deposit(r.user_id, r.plan_id, v_fixed_amount);
+                -- Credit Plan (USE user_plan_id)
+                PERFORM process_daily_drop_deposit(r.user_id, r.user_plan_id, v_fixed_amount);
                 
                 user_id := r.user_id;
-                full_name := p_profile.full_name;
+                user_full_name := v_full_name;
                 amount_deducted := v_fixed_amount;
                 status := 'Covered';
                 RETURN NEXT;
             ELSE
                  user_id := r.user_id;
-                 full_name := p_profile.full_name;
+                 user_full_name := v_full_name;
                  amount_deducted := v_fixed_amount;
                  status := 'Insufficient Funds';
                  RETURN NEXT;

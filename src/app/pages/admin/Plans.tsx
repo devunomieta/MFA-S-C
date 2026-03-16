@@ -24,6 +24,7 @@ import { DailyDropAdminView } from "./plans/DailyDropAdminView";
 import { StepUpAdminView } from "./plans/StepUpAdminView";
 import { MonthlyBloomAdminView } from "./plans/MonthlyBloomAdminView";
 import { AjoCircleAdminView } from "./plans/AjoCircleAdminView";
+import { ActionConfirmModal } from "@/app/components/ui/ActionConfirmModal";
 import { Plan } from "@/types";
 
 export function AdminPlans() {
@@ -31,6 +32,8 @@ export function AdminPlans() {
     const [loading, setLoading] = useState(true);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingPlan, setEditingPlan] = useState<any>(null);
+    const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+    const [confirmAction, setConfirmAction] = useState<{ title: string; desc: string; action: () => Promise<void> } | null>(null);
 
     // Form State
     const [formData, setFormData] = useState({
@@ -38,6 +41,10 @@ export function AdminPlans() {
         min_amount: "",
         duration_weeks: "",
         service_charge: "",
+        service_charge_type: "fixed", // 'fixed', 'percentage', 'tiered'
+        service_charge_fixed: "",
+        service_charge_percentage: "",
+        service_charge_tiers: [] as { min: number; max: number; fee: number }[],
         description: "",
         whatsapp_link: "",
         contribution_type: "flexible", // 'fixed' or 'flexible'
@@ -74,6 +81,10 @@ export function AdminPlans() {
             min_amount: "",
             duration_weeks: "",
             service_charge: "",
+            service_charge_type: "fixed",
+            service_charge_fixed: "",
+            service_charge_percentage: "",
+            service_charge_tiers: [],
             description: "",
             whatsapp_link: "",
             contribution_type: "flexible",
@@ -90,6 +101,10 @@ export function AdminPlans() {
             min_amount: plan.min_amount || "",
             duration_weeks: plan.duration_weeks || "",
             service_charge: plan.service_charge,
+            service_charge_type: plan.service_charge_type || "fixed",
+            service_charge_fixed: plan.service_charge_fixed || plan.service_charge || "",
+            service_charge_percentage: plan.service_charge_percentage || "",
+            service_charge_tiers: plan.service_charge_tiers || [],
             description: plan.description || "",
             whatsapp_link: plan.whatsapp_link || "",
             contribution_type: plan.contribution_type || "flexible",
@@ -100,15 +115,21 @@ export function AdminPlans() {
     };
 
     const handleDelete = async (planId: string) => {
-        if (!confirm("Are you sure? This will hide the plan from new users.")) return;
-
-        const { error } = await supabase.from('plans').delete().eq('id', planId);
-        if (error) {
-            toast.error("Cannot delete plan. It likely has active subscribers.");
-        } else {
-            toast.success("Plan deleted.");
-            fetchPlans();
-        }
+        setConfirmAction({
+            title: "Delete Plan",
+            desc: "Are you sure? This will hide the plan from new users.",
+            action: async () => {
+                const { error } = await supabase.from('plans').delete().eq('id', planId);
+                if (error) {
+                    toast.error("Cannot delete plan. It likely has active subscribers.");
+                } else {
+                    toast.success("Plan deleted.");
+                    fetchPlans();
+                }
+                setIsConfirmOpen(false);
+            }
+        });
+        setIsConfirmOpen(true);
     };
 
     const handleToggleVisibility = async (plan: any) => {
@@ -128,19 +149,25 @@ export function AdminPlans() {
     };
 
     const handleResetPlan = async (plan: any) => {
-        if (!confirm(`WARNING: This will remove ALL ${plan.subscriber_count} subscribers from "${plan.name}".\n\nThey will be removed from the plan and their progress resets. Funds are NOT automatically refunded (handled separately). \n\nContinue?`)) return;
+        setConfirmAction({
+            title: "Reset Plan Subscribers",
+            desc: `WARNING: This will remove ALL ${plan.subscriber_count} subscribers from "${plan.name}".\n\nThey will be removed from the plan and their progress resets. Funds are NOT automatically refunded (handled separately). \n\nContinue?`,
+            action: async () => {
+                const { error } = await supabase
+                    .from('user_plans')
+                    .delete()
+                    .eq('plan_id', plan.id);
 
-        const { error } = await supabase
-            .from('user_plans')
-            .delete()
-            .eq('plan_id', plan.id);
-
-        if (error) {
-            toast.error("Failed to reset plan: " + error.message);
-        } else {
-            toast.success("All users removed from plan.");
-            fetchPlans();
-        }
+                if (error) {
+                    toast.error("Failed to reset plan: " + error.message);
+                } else {
+                    toast.success("All users removed from plan.");
+                    fetchPlans();
+                }
+                setIsConfirmOpen(false);
+            }
+        });
+        setIsConfirmOpen(true);
     };
 
     const handleSubmit = async () => {
@@ -149,7 +176,11 @@ export function AdminPlans() {
             min_amount: Number(formData.min_amount),
             duration_weeks: Number(formData.duration_weeks),
             duration_months: Math.ceil(Number(formData.duration_weeks) / 4), // Fallback
-            service_charge: Number(formData.service_charge),
+            service_charge: Number(formData.service_charge_fixed || formData.service_charge), // Backwards compatibility
+            service_charge_type: formData.service_charge_type,
+            service_charge_fixed: formData.service_charge_fixed ? Number(formData.service_charge_fixed) : null,
+            service_charge_percentage: formData.service_charge_percentage ? Number(formData.service_charge_percentage) : null,
+            service_charge_tiers: formData.service_charge_type === 'tiered' ? formData.service_charge_tiers : null,
             description: formData.description,
             whatsapp_link: formData.whatsapp_link,
             contribution_type: formData.contribution_type,
@@ -273,8 +304,8 @@ export function AdminPlans() {
                                         <div className="col-span-2 p-3 bg-amber-50 text-amber-800 text-xs border border-amber-200 rounded flex items-center gap-2">
                                             <Settings className="w-4 h-4" />
                                             <span>
-                                                <strong>Specialized Plan:</strong> Core configuration (Pricing, Duration) is managed via code.
-                                                You can only edit the Description and WhatsApp Link.
+                                                <strong>Specialized Plan:</strong> Core configuration (Pricing, Duration) is managed via code. 
+                                                You can edit the <strong>Service Charges</strong>, Description and WhatsApp Link.
                                             </span>
                                         </div>
                                     )}
@@ -319,14 +350,125 @@ export function AdminPlans() {
                                             disabled={editingPlan && editingPlan.type !== 'standard'}
                                         />
                                     </div>
-                                    <div className="space-y-2">
-                                        <Label>Service Charge ($)</Label>
-                                        <Input
-                                            type="number"
-                                            value={formData.service_charge}
-                                            onChange={e => setFormData({ ...formData, service_charge: e.target.value })}
-                                            disabled={editingPlan && editingPlan.type !== 'standard'}
-                                        />
+                                    <div className="space-y-4 col-span-2 border-t pt-4 mt-2">
+                                        <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                                            <Activity className="w-4 h-4 text-emerald-600" />
+                                            Dynamic Service Charges
+                                        </h3>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <Label>Charge Type</Label>
+                                                <Select
+                                                    value={formData.service_charge_type}
+                                                    onValueChange={(val: any) => setFormData({ ...formData, service_charge_type: val })}
+                                                >
+                                                    <SelectTrigger><SelectValue /></SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="fixed">Fixed Amount</SelectItem>
+                                                        <SelectItem value="percentage">Percentage Rate</SelectItem>
+                                                        <SelectItem value="tiered">Tiered (Amount Range)</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+
+                                            {formData.service_charge_type === 'fixed' && (
+                                                <div className="space-y-2 animate-in slide-in-from-left-2 duration-300">
+                                                    <Label>Fixed Fee ($)</Label>
+                                                    <Input
+                                                        type="number"
+                                                        value={formData.service_charge_fixed}
+                                                        onChange={e => setFormData({ ...formData, service_charge_fixed: e.target.value })}
+                                                        placeholder="e.g. 500"
+                                                    />
+                                                </div>
+                                            )}
+
+                                            {formData.service_charge_type === 'percentage' && (
+                                                <div className="space-y-2 animate-in slide-in-from-left-2 duration-300">
+                                                    <Label>Charge Rate (%)</Label>
+                                                    <Input
+                                                        type="number"
+                                                        value={formData.service_charge_percentage}
+                                                        onChange={e => setFormData({ ...formData, service_charge_percentage: e.target.value })}
+                                                        placeholder="e.g. 2.5"
+                                                    />
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {formData.service_charge_type === 'tiered' && (
+                                            <div className="space-y-3 animate-in fade-in duration-500 bg-slate-50 p-3 rounded-lg border border-slate-200">
+                                                <div className="flex justify-between items-center">
+                                                    <Label className="text-xs font-bold uppercase text-slate-500">Charge Tiers</Label>
+                                                    <Button 
+                                                        size="sm" 
+                                                        variant="outline" 
+                                                        className="h-7 text-[10px]"
+                                                        onClick={() => setFormData({
+                                                            ...formData,
+                                                            service_charge_tiers: [...formData.service_charge_tiers, { min: 0, max: 0, fee: 0 }]
+                                                        })}
+                                                    >
+                                                        Add Tier
+                                                    </Button>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    {formData.service_charge_tiers.map((tier, index) => (
+                                                        <div key={index} className="flex items-center gap-2">
+                                                            <div className="flex-1 grid grid-cols-3 gap-2">
+                                                                <Input 
+                                                                    type="number" 
+                                                                    placeholder="Min" 
+                                                                    className="h-8 text-xs"
+                                                                    value={tier.min}
+                                                                    onChange={e => {
+                                                                        const newTiers = [...formData.service_charge_tiers];
+                                                                        newTiers[index].min = Number(e.target.value);
+                                                                        setFormData({ ...formData, service_charge_tiers: newTiers });
+                                                                    }}
+                                                                />
+                                                                <Input 
+                                                                    type="number" 
+                                                                    placeholder="Max" 
+                                                                    className="h-8 text-xs"
+                                                                    value={tier.max}
+                                                                    onChange={e => {
+                                                                        const newTiers = [...formData.service_charge_tiers];
+                                                                        newTiers[index].max = Number(e.target.value);
+                                                                        setFormData({ ...formData, service_charge_tiers: newTiers });
+                                                                    }}
+                                                                />
+                                                                <Input 
+                                                                    type="number" 
+                                                                    placeholder="Fee" 
+                                                                    className="h-8 text-xs"
+                                                                    value={tier.fee}
+                                                                    onChange={e => {
+                                                                        const newTiers = [...formData.service_charge_tiers];
+                                                                        newTiers[index].fee = Number(e.target.value);
+                                                                        setFormData({ ...formData, service_charge_tiers: newTiers });
+                                                                    }}
+                                                                />
+                                                            </div>
+                                                            <Button 
+                                                                variant="ghost" 
+                                                                size="icon" 
+                                                                className="h-8 w-8 text-red-500"
+                                                                onClick={() => {
+                                                                    const newTiers = formData.service_charge_tiers.filter((_, i) => i !== index);
+                                                                    setFormData({ ...formData, service_charge_tiers: newTiers });
+                                                                }}
+                                                            >
+                                                                <Trash2 className="h-3.5 w-3.5" />
+                                                            </Button>
+                                                        </div>
+                                                    ))}
+                                                    {formData.service_charge_tiers.length === 0 && (
+                                                        <p className="text-[10px] text-slate-400 italic text-center">No tiers added. Add a tier to define ranges.</p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                     <div className="space-y-2 col-span-2">
                                         <Label>WhatsApp Group Link</Label>
@@ -514,6 +656,16 @@ export function AdminPlans() {
                     <AjoCircleAdminView />
                 </TabsContent>
             </Tabs>
+
+            <ActionConfirmModal
+                isOpen={isConfirmOpen}
+                onOpenChange={setIsConfirmOpen}
+                onConfirm={confirmAction?.action || (async () => { })}
+                title={confirmAction?.title || "Confirm Action"}
+                description={confirmAction?.desc || "Are you sure?"}
+                confirmText="Proceed"
+                variant="destructive"
+            />
         </div>
     );
 }

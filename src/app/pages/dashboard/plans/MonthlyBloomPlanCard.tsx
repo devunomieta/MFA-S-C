@@ -245,7 +245,7 @@ export function MonthlyBloomPlanCard({ plan, userPlan, onJoin, onDeposit, onAdva
                     </p>
                 </CardHeader>
 
-                <CardContent className="flex-1 space-y-6 pt-2">
+                <CardContent className="flex-1 space-y-6 pt-2 overflow-y-auto max-h-[60vh] custom-scrollbar">
                     {/* Input Section - Minimalist UI */}
                     <div className="space-y-4 pt-2">
                         <div className="grid grid-cols-2 gap-3">
@@ -300,9 +300,34 @@ export function MonthlyBloomPlanCard({ plan, userPlan, onJoin, onDeposit, onAdva
                                     <div className="w-1 h-1 rounded-full bg-pink-500" />
                                     Lock Duration: 4 to 12 Months
                                 </li>
-                                <li className="flex items-center gap-2 text-xs text-pink-700 dark:text-pink-400">
-                                    <div className="w-1 h-1 rounded-full bg-pink-500" />
-                                    Monthly Service Charge: ₦2,000
+                                <li className="flex flex-col gap-2 text-xs text-pink-700 dark:text-pink-400">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-1 h-1 rounded-full bg-pink-500" />
+                                        Monthly Service Charge: {plan.service_charge_type === 'percentage' ? `${plan.service_charge_percentage}%` : 
+                                                                plan.service_charge_type === 'fixed' ? `₦${(plan.service_charge_fixed || plan.service_charge || 0).toLocaleString()}` : 
+                                                                'See table below'}
+                                    </div>
+                                    
+                                    {plan.service_charge_type === 'tiered' && plan.service_charge_tiers && plan.service_charge_tiers.length > 0 && (
+                                        <div className="rounded border border-pink-100 dark:border-pink-800 overflow-hidden mt-1 mx-2">
+                                            <table className="w-full text-[10px] text-left">
+                                                <thead className="bg-pink-100/50 dark:bg-pink-900/40 font-bold text-pink-800 dark:text-pink-400">
+                                                    <tr>
+                                                        <th className="px-2 py-1">Monthly Target</th>
+                                                        <th className="px-2 py-1 text-right">Charge</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-pink-50 dark:divide-pink-800 text-pink-700 dark:text-pink-400">
+                                                    {plan.service_charge_tiers.map((tier: any, idx: number) => (
+                                                        <tr key={idx}>
+                                                            <td className="px-2 py-1">₦{formatCurrency(tier.min).replace('NGN', '').trim()} - {tier.max > 0 && tier.max < 9999999 ? `₦${formatCurrency(tier.max).replace('NGN', '').trim()}` : 'Above'}</td>
+                                                            <td className="px-2 py-1 text-right font-bold">₦{formatCurrency(tier.fee).replace('NGN', '').trim()}</td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    )}
                                 </li>
                                 <li className="flex items-center gap-2 text-xs text-pink-700 dark:text-pink-400">
                                     <div className="w-1 h-1 rounded-full bg-pink-500" />

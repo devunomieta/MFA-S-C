@@ -210,7 +210,7 @@ export function AjoCirclePlanCard({ plan, userPlan, onJoin, onDeposit, onAdvance
                 </p>
             </CardHeader>
 
-            <CardContent className="flex-1 space-y-6 pt-2">
+            <CardContent className="flex-1 space-y-6 pt-2 overflow-y-auto max-h-[60vh] custom-scrollbar">
                 <div className="space-y-1.5">
                     <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Select Contribution</label>
                     <Select value={selectedAmount} onValueChange={setSelectedAmount}>
@@ -284,22 +284,21 @@ export function AjoCirclePlanCard({ plan, userPlan, onJoin, onDeposit, onAdvance
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-orange-100 dark:divide-orange-800 text-orange-700 dark:text-orange-400">
-                                        <tr>
-                                            <td className="px-2 py-1">₦10,000 - ₦14,999</td>
-                                            <td className="px-2 py-1 text-right font-bold">₦200</td>
-                                        </tr>
-                                        <tr>
-                                            <td className="px-2 py-1">₦15,000 - ₦19,999</td>
-                                            <td className="px-2 py-1 text-right font-bold">₦300</td>
-                                        </tr>
-                                        <tr>
-                                            <td className="px-2 py-1">₦20,000 - ₦99,999</td>
-                                            <td className="px-2 py-1 text-right font-bold">₦500</td>
-                                        </tr>
-                                        <tr>
-                                            <td className="px-2 py-1">₦100,000 and above</td>
-                                            <td className="px-2 py-1 text-right font-bold">₦1,000</td>
-                                        </tr>
+                                        {plan.service_charge_type === 'tiered' && plan.service_charge_tiers && plan.service_charge_tiers.length > 0 ? (
+                                            plan.service_charge_tiers.map((tier: any, idx: number) => (
+                                                <tr key={idx}>
+                                                    <td className="px-2 py-1">₦{formatCurrency(tier.min)} - {tier.max > 0 && tier.max < 9999999 ? `₦${formatCurrency(tier.max)}` : 'Above'}</td>
+                                                    <td className="px-2 py-1 text-right font-bold">₦{formatCurrency(tier.fee)}</td>
+                                                </tr>
+                                            ))
+                                        ) : (
+                                            <tr>
+                                                <td className="px-2 py-1">All Ranges</td>
+                                                <td className="px-2 py-1 text-right font-bold">
+                                                    {plan.service_charge_type === 'percentage' ? `${plan.service_charge_percentage}%` : `₦${formatCurrency(Number(plan.service_charge_fixed || plan.service_charge || 0))}`}
+                                                </td>
+                                            </tr>
+                                        )}
                                     </tbody>
                                 </table>
                             </div>

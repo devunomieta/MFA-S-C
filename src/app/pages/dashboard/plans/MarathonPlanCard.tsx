@@ -240,7 +240,7 @@ export function MarathonPlanCard({ plan, userPlan, onJoin, onDeposit, onAdvanceD
                 </p>
             </CardHeader>
 
-            <CardContent className="flex-1 space-y-6 pt-2">
+            <CardContent className="flex-1 space-y-6 pt-2 overflow-y-auto max-h-[60vh] custom-scrollbar">
                 <div className="flex justify-between items-end border-b border-gray-100 dark:border-gray-800 pb-4">
                     <div>
                         <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Weekly Min</p>
@@ -283,18 +283,21 @@ export function MarathonPlanCard({ plan, userPlan, onJoin, onDeposit, onAdvanceD
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-emerald-50 dark:divide-emerald-800 text-emerald-700 dark:text-emerald-400">
-                                    <tr>
-                                        <td className="px-2 py-1">₦3,000 - ₦14,000</td>
-                                        <td className="px-2 py-1 text-right font-bold">₦200</td>
-                                    </tr>
-                                    <tr>
-                                        <td className="px-2 py-1">₦14,500 - ₦23,000</td>
-                                        <td className="px-2 py-1 text-right font-bold">₦300</td>
-                                    </tr>
-                                    <tr>
-                                        <td className="px-2 py-1">₦23,500 and above</td>
-                                        <td className="px-2 py-1 text-right font-bold">₦500</td>
-                                    </tr>
+                                    {plan.service_charge_type === 'tiered' && plan.service_charge_tiers && plan.service_charge_tiers.length > 0 ? (
+                                        plan.service_charge_tiers.map((tier: any, idx: number) => (
+                                            <tr key={idx}>
+                                                <td className="px-2 py-1">₦{formatCurrency(tier.min).replace('NGN', '').trim()} - {tier.max > 0 && tier.max < 9999999 ? `₦${formatCurrency(tier.max).replace('NGN', '').trim()}` : 'Above'}</td>
+                                                <td className="px-2 py-1 text-right font-bold">₦{formatCurrency(tier.fee).replace('NGN', '').trim()}</td>
+                                            </tr>
+                                        ))
+                                    ) : (
+                                        <tr>
+                                            <td className="px-2 py-1">All Deposits</td>
+                                            <td className="px-2 py-1 text-right font-bold">
+                                                {plan.service_charge_type === 'percentage' ? `${plan.service_charge_percentage}%` : `₦${(plan.service_charge_fixed || plan.service_charge || 0).toLocaleString()}`}
+                                            </td>
+                                        </tr>
+                                    )}
                                 </tbody>
                             </table>
                         </div>

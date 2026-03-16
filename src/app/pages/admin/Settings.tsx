@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/app
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
 import { toast } from "sonner";
 import { Save, Mail, Settings as SettingsIcon, Image as ImageIcon, Megaphone, Trash2 } from "lucide-react";
+import { ActionConfirmModal } from "@/app/components/ui/ActionConfirmModal";
 
 
 export function AdminSettings() {
@@ -33,6 +34,8 @@ export function AdminSettings() {
     // Announcement State
     const [announcements, setAnnouncements] = useState<any[]>([]);
     const [newAnnouncement, setNewAnnouncement] = useState({ message: "", type: "info", expires_at: "" });
+    const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+    const [announcementToDelete, setAnnouncementToDelete] = useState<string | null>(null);
 
     useEffect(() => {
         fetchSettings();
@@ -62,8 +65,15 @@ export function AdminSettings() {
     }
 
     async function deleteAnnouncement(id: string) {
-        if (!confirm("Delete?")) return;
-        await supabase.from('announcements').delete().eq('id', id);
+        setAnnouncementToDelete(id);
+        setIsConfirmOpen(true);
+    }
+
+    async function confirmDeleteAnnouncement() {
+        if (!announcementToDelete) return;
+        await supabase.from('announcements').delete().eq('id', announcementToDelete);
+        setAnnouncementToDelete(null);
+        setIsConfirmOpen(false);
         fetchAnnouncements();
     }
 
@@ -390,6 +400,16 @@ export function AdminSettings() {
                     </Card>
                 </TabsContent>
             </Tabs>
+
+            <ActionConfirmModal
+                isOpen={isConfirmOpen}
+                onOpenChange={setIsConfirmOpen}
+                onConfirm={confirmDeleteAnnouncement}
+                title="Delete Announcement"
+                description="Are you sure you want to delete this announcement? This action cannot be undone."
+                confirmText="Delete"
+                variant="destructive"
+            />
         </div >
     );
 }
