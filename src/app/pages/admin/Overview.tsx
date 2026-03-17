@@ -14,7 +14,10 @@ export function AdminOverview() {
         pendingDepositsCount: 0,
         pendingDepositsAmount: 0,
         totalDepositsAmount: 0,
-        totalFeesAmount: 0
+        totalFeesAmount: 0,
+        pendingKycCount: 0,
+        pendingBankRequestsCount: 0,
+        pendingEmailRequestsCount: 0
     });
     const [latestDeposits, setLatestDeposits] = useState<any[]>([]);
     const [latestWithdrawals, setLatestWithdrawals] = useState<any[]>([]);
@@ -66,13 +69,25 @@ export function AdminOverview() {
 
             const totalFees = feesData?.reduce((acc, curr) => acc + Number(curr.amount), 0) || 0;
 
+            // 5a. Pending KYC
+            const { count: kycCount } = await supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('gov_id_status', 'pending');
+            
+            // 5b. Pending Bank Requests
+            const { count: bankCount } = await supabase.from('bank_account_requests').select('*', { count: 'exact', head: true }).eq('status', 'pending');
+            
+            // 5c. Pending Email Requests
+            const { count: emailCount } = await supabase.from('email_change_requests').select('*', { count: 'exact', head: true }).eq('status', 'pending');
+
             setStats({
                 totalUsers: usersCount || 0,
                 activeLoansCount: loansCount || 0,
                 pendingDepositsCount: pendingCount,
                 pendingDepositsAmount: pendingAmount,
                 totalDepositsAmount: totalAmount,
-                totalFeesAmount: totalFees
+                totalFeesAmount: totalFees,
+                pendingKycCount: kycCount || 0,
+                pendingBankRequestsCount: bankCount || 0,
+                pendingEmailRequestsCount: emailCount || 0
             });
 
             // 6. Recent Activity (Categorized)
@@ -344,6 +359,25 @@ export function AdminOverview() {
                                 Manage Loans
                             </Button>
                         </div>
+
+                        {(stats.pendingKycCount > 0 || stats.pendingBankRequestsCount > 0 || stats.pendingEmailRequestsCount > 0) && (
+                            <div className="bg-emerald-50 p-4 rounded-lg border border-emerald-100 cursor-pointer hover:bg-emerald-100 transition-colors" onClick={() => navigate('/admin/approvals')}>
+                                <div className="flex justify-between items-start">
+                                    <div>
+                                        <h4 className="font-semibold text-emerald-900 mb-1">Approvals Required</h4>
+                                        <p className="text-xs text-emerald-700 space-y-1">
+                                            {stats.pendingKycCount > 0 && <span>• {stats.pendingKycCount} KYC verifications</span>}
+                                            {stats.pendingBankRequestsCount > 0 && <span><br />• {stats.pendingBankRequestsCount} Bank changes</span>}
+                                            {stats.pendingEmailRequestsCount > 0 && <span><br />• {stats.pendingEmailRequestsCount} Email updates</span>}
+                                        </p>
+                                    </div>
+                                    <Users className="w-5 h-5 text-emerald-600" />
+                                </div>
+                                <Button size="sm" variant="outline" className="mt-3 w-full border-emerald-200 text-emerald-800 hover:bg-emerald-200 bg-transparent">
+                                    Review Requests
+                                </Button>
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
             </div>

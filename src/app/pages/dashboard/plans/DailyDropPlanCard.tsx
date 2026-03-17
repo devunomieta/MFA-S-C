@@ -442,26 +442,28 @@ export function DailyDropPlanCard({ plan, userPlan, onJoin, onRefresh, onDeposit
 
                 <CardFooter className="flex flex-col gap-3 pt-2 pb-6">
                     <div className="grid grid-cols-2 gap-3 w-full">
-                        <Button
-                            className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-semibold"
-                            onClick={onDeposit}
-                            disabled={isFinished && !metadata.withdrawn}
-                        >
-                            Drop Funds
-                        </Button>
-                        <Button variant="outline" asChild className="w-full">
+                        {diffDays < 1 ? (
+                            <Button
+                                className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-semibold"
+                                onClick={onDeposit}
+                                disabled={isFinished && !metadata.withdrawn}
+                            >
+                                Drop Funds
+                            </Button>
+                        ) : !isFinished && (
+                            <Button
+                                variant="secondary"
+                                className="w-full bg-cyan-50 text-cyan-700 hover:bg-cyan-100 border border-cyan-200 font-bold"
+                                onClick={onAdvanceDeposit}
+                            >
+                                Pay in Advance
+                            </Button>
+                        )}
+                        <Button variant="outline" asChild className="w-full text-center">
                             <Link to={`/dashboard/wallet?planId=${userPlan?.plan.id}`}>Details</Link>
                         </Button>
                     </div>
-                    {!isFinished && onAdvanceDeposit && (
-                        <Button
-                            variant="secondary"
-                            className="w-full bg-cyan-50 text-cyan-700 hover:bg-cyan-100 border border-cyan-200 font-bold"
-                            onClick={onAdvanceDeposit}
-                        >
-                            Pay in Advance
-                        </Button>
-                    )}
+
                     {((userPlan.status === 'pending_activation') || (userPlan.status === 'completed' && metadata.withdrawn) || (isFinished && metadata.withdrawn)) && onLeave && (
                         <Button
                             variant="ghost"

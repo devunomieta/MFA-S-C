@@ -161,25 +161,27 @@ export function MonthlyBloomPlanCard({ plan, userPlan, onJoin, onDeposit, onAdva
 
                 <CardFooter className="flex flex-col gap-3 pt-2">
                     <div className="grid grid-cols-2 gap-3 w-full">
-                        <Button
-                            className="w-full bg-gray-900 hover:bg-gray-800 text-white dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
-                            onClick={onDeposit}
-                        >
-                            Add Funds
-                        </Button>
-                        <Button variant="outline" asChild className="w-full">
+                        {(monthPaid < target || arrears > 0) ? (
+                            <Button
+                                className="w-full bg-gray-900 hover:bg-gray-800 text-white dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
+                                onClick={onDeposit}
+                            >
+                                {arrears > 0 ? "Pay Arrears" : "Add Funds"}
+                            </Button>
+                        ) : !isTargetMet && (
+                            <Button
+                                variant="secondary"
+                                className="w-full bg-pink-50 text-pink-700 hover:bg-pink-100 border border-pink-200 font-bold"
+                                onClick={onAdvanceDeposit}
+                            >
+                                Pay in Advance
+                            </Button>
+                        )}
+                        <Button variant="outline" asChild className="w-full text-center">
                             <Link to={`/dashboard/wallet?planId=${userPlan?.plan.id}`}>Details</Link>
                         </Button>
                     </div>
-                    {onAdvanceDeposit && progressPercent < 100 && (
-                        <Button
-                            variant="secondary"
-                            className="w-full bg-pink-50 text-pink-700 hover:bg-pink-100 border border-pink-200 font-bold"
-                            onClick={onAdvanceDeposit}
-                        >
-                            Pay in Advance
-                        </Button>
-                    )}
+
                     {userPlan.status === 'pending_activation' && onLeave && (
                         <Button
                             variant="ghost"

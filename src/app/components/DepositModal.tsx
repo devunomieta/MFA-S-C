@@ -33,6 +33,8 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose, initialAdvance
     const [generalBalance, setGeneralBalance] = useState(0);
     const [loadingBalance, setLoadingBalance] = useState(true);
     const [isAdvanceMode, setIsAdvanceMode] = useState(initialAdvanceMode || false);
+    const [numUnits, setNumUnits] = useState("1");
+    const [amountPerUnit, setAmountPerUnit] = useState("");
 
     useEffect(() => {
         setIsAdvanceMode(initialAdvanceMode || false);
@@ -84,6 +86,13 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose, initialAdvance
 
         if (userPlansData) {
             setMyPlans(userPlansData);
+            // If we have a defaultPlanId and found a match, use the specific user_plan.id
+            // so the dropdown (which uses up.id) matches correctly.
+            if (defaultPlanId && userPlansData.length > 0) {
+                // Find a plan that matches the defaultPlanId (template ID)
+                const match = userPlansData.find(up => up.plan_id === defaultPlanId);
+                if (match) setSelectedPlanId(match.id);
+            }
         }
     }
 
@@ -236,24 +245,7 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose, initialAdvance
             const planType = selectedPlanObj?.plan?.type || selectedPlanObj?.type; // Safe access
 
             if (planType === 'marathon' || planType === 'sprint' || planType === 'anchor' || planType === 'step_up' || planType === 'monthly_bloom' || planType === 'ajo_circle' || planType === 'daily_drop') {
-                // 1. Deduct from General Wallet (Include Fee)
-                const { error: deductError } = await supabase.from("transactions").insert({
-                    user_id: user.id,
-                    amount: totalDeduction,
-                    type: 'transfer',
-                    status: 'completed',
-                    description: `Transfer to ${selectedPlanObj?.plan?.name || 'Savings Plan'} (Incl. Service Charge)`,
-                    plan_id: null,
-                    charge: 0
-                });
-
-                if (deductError) {
-                    toast.error("Transfer failed at source.");
-                    setUploading(false);
-                    return;
-                }
-
-                // 2. Process Deposit via RPC (Pass Gross Amount)
+                // Process Deposit via RPC (Atomic Wallet Deduction + Metadata Update)
                 let rpcName = '';
                 if (planType === 'marathon') rpcName = 'process_marathon_deposit';
                 else if (planType === 'sprint') rpcName = 'process_sprint_deposit';
@@ -266,8 +258,9 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose, initialAdvance
 
                 const { data: rpcData, error: rpcError } = await supabase.rpc(rpcName, {
                     p_user_id: user.id,
-                    p_plan_id: selectedPlanObj.id, // Mandatory: User Plan Primary Key
-                    p_amount: totalDeduction
+                    p_plan_id: selectedPlanObj.id,
+                    p_amount: totalDeduction,
+                    p_num_units: isAdvanceMode ? parseInt(numUnits) : null
                 });
 
                 if (rpcError) {
@@ -551,12 +544,22 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose, initialAdvance
             const amt = getMandatedAmount(selectedPlanObj);
             if (amt > 0) {
                 setAmount(amt.toString());
+                setAmountPerUnit(amt.toString());
             } else {
                 // If no mandated amount, reset to empty to avoid stale values from previous plans
                 setAmount("");
+                setAmountPerUnit("");
             }
         }
     }, [selectedPlanId, selectedPlanObj]);
+
+    // Update total amount when units or amount per unit changes in advance mode
+    useEffect(() => {
+        if (isAdvanceMode) {
+            const total = (parseInt(numUnits) || 0) * (parseFloat(amountPerUnit) || 0);
+            setAmount(total > 0 ? total.toString() : "");
+        }
+    }, [isAdvanceMode, numUnits, amountPerUnit]);
 
     // Fee Logic for Ajo Circle - Specific table from User Review
     const getFee = () => {
@@ -673,9 +676,17 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose, initialAdvance
                         {(isInputLocked() || mandatedAmount > 0 || fee > 0) && (
                             <div className="mt-2 rounded-lg bg-gray-50 dark:bg-gray-800 p-3 border border-gray-100 dark:border-gray-700 space-y-2">
                                 {(isInputLocked() || mandatedAmount > 0) && (
-                                    <div className="flex justify-between items-center text-xs">
-                                        <span className="text-gray-500 dark:text-gray-400">{isInputLocked() ? "Fixed Contribution" : (planType === 'monthly_bloom' ? "Monthly Target" : "Minimum Target")}</span>
-                                        <span className="font-medium text-gray-900 dark:text-white">₦{formatCurrency(mandatedAmount)}</span>
+                                    <div className="space-y-1 mb-2">
+                                        {selectedPlanObj?.plan_metadata?.arrears_amount > 0 && (
+                                            <div className="flex justify-between items-center text-[10px] text-red-600 font-bold uppercase tracking-wider">
+                                                <span>Arrears (Missed)</span>
+                                                <span>₦{formatCurrency(selectedPlanObj.plan_metadata.arrears_amount)}</span>
+                                            </div>
+                                        )}
+                                        <div className="flex justify-between items-center text-xs font-semibold text-amber-700 dark:text-amber-500">
+                                            <span>{isInputLocked() ? "Fixed Contribution" : (planType === 'monthly_bloom' ? "Monthly Target" : "Minimum Due Today")}</span>
+                                            <span>₦{formatCurrency(selectedPlanObj?.plan_metadata?.due_today_amount || mandatedAmount)}</span>
+                                        </div>
                                     </div>
                                 )}
                                 {fee > 0 && (
@@ -800,20 +811,59 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose, initialAdvance
                     </div>
 
                     <div className="grid gap-2">
-                        <Label htmlFor="amount-w" className="dark:text-gray-300">Amount to Transfer</Label>
-                        <Input
-                            id="amount-w"
-                            type="number"
-                            placeholder="0.00"
-                            value={amount}
-                            onChange={(e) => setAmount(e.target.value)}
-                            max={generalBalance}
-                            disabled={isInputLocked()}
-                            className={`dark:bg-gray-800 dark:border-gray-700 dark:text-white disabled:opacity-70 disabled:cursor-not-allowed ${!isInputLocked() && !isAdvanceMode && amount && parseFloat(amount) < mandatedAmount ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
-                        />
+                        <Label htmlFor="amount-w" className="dark:text-gray-300">
+                            {isAdvanceMode ? `Amount per ${periodLabel}` : "Amount to Transfer"}
+                        </Label>
+                        
+                        {isAdvanceMode ? (
+                            <div className="space-y-4">
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="num-units" className="text-[10px] text-gray-500 uppercase font-bold">Number of {periodLabel}s</Label>
+                                        <Input
+                                            id="num-units"
+                                            type="number"
+                                            min="1"
+                                            value={numUnits}
+                                            onChange={(e) => setNumUnits(e.target.value)}
+                                            className="dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="unit-amount" className="text-[10px] text-gray-500 uppercase font-bold">₦ Per {periodLabel}</Label>
+                                        <Input
+                                            id="unit-amount"
+                                            type="number"
+                                            placeholder="0.00"
+                                            value={amountPerUnit}
+                                            onChange={(e) => setAmountPerUnit(e.target.value)}
+                                            className="dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="p-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800">
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-xs text-emerald-700 dark:text-emerald-400 font-medium">Total Contribution</span>
+                                        <span className="text-sm font-bold text-emerald-800 dark:text-emerald-200">₦{formatCurrency(Number(amount) || 0)}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <Input
+                                id="amount-w"
+                                type="number"
+                                placeholder="0.00"
+                                value={amount}
+                                onChange={(e) => setAmount(e.target.value)}
+                                max={generalBalance}
+                                disabled={isInputLocked()}
+                                className={`dark:bg-gray-800 dark:border-gray-700 dark:text-white disabled:opacity-70 disabled:cursor-not-allowed ${!isInputLocked() && !isAdvanceMode && amount && parseFloat(amount) < mandatedAmount ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                            />
+                        )}
+
                         {isAdvanceMode && periodsCovered > 0 && (
                             <p className="text-[10px] text-emerald-500 font-bold uppercase tracking-wider">
-                                ✨ This covers {periodsCovered} {periodLabel}{periodsCovered > 1 ? 's' : ''} in advance
+                                ✨ This covers {numUnits} {periodLabel}{parseInt(numUnits) > 1 ? 's' : ''} in advance
                             </p>
                         )}
                         {isExcess && (

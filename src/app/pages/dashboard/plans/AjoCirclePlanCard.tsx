@@ -5,23 +5,26 @@ import { Progress } from "@/app/components/ui/progress";
 import { Badge } from "@/app/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
 import { Plan, UserPlan } from "@/types";
-import { Timer, CheckCircle, AlertTriangle, Coins, TrendingUp, Calendar, Lock } from "lucide-react";
+import { Timer, CheckCircle, AlertTriangle, Coins, Calendar, Lock, Plus, Trash2 } from "lucide-react";
 
 interface AjoCirclePlanCardProps {
     plan: Plan;
-    userPlan?: UserPlan;
-    onJoin: (planId: string, amount: number) => void;
+    user_plan?: UserPlan;
+    onJoin: (planId: string, subscriptions: { slot_index: number, amount: number }[]) => void;
     onDeposit: () => void;
     onAdvanceDeposit?: () => void;
     onWithdraw?: () => void;
     onLeave?: () => void;
 }
 
-export function AjoCirclePlanCard({ plan, userPlan, onJoin, onDeposit, onAdvanceDeposit, onWithdraw, onLeave }: AjoCirclePlanCardProps) {
-    const [selectedAmount, setSelectedAmount] = useState<string>("");
+export function AjoCirclePlanCard({ plan, user_plan, onJoin, onDeposit, onAdvanceDeposit, onWithdraw, onLeave }: AjoCirclePlanCardProps) {
+    const [subscriptions, setSubscriptions] = useState<{ slot_index: number, amount: number }[]>([
+        { slot_index: 0, amount: 10000 }
+    ]);
     const [withdrawing, setWithdrawing] = useState(false);
 
     const amounts = plan.config?.amounts || [10000, 15000, 20000, 25000, 30000, 50000, 100000];
+    const duration = plan.config?.duration_weeks || 10;
 
     const formatCurrency = (value: number) => {
         return new Intl.NumberFormat('en-US', {
@@ -31,17 +34,34 @@ export function AjoCirclePlanCard({ plan, userPlan, onJoin, onDeposit, onAdvance
         }).format(value);
     };
 
-    const duration = plan.config?.duration_weeks || 10;
-    const getPayout = (amt: number) => amt * duration;
+    const getTotalWeeklyContribution = () => subscriptions.reduce((sum, sub) => sum + sub.amount, 0);
+    const getPayoutForAmt = (amt: number) => amt * duration;
+    const getTotalPayout = () => subscriptions.reduce((sum, sub) => sum + getPayoutForAmt(sub.amount), 0);
 
-    const handleJoin = () => {
-        if (!selectedAmount) return;
-        onJoin(plan.id, Number(selectedAmount));
+    const addSubscription = () => {
+        if (subscriptions.length >= duration) return;
+        setSubscriptions([...subscriptions, { slot_index: subscriptions.length, amount: 10000 }]);
     };
 
-    if (userPlan) {
+    const removeSubscription = (index: number) => {
+        if (subscriptions.length <= 1) return;
+        setSubscriptions(subscriptions.filter((_, i) => i !== index).map((s, i) => ({ ...s, slot_index: i })));
+    };
+
+    const updateSubscription = (index: number, field: 'amount', value: number) => {
+        const newSubs = [...subscriptions];
+        newSubs[index] = { ...newSubs[index], [field]: value };
+        setSubscriptions(newSubs);
+    };
+
+    const handleJoin = () => {
+        if (subscriptions.length === 0) return;
+        onJoin(plan.id, subscriptions);
+    };
+
+    if (user_plan) {
         // Active State - Minimalist
-        const metadata = userPlan.plan_metadata || {};
+        const metadata = user_plan.plan_metadata || {};
         const fixedAmount = metadata.fixed_amount || 0;
         const currentWeek = metadata.current_week || 1;
         const weekPaid = metadata.week_paid || false;
@@ -62,18 +82,18 @@ export function AjoCirclePlanCard({ plan, userPlan, onJoin, onDeposit, onAdvance
                             <div className="flex items-center gap-2 mb-2">
                                 <Badge variant="outline" className="text-emerald-700 border-emerald-200 bg-emerald-50">{plan.name}</Badge>
                                 <Badge className={
-                                    userPlan.status === 'pending_activation'
+                                    user_plan.status === 'pending_activation'
                                         ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200'
                                         : 'bg-emerald-600 border-emerald-500 text-white'
                                 }>
-                                    {userPlan.status === 'pending_activation' ? 'PENDING ACTIVATION' : 'Active'}
+                                    {user_plan.status === 'pending_activation' ? 'PENDING ACTIVATION' : 'Active'}
                                 </Badge>
                             </div>
                             <CardTitle className="text-xl font-bold text-gray-900 dark:text-gray-100">{plan.name}</CardTitle>
                         </div>
                         <div className="text-right">
                             <div className="text-xs text-gray-500 uppercase font-bold tracking-wider">Total Payout</div>
-                            <div className="text-xl font-bold text-gray-900 dark:text-white">₦{formatCurrency(getPayout(fixedAmount))}</div>
+                            <div className="text-xl font-bold text-gray-900 dark:text-white">₦{formatCurrency(getPayoutForAmt(fixedAmount))}</div>
                         </div>
                     </div>
                 </CardHeader>
@@ -119,7 +139,7 @@ export function AjoCirclePlanCard({ plan, userPlan, onJoin, onDeposit, onAdvance
                             <Progress value={(currentWeek / duration) * 100} className="h-2 bg-gray-100 dark:bg-gray-800 rounded-full" />
                             <div className="flex justify-between text-[10px] text-gray-400 font-medium">
                                 <span>{Math.round((currentWeek / duration) * 100)}% through Season</span>
-                                <span>₦{formatCurrency(getPayout(fixedAmount))} Total Payout</span>
+                                <span>₦{formatCurrency(getPayoutForAmt(fixedAmount))} Total Payout</span>
                             </div>
                         </div>
                     </div>
@@ -140,7 +160,7 @@ export function AjoCirclePlanCard({ plan, userPlan, onJoin, onDeposit, onAdvance
                             variant={!canWithdraw ? 'ghost' : 'default'}
                         >
                             {withdrawing ? "Processing..." :
-                                !canWithdraw ? `Withdrawn ₦${formatCurrency(getPayout(fixedAmount))}` :
+                                !canWithdraw ? `Withdrawn ₦${formatCurrency(getPayoutForAmt(fixedAmount))}` :
                                     "Withdraw Payout"}
                         </Button>
                     ) : (
@@ -149,17 +169,11 @@ export function AjoCirclePlanCard({ plan, userPlan, onJoin, onDeposit, onAdvance
                         </Button>
                     )}
 
-                    {!weekPaid && (
+                    {!weekPaid ? (
                         <Button className="w-full bg-gray-900 hover:bg-gray-800 text-white dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200 font-semibold" onClick={onDeposit}>
                             Pay Weekly
                         </Button>
-                    )}
-                    {weekPaid && !isMyTurn && (
-                        <Button className="w-full bg-emerald-50 text-emerald-700 border border-emerald-200 cursor-not-allowed font-medium text-sm" disabled>
-                            <CheckCircle className="w-4 h-4 mr-2" /> Weekly Limit Reached
-                        </Button>
-                    )}
-                    {onAdvanceDeposit && (
+                    ) : (
                         <Button
                             variant="secondary"
                             className="w-full bg-orange-50 text-orange-700 hover:bg-orange-100 border border-orange-200 font-bold"
@@ -168,7 +182,7 @@ export function AjoCirclePlanCard({ plan, userPlan, onJoin, onDeposit, onAdvance
                             Pay in Advance
                         </Button>
                     )}
-                    {userPlan.status === 'pending_activation' && onLeave && (
+                    {user_plan.status === 'pending_activation' && onLeave && (
                         <Button
                             variant="ghost"
                             className="w-full text-red-600 hover:text-red-700 hover:bg-red-50 text-xs font-semibold"
@@ -182,7 +196,7 @@ export function AjoCirclePlanCard({ plan, userPlan, onJoin, onDeposit, onAdvance
         );
     }
 
-    // Available State (Minimalist Redesign)
+    // Available State (Multi-Turn Redesign)
     return (
         <Card className="flex flex-col relative overflow-hidden bg-white dark:bg-gray-900 border-l-4 border-l-orange-500 shadow-sm hover:shadow-md transition-shadow group">
             <CardHeader className="pb-4">
@@ -205,123 +219,101 @@ export function AjoCirclePlanCard({ plan, userPlan, onJoin, onDeposit, onAdvance
                         </div>
                     )}
                 </div>
-                <p className="text-sm text-gray-500 dark:text-gray-400 font-medium leading-relaxed mt-1 line-clamp-2">
-                    A secure, digital version of the traditional Ajo/Esusu group savings. Contribute weekly and take turns cashing out!
-                </p>
             </CardHeader>
 
-            <CardContent className="flex-1 space-y-6 pt-2 overflow-y-auto max-h-[60vh] custom-scrollbar">
-                <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Select Contribution</label>
-                    <Select value={selectedAmount} onValueChange={setSelectedAmount}>
-                        <SelectTrigger className="h-9 font-medium text-sm bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 focus:ring-emerald-500">
-                            <SelectValue placeholder="Choose amount..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {amounts.map((amt: number) => (
-                                <SelectItem key={amt} value={amt.toString()} disabled={amt === 100000} className="py-2">
-                                    <div className="flex items-center justify-between w-full min-w-[200px]">
-                                        <span className="font-bold text-gray-900 dark:text-white text-sm">₦{formatCurrency(amt)}</span>
-                                        {amt === 100000 && <Badge variant="outline" className="ml-2 text-[10px] h-5">Full</Badge>}
+            <CardContent className="flex-1 space-y-4 pt-2 overflow-y-auto max-h-[60vh] custom-scrollbar">
+                <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                        <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Pick Your Turns & Amounts</label>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 text-[10px] font-bold uppercase gap-1 text-emerald-600 border-emerald-200"
+                            onClick={addSubscription}
+                            disabled={subscriptions.length >= duration}
+                        >
+                            <Plus className="w-3 h-3" /> Add Turn
+                        </Button>
+                    </div>
+
+                    <div className="space-y-3">
+                        {subscriptions.map((sub, idx) => (
+                            <div key={idx} className="flex gap-2 p-2 rounded-lg bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800 animate-in fade-in slide-in-from-top-1 items-center">
+                                <div className="flex-1 min-w-[80px]">
+                                    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 h-9 rounded-md flex items-center px-3 text-xs font-bold text-emerald-600">
+                                        Slot {idx + 1}
                                     </div>
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
+                                </div>
+                                <div className="flex-[2] min-w-[120px]">
+                                    <Select value={sub.amount.toString()} onValueChange={(v) => updateSubscription(idx, 'amount', parseInt(v))}>
+                                        <SelectTrigger className="h-9 text-xs">
+                                            <SelectValue placeholder="Amount" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {amounts.filter((a: number) => a <= 100000).map((amt: number) => (
+                                                <SelectItem key={amt} value={amt.toString()}>
+                                                    ₦{formatCurrency(amt)}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                {subscriptions.length > 1 && (
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-9 w-9 text-red-500 hover:text-red-600 hover:bg-red-50"
+                                        onClick={() => removeSubscription(idx)}
+                                    >
+                                        <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                )}
+                            </div>
+                        ))}
+                    </div>
                 </div>
 
-                {selectedAmount && plan.config?.duration_weeks ? (
-                    <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-lg p-3 border border-emerald-100 dark:border-emerald-800">
-                        <div className="flex justify-between items-center mb-3 pb-3 border-b border-emerald-200 dark:border-emerald-800/50">
-                            <div>
-                                <p className="text-emerald-900/60 dark:text-emerald-100/60 text-[10px] font-bold uppercase tracking-wider">Duration</p>
-                                <p className="text-sm font-bold text-emerald-900 dark:text-emerald-100">{plan.config.duration_weeks} Weeks</p>
-                            </div>
-                            <div className="text-right">
-                                <p className="text-emerald-900/60 dark:text-emerald-100/60 text-[10px] font-bold uppercase tracking-wider">Weekly</p>
-                                <p className="text-sm font-bold text-emerald-900 dark:text-emerald-100">₦{formatCurrency(Number(selectedAmount))}</p>
-                            </div>
+                <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-lg p-3 border border-emerald-100 dark:border-emerald-800 space-y-3">
+                    <div className="flex justify-between items-center pb-2 border-b border-emerald-200 dark:border-emerald-800/50">
+                        <div>
+                            <p className="text-emerald-900/60 dark:text-emerald-100/60 text-[10px] font-bold uppercase tracking-wider">Weekly Contribution</p>
+                            <p className="text-sm font-bold text-emerald-900 dark:text-emerald-100">₦{formatCurrency(getTotalWeeklyContribution())}</p>
                         </div>
-                        <div className="flex justify-between items-end">
-                            <div>
-                                <p className="text-emerald-900/60 dark:text-emerald-100/60 text-[10px] font-bold uppercase tracking-wider mb-0.5">Total Payout</p>
-                                <p className="text-xl font-black tracking-tight text-emerald-600 dark:text-emerald-400">
-                                    ₦{formatCurrency(Number(selectedAmount) * plan.config.duration_weeks)}
-                                </p>
-                            </div>
-                            <Coins className="w-6 h-6 text-emerald-300 dark:text-emerald-700/50" />
+                        <div className="text-right">
+                            <p className="text-emerald-900/60 dark:text-emerald-100/60 text-[10px] font-bold uppercase tracking-wider">Turns</p>
+                            <p className="text-sm font-bold text-emerald-900 dark:text-emerald-100">{subscriptions.length} Slot{subscriptions.length > 1 ? 's' : ''}</p>
                         </div>
                     </div>
-                ) : (
-                    <div className="space-y-4 pt-2">
-                        <div className="p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-100 dark:border-orange-800">
-                            <h4 className="text-[10px] font-bold text-orange-800 dark:text-orange-400 uppercase tracking-wider mb-2">Ajo Circle Rules</h4>
-                            <ul className="space-y-1.5 mb-4">
-                                <li className="flex items-center gap-2 text-xs text-orange-700 dark:text-orange-400">
-                                    <div className="w-1 h-1 rounded-full bg-orange-500" />
-                                    Weekly contributions for {plan.config?.duration_weeks || duration} weeks
-                                </li>
-                                <li className="flex items-center gap-2 text-xs text-orange-700 dark:text-orange-400">
-                                    <div className="w-1 h-1 rounded-full bg-orange-500" />
-                                    Properly managed picking turn(s)
-                                </li>
-                                <li className="flex items-center gap-2 text-xs text-orange-700 dark:text-orange-400">
-                                    <div className="w-1 h-1 rounded-full bg-orange-500" />
-                                    Strict penalties for skipped payments
-                                </li>
-                                <li className="flex items-center gap-2 text-xs text-orange-700 dark:text-orange-400">
-                                    <div className="w-1 h-1 rounded-full bg-orange-500" />
-                                    Weekly payout fee auto-deducted
-                                </li>
-                            </ul>
-
-                            <div className="rounded border border-orange-200 dark:border-orange-800 overflow-hidden">
-                                <table className="w-full text-[10px] text-left">
-                                    <thead className="bg-orange-100/50 dark:bg-orange-900/40 font-bold text-orange-800 dark:text-orange-400">
-                                        <tr>
-                                            <th className="px-2 py-1">Weekly Amount</th>
-                                            <th className="px-2 py-1 text-right">Payout Fee</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-orange-100 dark:divide-orange-800 text-orange-700 dark:text-orange-400">
-                                        {plan.service_charge_type === 'tiered' && plan.service_charge_tiers && plan.service_charge_tiers.length > 0 ? (
-                                            plan.service_charge_tiers.map((tier: any, idx: number) => (
-                                                <tr key={idx}>
-                                                    <td className="px-2 py-1">₦{formatCurrency(tier.min)} - {tier.max > 0 && tier.max < 9999999 ? `₦${formatCurrency(tier.max)}` : 'Above'}</td>
-                                                    <td className="px-2 py-1 text-right font-bold">₦{formatCurrency(tier.fee)}</td>
-                                                </tr>
-                                            ))
-                                        ) : (
-                                            <tr>
-                                                <td className="px-2 py-1">All Ranges</td>
-                                                <td className="px-2 py-1 text-right font-bold">
-                                                    {plan.service_charge_type === 'percentage' ? `${plan.service_charge_percentage}%` : `₦${formatCurrency(Number(plan.service_charge_fixed || plan.service_charge || 0))}`}
-                                                </td>
-                                            </tr>
-                                        )}
-                                    </tbody>
-                                </table>
-                            </div>
+                    <div className="flex justify-between items-end">
+                        <div>
+                            <p className="text-emerald-900/60 dark:text-emerald-100/60 text-[10px] font-bold uppercase tracking-wider mb-0.5">Total Season Payout</p>
+                            <p className="text-xl font-black tracking-tight text-emerald-600 dark:text-emerald-400">
+                                ₦{formatCurrency(getTotalPayout())}
+                            </p>
                         </div>
-
-                        <div className="rounded-lg border-2 border-dashed border-gray-200 dark:border-gray-700 p-4 flex flex-col items-center justify-center text-center space-y-2 h-[120px] bg-white/50 dark:bg-black/20">
-                            <div className="bg-gray-50 dark:bg-gray-800 p-2 rounded-full">
-                                <TrendingUp className="w-5 h-5 text-gray-400" />
-                            </div>
-                            <p className="text-xs font-medium text-gray-500">Select an amount to calculate payout</p>
-                            {!plan.config?.duration_weeks && <p className="text-[10px] text-amber-500 font-bold">Season duration pending</p>}
-                        </div>
+                        <Coins className="w-6 h-6 text-emerald-300 dark:text-emerald-700/50" />
                     </div>
-                )}
+                </div>
+
+                <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-800">
+                    <h4 className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2 font-bold">Benefit Summary</h4>
+                    <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed font-medium">
+                        You are committing to pay <strong>₦{formatCurrency(getTotalWeeklyContribution())}</strong> every week. 
+                        In return, you will receive <strong>₦{formatCurrency(getTotalPayout())}</strong> total. 
+                        <span className="block mt-2 text-amber-600 font-bold bg-amber-50 dark:bg-amber-900/10 p-2 rounded border border-amber-100 dark:border-amber-800/50">
+                            <Lock className="w-3 h-3 inline mr-1" /> Admin will assign your payout weeks (turns) after joining.
+                        </span>
+                    </p>
+                </div>
             </CardContent>
 
             <CardFooter className="pt-2">
                 <Button
                     className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
                     onClick={handleJoin}
-                    disabled={!selectedAmount || !plan.config?.duration_weeks}
+                    disabled={subscriptions.length === 0 || !plan.config?.duration_weeks}
                 >
-                    {plan.config?.duration_weeks ? 'Join Circle Now' : 'Awaiting Config'}
+                    {plan.config?.duration_weeks ? `Join Circle with ${subscriptions.length} Turn${subscriptions.length > 1 ? 's' : ''}` : 'Awaiting Config'}
                 </Button>
             </CardFooter>
         </Card>

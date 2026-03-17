@@ -317,15 +317,28 @@ export function Plans() {
         }
     }
 
-    async function handleJoinAjoCircle(planId: string, amount: number) {
+    async function handleJoinAjoCircle(planId: string, subscriptions: { slot_index: number, amount: number }[]) {
         if (!user || processingAction) return;
         setProcessingAction(true);
-        const metadata = { fixed_amount: amount, picking_turns: [], current_week: 1, week_paid: false, missed_weeks: 0, last_payment_date: null };
+        
+        const totalFixed = subscriptions.reduce((sum, s) => sum + s.amount, 0);
+        
+        const metadata = { 
+            fixed_amount: totalFixed, 
+            picking_turns: [], // To be assigned by Admin
+            ajo_subscriptions: subscriptions.map(s => ({ ...s, turn_week: null, turn_assigned: false })),
+            current_week: 1, 
+            week_paid: false, 
+            missed_weeks: 0, 
+            last_payment_date: null 
+        };
+
         const { error } = await supabase.from("user_plans").insert({
             user_id: user.id,
             plan_id: planId,
             current_balance: 0,
-            status: 'pending_activation',
+            status: 'active',
+            start_date: new Date().toISOString(),
             plan_metadata: metadata
         });
 
@@ -338,8 +351,9 @@ export function Plans() {
                 action: 'PLAN_JOIN',
                 details: { plan_name: 'Digital Ajo Circle', display_name: user.user_metadata?.full_name?.split(' ')[0] || 'A user' }
             });
-            toast.success("Joined Digital Ajo Circle! Admin will assign your picking turn soon.");
+            toast.success("Joined Digital Ajo Circle! Please make your first deposit.");
             fetchMyPlans();
+            setSelectedPlanForDeposit({ id: planId });
             setProcessingAction(false);
         }
     }
@@ -555,7 +569,7 @@ export function Plans() {
                             {viewingPlan.plan.type === 'ajo_circle' && (
                                 <AjoCirclePlanCard
                                     plan={viewingPlan.plan}
-                                    userPlan={viewingPlan.userPlan}
+                                    user_plan={viewingPlan.userPlan}
                                     onJoin={(p, a) => { handleJoinAjoCircle(p, a); setViewingPlan(null); }}
                                     onDeposit={() => { setSelectedPlanForDeposit({ id: viewingPlan.plan.id }); setViewingPlan(null); }}
                                     onAdvanceDeposit={() => { setSelectedPlanForDeposit({ id: viewingPlan.plan.id, isAdvance: true }); setViewingPlan(null); }}

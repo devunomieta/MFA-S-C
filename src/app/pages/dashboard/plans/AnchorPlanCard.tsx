@@ -106,25 +106,27 @@ export function AnchorPlanCard({ plan, userPlan, onJoin, onDeposit, onAdvanceDep
 
                 <CardFooter className="flex flex-col gap-3 pt-2">
                     <div className="grid grid-cols-2 gap-3 w-full">
-                        <Button
-                            className="w-full bg-gray-900 hover:bg-gray-800 text-white dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
-                            onClick={() => onDeposit(plan.id)}
-                        >
-                            Add Funds
-                        </Button>
+                        {currentWeekTotal < weeklyTarget ? (
+                            <Button
+                                className="w-full bg-gray-900 hover:bg-gray-800 text-white dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
+                                onClick={() => onDeposit(plan.id)}
+                            >
+                                {arrears > 0 ? "Pay Penalties" : "Add Funds"}
+                            </Button>
+                        ) : (
+                            <Button
+                                variant="secondary"
+                                className="w-full bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 font-bold"
+                                onClick={() => onAdvanceDeposit && onAdvanceDeposit(plan.id)}
+                            >
+                                Pay in Advance
+                            </Button>
+                        )}
                         <Button variant="outline" asChild className="w-full">
                             <a href={plan.whatsapp_link} target="_blank">Group Chat</a>
                         </Button>
                     </div>
-                    {onAdvanceDeposit && totalProgress < 100 && (
-                        <Button
-                            variant="secondary"
-                            className="w-full bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 font-bold"
-                            onClick={() => onAdvanceDeposit(plan.id)}
-                        >
-                            Pay in Advance
-                        </Button>
-                    )}
+
                     {userPlan.status === 'pending_activation' && onLeave && (
                         <Button
                             variant="ghost"
