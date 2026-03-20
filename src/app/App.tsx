@@ -12,6 +12,7 @@ import { ProtectedRoute } from "@/app/components/ProtectedRoute";
 import { DashboardLayout } from "@/app/layout/DashboardLayout";
 import { Overview } from "@/app/pages/dashboard/Overview";
 import { Plans } from "@/app/pages/dashboard/Plans";
+import { PlanDetailsPage } from "@/app/pages/dashboard/PlanDetailsPage";
 import { Wallet } from "@/app/pages/dashboard/Wallet";
 import { Loans } from "@/app/pages/dashboard/Loans";
 import { Profile } from "@/app/pages/dashboard/Profile";
@@ -75,6 +76,7 @@ function AppRoutes() {
               <Route index element={<Overview />} />
               <Route path="notifications" element={<Notifications />} />
               <Route path="plans" element={<Plans />} />
+              <Route path="plans/:id" element={<PlanDetailsPage />} />
               <Route path="wallet" element={<Wallet />} />
               <Route path="loans" element={<Loans />} />
               <Route path="profile" element={<Profile />} />

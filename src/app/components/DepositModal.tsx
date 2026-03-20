@@ -28,6 +28,7 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose, initialAdvance
     const [uploading, setUploading] = useState(false);
     const [myPlans, setMyPlans] = useState<any[]>([]);
     const [activeTab, setActiveTab] = useState<string>(defaultPlanId ? "wallet" : "external");
+    const isPlanFunding = !!defaultPlanId;
 
     // Wallet Payment State
     const [generalBalance, setGeneralBalance] = useState(0);
@@ -582,10 +583,9 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose, initialAdvance
     };
     const fee = getFee();
     // CRITICAL: Total deduction from WALLET is amount + fee
-    // But for the user, it often feels like fee is "inside" the deposit. 
-    // Requirement says: "immediately deducted during payments... MUST BE DEDUCTED immediately"
-    // So if they want to save 10k, we take 10k + fee.
-    const totalDeduction = (Number(amount) || 0) + fee;
+    // EXCEPTION: Daily Drop 100% fees are "inclusive" (the user just pays the fixed amount)
+    const isInclusiveFee = planType === 'daily_drop' && selectedPlanObj?.plan?.service_charge_type === 'percentage' && selectedPlanObj?.plan?.service_charge_percentage === 100;
+    const totalDeduction = isInclusiveFee ? (Number(amount) || 0) : ((Number(amount) || 0) + fee);
 
     return (
         <DialogContent className="dark:bg-gray-900 dark:border-gray-800 max-w-md max-h-[90vh] overflow-y-auto">
@@ -597,184 +597,198 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose, initialAdvance
             </DialogHeader>
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-2 mb-4 dark:bg-gray-800">
-                    <TabsTrigger value="external" className="dark:data-[state=active]:bg-gray-700 dark:text-gray-400 dark:data-[state=active]:text-white">External Deposit</TabsTrigger>
-                    <TabsTrigger value="wallet" className="dark:data-[state=active]:bg-gray-700 dark:text-gray-400 dark:data-[state=active]:text-white">Pay from Wallet</TabsTrigger>
+                {/* 
+                    Tabs Logic:
+                    1. When TOPPING UP General Wallet (isPlanFunding = false), only show EXTERNAL tab.
+                    2. When FUNDING a Plan (isPlanFunding = true), only show WALLET tab.
+                */}
+                <TabsList className="grid w-full grid-cols-1 mb-4 dark:bg-gray-800">
+                    {isPlanFunding ? (
+                        <TabsTrigger value="wallet" className="dark:data-[state=active]:bg-gray-700 dark:text-gray-400 dark:data-[state=active]:text-white">
+                            Fund Plan from Wallet
+                        </TabsTrigger>
+                    ) : (
+                        <TabsTrigger value="external" className="dark:data-[state=active]:bg-gray-700 dark:text-gray-400 dark:data-[state=active]:text-white">
+                            External Deposit to Wallet
+                        </TabsTrigger>
+                    )}
                 </TabsList>
 
-                <TabsContent value="external" className="space-y-4">
-                    <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-indigo-900 via-indigo-800 to-emerald-900 p-6 text-white shadow-xl">
-                        <div className="absolute right-0 top-0 h-32 w-32 -translate-y-8 translate-x-8 rounded-full bg-white/5 blur-2xl"></div>
-                        <div className="mb-8 flex justify-between items-start">
-                            <div>
-                                <p className="text-xs text-indigo-200 uppercase tracking-wider mb-1">Payable ONLY TO</p>
-                                <h3 className="tex-lg font-bold">HachStacks Technologies</h3>
+                {!isPlanFunding && (
+                    <TabsContent value="external" className="space-y-4">
+                        <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-indigo-900 via-indigo-800 to-emerald-900 p-6 text-white shadow-xl">
+                            <div className="absolute right-0 top-0 h-32 w-32 -translate-y-8 translate-x-8 rounded-full bg-white/5 blur-2xl"></div>
+                            <div className="mb-8 flex justify-between items-start">
+                                <div>
+                                    <p className="text-xs text-indigo-200 uppercase tracking-wider mb-1">Payable ONLY TO</p>
+                                    <h3 className="tex-lg font-bold">HachStacks Technologies</h3>
+                                </div>
+                                <CreditCard className="h-8 w-8 text-white/80" />
                             </div>
-                            <CreditCard className="h-8 w-8 text-white/80" />
+                            <div className="space-y-4">
+                                <div>
+                                    <p className="text-xs text-indigo-200">Bank Name</p>
+                                    <p className="font-semibold tracking-wide">Moniepoint</p>
+                                </div>
+                                <div>
+                                    <p className="text-xs text-indigo-200">Account Number</p>
+                                    <div className="flex items-center gap-2">
+                                        <p className="font-mono text-xl tracking-widest">7049898962</p>
+                                        <button
+                                            onClick={() => copyToClipboard("7049898962")}
+                                            className="rounded-full bg-white/10 p-1.5 hover:bg-white/20 transition-colors"
+                                        >
+                                            <Copy className="h-3.5 w-3.5" />
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <div className="space-y-4">
-                            <div>
-                                <p className="text-xs text-indigo-200">Bank Name</p>
-                                <p className="font-semibold tracking-wide">Moniepoint</p>
-                            </div>
-                            <div>
-                                <p className="text-xs text-indigo-200">Account Number</p>
+
+                        <div className="grid gap-2">
+                            <Label className="dark:text-gray-300">Target Destination</Label>
+                            <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 flex items-center justify-between">
                                 <div className="flex items-center gap-2">
-                                    <p className="font-mono text-xl tracking-widest">7049898962</p>
-                                    <button
-                                        onClick={() => copyToClipboard("7049898962")}
-                                        className="rounded-full bg-white/10 p-1.5 hover:bg-white/20 transition-colors"
-                                    >
-                                        <Copy className="h-3.5 w-3.5" />
-                                    </button>
+                                    <Wallet className="h-4 w-4 text-emerald-600" />
+                                    <span className="text-sm font-medium dark:text-white">General Wallet</span>
                                 </div>
+                                <span className="text-[10px] bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 px-2 py-0.5 rounded font-bold uppercase">Auto-Selected</span>
                             </div>
+                            <p className="text-[10px] text-gray-500 dark:text-gray-400">External deposits are processed into your general wallet. You can fund specific plans from the "Pay from Wallet" tab after approval.</p>
                         </div>
-                    </div>
 
-                    <div className="grid gap-2">
-                        <Label className="dark:text-gray-300">Target Destination</Label>
-                        <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                                <Wallet className="h-4 w-4 text-emerald-600" />
-                                <span className="text-sm font-medium dark:text-white">General Wallet</span>
-                            </div>
-                            <span className="text-[10px] bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 px-2 py-0.5 rounded font-bold uppercase">Auto-Selected</span>
-                        </div>
-                        <p className="text-[10px] text-gray-500 dark:text-gray-400">External deposits are processed into your general wallet. You can fund specific plans from the "Pay from Wallet" tab after approval.</p>
-                    </div>
-
-                    <div className="grid gap-2">
-                        <Label htmlFor="amount-ex" className="dark:text-gray-300">Amount</Label>
-                        <Input
-                            id="amount-ex"
-                            type="number"
-                            placeholder="0.00"
-                            value={amount}
-                            onChange={(e) => setAmount(e.target.value)}
-                            disabled={isInputLocked()}
-                            className={`dark:bg-gray-800 dark:border-gray-700 dark:text-white disabled:opacity-70 disabled:cursor-not-allowed ${!isInputLocked() && !isAdvanceMode && amount && parseFloat(amount) < mandatedAmount ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
-                        />
-                        {isAdvanceMode && periodsCovered > 0 && (
-                            <p className="text-[10px] text-emerald-500 font-bold uppercase tracking-wider">
-                                ✨ This covers {periodsCovered} {periodLabel}{periodsCovered > 1 ? 's' : ''} in advance
-                            </p>
-                        )}
-                        {isExcess && (
-                            <p className="text-[10px] text-amber-600 font-bold bg-amber-50 dark:bg-amber-900/20 p-2 rounded border border-amber-100 dark:border-amber-800 flex items-center gap-2">
-                                <AlertTriangle className="w-3 h-3 text-amber-500" />
-                                <span>
-                                    Exceeds goal! You only need <strong>₦{formatCurrency(remainingToGoal)}</strong> to reach your target.
-                                </span>
-                            </p>
-                        )}
-                        {!isInputLocked() && !isAdvanceMode && amount && parseFloat(amount) < mandatedAmount && (
-                            <p className="text-[10px] text-red-500 font-medium">
-                                Minimum contribution is ₦{formatCurrency(mandatedAmount)}
-                            </p>
-                        )}
-                        {(isInputLocked() || mandatedAmount > 0 || fee > 0) && (
-                            <div className="mt-2 rounded-lg bg-gray-50 dark:bg-gray-800 p-3 border border-gray-100 dark:border-gray-700 space-y-2">
-                                {(isInputLocked() || mandatedAmount > 0) && (
-                                    <div className="space-y-1 mb-2">
-                                        {selectedPlanObj?.plan_metadata?.arrears_amount > 0 && (
-                                            <div className="flex justify-between items-center text-[10px] text-red-600 font-bold uppercase tracking-wider">
-                                                <span>Arrears (Missed)</span>
-                                                <span>₦{formatCurrency(selectedPlanObj.plan_metadata.arrears_amount)}</span>
-                                            </div>
-                                        )}
-                                        <div className="flex justify-between items-center text-xs font-semibold text-amber-700 dark:text-amber-500">
-                                            <span>{isInputLocked() ? "Fixed Contribution" : (planType === 'monthly_bloom' ? "Monthly Target" : "Minimum Due Today")}</span>
-                                            <span>₦{formatCurrency(selectedPlanObj?.plan_metadata?.due_today_amount || mandatedAmount)}</span>
-                                        </div>
-                                    </div>
-                                )}
-                                {fee > 0 && (
-                                    <div className="flex justify-between items-center text-xs">
-                                        <span className="text-gray-500 dark:text-gray-400">Service Charge</span>
-                                        <span className="font-medium text-gray-900 dark:text-white">₦{formatCurrency(fee)}</span>
-                                    </div>
-                                )}
-                                <div className="pt-2 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center text-sm font-bold">
-                                    <span className="text-gray-700 dark:text-gray-300">Total Deduction</span>
-                                    <span className="text-emerald-600 dark:text-emerald-400">₦{formatCurrency(totalDeduction)}</span>
-                                </div>
-                                {fee > 0 && (
-                                    <div className="mt-2 p-2 bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-800 rounded flex items-start gap-2">
-                                        <AlertTriangle className="w-3.5 h-3.5 text-amber-500 mt-0.5 shrink-0" />
-                                        <div className="space-y-1">
-                                            <p className="text-[10px] text-amber-700 dark:text-amber-400 leading-tight font-bold">
-                                                Deduction Notice
-                                            </p>
-                                            <p className="text-[10px] text-amber-600 dark:text-amber-500 leading-tight">
-                                                A service charge of ₦{formatCurrency(fee)} will be deducted immediately from your general wallet in addition to your contribution. Total: ₦{formatCurrency(totalDeduction)}.
-                                            </p>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                    </div>
-
-                    <div className="grid gap-2">
-                        <Label className="dark:text-gray-300">Payment Receipt</Label>
-                        <div className="flex items-center justify-center w-full">
-                            <label htmlFor="dropzone-file-ex" className={`relative flex flex-col items-center justify-center w-full h-40 border-2 border-dashed rounded-lg cursor-pointer transition-colors overflow-hidden ${receiptFile ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/10' : 'border-gray-300 bg-gray-50 hover:bg-gray-100 dark:border-gray-600 dark:bg-gray-700 dark:hover:border-gray-500 dark:hover:bg-gray-600'}`}>
-                                {previewUrl ? (
-                                    <div className="relative w-full h-full flex items-center justify-center group">
-                                        <img src={previewUrl} alt="Receipt preview" className="w-full h-full object-contain p-2" />
-                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                            <div className="bg-white/90 rounded-full p-2">
-                                                <Upload className="w-6 h-6 text-gray-700" />
+                        <div className="grid gap-2">
+                            <Label htmlFor="amount-ex" className="dark:text-gray-300">Amount</Label>
+                            <Input
+                                id="amount-ex"
+                                type="number"
+                                placeholder="0.00"
+                                value={amount}
+                                onChange={(e) => setAmount(e.target.value)}
+                                disabled={isInputLocked()}
+                                className={`dark:bg-gray-800 dark:border-gray-700 dark:text-white disabled:opacity-70 disabled:cursor-not-allowed ${!isInputLocked() && !isAdvanceMode && amount && parseFloat(amount) < mandatedAmount ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                            />
+                            {isAdvanceMode && periodsCovered > 0 && (
+                                <p className="text-[10px] text-emerald-500 font-bold uppercase tracking-wider">
+                                    ✨ This covers {periodsCovered} {periodLabel}{periodsCovered > 1 ? 's' : ''} in advance
+                                </p>
+                            )}
+                            {isExcess && (
+                                <p className="text-[10px] text-amber-600 font-bold bg-amber-50 dark:bg-amber-900/20 p-2 rounded border border-amber-100 dark:border-amber-800 flex items-center gap-2">
+                                    <AlertTriangle className="w-3 h-3 text-amber-500" />
+                                    <span>
+                                        Exceeds goal! You only need <strong>₦{formatCurrency(remainingToGoal)}</strong> to reach your target.
+                                    </span>
+                                </p>
+                            )}
+                            {!isInputLocked() && !isAdvanceMode && amount && parseFloat(amount) < mandatedAmount && (
+                                <p className="text-[10px] text-red-500 font-medium">
+                                    Minimum contribution is ₦{formatCurrency(mandatedAmount)}
+                                </p>
+                            )}
+                            {(isInputLocked() || mandatedAmount > 0 || fee > 0) && (
+                                <div className="mt-2 rounded-lg bg-gray-50 dark:bg-gray-800 p-3 border border-gray-100 dark:border-gray-700 space-y-2">
+                                    {(isInputLocked() || mandatedAmount > 0) && (
+                                        <div className="space-y-1 mb-2">
+                                            {selectedPlanObj?.plan_metadata?.arrears_amount > 0 && (
+                                                <div className="flex justify-between items-center text-[10px] text-red-600 font-bold uppercase tracking-wider">
+                                                    <span>Arrears (Missed)</span>
+                                                    <span>₦{formatCurrency(selectedPlanObj.plan_metadata.arrears_amount)}</span>
+                                                </div>
+                                            )}
+                                            <div className="flex justify-between items-center text-xs font-semibold text-amber-700 dark:text-amber-500">
+                                                <span>{isInputLocked() ? "Fixed Contribution" : (planType === 'monthly_bloom' ? "Monthly Target" : "Minimum Due Today")}</span>
+                                                <span>₦{formatCurrency(selectedPlanObj?.plan_metadata?.due_today_amount || mandatedAmount)}</span>
                                             </div>
                                         </div>
-                                        <div className="absolute bottom-2 left-0 right-0 text-center">
-                                            <span className="text-xs text-white bg-black/50 px-2 py-1 rounded">{receiptFile?.name}</span>
+                                    )}
+                                    {fee > 0 && (
+                                        <div className="flex justify-between items-center text-xs">
+                                            <span className="text-gray-500 dark:text-gray-400">Service Charge</span>
+                                            <span className="font-medium text-gray-900 dark:text-white">₦{formatCurrency(fee)}</span>
                                         </div>
+                                    )}
+                                    <div className="pt-2 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center text-sm font-bold">
+                                        <span className="text-gray-700 dark:text-gray-300">Total Deduction</span>
+                                        <span className="text-emerald-600 dark:text-emerald-400">₦{formatCurrency(totalDeduction)}</span>
                                     </div>
-                                ) : (
-                                    <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center">
-                                        <Upload className="w-8 h-8 mb-3 text-gray-400" />
-                                        <p className="mb-2 text-sm text-gray-500 dark:text-gray-400"><span className="font-semibold">Click to upload</span> receipt</p>
-                                    </div>
-                                )}
-                                <Input
-                                    id="dropzone-file-ex"
-                                    type="file"
-                                    className="hidden"
-                                    accept="image/*,application/pdf"
-                                    onChange={(e) => {
-                                        if (e.target.files && e.target.files[0]) {
-                                            handleFileChange(e.target.files[0]);
-                                        }
-                                    }}
-                                />
-                            </label>
-                            {previewUrl && (
-                                <div className="flex justify-end">
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={removeFile}
-                                        className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 px-2 h-8"
-                                    >
-                                        <Trash2 className="w-3 h-3 mr-1.5" /> Remove File
-                                    </Button>
+                                    {fee > 0 && (
+                                        <div className="mt-2 p-2 bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-800 rounded flex items-start gap-2">
+                                            <AlertTriangle className="w-3.5 h-3.5 text-amber-500 mt-0.5 shrink-0" />
+                                            <div className="space-y-1">
+                                                <p className="text-[10px] text-amber-700 dark:text-amber-400 leading-tight font-bold">
+                                                    Deduction Notice
+                                                </p>
+                                                <p className="text-[10px] text-amber-600 dark:text-amber-500 leading-tight">
+                                                    A service charge of ₦{formatCurrency(fee)} will be deducted immediately from your general wallet in addition to your contribution. Total: ₦{formatCurrency(totalDeduction)}.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>
-                    </div>
 
-                    <Button
-                        onClick={() => handleDeposit('external')}
-                        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
-                        disabled={uploading || !amount || !receiptFile || isExcess}
-                    >
-                        {uploading ? 'Processing...' : isExcess ? 'Amount Exceeds Target' : 'Confirm External Deposit'}
-                    </Button>
-                </TabsContent>
+                        <div className="grid gap-2">
+                            <Label className="dark:text-gray-300">Payment Receipt</Label>
+                            <div className="flex items-center justify-center w-full">
+                                <label htmlFor="dropzone-file-ex" className={`relative flex flex-col items-center justify-center w-full h-40 border-2 border-dashed rounded-lg cursor-pointer transition-colors overflow-hidden ${receiptFile ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/10' : 'border-gray-300 bg-gray-50 hover:bg-gray-100 dark:border-gray-600 dark:bg-gray-700 dark:hover:border-gray-500 dark:hover:bg-gray-600'}`}>
+                                    {previewUrl ? (
+                                        <div className="relative w-full h-full flex items-center justify-center group">
+                                            <img src={previewUrl} alt="Receipt preview" className="w-full h-full object-contain p-2" />
+                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                <div className="bg-white/90 rounded-full p-2">
+                                                    <Upload className="w-6 h-6 text-gray-700" />
+                                                </div>
+                                            </div>
+                                            <div className="absolute bottom-2 left-0 right-0 text-center">
+                                                <span className="text-xs text-white bg-black/50 px-2 py-1 rounded">{receiptFile?.name}</span>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center">
+                                            <Upload className="w-8 h-8 mb-3 text-gray-400" />
+                                            <p className="mb-2 text-sm text-gray-500 dark:text-gray-400"><span className="font-semibold">Click to upload</span> receipt</p>
+                                        </div>
+                                    )}
+                                    <Input
+                                        id="dropzone-file-ex"
+                                        type="file"
+                                        className="hidden"
+                                        accept="image/*,application/pdf"
+                                        onChange={(e) => {
+                                            if (e.target.files && e.target.files[0]) {
+                                                handleFileChange(e.target.files[0]);
+                                            }
+                                        }}
+                                    />
+                                </label>
+                                {previewUrl && (
+                                    <div className="flex justify-end">
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={removeFile}
+                                            className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 px-2 h-8"
+                                        >
+                                            <Trash2 className="w-3 h-3 mr-1.5" /> Remove File
+                                        </Button>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
 
-                <TabsContent value="wallet" className="space-y-4">
+                        <Button
+                            onClick={() => handleDeposit('external')}
+                            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
+                            disabled={uploading || !amount || !receiptFile || isExcess}
+                        >
+                            {uploading ? 'Processing...' : isExcess ? 'Amount Exceeds Target' : 'Confirm External Deposit'}
+                        </Button>
+                    </TabsContent>
+                )}
+
+                <TabsContent value="wallet" className={isPlanFunding ? "pt-0 space-y-4" : "space-y-4"}>
                     <div className="p-4 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
                         <div className="flex items-center gap-3">
                             <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-full">
@@ -790,8 +804,41 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose, initialAdvance
                     </div>
 
                     {generalBalance <= 0 && !loadingBalance && (
-                        <div className="text-sm text-amber-600 bg-amber-50 p-2 rounded dark:bg-amber-900/20 dark:text-amber-400">
-                            You need funds in your General Wallet to perform a transfer. Deposit externally first.
+                        <div className="text-sm text-amber-600 bg-amber-50 p-3 rounded-lg border border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800 flex flex-col gap-2">
+                            <div className="flex items-start gap-2">
+                                <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+                                <p>You need funds in your General Wallet to fund this plan. Please top up your wallet first.</p>
+                            </div>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="w-full border-amber-200 text-amber-700 hover:bg-amber-100 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-900/40"
+                                onClick={() => {
+                                    // Reset to Wallet Top-up mode
+                                    window.location.href = '/dashboard/wallet';
+                                }}
+                            >
+                                Go to Wallet to Top Up
+                            </Button>
+                        </div>
+                    )}
+
+                    {generalBalance > 0 && amount && totalDeduction > generalBalance && (
+                        <div className="text-sm text-red-600 bg-red-50 p-3 rounded-lg border border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800 flex flex-col gap-2 animate-in fade-in slide-in-from-top-1">
+                            <div className="flex items-start gap-2">
+                                <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+                                <p>Insufficient funds. You need ₦{formatCurrency(totalDeduction)} but only have ₦{formatCurrency(generalBalance)}.</p>
+                            </div>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="w-full border-red-200 text-red-700 hover:bg-red-100 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/40"
+                                onClick={() => {
+                                    window.location.href = '/dashboard/wallet';
+                                }}
+                            >
+                                Top Up Wallet
+                            </Button>
                         </div>
                     )}
 
@@ -900,7 +947,10 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose, initialAdvance
                                                 Immediate Deduction
                                             </p>
                                             <p className="text-[10px] text-amber-600 dark:text-amber-500 leading-tight">
-                                                ₦{formatCurrency(fee)} service charge + ₦{formatCurrency(Number(amount) || 0)} contribution will be deducted from your wallet.
+                                                {isInclusiveFee 
+                                                  ? `Your ₦${formatCurrency(Number(amount) || 0)} payment will be deducted as a service charge.`
+                                                  : `₦${formatCurrency(fee)} service charge + ₦${formatCurrency(Number(amount) || 0)} contribution will be deducted from your wallet.`
+                                                }
                                             </p>
                                         </div>
                                     </div>

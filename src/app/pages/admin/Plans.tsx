@@ -49,7 +49,9 @@ export function AdminPlans() {
         whatsapp_link: "",
         contribution_type: "flexible", // 'fixed' or 'flexible'
         fixed_amount: "",
-        start_date: ""
+        start_date: "",
+        service_charge_is_recurring: false,
+        service_charge_interval_days: "31"
     });
 
     useEffect(() => {
@@ -89,7 +91,9 @@ export function AdminPlans() {
             whatsapp_link: "",
             contribution_type: "flexible",
             fixed_amount: "",
-            start_date: ""
+            start_date: "",
+            service_charge_is_recurring: false,
+            service_charge_interval_days: "31"
         });
         setEditingPlan(null);
     };
@@ -109,7 +113,9 @@ export function AdminPlans() {
             whatsapp_link: plan.whatsapp_link || "",
             contribution_type: plan.contribution_type || "flexible",
             fixed_amount: plan.fixed_amount || "",
-            start_date: plan.start_date || ""
+            start_date: plan.start_date || "",
+            service_charge_is_recurring: plan.service_charge_is_recurring || false,
+            service_charge_interval_days: plan.service_charge_interval_days?.toString() || "31"
         });
         setIsDialogOpen(true);
     };
@@ -185,7 +191,9 @@ export function AdminPlans() {
             whatsapp_link: formData.whatsapp_link,
             contribution_type: formData.contribution_type,
             fixed_amount: formData.contribution_type === 'fixed' ? Number(formData.fixed_amount) : null,
-            start_date: formData.start_date || null
+            start_date: formData.start_date || null,
+            service_charge_is_recurring: formData.service_charge_is_recurring,
+            service_charge_interval_days: formData.service_charge_is_recurring ? Number(formData.service_charge_interval_days) : null
         };
 
         let error;
@@ -215,7 +223,7 @@ export function AdminPlans() {
     const formatCurrency = (value: number) => {
         return new Intl.NumberFormat('en-US', {
             style: 'currency',
-            currency: 'USD',
+            currency: 'NGN',
         }).format(value);
     };
 
@@ -373,12 +381,12 @@ export function AdminPlans() {
 
                                             {formData.service_charge_type === 'fixed' && (
                                                 <div className="space-y-2 animate-in slide-in-from-left-2 duration-300">
-                                                    <Label>Fixed Fee ($)</Label>
+                                                    <Label>Fixed Fee (₦)</Label>
                                                     <Input
                                                         type="number"
                                                         value={formData.service_charge_fixed}
                                                         onChange={e => setFormData({ ...formData, service_charge_fixed: e.target.value })}
-                                                        placeholder="e.g. 500"
+                                                        placeholder="e.g. 2000"
                                                     />
                                                 </div>
                                             )}
@@ -392,6 +400,32 @@ export function AdminPlans() {
                                                         onChange={e => setFormData({ ...formData, service_charge_percentage: e.target.value })}
                                                         placeholder="e.g. 2.5"
                                                     />
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className="flex items-center space-x-4 border-l-2 border-slate-200 pl-4 py-1">
+                                            <div className="flex items-center space-x-2">
+                                                <input
+                                                    type="checkbox"
+                                                    id="is_recurring"
+                                                    className="w-4 h-4 rounded border-gray-300 text-slate-900 focus:ring-slate-900"
+                                                    checked={formData.service_charge_is_recurring}
+                                                    onChange={e => setFormData({ ...formData, service_charge_is_recurring: e.target.checked })}
+                                                />
+                                                <Label htmlFor="is_recurring" className="text-sm font-medium cursor-pointer">Recurring Fee</Label>
+                                            </div>
+                                            
+                                            {formData.service_charge_is_recurring && (
+                                                <div className="flex items-center gap-2 animate-in fade-in slide-in-from-left-2 duration-300">
+                                                    <span className="text-xs text-slate-500">Every</span>
+                                                    <Input
+                                                        type="number"
+                                                        className="h-8 w-20 text-xs"
+                                                        value={formData.service_charge_interval_days}
+                                                        onChange={e => setFormData({ ...formData, service_charge_interval_days: e.target.value })}
+                                                    />
+                                                    <span className="text-xs text-slate-500">days</span>
                                                 </div>
                                             )}
                                         </div>
@@ -522,7 +556,23 @@ export function AdminPlans() {
                                                 <span className="capitalize px-2 py-0.5 rounded-full bg-slate-100 text-xs">{plan.contribution_type}</span>
                                             </TableCell>
                                             <TableCell>{plan.duration_weeks || 'Flexible'} wks</TableCell>
-                                            <TableCell>{formatCurrency(plan.service_charge)}</TableCell>
+                                            <TableCell>
+                                                <div className="flex flex-col">
+                                                    <span className="font-bold">
+                                                        {plan.service_charge_type === 'percentage' ? `${plan.service_charge_percentage}%` : 
+                                                         plan.service_charge_type === 'tiered' ? 'Tiered' :
+                                                         formatCurrency(plan.service_charge_fixed || plan.service_charge || 0)}
+                                                    </span>
+                                                    <div className="flex items-center gap-1">
+                                                        <span className="text-[10px] text-gray-400 uppercase">{plan.service_charge_type}</span>
+                                                        {plan.service_charge_is_recurring && (
+                                                            <span className="text-[10px] text-blue-500 font-bold bg-blue-50 px-1 rounded">
+                                                                / {plan.service_charge_interval_days}d
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </TableCell>
                                             <TableCell>
                                                 <div className="flex items-center gap-1.5 text-gray-600">
                                                     <Users className="w-3.5 h-3.5 text-gray-400" />

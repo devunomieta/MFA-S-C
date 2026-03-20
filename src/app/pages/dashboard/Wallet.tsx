@@ -6,12 +6,11 @@ import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/app/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/app/components/ui/table";
-import { ArrowDownLeft, ArrowUpRight, Filter, Milestone } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, Filter, Milestone, Wallet as WalletIcon } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/app/context/AuthContext";
 import { Link, useSearchParams } from "react-router-dom";
 import { DepositModal } from "@/app/components/DepositModal";
-import { PlansDeck } from "@/app/components/wallet/PlansDeck";
 import { checkAndProcessMaturity } from "@/lib/planUtils";
 import { calculateBalance } from "@/lib/walletUtils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
@@ -50,7 +49,6 @@ export function Wallet() {
     const [filteredTransactions, setFilteredTransactions] = useState<any[]>([]);
     const [allPlans, setAllPlans] = useState<any[]>([]);
     const [userPlans, setUserPlans] = useState<UserPlan[]>([]);
-    const [loading, setLoading] = useState(true);
     // Bank Accounts State
     const [bankAccounts, setBankAccounts] = useState<any[]>([]);
     const [selectedBankId, setSelectedBankId] = useState<string>("");
@@ -77,6 +75,10 @@ export function Wallet() {
     const [pendingWithdrawalParams, setPendingWithdrawalParams] = useState<{ target: 'bank' | 'wallet' | 'plan', amount: number } | null>(null);
     const [withdrawalsEnabled, setWithdrawalsEnabled] = useState(true);
     const [isAdvanceMode, setIsAdvanceMode] = useState(false);
+    
+    // Pagination state
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 20;
 
     // URL Params for filtering
     const [searchParams] = useSearchParams();
@@ -133,7 +135,7 @@ export function Wallet() {
             setUserPlans(data);
             await checkAndProcessMaturity(supabase, data);
         }
-        setLoading(false);
+        
     }
 
     const totalWithdrawable = withdrawableWalletBalance + maturedPlansBalance;
@@ -652,7 +654,7 @@ export function Wallet() {
                             <Label htmlFor="plan_amount" className="dark:text-gray-300">Amount</Label>
                             {(() => {
                                 const targetUserPlan = userPlans.find(p => p.id === withdrawalTargetPlanId);
-                                const planType = targetUserPlan?.plan?.type || targetUserPlan?.type;
+                                const planType = targetUserPlan?.plan?.type;
                                 const meta = targetUserPlan?.plan_metadata || {};
 
                                 // Flexible Plans: Locked only if minimum not yet met
@@ -663,7 +665,7 @@ export function Wallet() {
                                     isLocked = true;
                                 } else if (planType === 'daily_drop') {
                                     isLocked = true;
-                                } else if (['marathon', 'sprint', 'anchor'].includes(planType)) {
+                                } else if (['marathon', 'sprint', 'anchor'].includes(planType || '')) {
                                     const currentWeekTotal = meta.current_week_total || 0;
                                     if (currentWeekTotal < 3000) {
                                         mandated = 3000 - currentWeekTotal;
@@ -682,7 +684,7 @@ export function Wallet() {
                                 const getPeriodsCovered = () => {
                                     const amt = parseFloat(amount);
                                     if (!amt || amt <= 0) return 0;
-                                    if (['marathon', 'sprint', 'anchor'].includes(planType)) return Math.floor(amt / 3000);
+                                    if (['marathon', 'sprint', 'anchor'].includes(planType || '')) return Math.floor(amt / 3000);
                                     if (planType === 'monthly_bloom') return Math.floor(amt / 20000);
                                     if (planType === 'daily_drop') {
                                         const fixedAmt = meta.fixed_amount || targetUserPlan?.plan?.fixed_amount || 0;
@@ -735,129 +737,214 @@ export function Wallet() {
     return (
         <div className="space-y-8">
             <div>
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Wallet</h1>
-                <p className="text-gray-500 dark:text-gray-400">Manage your funds and view transaction history.</p>
+                <h1 className="text-xl font-black text-gray-900 dark:text-white underline-offset-4 decoration-emerald-500/30">Wallet</h1>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 uppercase tracking-wider font-bold opacity-70">Efficiently manage your general funds, active plans, and withdrawals.</p>
             </div>
 
-            <div className="grid gap-8 md:grid-cols-3 items-start">
-
-                {/* Left Column: Cards & Accounts (1/3 width) */}
-                <div className="md:col-span-1 flex flex-col gap-6">
-                    <div>
-                        <div className="flex justify-between items-center px-1 mb-4">
-                            <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                                Cards & Accounts
-                            </h3>
+            <div className="grid gap-6 md:grid-cols-4 items-start">
+                {/* Stats / Balances Row */}
+                <div className="md:col-span-4 grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {/* Premium General Wallet Card */}
+                    <Card className="bg-gradient-to-br from-gray-950 via-slate-900 to-gray-950 text-white border-none shadow-2xl overflow-hidden relative group min-h-[200px] flex flex-col justify-between">
+                        {/* Shimmer & Grain Texture Overlay */}
+                        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-5 pointer-events-none" />
+                        <div className="absolute inset-0 bg-gradient-to-tr from-emerald-500/0 via-emerald-500/5 to-emerald-500/0 pointer-events-none animate-pulse-slow" />
+                        
+                        <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-all duration-700 transform group-hover:scale-110 group-hover:-rotate-12">
+                            <WalletIcon className="size-32 -mr-8 -mt-8 text-emerald-500" />
                         </div>
 
-                        <PlansDeck
-                            plans={userPlans.filter(p => !['withdrawable_wallet', 'ajo_payout'].includes(p.plan?.type))}
-                            loading={loading}
-                            walletBalance={generalBalance}
-                            onActiveChange={(id, _type, _name) => {
-                                setSelectedPlanId(id === 'wallet' ? "" : id);
-                            }}
-                        />
-                    </div>
-
-                    {/* Contextual Actions & Withdrawable Balance */}
-                    <div className="flex flex-col gap-4 mt-auto">
-                        {/* Withdrawable Balance Card (Screenshot Style) */}
-                        <div className="p-5 bg-emerald-950/20 border border-emerald-500/30 rounded-2xl">
-                            <p className="text-sm text-emerald-500 font-medium mb-1">Withdrawable Balance</p>
-                            <p className="text-3xl font-bold text-emerald-400">₦{formatCurrency(totalWithdrawable)}</p>
-                            <p className="text-[11px] text-emerald-600/70 mt-1">Funds available for immediate withdrawal to bank.</p>
-                        </div>
-
-                        <Card className="border-0 shadow-none bg-transparent">
-                            <CardContent className="p-0">
-                                <div className="grid grid-cols-2 gap-3">
-                                    <Dialog open={open} onOpenChange={setOpen}>
-                                        <DialogTrigger asChild>
-                                            <Button onClick={() => { setType('deposit'); }} className="h-14 bg-white text-gray-900 hover:bg-gray-100 shadow-lg transition-all rounded-2xl border border-gray-200 font-semibold">
-                                                <ArrowDownLeft className="mr-2 h-5 w-5" />
-                                                Deposit
-                                            </Button>
-                                        </DialogTrigger>
-                                        <DialogTrigger asChild>
-                                            <Button
-                                                onClick={() => {
-                                                    if (!withdrawalsEnabled) {
-                                                        toast.error("Withdrawals are currently disabled.");
-                                                        return;
-                                                    }
-                                                    setType('withdrawal');
-                                                }}
-                                                variant="outline"
-                                                className={`h-14 border-gray-700/50 text-white hover:bg-gray-800 transition-all rounded-2xl shadow-lg bg-gray-900/50 font-semibold ${!withdrawalsEnabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                            >
-                                                <ArrowUpRight className="mr-2 h-5 w-5" /> Withdraw
-                                            </Button>
-                                        </DialogTrigger>
-
-                                        {type === 'deposit' ? (
-                                            <DepositModal
-                                                onSuccess={() => {
-                                                    fetchWalletData();
-                                                    fetchUserPlans(); // Refresh plans too
-                                                }}
-                                                defaultPlanId={selectedPlanId}
-                                                onClose={() => setOpen(false)}
-                                            />
-                                        ) : renderWithdrawalDialog()}
-                                    </Dialog>
+                        <CardHeader className="pb-0 relative">
+                            <div className="flex justify-between items-start">
+                                <div>
+                                    <CardTitle className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.3em] mb-1">Main Wallet</CardTitle>
+                                    <h4 className="text-sm font-bold opacity-80 uppercase tracking-tighter">General Wallet</h4>
                                 </div>
-                            </CardContent>
-                        </Card>
-                    </div>
-                </div>
-
-                {/* Right Column: Transaction History (2/3 width) */}
-                <div className="md:col-span-2">
-                    <Card className="dark:bg-gray-800 dark:border-gray-700 h-full border-none shadow-sm md:shadow-md">
-                        <CardHeader className="flex flex-row items-center justify-between pb-2">
-                            <div>
-                                <CardTitle className="dark:text-white text-lg">Transaction History</CardTitle>
-                                <p className="text-sm text-gray-500 mt-1">Recent financial activity</p>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <Filter className="h-4 w-4 text-gray-500 dark:text-gray-400" />
-                                <select
-                                    className="h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring dark:text-white dark:border-gray-600"
-                                    value={selectedPlanFilter}
-                                    onChange={(e) => setSelectedPlanFilter(e.target.value)}
-                                >
-                                    <option value="all">All Transactions</option>
-                                    <option value="general">General Wallet</option>
-                                    <option value="withdrawable">Withdrawable Wallet</option>
-                                    {allPlans.map(plan => (
-                                        <option key={plan.id} value={plan.id}>{plan.name}</option>
-                                    ))}
-                                </select>
+                                {/* Chip Visual */}
+                                <div className="w-12 h-9 rounded-md bg-gradient-to-br from-emerald-400/30 to-emerald-600/10 border border-emerald-500/30 relative overflow-hidden flex items-center justify-center backdrop-blur-sm">
+                                    <div className="w-full h-[1px] absolute top-1/2 -translate-y-1/2 bg-emerald-500/20" />
+                                    <div className="h-full w-[1px] absolute left-1/2 -translate-x-1/2 bg-emerald-500/20" />
+                                    <div className="w-7 h-6 border border-emerald-500/40 rounded-sm" />
+                                </div>
                             </div>
                         </CardHeader>
-                        <CardContent>
+
+                        <CardContent className="pt-4 relative flex-grow">
+                            <div className="space-y-1">
+                                <p className="text-[10px] text-gray-400 uppercase font-black tracking-widest opacity-60">Available Balance</p>
+                                <p className="text-3xl font-black tracking-tighter tabular-nums drop-shadow-2xl">
+                                    <span className="text-emerald-500 mr-1 text-2xl">₦</span>{formatCurrency(generalBalance)}
+                                </p>
+                            </div>
+                        </CardContent>
+
+                        <div className="px-6 pb-6 relative">
+                            <div className="flex justify-between items-center">
+                                <div className="flex items-center gap-2">
+                                    <div className="size-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse" />
+                                    <p className="text-[10px] text-emerald-400 font-black uppercase tracking-widest">Active & Secure</p>
+                                </div>
+                                <Dialog open={open && type === 'deposit'} onOpenChange={(v) => { if(!v) setOpen(false); }}>
+                                    <DialogTrigger asChild>
+                                        <Button 
+                                            onClick={() => { 
+                                                setSelectedPlanId("");
+                                                setType('deposit'); 
+                                                setOpen(true); 
+                                            }} 
+                                            className="bg-emerald-500 hover:bg-emerald-400 text-black font-black px-8 h-12 shadow-xl rounded-2xl transition-all hover:scale-105 active:scale-95 group/btn overflow-hidden relative"
+                                        >
+                                            <span className="relative z-10 flex items-center gap-2">
+                                                Top Up
+                                                <ArrowUpRight className="size-4 transition-transform group-hover/btn:translate-x-1 group-hover/btn:-translate-y-1" />
+                                            </span>
+                                            <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 translate-x-[-100%] group-hover/btn:translate-x-[100%] transition-transform duration-1000" />
+                                        </Button>
+                                    </DialogTrigger>
+                                    <DepositModal
+                                        onSuccess={() => {
+                                            fetchWalletData();
+                                            fetchUserPlans();
+                                        }}
+                                        defaultPlanId={selectedPlanId}
+                                        onClose={() => setOpen(false)}
+                                    />
+                                </Dialog>
+                            </div>
+                        </div>
+                    </Card>
+
+                    {/* Glassmorphic Secondary Balance Card */}
+                    <Card className="bg-gray-50/50 dark:bg-gray-900/40 border border-gray-200 dark:border-emerald-500/10 shadow-none backdrop-blur-xl relative overflow-hidden group min-h-[200px] flex flex-col justify-between rounded-3xl transition-all hover:border-emerald-500/30">
+                        <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
+                            <Milestone className="size-32 -mr-8 -mt-8 text-emerald-500" />
+                        </div>
+                        <CardHeader className="pb-0">
+                            <div className="flex items-center gap-2">
+                                <div className="p-2 bg-emerald-500/10 rounded-lg">
+                                    <ArrowDownLeft className="size-4 text-emerald-500" />
+                                </div>
+                                <CardTitle className="text-[10px] font-black text-emerald-500 dark:text-emerald-400/60 uppercase tracking-[0.2em]">Withdrawable</CardTitle>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="pt-6">
+                            <div className="space-y-1">
+                                <p className="text-[10px] text-gray-400 uppercase font-black tracking-widest opacity-60">Ready to Cashout</p>
+                                <p className="text-2xl font-black text-gray-900 dark:text-emerald-100 tabular-nums tracking-tighter">₦{formatCurrency(totalWithdrawable)}</p>
+                            </div>
+                        </CardContent>
+                        <div className="px-6 pb-6">
+                            <div className="flex justify-between items-center">
+                                <p className="text-[9px] text-gray-400 font-bold uppercase max-w-[120px] leading-tight opacity-50">Processable to your linked bank account</p>
+                                <Dialog open={open && type === 'withdrawal'} onOpenChange={(v) => { if(!v) setOpen(false); }}>
+                                    <DialogTrigger asChild>
+                                        <Button 
+                                            onClick={() => { 
+                                                if (!withdrawalsEnabled) {
+                                                    toast.error("Withdrawals are currently disabled.");
+                                                    return;
+                                                }
+                                                setType('withdrawal'); 
+                                                setOpen(true); 
+                                            }} 
+                                            variant="outline" 
+                                            className={`border-emerald-500/20 bg-emerald-500/5 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 font-black h-11 px-6 rounded-xl transition-all hover:scale-105 active:scale-95 ${!withdrawalsEnabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                        >
+                                            Withdraw
+                                        </Button>
+                                    </DialogTrigger>
+                                    {renderWithdrawalDialog()}
+                                </Dialog>
+                            </div>
+                        </div>
+                    </Card>
+
+                    {/* Active Savings Glassmorphic Card */}
+                    <Card className="bg-gray-50/50 dark:bg-gray-900/40 border border-gray-200 dark:border-white/5 shadow-none backdrop-blur-xl relative overflow-hidden group min-h-[200px] flex flex-col justify-between rounded-3xl transition-all hover:border-white/20">
+                        <div className="absolute -bottom-6 -right-6 p-6 opacity-[0.02] group-hover:opacity-10 transition-opacity">
+                            <Filter className="size-48 text-white" />
+                        </div>
+                        <CardHeader className="pb-0">
+                            <div className="flex items-center gap-2">
+                                <div className="p-2 bg-blue-500/10 rounded-lg">
+                                    <Milestone className="size-4 text-blue-500" />
+                                </div>
+                                <CardTitle className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Active Savings</CardTitle>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="pt-6">
+                            <div className="space-y-1">
+                                <p className="text-[10px] text-gray-400 uppercase font-black tracking-widest opacity-60">Portfolio Value</p>
+                                <p className="text-2xl font-black text-gray-900 dark:text-white tabular-nums tracking-tighter">
+                                    ₦{formatCurrency(userPlans.filter(p => p.status === 'active').reduce((acc, p) => acc + (p.current_balance || 0), 0))}
+                                </p>
+                            </div>
+                        </CardContent>
+                        <div className="px-6 pb-6">
+                            <div className="flex justify-between items-center">
+                                <p className="text-[9px] text-gray-400 font-bold uppercase max-w-[120px] leading-tight opacity-50">Total assets across all your active plans</p>
+                                <Link to="/dashboard/plans">
+                                    <Button variant="ghost" className="text-[10px] h-11 px-6 font-black uppercase tracking-widest text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-900/10 transition-all border border-transparent hover:border-emerald-500/20 rounded-xl">
+                                        View Plans
+                                    </Button>
+                                </Link>
+                            </div>
+                        </div>
+                    </Card>
+                </div>
+
+
+                {/* Transaction History (Full width) */}
+                <div className="md:col-span-4 mt-6">
+                    <Card className="dark:bg-gray-900 dark:border-gray-800 border-gray-100 shadow-2xl rounded-2xl overflow-hidden">
+                        <CardHeader className="flex flex-col md:flex-row md:items-center justify-between gap-4 py-6 px-8 bg-gray-50/50 dark:bg-gray-800/50 border-b dark:border-gray-800">
+                            <div>
+                                <CardTitle className="dark:text-white text-lg font-black tracking-tight">Transaction History</CardTitle>
+                                <p className="text-[10px] text-gray-500 dark:text-gray-400 font-medium mt-1 uppercase tracking-wider">Detailed ledger of your financial activities</p>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <div className="relative">
+                                    <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                                    <select
+                                        className="h-9 pl-9 pr-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-[10px] font-bold shadow-sm focus:ring-2 focus:ring-emerald-500/20 transition-all outline-none dark:text-white"
+                                        value={selectedPlanFilter}
+                                        onChange={(e) => {
+                                            setSelectedPlanFilter(e.target.value);
+                                            setCurrentPage(1); // Reset to first page on filter
+                                        }}
+                                    >
+                                        <option value="all">ALL ACTIVITY</option>
+                                        <option value="general">GENERAL WALLET</option>
+                                        <option value="withdrawable">WITHDRAWABLE</option>
+                                        {allPlans.map(plan => (
+                                            <option key={plan.id} value={plan.id}>{plan.name.toUpperCase()}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="p-0">
                             <div className="overflow-x-auto">
                                 <Table>
                                     <TableHeader>
-                                        <TableRow className="dark:border-gray-800 hover:bg-transparent">
-                                            <TableHead className="dark:text-gray-400 font-medium">Date</TableHead>
-                                            <TableHead className="dark:text-gray-400 font-medium">Type</TableHead>
-                                            <TableHead className="dark:text-gray-400 font-medium">Description</TableHead>
-                                            <TableHead className="dark:text-gray-400 font-medium">Status</TableHead>
-                                            <TableHead className="text-right dark:text-gray-400 font-medium">Amount</TableHead>
-                                            <TableHead className="text-right dark:text-gray-400 font-medium">Action</TableHead>
+                                        <TableRow className="bg-gray-50/30 dark:bg-transparent dark:border-gray-800 hover:bg-transparent">
+                                            <TableHead className="dark:text-gray-500 font-black uppercase text-[10px] tracking-widest pl-8 py-5">Timestamp</TableHead>
+                                            <TableHead className="dark:text-gray-500 font-black uppercase text-[10px] tracking-widest py-5">Classification</TableHead>
+                                            <TableHead className="dark:text-gray-500 font-black uppercase text-[10px] tracking-widest py-5">Description</TableHead>
+                                            <TableHead className="dark:text-gray-500 font-black uppercase text-[10px] tracking-widest py-5">Status</TableHead>
+                                            <TableHead className="text-right dark:text-gray-500 font-black uppercase text-[10px] tracking-widest py-5">Amount</TableHead>
+                                            <TableHead className="text-right dark:text-gray-500 font-black uppercase text-[10px] tracking-widest pr-8 py-5 text-emerald-500">Action</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
                                         {filteredTransactions.length === 0 ? (
                                             <TableRow className="dark:border-gray-800">
-                                                <TableCell colSpan={6} className="text-center py-12 text-gray-500 dark:text-gray-400">
-                                                    <div className="flex flex-col items-center justify-center gap-2">
-                                                        <div className="w-12 h-12 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
-                                                            <Filter className="h-6 w-6 opacity-30" />
+                                                <TableCell colSpan={6} className="text-center py-24 text-gray-500 dark:text-gray-400">
+                                                    <div className="flex flex-col items-center justify-center gap-3">
+                                                        <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
+                                                            <Filter className="h-8 w-8 opacity-20" />
                                                         </div>
-                                                        <p>No transactions found for this filter.</p>
+                                                        <p className="font-black uppercase text-xs tracking-widest opacity-50">Empty Ledger Segment</p>
                                                     </div>
                                                 </TableCell>
                                             </TableRow>
@@ -868,6 +955,7 @@ export function Wallet() {
                                                     if (tx.type === 'transfer' && tx.amount > 0 && tx.plan_id) return false;
                                                     return true;
                                                 })
+                                                .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
                                                 .map((tx) => {
                                                     const isPositive = ['deposit', 'loan_disbursement', 'interest', 'limit_transfer', 'payout'].includes(tx.type);
                                                     let amountClass = "text-gray-900 dark:text-gray-200";
@@ -885,32 +973,56 @@ export function Wallet() {
                                                     }
 
                                                     return (
-                                                        <TableRow key={tx.id} className="dark:border-gray-800 dark:hover:bg-gray-900/50 group">
-                                                            <TableCell className="dark:text-gray-300 font-mono text-xs">{new Date(tx.created_at).toLocaleDateString()}</TableCell>
-                                                            <TableCell className="capitalize dark:text-gray-300 text-xs font-medium">{tx.type.replace('_', ' ')}</TableCell>
-                                                            <TableCell className="dark:text-gray-300 text-sm whitespace-normal break-words" title={tx.description}>{tx.description}</TableCell>
+                                                        <TableRow key={tx.id} className="dark:border-gray-800/50 dark:hover:bg-gray-800/30 group transition-colors">
+                                                            <TableCell className="pl-8 py-5">
+                                                                <div className="flex flex-col gap-0.5">
+                                                                    <span className="font-black text-xs tracking-tight text-gray-900 dark:text-gray-200">
+                                                                        {new Date(tx.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase()}
+                                                                    </span>
+                                                                    <span className="text-[10px] font-bold text-gray-400 tabular-nums">
+                                                                        {new Date(tx.created_at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
+                                                                    </span>
+                                                                </div>
+                                                            </TableCell>
                                                             <TableCell>
-                                                                <span className={`px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider font-semibold ${tx.status === 'completed' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800' :
-                                                                    tx.status === 'pending' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-800' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border border-red-200 dark:border-red-800'
-                                                                    }`}>
+                                                                <div className="flex flex-col gap-0.5">
+                                                                    <span className="capitalize dark:text-gray-300 text-[11px] font-black tracking-tighter text-gray-900">
+                                                                        {tx.type.replace('_', ' ').toUpperCase()}
+                                                                    </span>
+                                                                    <span className="text-[9px] font-bold text-emerald-500 uppercase tracking-widest line-clamp-1">
+                                                                        {tx.plan?.name || 'GEN-WALLET-01'}
+                                                                    </span>
+                                                                </div>
+                                                            </TableCell>
+                                                            <TableCell className="dark:text-gray-400 text-xs font-medium max-w-md whitespace-normal leading-relaxed" title={tx.description}>
+                                                                {tx.description}
+                                                            </TableCell>
+                                                            <TableCell>
+                                                                <span className={`px-2.5 py-1 rounded-lg text-[9px] uppercase tracking-widest font-black border ${
+                                                                    tx.status === 'completed' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' :
+                                                                    tx.status === 'pending' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' :
+                                                                    'bg-red-500/10 text-red-500 border-red-500/20'
+                                                                }`}>
                                                                     {tx.status}
                                                                 </span>
                                                             </TableCell>
-                                                            <TableCell className={`text-right font-medium font-mono ${amountClass}`}>
+                                                            <TableCell className={`text-right font-black font-mono tracking-tighter text-[13px] ${amountClass}`}>
                                                                 {amountPrefix}₦{formatCurrency(Math.abs(tx.amount))}
                                                             </TableCell>
-                                                            <TableCell className="text-right">
+                                                            <TableCell className="text-right pr-8">
                                                                 <Button
                                                                     variant="ghost"
-                                                                    size="sm"
-                                                                    className="h-8 w-8 p-0"
+                                                                    size="icon"
+                                                                    className="h-10 w-10 p-0 hover:bg-emerald-500/10 text-emerald-600 rounded-xl transition-all active:scale-95"
                                                                     onClick={() => {
                                                                         setSelectedTransaction(tx);
                                                                         setShowDetailsDialog(true);
                                                                     }}
                                                                 >
-                                                                    <span className="sr-only">Open details</span>
-                                                                    <ArrowUpRight className="h-4 w-4 rotate-45" />
+                                                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-eye">
+                                                                        <path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" />
+                                                                        <circle cx="12" cy="12" r="3" />
+                                                                    </svg>
                                                                 </Button>
                                                             </TableCell>
                                                         </TableRow>
@@ -920,6 +1032,56 @@ export function Wallet() {
                                     </TableBody>
                                 </Table>
                             </div>
+
+                            {/* Pagination Controls */}
+                            {filteredTransactions.length > itemsPerPage && (
+                                <div className="flex items-center justify-between p-8 bg-gray-50/30 dark:bg-gray-800/20 border-t dark:border-gray-800">
+                                    <p className="text-[10px] text-gray-400 font-black uppercase tracking-[0.1em]">
+                                        LEDGER SEGMENT <span className="text-gray-900 dark:text-white">{(currentPage - 1) * itemsPerPage + 1}-{Math.min(currentPage * itemsPerPage, filteredTransactions.length)}</span> OF <span className="text-gray-900 dark:text-white font-black">{filteredTransactions.length}</span>
+                                    </p>
+                                    <div className="flex items-center gap-2">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            disabled={currentPage === 1}
+                                            onClick={() => setCurrentPage(prev => prev - 1)}
+                                            className="h-9 px-4 rounded-xl border-gray-200 dark:border-gray-700 text-[10px] font-black uppercase tracking-widest hover:bg-emerald-500 hover:text-white transition-all"
+                                        >
+                                            Previous
+                                        </Button>
+                                        <div className="flex gap-1">
+                                            {Array.from({ length: Math.ceil(filteredTransactions.length / itemsPerPage) }, (_, i) => i + 1)
+                                                .filter(p => {
+                                                    const total = Math.ceil(filteredTransactions.length / itemsPerPage);
+                                                    return p === 1 || p === total || Math.abs(p - currentPage) <= 1;
+                                                })
+                                                .map((p, idx, arr) => (
+                                                    <div key={p} className="flex items-center">
+                                                        {idx > 0 && arr[idx-1] !== p - 1 && <span className="px-2 text-gray-400 font-black">...</span>}
+                                                        <Button
+                                                            variant={currentPage === p ? "default" : "outline"}
+                                                            size="sm"
+                                                            onClick={() => setCurrentPage(p)}
+                                                            className={`h-9 w-9 p-0 rounded-xl text-[10px] font-black transition-all ${currentPage === p ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-600/20' : 'border-gray-200 dark:border-gray-700 dark:text-gray-400'}`}
+                                                        >
+                                                            {p}
+                                                        </Button>
+                                                    </div>
+                                                ))
+                                            }
+                                        </div>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            disabled={currentPage === Math.ceil(filteredTransactions.length / itemsPerPage)}
+                                            onClick={() => setCurrentPage(prev => prev + 1)}
+                                            className="h-9 px-4 rounded-xl border-gray-200 dark:border-gray-700 text-[10px] font-black uppercase tracking-widest hover:bg-emerald-500 hover:text-white transition-all"
+                                        >
+                                            Next
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
                 </div>

@@ -5,7 +5,7 @@ import { Progress } from "@/app/components/ui/progress";
 import { Badge } from "@/app/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
 import { Plan, UserPlan } from "@/types";
-import { Timer, CheckCircle, AlertTriangle, Coins, Calendar, Lock, Plus, Trash2 } from "lucide-react";
+import { Timer, CheckCircle, AlertTriangle, Calendar, Lock, Plus, Trash2 } from "lucide-react";
 
 interface AjoCirclePlanCardProps {
     plan: Plan;
@@ -291,9 +291,39 @@ export function AjoCirclePlanCard({ plan, user_plan, onJoin, onDeposit, onAdvanc
                                 ₦{formatCurrency(getTotalPayout())}
                             </p>
                         </div>
-                        <Coins className="w-6 h-6 text-emerald-300 dark:text-emerald-700/50" />
+                        <div className="text-right">
+                             <p className="text-emerald-900/60 dark:text-emerald-100/60 text-[10px] font-bold uppercase tracking-wider mb-0.5">Service Charge</p>
+                             <p className="text-xs font-bold text-orange-600">
+                                {plan.service_charge_type === 'tiered' ? 'Tiered' : formatCurrency(plan.service_charge_fixed || 0)}
+                             </p>
+                        </div>
                     </div>
                 </div>
+
+                {plan.service_charge_type === 'tiered' && plan.service_charge_tiers && (
+                    <div className="rounded-lg border border-gray-100 dark:border-gray-800 overflow-hidden">
+                        <table className="w-full text-[10px] text-left">
+                            <thead className="bg-gray-50 dark:bg-gray-800 font-bold text-gray-500 uppercase tracking-wider">
+                                <tr>
+                                    <th className="px-3 py-2">Weekly Slot Amount</th>
+                                    <th className="px-3 py-2 text-right">Fee/Slot</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                                {plan.service_charge_tiers.map((tier: any, idx: number) => (
+                                    <tr key={idx}>
+                                        <td className="px-3 py-2 text-gray-600 dark:text-gray-400 font-medium">
+                                            ₦{formatCurrency(tier.min)} - {tier.max > 0 && tier.max < 9999999 ? `₦${formatCurrency(tier.max)}` : 'Above'}
+                                        </td>
+                                        <td className="px-3 py-2 text-right font-bold text-gray-900 dark:text-white">
+                                            ₦{formatCurrency(tier.fee)}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
 
                 <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-800">
                     <h4 className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2 font-bold">Benefit Summary</h4>
@@ -309,7 +339,7 @@ export function AjoCirclePlanCard({ plan, user_plan, onJoin, onDeposit, onAdvanc
 
             <CardFooter className="pt-2">
                 <Button
-                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-12 rounded-2xl shadow-lg shadow-emerald-500/20 transition-all duration-300 hover:-translate-y-0.5"
                     onClick={handleJoin}
                     disabled={subscriptions.length === 0 || !plan.config?.duration_weeks}
                 >

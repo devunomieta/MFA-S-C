@@ -239,7 +239,7 @@ export function AnchorPlanCard({ plan, userPlan, onJoin, onDeposit, onAdvanceDep
 
                 <CardFooter className="pt-2">
                     <Button
-                        className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold"
+                        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-12 rounded-2xl shadow-lg shadow-emerald-500/20 transition-all duration-300 hover:-translate-y-0.5"
                         onClick={() => setShowJoinModal(true)}
                     >
                         Start The Anchor

@@ -357,7 +357,7 @@ export function MonthlyBloomPlanCard({ plan, userPlan, onJoin, onDeposit, onAdva
 
                 <CardFooter className="pt-2">
                     <Button
-                        className="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold"
+                        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-12 rounded-2xl shadow-lg shadow-emerald-500/20 transition-all duration-300 hover:-translate-y-0.5"
                         onClick={handleJoin}
                     >
                         Start Saving Plan
@@ -375,7 +375,7 @@ export function MonthlyBloomPlanCard({ plan, userPlan, onJoin, onDeposit, onAdva
                 customTerms={[
                     `Duration: ${duration} Months`,
                     `Monthly Target: ${formatCurrency(parseInt(targetAmount))}`,
-                    "Service Charge: No extra charges",
+                    `Service Charge: ${plan.service_charge_type === 'fixed' ? formatCurrency(plan.service_charge_fixed || plan.service_charge || 0) : 'Calculated based on target'}`,
                     "Withdrawal: Locked until maturity",
                     "Aesthetics: Premium Growth"
                 ]}

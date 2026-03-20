@@ -111,8 +111,26 @@ export function DailyDropPlanCard({ plan, userPlan, onJoin, onRefresh, onDeposit
         setJoining(true);
 
         try {
+            const user = (await supabase.auth.getUser()).data.user;
+            if (!user) throw new Error("User not found");
+
+            // Check for duplicates
+            const { data: existing } = await supabase
+                .from('user_plans')
+                .select('id')
+                .eq('user_id', user.id)
+                .eq('plan_id', plan.id)
+                .not('status', 'in', '("cancelled", "completed")')
+                .maybeSingle();
+
+            if (existing) {
+                toast.error("You already have an active or pending record for this plan.");
+                setShowJoinConfirm(false);
+                return;
+            }
+
             const { error } = await supabase.from('user_plans').insert({
-                user_id: (await supabase.auth.getUser()).data.user?.id,
+                user_id: user.id,
                 plan_id: plan.id,
                 status: 'pending_activation',
                 plan_metadata: {
@@ -583,7 +601,7 @@ export function DailyDropPlanCard({ plan, userPlan, onJoin, onRefresh, onDeposit
 
             <CardFooter className="pt-2">
                 <Button
-                    className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-semibold"
+                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-12 rounded-2xl shadow-lg shadow-emerald-500/20 transition-all duration-300 hover:-translate-y-0.5"
                     onClick={handleJoin}
                     disabled={joining}
                 >
@@ -618,8 +636,10 @@ export function DailyDropPlanCard({ plan, userPlan, onJoin, onRefresh, onDeposit
                                 <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
                                 <p className="text-xs text-amber-800 dark:text-amber-400 leading-relaxed">
                                     <span className="font-bold uppercase tracking-tighter block mb-1">Monthly Service Fee</span>
-                                    {plan.service_charge_type === 'percentage' ? (
-                                        <>Your first payment of <span className="font-bold">{formatCurrency((parseFloat(joinAmount) * (plan.service_charge_percentage || 100)) / 100)}</span> and subsequent monthly drops will be charged as service fees.</>
+                                    {plan.service_charge_type === 'percentage' && plan.service_charge_percentage === 100 ? (
+                                        <>Your first payment of <span className="font-bold">{formatCurrency((parseFloat(joinAmount)))}</span> will be charged as service fees. {plan.service_charge_is_recurring ? `This fee will be deducted every ${plan.service_charge_interval_days} days.` : 'Future drops go 100% into your savings.'}</>
+                                    ) : plan.service_charge_type === 'percentage' ? (
+                                        <>Your first payment of <span className="font-bold">{formatCurrency((parseFloat(joinAmount) * (plan.service_charge_percentage || 0)) / 100)}</span> {plan.service_charge_is_recurring ? `and subsequent payments every ${plan.service_charge_interval_days} days` : ''} will be charged as service fees.</>
                                     ) : plan.service_charge_type === 'fixed' ? (
                                         <>A fixed monthly fee of <span className="font-bold">{formatCurrency(plan.service_charge_fixed || plan.service_charge || 0)}</span> will be charged.</>
                                     ) : (

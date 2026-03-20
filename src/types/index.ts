@@ -7,6 +7,8 @@ export interface Plan {
     service_charge_fixed?: number;
     service_charge_percentage?: number;
     service_charge_tiers?: { min: number; max: number; fee: number }[];
+    service_charge_is_recurring?: boolean;
+    service_charge_interval_days?: number;
     duration_weeks: number;
     duration_months: number;
     min_amount: number;
