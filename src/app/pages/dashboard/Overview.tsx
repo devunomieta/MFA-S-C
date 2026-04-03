@@ -235,58 +235,51 @@ export function Overview() {
                 </div>
             </div>
 
-            {/* Central Balance Card - Ultra-Premium Design */}
-            <Card className="relative overflow-hidden border-none shadow-2xl bg-[#0a0a0a] group">
-                {/* Dynamic Gradient Orbs */}
-                <div className="absolute -left-10 -top-10 w-72 h-72 bg-emerald-600/30 blur-[120px] rounded-full animate-pulse transition-all duration-1000" />
-                <div className="absolute -right-10 -bottom-10 w-72 h-72 bg-blue-600/20 blur-[120px] rounded-full animate-pulse transition-all duration-1000" />
-                
-                <CardContent className="p-1 relative z-10">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-1 overflow-hidden rounded-xl">
+            {/* Central Balance Card - Minimalist & Simple Design */}
+            <Card className="overflow-hidden border shadow-sm dark:bg-slate-900/20">
+                <CardContent className="p-0 !pb-0 relative z-10">
+                    <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x dark:divide-white/5">
                         {/* General Wallet */}
-                        <div className="p-8 space-y-4 bg-white/[0.03] backdrop-blur-md border border-white/[0.05] hover:bg-white/[0.06] transition-all duration-300 relative group/item">
-                            <div className="flex items-center gap-2.5 text-emerald-400 text-[10px] font-black uppercase tracking-[0.2em]">
-                                <div className="p-2 bg-emerald-500/10 rounded-lg shadow-inner">
+                        <div className="p-6 space-y-3 hover:bg-gray-50/50 dark:hover:bg-white/[0.02] transition-all duration-200">
+                            <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold uppercase tracking-wider">
+                                <div className="p-1.5 bg-emerald-100 dark:bg-emerald-500/10 rounded-md">
                                     <Wallet className="size-4" />
                                 </div>
                                 General Wallet
                             </div>
                             <div className="space-y-1">
-                                <div className="text-2xl font-bold text-white tracking-tight">₦{formatCurrency(generalBalance)}</div>
-                                <p className="text-[11px] text-gray-500 font-medium">Available for plan contributions</p>
-                            </div>
-                            <div className="absolute top-4 right-4 opacity-0 group-hover/item:opacity-100 transition-opacity">
-                                <ArrowRightLeft className="size-4 text-emerald-500/40" />
+                                <div className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">₦{formatCurrency(generalBalance)}</div>
+                                <p className="text-[10px] text-gray-500 font-medium">Available for plan contributions</p>
                             </div>
                         </div>
 
                         {/* Withdrawable Wallet */}
-                        <div className="p-8 space-y-4 bg-white/[0.04] backdrop-blur-md border border-white/[0.05] hover:bg-white/[0.07] transition-all duration-300 relative group/item">
-                            <div className="flex items-center gap-2.5 text-blue-400 text-[10px] font-black uppercase tracking-[0.2em]">
-                                <div className="p-2 bg-blue-500/10 rounded-lg shadow-inner">
+                        <div className="p-6 space-y-3 hover:bg-gray-50/50 dark:hover:bg-white/[0.02] transition-all duration-200">
+                            <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400 text-[10px] font-bold uppercase tracking-wider">
+                                <div className="p-1.5 bg-blue-100 dark:bg-blue-500/10 rounded-md">
                                     <ArrowRightLeft className="size-4" />
                                 </div>
                                 Withdrawable Wallet
                             </div>
                             <div className="space-y-1">
-                                <div className="text-2xl font-bold text-white tracking-tight">₦{formatCurrency(withdrawableBalance)}</div>
-                                <p className="text-[11px] text-gray-500 font-medium">Payouts & matured funds</p>
+                                <div className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">₦{formatCurrency(withdrawableBalance)}</div>
+                                <p className="text-[10px] text-gray-500 font-medium">Payouts & matured funds</p>
                             </div>
                         </div>
 
                         {/* Outstanding Loans */}
-                        <div className="p-8 space-y-4 bg-white/[0.03] backdrop-blur-md border border-white/[0.05] hover:bg-white/[0.06] transition-all duration-300 relative group/item">
-                            <div className={`flex items-center gap-2.5 text-[10px] font-black uppercase tracking-[0.2em] ${outstandingLoans > 0 ? 'text-amber-400' : 'text-gray-500'}`}>
-                                <div className={`p-2 rounded-lg shadow-inner ${outstandingLoans > 0 ? 'bg-amber-500/10' : 'bg-gray-500/10'}`}>
+                        <div className="p-6 space-y-3 hover:bg-gray-50/50 dark:hover:bg-white/[0.02] transition-all duration-200">
+                            <div className={`flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider ${outstandingLoans > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-gray-500'}`}>
+                                <div className={`p-1.5 rounded-md ${outstandingLoans > 0 ? 'bg-amber-100 dark:bg-amber-500/10' : 'bg-gray-100 dark:bg-white/5'}`}>
                                     <CreditCard className="size-4" />
                                 </div>
                                 Outstanding Loans
                             </div>
                             <div className="space-y-1">
-                                <div className={`text-2xl font-bold tracking-tight ${outstandingLoans > 0 ? 'text-amber-400' : 'text-white/30'}`}>
+                                <div className={`text-2xl font-bold tracking-tight ${outstandingLoans > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-gray-400 dark:text-white/20'}`}>
                                     ₦{formatCurrency(outstandingLoans)}
                                 </div>
-                                <p className="text-[11px] text-gray-600 font-medium">
+                                <p className="text-[10px] text-gray-500 font-medium">
                                     {outstandingLoans > 0 ? "Repayment active" : "No active loans"}
                                 </p>
                             </div>
@@ -310,7 +303,7 @@ export function Overview() {
                             <Link to="/dashboard/plans">View All</Link>
                         </Button>
                     </CardHeader>
-                    <CardContent className="p-0">
+                    <CardContent className="p-0 !pb-0">
                         {userPlans.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-12 text-gray-500">
                                 <PiggyBank className="w-12 h-12 mb-2 opacity-20" />
@@ -371,7 +364,7 @@ export function Overview() {
                             <Link to="/dashboard/wallet">View Statement</Link>
                         </Button>
                     </CardHeader>
-                    <CardContent className="p-0">
+                    <CardContent className="p-0 !pb-0">
                         {recentTransactions.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-12 text-gray-500">
                                 <ArrowRightLeft className="w-12 h-12 mb-2 opacity-20" />
