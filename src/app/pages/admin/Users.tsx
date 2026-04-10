@@ -152,16 +152,45 @@ function AdminWipePanel() {
 
         setWiping(true);
         try {
-            const { data, error } = await supabase.functions.invoke('admin-wipe-service', {
-                body: { scope, dataOnly }
+            console.log("Invoking Edge Function with raw fetch: system-purge-handler");
+            
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) throw new Error("No active session found. Please log in again.");
+
+            const functionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/system-purge-handler`;
+            console.log("Fetching URL:", functionUrl);
+
+            const response = await fetch(functionUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`,
+                    'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY
+                },
+                body: JSON.stringify({ scope, dataOnly })
             });
 
-            if (error) throw error;
-            toast.success(`Wipe successful: ${data.count} users cleared.`);
+            const result = await response.json();
+            console.log("Fetch Result:", result);
+
+            if (!response.ok) {
+                const errorMsg = result.error || result.message || `Server returned ${response.status}`;
+                throw new Error(errorMsg);
+            }
+            
+            toast.success(`Wipe successful: ${result.count} users cleared.`);
             setIsConfirmOpen(false);
             window.location.reload();
         } catch (error: any) {
-            toast.error("Wipe failed: " + error.message);
+            console.error("Full Catch Error:", error);
+            
+            let errorMessage = "Wipe failed: " + (error.message || "Unknown error");
+            
+            if (error?.message?.includes("Failed to send a request") || error?.message?.includes("Failed to fetch")) {
+                errorMessage = "Network Error: Could not reach the Edge Function. This usually means an adblocker or a network proxy is blocking the request to Supabase.";
+            }
+
+            toast.error(errorMessage);
         } finally {
             setWiping(false);
         }

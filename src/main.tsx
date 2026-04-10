@@ -8,8 +8,6 @@ import './styles/index.css'
 import './styles/tailwind.css'
 import './styles/theme.css'
 
-console.log('Supabase URL:', import.meta.env.VITE_SUPABASE_URL ? 'Loaded' : 'Missing');
-console.log('Supabase Key:', import.meta.env.VITE_SUPABASE_ANON_KEY ? 'Loaded' : 'Missing');
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

@@ -4,10 +4,18 @@ dist/
 .env.local
 .env.*
 *.log
-*.txt
 *.zip
-*.sql
+# Allow migrations but ignore other SQL files
 database_scripts/
+supabase/migrations/*_scratch.sql
+!supabase/migrations/*.sql
+*.sql
+
+# Logs and Dumps
+*_log.txt
+*_output.txt
+*_errors.txt
+ts_err.txt
 .vercel
 .next/
 build/

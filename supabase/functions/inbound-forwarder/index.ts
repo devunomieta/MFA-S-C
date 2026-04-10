@@ -5,10 +5,18 @@ const FORWARD_TO = "marysthriftservice@gmail.com"
 
 serve(async (req) => {
     try {
-        const payload = await req.json()
+        const authHeader = req.headers.get('x-webhook-secret')
+        const secretToken = Deno.env.get('FUNCTION_SECRET_TOKEN')
+        
+        if (secretToken && authHeader !== secretToken) {
+            console.error("Unauthorized inbound forwarder attempt")
+            return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 })
+        }
 
-        // Resend Inbound Webhook payload contains the email details
+        const payload = await req.json()
         const { from, to, subject, text, html } = payload.data
+
+        const forwardTo = Deno.env.get('FORWARD_TO_EMAIL') || 'marysthriftservice@gmail.com'
 
         const res = await fetch('https://api.resend.com/emails', {
             method: 'POST',
@@ -17,8 +25,8 @@ serve(async (req) => {
                 'Authorization': `Bearer ${RESEND_API_KEY}`,
             },
             body: JSON.stringify({
-                from: 'Forwarder <onboarding@resend.dev>', // Change to your domain after validation
-                to: [FORWARD_TO],
+                from: 'Forwarder <onboarding@resend.dev>',
+                to: [forwardTo],
                 subject: `[FWD] ${subject}`,
                 html: `
           <p><strong>From:</strong> ${from}</p>

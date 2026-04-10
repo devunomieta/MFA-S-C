@@ -14,11 +14,21 @@ serve(async (req) => {
     }
 
     try {
+        const authHeader = req.headers.get('x-webhook-secret')
+        const secretToken = Deno.env.get('FUNCTION_SECRET_TOKEN')
+        
+        if (secretToken && authHeader !== secretToken) {
+            console.error("Unauthorized contact form submission attempt")
+            return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+        }
+
         const { name, email, subject, message } = await req.json()
 
         if (!email || !message) {
             throw new Error('Email and message are required')
         }
+
+        const forwardTo = Deno.env.get('FORWARD_TO_EMAIL') || 'marysthriftservice@gmail.com'
 
         const res = await fetch('https://api.resend.com/emails', {
             method: 'POST',
@@ -27,8 +37,8 @@ serve(async (req) => {
                 'Authorization': `Bearer ${RESEND_API_KEY}`,
             },
             body: JSON.stringify({
-                from: 'Contact Form <onboarding@resend.dev>', // You should change this to your verified domain later
-                to: ['marysthriftservice@gmail.com'],
+                from: 'Contact Form <onboarding@resend.dev>',
+                to: [forwardTo],
                 subject: subject || `New Inquiry from ${name}`,
                 reply_to: email,
                 html: `

@@ -60,6 +60,9 @@ export function Contact() {
     try {
       const { data, error } = await supabase.functions.invoke('contact-handler', {
         body: formData,
+        headers: {
+          'x-webhook-secret': import.meta.env.VITE_FUNCTION_SECRET_TOKEN
+        }
       });
 
       if (error) throw error;
