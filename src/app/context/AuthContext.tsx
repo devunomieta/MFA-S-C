@@ -8,6 +8,7 @@ interface AuthContextType {
     session: Session | null;
     user: User | null;
     isAdmin: boolean;
+    isSuperadmin: boolean;
     loading: boolean;
     signOut: () => Promise<void>;
     savedSessions: SavedSession[];
@@ -20,6 +21,7 @@ const AuthContext = createContext<AuthContextType>({
     session: null,
     user: null,
     isAdmin: false,
+    isSuperadmin: false,
     loading: true,
     signOut: async () => { },
     savedSessions: [],
@@ -32,6 +34,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [session, setSession] = useState<Session | null>(null);
     const [user, setUser] = useState<User | null>(null);
     const [isAdmin, setIsAdmin] = useState(false);
+    const [isSuperadmin, setIsSuperadmin] = useState(false);
     const [loading, setLoading] = useState(true);
     const [savedSessions, setSavedSessions] = useState<SavedSession[]>([]);
     const [lastActivity, setLastActivity] = useState<number>(Date.now());
@@ -109,6 +112,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 }
             } else {
                 setIsAdmin(false);
+                setIsSuperadmin(false);
                 setLoading(false);
             }
         });
@@ -139,6 +143,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
             if (data) {
                 setIsAdmin(data.is_admin || false);
+                setIsSuperadmin(data.is_superadmin || false);
             }
         } catch (e) {
             console.error("Error checking admin status", e);
@@ -185,6 +190,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         session,
         user,
         isAdmin,
+        isSuperadmin,
         loading,
         signOut,
         savedSessions,

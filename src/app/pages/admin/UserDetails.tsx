@@ -6,12 +6,13 @@ import { Button } from "@/app/components/ui/button";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/app/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
-import { ArrowLeft, CreditCard, Banknote, History } from "lucide-react";
+import { ArrowLeft, CreditCard, Banknote, History, Shield, ShieldCheck } from "lucide-react";
 import { ActionConfirmModal } from "@/app/components/ui/ActionConfirmModal";
-
+import { useAuth } from "@/app/context/AuthContext";
 
 export function AdminUserDetails() {
     const { id } = useParams<{ id: string }>();
+    const { user: currentUser, isSuperadmin: currentIsSuperadmin } = useAuth();
     const [profile, setProfile] = useState<any>(null);
     const [plans, setPlans] = useState<any[]>([]);
     const [loans, setLoans] = useState<any[]>([]);
@@ -127,6 +128,25 @@ export function AdminUserDetails() {
         }
     }
 
+    async function toggleSuperadmin() {
+        if (!profile) return;
+        const newStatus = !profile.is_superadmin;
+        
+        try {
+            const { error } = await supabase
+                .from('profiles')
+                .update({ is_superadmin: newStatus, is_admin: true }) // Ensuring they are admin if superadmin
+                .eq('id', profile.id);
+
+            if (error) throw error;
+            
+            toast.success(newStatus ? "User elevated to Superadmin" : "Superadmin status revoked");
+            setProfile({ ...profile, is_superadmin: newStatus, is_admin: true });
+        } catch (error: any) {
+            toast.error("Failed to update role: " + error.message);
+        }
+    }
+
 
 
     if (loading) return <div className="p-8 text-center">Loading user details...</div>;
@@ -159,20 +179,40 @@ export function AdminUserDetails() {
                                 <h2 className="text-xl font-bold text-slate-900">{profile.full_name || 'No Name'}</h2>
                                 <p className="text-slate-500">{profile.email}</p>
                                 <div className="flex items-center gap-2 mt-2">
-                                    <Badge variant={profile.is_admin ? "default" : "secondary"} className={profile.is_admin ? "bg-purple-600" : ""}>
-                                        {profile.is_admin ? "Admin" : "User"}
-                                    </Badge>
+                                    {profile.is_superadmin && (
+                                        <Badge className="bg-amber-600 gap-1"><ShieldCheck className="w-3 h-3" /> Superadmin</Badge>
+                                    )}
+                                    {profile.is_admin && !profile.is_superadmin && (
+                                        <Badge className="bg-purple-600">Admin</Badge>
+                                    )}
+                                    {!profile.is_admin && (
+                                        <Badge variant="secondary">User</Badge>
+                                    )}
                                     <Badge variant="outline">Joined: {new Date(profile.created_at).toLocaleDateString()}</Badge>
                                 </div>
                             </div>
                         </div>
 
                         <div className="flex gap-2">
-
-                            {/* <Button variant="destructive" className="gap-2">
-                                <Shield className="w-4 h-4" />
-                                Ban User
-                            </Button> */}
+                            {currentIsSuperadmin && profile.id !== currentUser?.id && (
+                                <Button 
+                                    variant="outline" 
+                                    className={profile.is_superadmin ? "text-amber-700 border-amber-200 bg-amber-50 hover:bg-amber-100" : "text-slate-600"}
+                                    onClick={() => {
+                                        setConfirmAction({
+                                            title: profile.is_superadmin ? "Revoke Superadmin" : "Make Superadmin",
+                                            desc: profile.is_superadmin 
+                                                ? "Are you sure you want to remove superadmin privileges from this user?" 
+                                                : "This will give the user full control over the system, including the ability to wipe all data. Proceed?",
+                                            action: toggleSuperadmin
+                                        });
+                                        setIsConfirmOpen(true);
+                                    }}
+                                >
+                                    <Shield className="w-4 h-4 mr-2" />
+                                    {profile.is_superadmin ? "Revoke Superadmin" : "Make Superadmin"}
+                                </Button>
+                            )}
                         </div>
                     </div>
                 </CardContent>
