@@ -15,6 +15,32 @@ export function AdminUsers() {
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
 
+    useEffect(() => {
+        fetchUsers();
+    }, []);
+
+    async function fetchUsers() {
+        setLoading(true);
+        const { data, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            toast.error("Failed to fetch users");
+            console.error(error);
+        } else {
+            setUsers(data || []);
+        }
+        setLoading(false);
+    }
+
+    const filteredUsers = users.filter(user =>
+        user.email?.toLowerCase().includes(search.toLowerCase()) ||
+        user.full_name?.toLowerCase().includes(search.toLowerCase())
+    );
+
+    return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <div>
@@ -221,14 +247,12 @@ This action is permanent. To proceed, please type the following exactly:
                 confirmText="EXECUTE WIPE"
                 variant="destructive"
             >
-                <div className="mt-4 px-6 pb-4">
-                    <Input
-                        placeholder="Type confirmation here..."
-                        value={confirmText}
-                        onChange={e => setConfirmText(e.target.value)}
-                        className="border-red-300 focus-visible:ring-red-400"
-                    />
-                </div>
+                <Input
+                    placeholder="Type confirmation here..."
+                    value={confirmText}
+                    onChange={e => setConfirmText(e.target.value)}
+                    className="border-red-300 focus-visible:ring-red-400"
+                />
             </ActionConfirmModal>
         </Card>
     );

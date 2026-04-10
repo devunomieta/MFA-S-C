@@ -24,6 +24,7 @@ interface ActionConfirmModalProps {
   cancelText?: string;
   variant?: ConfirmVariant;
   isLoading?: boolean;
+  children?: React.ReactNode;
 }
 
 const variantStyles: Record<ConfirmVariant, { icon: LucideIcon, color: string, button: string }> = {
@@ -64,6 +65,7 @@ export function ActionConfirmModal({
   cancelText = "Cancel",
   variant = "default",
   isLoading = false,
+  children,
 }: ActionConfirmModalProps) {
   const Icon = variantStyles[variant].icon;
 
@@ -87,6 +89,12 @@ export function ActionConfirmModal({
             </div>
           </div>
         </div>
+        
+        {children && (
+          <div className="px-6 pb-4">
+            {children}
+          </div>
+        )}
         
         <DialogFooter className="bg-slate-50/80 p-4 border-t flex flex-row gap-2 sm:gap-0 justify-end">
           <Button
