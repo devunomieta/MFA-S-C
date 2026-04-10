@@ -13,7 +13,7 @@ We currently support and provide security updates for the following versions:
 
 The security of our users and their data is our top priority. If you discover a security vulnerability, we would appreciate it if you could report it to us privately so that we can address it before it is disclosed publicly.
 
-To report a vulnerability, please email **security@ajosave.com** (or your preferred security contact email) with a detailed description of the issue, including steps to reproduce it if possible.
+To report a vulnerability, please email **[EMAIL_ADDRESS]** with a detailed description of the issue, including steps to reproduce it if possible.
 
 ### What to include in your report:
 
