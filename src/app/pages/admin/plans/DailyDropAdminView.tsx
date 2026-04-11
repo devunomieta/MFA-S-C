@@ -56,20 +56,14 @@ export function DailyDropAdminView({ plan }: DailyDropAdminViewProps) {
 
     async function handleTriggerAutoSave() {
         setIsProcessing(true);
-        const { data, error } = await supabase.rpc('trigger_daily_drop_auto_save');
+        const { data, error } = await supabase.rpc('trigger_all_auto_saves');
         setIsProcessing(false);
         setIsConfirmOpen(false);
 
         if (error) {
             toast.error("Auto-Drop Job Failed: " + error.message);
         } else {
-            const covered = data.filter((d: any) => d.status === 'Covered');
-            const failed = data.filter((d: any) => d.status === 'Insufficient Funds');
-
-            toast.success(`Complete! Covered: ${covered.length}, Failed: ${failed.length}`, {
-                duration: 5000,
-                description: failed.length > 0 ? `Failed for: ${failed.map((f: any) => f.user_full_name).join(', ')}` : "All deficits covered."
-            });
+            toast.success(`Auto-Save executed: ${data.processed} updated, ${data.arrears_created} arrears recorded.`);
             fetchSubscribers();
         }
     }
@@ -108,8 +102,8 @@ export function DailyDropAdminView({ plan }: DailyDropAdminViewProps) {
                 isOpen={isConfirmOpen}
                 onOpenChange={setIsConfirmOpen}
                 onConfirm={handleTriggerAutoSave}
-                title="Trigger Daily Auto-Drop"
-                description={`Run AUTO-DROP Logic?\n\nThis simulates the Daily 11:59PM Cron Job.\nIt will check all active users, and if they haven't made a deposit TODAY, it will attempt to pull their FIXED AMOUNT from their General Wallet.`}
+                title="Trigger Global Auto-Save"
+                description={`Run AUTO-SAVE Logic for ALL PLAN TYPES (Daily, Weekly, Monthly)?\n\nThis simulates the recurring background job.\nIt will attempt to cover deficits from General Wallet and record arrears if funds are missing.`}
                 confirmText="Run Now"
                 variant="info"
                 isLoading={isProcessing}

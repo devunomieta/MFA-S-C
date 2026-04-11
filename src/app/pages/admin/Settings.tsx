@@ -8,7 +8,7 @@ import { Textarea } from "@/app/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/app/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
 import { toast } from "sonner";
-import { Save, Mail, Settings as SettingsIcon, Image as ImageIcon, Megaphone, Trash2 } from "lucide-react";
+import { Save, Mail, Settings as SettingsIcon, Image as ImageIcon, Megaphone, Trash2, ShieldCheck, ShieldAlert } from "lucide-react";
 import { ActionConfirmModal } from "@/app/components/ui/ActionConfirmModal";
 
 
@@ -161,6 +161,7 @@ export function AdminSettings() {
                 <TabsList>
                     <TabsTrigger value="general" className="gap-2"><SettingsIcon className="w-4 h-4" /> General</TabsTrigger>
                     <TabsTrigger value="branding" className="gap-2"><ImageIcon className="w-4 h-4" /> Branding</TabsTrigger>
+                    <TabsTrigger value="security" className="gap-2 font-bold text-emerald-600"><ShieldCheck className="w-4 h-4" /> Security</TabsTrigger>
                     <TabsTrigger value="email" className="gap-2"><Mail className="w-4 h-4" /> Email & SMTP</TabsTrigger>
                     <TabsTrigger value="announcements" className="gap-2"><Megaphone className="w-4 h-4" /> Announcements</TabsTrigger>
                 </TabsList>
@@ -199,6 +200,73 @@ export function AdminSettings() {
                             <div className="flex justify-end">
                                 <Button onClick={() => saveSettings('general', general)} className="bg-emerald-600 hover:bg-emerald-700">
                                     <Save className="w-4 h-4 mr-2" /> Save General Settings
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                <TabsContent value="security" className="space-y-6 mt-4">
+                    <Card className="border-emerald-100 shadow-sm">
+                        <CardHeader className="bg-emerald-50/10">
+                            <CardTitle className="flex items-center gap-2 text-slate-900">
+                                <ShieldCheck className="w-5 h-5 text-emerald-600" /> Admin Action Authentication
+                            </CardTitle>
+                            <CardDescription>
+                                Secure sensitive administrative actions (like plan creation and data wipes) with a dedicated PIN.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-6 pt-6">
+                            <div className="grid gap-6 md:grid-cols-2">
+                                <div className="space-y-3">
+                                    <Label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Administration PIN</Label>
+                                    <div className="flex gap-2">
+                                        <Input
+                                            type="password"
+                                            placeholder="••••"
+                                            maxLength={6}
+                                            value={general.admin_pin || "1234"}
+                                            onChange={(e) => setGeneral({ ...general, admin_pin: e.target.value.replace(/\D/g, "") })}
+                                            className="font-mono text-lg tracking-[0.5em] max-w-[150px] text-center border-2 border-slate-100 focus:border-emerald-500 rounded-xl"
+                                        />
+                                        <Button
+                                            variant="outline"
+                                            className="rounded-xl border-slate-200"
+                                            onClick={() => {
+                                                const newPin = Math.floor(1000 + Math.random() * 9000).toString();
+                                                setGeneral({ ...general, admin_pin: newPin });
+                                                toast.info(`Generated temporarily: ${newPin}. Click Save to apply.`);
+                                            }}
+                                        >
+                                            Generate
+                                        </Button>
+                                    </div>
+                                    <p className="text-[11px] text-slate-500 leading-relaxed">
+                                        This PIN is required to authorize critical system changes. 
+                                        <strong> Default PIN is 1234</strong>.
+                                    </p>
+                                </div>
+
+                                <div className="bg-amber-50 rounded-xl p-4 border border-amber-100 flex gap-4">
+                                    <div className="size-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+                                        <ShieldAlert className="w-5 h-5 text-amber-600" />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <h4 className="text-sm font-black text-amber-900 uppercase tracking-tighter">Security Protocol</h4>
+                                        <p className="text-[11px] text-amber-700 leading-relaxed">
+                                            The Administration PIN is a master key. Do not share it over unsecured channels. 
+                                            Actions performed using this PIN are immutable and globally visible in the audit logs.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="flex justify-end pt-4 border-t border-slate-100">
+                                <Button 
+                                    onClick={() => saveSettings('security', { admin_pin: general.admin_pin || "1234" })} 
+                                    className="bg-slate-900 hover:bg-slate-800 shadow-xl rounded-xl h-11 px-6 active:scale-95 transition-all"
+                                >
+                                    <Save className="w-4 h-4 mr-2" /> Sync Security Settings
                                 </Button>
                             </div>
                         </CardContent>

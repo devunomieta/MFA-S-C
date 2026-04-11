@@ -79,20 +79,14 @@ export function SprintAdminView({ plan }: SprintAdminViewProps) {
 
     async function handleTriggerAutoSave() {
         setIsProcessing(true);
-        const { data, error } = await supabase.rpc('trigger_sprint_auto_save');
+        const { data, error } = await supabase.rpc('trigger_all_auto_saves');
         setIsProcessing(false);
         setIsAutoSaveOpen(false);
 
         if (error) {
             toast.error("Auto-Save Job Failed: " + error.message);
         } else {
-            const covered = data.filter((d: any) => d.status === 'Covered');
-            const failed = data.filter((d: any) => d.status === 'Insufficient Funds');
-
-            toast.success(`Auto-Save Complete! Covered: ${covered.length}, Failed: ${failed.length}`, {
-                duration: 5000,
-                description: failed.length > 0 ? `Failed for: ${failed.map((f: any) => f.user_full_name).join(', ')}` : "All deficits covered or no deficits found."
-            });
+            toast.success(`Auto-Save executed: ${data.processed} updated, ${data.arrears_created} arrears recorded.`);
             fetchSubscribers();
         }
     }
@@ -130,8 +124,8 @@ export function SprintAdminView({ plan }: SprintAdminViewProps) {
                 isOpen={isAutoSaveOpen}
                 onOpenChange={setIsAutoSaveOpen}
                 onConfirm={handleTriggerAutoSave}
-                title="Trigger Sunday Auto-Save"
-                description={`Run AUTO-SAVE Logic?\n\nThis simulates the Sunday 6:00 AM Cron Job.\nIt will check all active users, and if they haven't met the ₦3,000 target, it will attempt to pull funds from their General Wallet to avoid penalties.`}
+                title="Trigger Global Auto-Save"
+                description={`Run AUTO-SAVE Logic for ALL PLAN TYPES (Daily, Weekly, Monthly)?\n\nThis simulates the recurring background job.\nIt will attempt to cover deficits from General Wallet and record arrears if funds are missing.`}
                 confirmText="Run Now"
                 variant="info"
                 isLoading={isProcessing}

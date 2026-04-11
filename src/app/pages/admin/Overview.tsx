@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { formatNaira } from "@/lib/utils";
 import { Users, Banknote, Activity, Clock, ArrowRight } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/app/components/ui/card";
 import { useNavigate } from "react-router-dom";
@@ -162,7 +163,7 @@ export function AdminOverview() {
         }
     }
 
-    const formatCurrency = (val: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'NGN' }).format(val);
+    const formatCurrency = (val: number) => formatNaira(val);
 
     const TransactionList = ({ title, data, icon: Icon, colorClass, emptyMsg }: any) => (
         <Card className="border-slate-100 shadow-sm bg-slate-50/50">

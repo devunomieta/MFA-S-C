@@ -8,8 +8,8 @@ import { Droplets, AlertTriangle, CheckCircle, RefreshCw, Trophy } from "lucide-
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
-import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
+import { formatNaira } from "@/lib/utils";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -57,7 +57,6 @@ export function DailyDropPlanCard({ plan, userPlan, onJoin, onRefresh, onDeposit
 
     const isFinished = userPlan?.status === 'completed' || (selectedDuration !== -1 && effectiveDaysPaid >= selectedDuration);
 
-    const formatCurrency = (val: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'NGN' }).format(val);
 
     const getNextDue = () => {
         const startDateStr = userPlan?.start_date || metadata.start_date || userPlan?.created_at;
@@ -261,7 +260,7 @@ export function DailyDropPlanCard({ plan, userPlan, onJoin, onRefresh, onDeposit
                         </div>
                         <div className="text-right">
                             <div className="text-xs text-gray-500 uppercase font-bold tracking-wider">Total Saved</div>
-                            <div className="text-xl font-bold text-gray-900 dark:text-white">{formatCurrency(userPlan?.current_balance || 0)}</div>
+                            <div className="text-xl font-bold text-gray-900 dark:text-white">{formatNaira(userPlan?.current_balance || 0)}</div>
                         </div>
                     </div>
                 </CardHeader>
@@ -284,8 +283,8 @@ export function DailyDropPlanCard({ plan, userPlan, onJoin, onRefresh, onDeposit
                                 </div>
                                 <p className="text-xs text-cyan-600 dark:text-cyan-500">
                                     {metadata.withdrawn
-                                        ? `You have successfully withdrawn ${formatCurrency(metadata.withdrawn_amount || totalSaved)} to your withdrawable wallet.`
-                                        : `Your target is met! Withdraw your ${formatCurrency(totalSaved)} to your wallet to enable the next cycle.`
+                                        ? `You have successfully withdrawn ${formatNaira(metadata.withdrawn_amount || totalSaved)} to your withdrawable wallet.`
+                                        : `Your target is met! Withdraw your ${formatNaira(totalSaved)} to your wallet to enable the next cycle.`
                                     }
                                 </p>
                                 <Button
@@ -295,7 +294,7 @@ export function DailyDropPlanCard({ plan, userPlan, onJoin, onRefresh, onDeposit
                                     variant={metadata.withdrawn ? 'outline' : 'default'}
                                 >
                                     {withdrawing ? "Withdrawing..." :
-                                        metadata.withdrawn ? `Withdrawn ${formatCurrency(metadata.withdrawn_amount || (fixedAmount * selectedDuration))}` :
+                                        metadata.withdrawn ? `Withdrawn ${formatNaira(metadata.withdrawn_amount || (fixedAmount * selectedDuration))}` :
                                             "Withdraw to Wallet"}
                                 </Button>
                             </div>
@@ -346,7 +345,7 @@ export function DailyDropPlanCard({ plan, userPlan, onJoin, onRefresh, onDeposit
                                 {nextDue === 'Overdue' ? (
                                     <div className="bg-red-50 p-2 rounded border border-red-100 flex items-center gap-2 text-xs text-red-700 font-medium animate-pulse">
                                         <AlertTriangle className="w-3.5 h-3.5 text-red-500" />
-                                        Deposit Due: {formatCurrency(fixedAmount)}
+                                        Deposit Due: {formatNaira(fixedAmount)}
                                     </div>
                                 ) : (diffDays >= 1) ? (
                                     <div className="flex items-center gap-2 p-2 bg-emerald-50 text-emerald-700 rounded-md text-xs border border-emerald-100 font-bold">
@@ -391,7 +390,7 @@ export function DailyDropPlanCard({ plan, userPlan, onJoin, onRefresh, onDeposit
                                     <div className="flex justify-between text-sm">
                                         <span className="text-gray-600 dark:text-gray-400 font-medium">Overall Plan Progress</span>
                                         <span className="font-bold text-gray-900 dark:text-gray-200">
-                                            {formatCurrency(totalSaved)} / {formatCurrency(totalTarget)}
+                                            {formatNaira(totalSaved)} / {formatNaira(totalTarget)}
                                         </span>
                                     </div>
                                     <div className="h-2 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
@@ -411,8 +410,8 @@ export function DailyDropPlanCard({ plan, userPlan, onJoin, onRefresh, onDeposit
                                     <div className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-1 flex items-center gap-1">
                                         <Droplets className="w-3 h-3" /> Daily Commit
                                     </div>
-                                    <div className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center justify-between">
-                                        {formatCurrency(fixedAmount)}
+                                    <div className="text-lg font-bold text-gray-900 dark:text-100 flex items-center justify-between">
+                                        {formatNaira(fixedAmount)}
                                         {daysPaid >= 31 && (
                                             <Button
                                                 variant="ghost"
@@ -572,8 +571,8 @@ export function DailyDropPlanCard({ plan, userPlan, onJoin, onRefresh, onDeposit
                                             <tbody className="divide-y divide-cyan-50 dark:divide-cyan-800 text-cyan-700 dark:text-cyan-400">
                                                 {plan.service_charge_tiers.map((tier: any, idx: number) => (
                                                     <tr key={idx}>
-                                                        <td className="px-2 py-1">₦{formatCurrency(tier.min).replace('NGN', '').trim()} - {tier.max > 0 && tier.max < 9999999 ? `₦${formatCurrency(tier.max).replace('NGN', '').trim()}` : 'Above'}</td>
-                                                        <td className="px-2 py-1 text-right font-bold">₦{formatCurrency(tier.fee).replace('NGN', '').trim()}</td>
+                                                        <td className="px-2 py-1">{formatNaira(tier.min)} - {tier.max > 0 && tier.max < 9999999 ? formatNaira(tier.max) : 'Above'}</td>
+                                                        <td className="px-2 py-1 text-right font-bold">{formatNaira(tier.fee)}</td>
                                                     </tr>
                                                 ))}
                                             </tbody>
@@ -622,7 +621,7 @@ export function DailyDropPlanCard({ plan, userPlan, onJoin, onRefresh, onDeposit
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <p className="text-[10px] uppercase font-bold text-cyan-600 tracking-wider">Daily Amount</p>
-                                        <p className="text-lg font-black text-gray-900 dark:text-white">{formatCurrency(parseFloat(joinAmount))}</p>
+                                        <p className="text-lg font-black text-gray-900 dark:text-white">{formatNaira(parseFloat(joinAmount))}</p>
                                     </div>
                                     <div>
                                         <p className="text-[10px] uppercase font-bold text-cyan-600 tracking-wider">Duration</p>
@@ -637,11 +636,11 @@ export function DailyDropPlanCard({ plan, userPlan, onJoin, onRefresh, onDeposit
                                 <p className="text-xs text-amber-800 dark:text-amber-400 leading-relaxed">
                                     <span className="font-bold uppercase tracking-tighter block mb-1">Monthly Service Fee</span>
                                     {plan.service_charge_type === 'percentage' && plan.service_charge_percentage === 100 ? (
-                                        <>Your first payment of <span className="font-bold">{formatCurrency((parseFloat(joinAmount)))}</span> will be charged as service fees. {plan.service_charge_is_recurring ? `This fee will be deducted every ${plan.service_charge_interval_days} days.` : 'Future drops go 100% into your savings.'}</>
+                                        <>Your first payment of <span className="font-bold">{formatNaira((parseFloat(joinAmount)))}</span> will be charged as service fees. {plan.service_charge_is_recurring ? `This fee will be deducted every ${plan.service_charge_interval_days} days.` : 'Future drops go 100% into your savings.'}</>
                                     ) : plan.service_charge_type === 'percentage' ? (
-                                        <>Your first payment of <span className="font-bold">{formatCurrency((parseFloat(joinAmount) * (plan.service_charge_percentage || 0)) / 100)}</span> {plan.service_charge_is_recurring ? `and subsequent payments every ${plan.service_charge_interval_days} days` : ''} will be charged as service fees.</>
+                                        <>Your first payment of <span className="font-bold">{formatNaira((parseFloat(joinAmount) * (plan.service_charge_percentage || 0)) / 100)}</span> {plan.service_charge_is_recurring ? `and subsequent payments every ${plan.service_charge_interval_days} days` : ''} will be charged as service fees.</>
                                     ) : plan.service_charge_type === 'fixed' ? (
-                                        <>A fixed monthly fee of <span className="font-bold">{formatCurrency(plan.service_charge_fixed || plan.service_charge || 0)}</span> will be charged.</>
+                                        <>A fixed monthly fee of <span className="font-bold">{formatNaira(plan.service_charge_fixed || plan.service_charge || 0)}</span> will be charged.</>
                                     ) : (
                                         <>A tiered service fee will be applied based on your daily drop amount.</>
                                     )}

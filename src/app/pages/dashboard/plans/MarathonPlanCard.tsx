@@ -7,6 +7,7 @@ import { Link } from "react-router-dom";
 import { Trophy, Calendar, AlertTriangle, CheckCircle, ArrowRight, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import { formatNaira } from "@/lib/utils";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -41,7 +42,6 @@ export function MarathonPlanCard({ plan, userPlan, onJoin, onDeposit, onAdvanceD
 
     const progress = Math.min((weeksPaid / duration) * 100, 100);
 
-    const formatCurrency = (val: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'NGN' }).format(val);
 
     const handleExtend = async () => {
         if (!userPlan) return;
@@ -81,7 +81,7 @@ export function MarathonPlanCard({ plan, userPlan, onJoin, onDeposit, onAdvanceD
                         </div>
                         <div className="text-right">
                             <div className="text-xs text-gray-500 uppercase font-bold tracking-wider">Total Saved</div>
-                            <div className="text-xl font-bold text-gray-900 dark:text-white">{formatCurrency(userPlan?.current_balance || 0)}</div>
+                            <div className="text-xl font-bold text-gray-900 dark:text-white">{formatNaira(userPlan?.current_balance || 0)}</div>
                         </div>
                     </div>
                 </CardHeader>
@@ -91,7 +91,7 @@ export function MarathonPlanCard({ plan, userPlan, onJoin, onDeposit, onAdvanceD
                         {arrears > 0 && (
                             <div className="flex items-center gap-2 p-2 bg-red-50 text-red-700 rounded-md text-xs border border-red-100 font-medium animate-pulse">
                                 <AlertTriangle className="w-3.5 h-3.5" />
-                                <span>Arrears: {formatCurrency(arrears)}</span>
+                                <span>Arrears: {formatNaira(arrears)}</span>
                             </div>
                         )}
 
@@ -288,8 +288,8 @@ export function MarathonPlanCard({ plan, userPlan, onJoin, onDeposit, onAdvanceD
                                     {plan.service_charge_type === 'tiered' && plan.service_charge_tiers && plan.service_charge_tiers.length > 0 ? (
                                         plan.service_charge_tiers.map((tier: any, idx: number) => (
                                             <tr key={idx}>
-                                                <td className="px-2 py-1">₦{formatCurrency(tier.min).replace('NGN', '').trim()} - {tier.max > 0 && tier.max < 9999999 ? `₦${formatCurrency(tier.max).replace('NGN', '').trim()}` : 'Above'}</td>
-                                                <td className="px-2 py-1 text-right font-bold">₦{formatCurrency(tier.fee).replace('NGN', '').trim()}</td>
+                                                <td className="px-2 py-1">{formatNaira(tier.min)} - {tier.max > 0 && tier.max < 9999999 ? formatNaira(tier.max) : 'Above'}</td>
+                                                <td className="px-2 py-1 text-right font-bold">{formatNaira(tier.fee)}</td>
                                             </tr>
                                         ))
                                     ) : (

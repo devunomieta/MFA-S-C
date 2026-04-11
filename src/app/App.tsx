@@ -92,6 +92,7 @@ function AppRoutes() {
             <Route path="users" element={<AdminUsers />} />
             <Route path="users/:id" element={<AdminUserDetails />} />
             <Route path="plans" element={<AdminPlans />} />
+            <Route path="plans/:view" element={<AdminPlans />} />
             <Route path="settings" element={<AdminSettings />} />
             <Route path="newsletter" element={<AdminNewsletter />} />
             <Route path="approvals" element={<AdminApprovals />} />

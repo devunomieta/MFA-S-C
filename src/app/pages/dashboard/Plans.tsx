@@ -144,7 +144,12 @@ export function Plans() {
     }, [user]);
 
     async function fetchPlans() {
-        const { data, error } = await supabase.from("plans").select("*").eq('is_active', true);
+        const { data, error } = await supabase
+            .from("plans")
+            .select("*")
+            .eq('is_active', true)
+            .eq('is_approved', true);
+            
         if (!error && data) setAvailablePlans(data as Plan[]);
     }
 

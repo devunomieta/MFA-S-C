@@ -7,6 +7,7 @@ import { TrendingUp, CheckCircle, AlertTriangle, RotateCcw, Trophy } from "lucid
 import { useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
 import { Label } from "@/app/components/ui/label";
+import { formatNaira } from "@/lib/utils";
 
 interface StepUpPlanCardProps {
     plan: Plan;
@@ -37,7 +38,6 @@ export function StepUpPlanCard({ plan, userPlan, onJoin, onDeposit, onAdvanceDep
     const arrears = metadata.arrears_amount || 0;
 
     const isTargetMet = weeksCompleted >= totalDuration;
-    const formatCurrency = (val: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'NGN' }).format(val);
 
     const handleJoin = () => {
         onJoin(plan.id, Number(selectedAmount), Number(selectedDuration));
@@ -72,7 +72,7 @@ export function StepUpPlanCard({ plan, userPlan, onJoin, onDeposit, onAdvanceDep
                         </div>
                         <div className="text-right">
                             <div className="text-xs text-gray-500 uppercase font-bold tracking-wider">Total Saved</div>
-                            <div className="text-xl font-bold text-gray-900 dark:text-white">{formatCurrency(userPlan?.current_balance || 0)}</div>
+                            <div className="text-xl font-bold text-gray-900 dark:text-white">{formatNaira(userPlan?.current_balance || 0)}</div>
                         </div>
                     </div>
                 </CardHeader>
@@ -93,7 +93,7 @@ export function StepUpPlanCard({ plan, userPlan, onJoin, onDeposit, onAdvanceDep
                                 {arrears > 0 ? (
                                     <div className="flex items-center gap-2 p-2 bg-red-50 text-red-700 rounded-md text-xs border border-red-100 font-medium">
                                         <AlertTriangle className="w-3.5 h-3.5" />
-                                        <span>Arrears: {formatCurrency(arrears)}</span>
+                                        <span>Arrears: {formatNaira(arrears)}</span>
                                     </div>
                                 ) : isTargetMet ? (
                                     <div className="flex flex-col gap-1">
@@ -103,7 +103,7 @@ export function StepUpPlanCard({ plan, userPlan, onJoin, onDeposit, onAdvanceDep
                                         </div>
                                         {excessAmount > 0 && (
                                             <div className="text-[10px] text-emerald-600 font-bold ml-1">
-                                                You saved an extra {formatCurrency(excessAmount)}! Congratulations! 🚀
+                                                You saved an extra {formatNaira(excessAmount)}! Congratulations! 🚀
                                             </div>
                                         )}
                                     </div>
@@ -144,7 +144,7 @@ export function StepUpPlanCard({ plan, userPlan, onJoin, onDeposit, onAdvanceDep
                                         </span>
                                     </div>
                                     <span className="text-sm font-bold text-purple-600 dark:text-purple-300">
-                                        {isTargetMet ? formatCurrency(fixedAmount) : formatCurrency(weekPaidSoFar)} / {formatCurrency(fixedAmount)}
+                                        {isTargetMet ? formatNaira(fixedAmount) : formatNaira(weekPaidSoFar)} / {formatNaira(fixedAmount)}
                                     </span>
                                 </div>
                                 <div className="h-1.5 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden mb-1">
@@ -247,7 +247,7 @@ export function StepUpPlanCard({ plan, userPlan, onJoin, onDeposit, onAdvanceDep
                                 </SelectTrigger>
                                 <SelectContent>
                                     {AMOUNTS.map(a => (
-                                        <SelectItem key={a} value={a.toString()}>{formatCurrency(a)}</SelectItem>
+                                        <SelectItem key={a} value={a.toString()}>{formatNaira(a)}</SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
@@ -287,8 +287,8 @@ export function StepUpPlanCard({ plan, userPlan, onJoin, onDeposit, onAdvanceDep
                                     {plan.service_charge_type === 'tiered' && plan.service_charge_tiers && plan.service_charge_tiers.length > 0 ? (
                                         plan.service_charge_tiers.map((tier: any, idx: number) => (
                                             <tr key={idx}>
-                                                <td className="px-2 py-1">₦{formatCurrency(tier.min).replace('NGN', '').trim()} - {tier.max > 0 && tier.max < 9999999 ? `₦${formatCurrency(tier.max).replace('NGN', '').trim()}` : 'Above'}</td>
-                                                <td className="px-2 py-1 text-right font-bold">₦{formatCurrency(tier.fee).replace('NGN', '').trim()}</td>
+                                                <td className="px-2 py-1">{formatNaira(tier.min)} - {tier.max > 0 && tier.max < 9999999 ? formatNaira(tier.max) : 'Above'}</td>
+                                                <td className="px-2 py-1 text-right font-bold">{formatNaira(tier.fee)}</td>
                                             </tr>
                                         ))
                                     ) : (

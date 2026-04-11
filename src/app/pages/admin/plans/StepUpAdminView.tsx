@@ -74,7 +74,7 @@ export function StepUpAdminView({ plan }: StepUpAdminViewProps) {
     async function handleTriggerAutoSave() {
         setLoading(true);
         setIsProcessing(true);
-        const { error } = await supabase.rpc('trigger_step_up_auto_save');
+        const { data, error } = await supabase.rpc('trigger_all_auto_saves');
         setLoading(false);
         setIsProcessing(false);
         setIsAutoSaveOpen(false);
@@ -82,7 +82,7 @@ export function StepUpAdminView({ plan }: StepUpAdminViewProps) {
         if (error) {
             toast.error("Auto-Save Job Failed: " + error.message);
         } else {
-            toast.success(`Auto-Save Job Executed. Check logs/data.`);
+            toast.success(`Auto-Save executed: ${data.processed} updated, ${data.arrears_created} arrears recorded.`);
             fetchSubscribers();
         }
     }
@@ -143,8 +143,8 @@ export function StepUpAdminView({ plan }: StepUpAdminViewProps) {
                 isOpen={isAutoSaveOpen}
                 onOpenChange={setIsAutoSaveOpen}
                 onConfirm={handleTriggerAutoSave}
-                title="Trigger Auto-Save"
-                description={`Run AUTO-SAVE Logic?\n\nThis simulates the Sunday 6:00 AM Cron Job.\nIt will attempt to cover deficits from General Wallet.`}
+                title="Trigger Global Auto-Save"
+                description={`Run AUTO-SAVE Logic for ALL PLAN TYPES (Daily, Weekly, Monthly)?\n\nThis simulates the recurring background job.\nIt will attempt to cover deficits from General Wallet and record arrears if funds are missing.`}
                 confirmText="Run Now"
                 variant="info"
                 isLoading={isProcessing}

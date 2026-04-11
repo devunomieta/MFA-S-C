@@ -4,6 +4,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/app/comp
 import { Plan, UserPlan } from "@/types";
 import { Link } from "react-router-dom";
 import { Timer, Zap, AlertTriangle } from "lucide-react";
+import { formatNaira } from "@/lib/utils";
 
 interface SprintPlanCardProps {
     plan: Plan;
@@ -28,7 +29,6 @@ export function SprintPlanCard({ plan, userPlan, onJoin, onDeposit, onAdvanceDep
     const progress = Math.min((weeksCompleted / duration) * 100, 100);
     const weekProgress = Math.min((currentWeekTotal / weeklyTarget) * 100, 100);
 
-    const formatCurrency = (val: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'NGN' }).format(val);
 
     // Active State (Joined) - Minimalist
     if (isJoined) {
@@ -51,7 +51,7 @@ export function SprintPlanCard({ plan, userPlan, onJoin, onDeposit, onAdvanceDep
                         </div>
                         <div className="text-right">
                             <div className="text-xs text-gray-500 uppercase font-bold tracking-wider">Total Saved</div>
-                            <div className="text-xl font-bold text-gray-900 dark:text-white">{formatCurrency(userPlan?.current_balance || 0)}</div>
+                            <div className="text-xl font-bold text-gray-900 dark:text-white">{formatNaira(userPlan?.current_balance || 0)}</div>
                         </div>
                     </div>
                 </CardHeader>
@@ -60,7 +60,7 @@ export function SprintPlanCard({ plan, userPlan, onJoin, onDeposit, onAdvanceDep
                     {arrears > 0 && (
                         <div className="flex items-center gap-2 p-2 bg-red-50 text-red-700 rounded-md text-xs border border-red-100 font-medium">
                             <AlertTriangle className="w-3.5 h-3.5" />
-                            <span>Arrears: {formatCurrency(arrears)}</span>
+                            <span>Arrears: {formatNaira(arrears)}</span>
                         </div>
                     )}
 
@@ -78,7 +78,7 @@ export function SprintPlanCard({ plan, userPlan, onJoin, onDeposit, onAdvanceDep
                         <div className="flex justify-between text-xs font-bold text-gray-700 dark:text-gray-300">
                             <span className="flex items-center gap-1.5 uppercase tracking-wider text-[10px] text-gray-500"><Timer className="w-3.5 h-3.5" /> This Week</span>
                             <span className={currentWeekTotal >= weeklyTarget ? 'text-emerald-600' : 'text-amber-600'}>
-                                {currentWeekTotal >= weeklyTarget ? 'Goal Met 🎉' : `${formatCurrency(currentWeekTotal)} / ${formatCurrency(weeklyTarget)}`}
+                                {currentWeekTotal >= weeklyTarget ? 'Goal Met 🎉' : `${formatNaira(currentWeekTotal)} / ${formatNaira(weeklyTarget)}`}
                             </span>
                         </div>
                         <div className="h-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
@@ -193,8 +193,8 @@ export function SprintPlanCard({ plan, userPlan, onJoin, onDeposit, onAdvanceDep
                                     {plan.service_charge_type === 'tiered' && plan.service_charge_tiers && plan.service_charge_tiers.length > 0 ? (
                                         plan.service_charge_tiers.map((tier: any, idx: number) => (
                                             <tr key={idx}>
-                                                <td className="px-2 py-1">₦{formatCurrency(tier.min).replace('NGN', '').trim()} - {tier.max > 0 && tier.max < 9999999 ? `₦${formatCurrency(tier.max).replace('NGN', '').trim()}` : 'Above'}</td>
-                                                <td className="px-2 py-1 text-right font-bold">₦{formatCurrency(tier.fee).replace('NGN', '').trim()}</td>
+                                                <td className="px-2 py-1">{formatNaira(tier.min)} - {tier.max > 0 && tier.max < 9999999 ? formatNaira(tier.max) : 'Above'}</td>
+                                                <td className="px-2 py-1 text-right font-bold">{formatNaira(tier.fee)}</td>
                                             </tr>
                                         ))
                                     ) : (

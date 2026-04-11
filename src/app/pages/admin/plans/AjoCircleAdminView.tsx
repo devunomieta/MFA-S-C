@@ -108,15 +108,15 @@ export function AjoCircleAdminView() {
 
     const triggerAutoSave = async () => {
         setConfirmAction({
-            title: "Trigger Ajo Auto-Save",
-            desc: "This will attempt to auto-debit funds from users' General Wallets for their Ajo contributions. Continue?",
+            title: "Trigger Global Auto-Save",
+            desc: "This will attempt to auto-debit funds from users' General Wallets for ALL active plans (Daily, Weekly, Monthly) that are due. Continue?",
             action: async () => {
                 setProcessing(true);
-                const { error } = await supabase.rpc('trigger_ajo_circle_auto_save');
+                const { data, error } = await supabase.rpc('trigger_all_auto_saves');
                 if (error) {
                     toast.error(`Auto-Save failed: ${error.message}`);
                 } else {
-                    toast.success("Auto-Save trigger executed. Check logs/results.");
+                    toast.success(`Auto-Save executed: ${data.processed} updated, ${data.arrears_created} arrears recorded.`);
                     fetchSubscribers();
                 }
                 setProcessing(false);

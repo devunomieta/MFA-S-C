@@ -13,6 +13,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { DepositModal } from "@/app/components/DepositModal";
 import { checkAndProcessMaturity } from "@/lib/planUtils";
 import { calculateBalance } from "@/lib/walletUtils";
+import { formatNaira } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
 import { LoanRepaymentDialog } from "@/app/components/LoanRepaymentDialog";
 import { TransactionDetailsModal } from "@/app/components/wallet/TransactionDetailsModal";
@@ -52,6 +53,7 @@ export function Wallet() {
     // Bank Accounts State
     const [bankAccounts, setBankAccounts] = useState<any[]>([]);
     const [selectedBankId, setSelectedBankId] = useState<string>("");
+    const [pendingArrears, setPendingArrears] = useState<{ total: number; count: number }>({ total: 0, count: 0 });
 
     const [selectedPlanFilter, setSelectedPlanFilter] = useState<string>("all");
 
@@ -98,8 +100,23 @@ export function Wallet() {
             fetchUserPlans();
             fetchActiveLoan();
             fetchGlobalSettings();
+            fetchPendingArrears();
         }
     }, [user]);
+
+    async function fetchPendingArrears() {
+        if (!user) return;
+        const { data, error } = await supabase
+            .from('unpaid_arrears')
+            .select('amount, penalty_fee')
+            .eq('user_id', user.id)
+            .eq('status', 'unpaid');
+
+        if (!error && data) {
+            const total = data.reduce((acc, curr) => acc + (curr.amount + curr.penalty_fee), 0);
+            setPendingArrears({ total, count: data.length });
+        }
+    }
 
     async function fetchGlobalSettings() {
         const { data } = await supabase.from('app_settings').select('value').eq('key', 'general').single();
@@ -152,13 +169,6 @@ export function Wallet() {
         }
     }, [selectedPlanFilter, transactions]);
 
-    const formatCurrency = (value: number) => {
-        return new Intl.NumberFormat('en-US', {
-            style: 'decimal',
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
-        }).format(value);
-    };
 
     async function fetchPlansData() {
         const { data: plansData } = await supabase.from("plans").select("*").eq('is_active', true);
@@ -714,7 +724,7 @@ export function Wallet() {
                                         )}
                                         {!isLocked && !isAdvanceMode && amount && parseFloat(amount) < mandated && (
                                             <p className="text-[10px] text-red-500 font-medium">
-                                                Minimum transfer is ₦{formatCurrency(mandated)}
+                                                Minimum transfer is {formatNaira(mandated)}
                                             </p>
                                         )}
                                     </div>
@@ -740,6 +750,29 @@ export function Wallet() {
                 <h1 className="text-xl font-black text-gray-900 dark:text-white underline-offset-4 decoration-emerald-500/30">Wallet</h1>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 uppercase tracking-wider font-bold opacity-70">Efficiently manage your general funds, active plans, and withdrawals.</p>
             </div>
+
+            {pendingArrears.total > 0 && (
+                <Card className="bg-red-50 border-red-200 dark:bg-red-950/20 dark:border-red-900 shadow-sm transition-all hover:shadow-md">
+                    <CardHeader className="pb-2">
+                        <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
+                            <ArrowDownLeft className="size-5 animate-bounce-slow" />
+                            <CardTitle className="text-sm font-bold uppercase tracking-wider">Pending Arrears ({pendingArrears.count})</CardTitle>
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                            <div>
+                                <p className="text-2xl font-black text-red-700 dark:text-red-400 tabular-nums">
+                                    {formatNaira(pendingArrears.total)}
+                                </p>
+                                <p className="text-[10px] text-red-600/70 dark:text-red-400/70 uppercase font-black mt-1">
+                                    This amount (Savings + Penalties) will be auto-deducted immediately from your general wallet credits.
+                                </p>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
 
             <div className="grid gap-6 md:grid-cols-4 items-start">
                 {/* Stats / Balances Row */}
@@ -773,7 +806,7 @@ export function Wallet() {
                             <div className="space-y-1">
                                 <p className="text-[10px] text-gray-400 uppercase font-black tracking-widest opacity-60">Available Balance</p>
                                 <p className="text-3xl font-black tracking-tighter tabular-nums drop-shadow-2xl">
-                                    <span className="text-emerald-500 mr-1 text-2xl">₦</span>{formatCurrency(generalBalance)}
+                                    <span className="text-emerald-500 mr-1 text-2xl">₦</span>{formatNaira(generalBalance).replace('₦', '')}
                                 </p>
                             </div>
                         </CardContent>
@@ -830,7 +863,7 @@ export function Wallet() {
                         <CardContent className="pt-6">
                             <div className="space-y-1">
                                 <p className="text-[10px] text-gray-400 uppercase font-black tracking-widest opacity-60">Ready to Cashout</p>
-                                <p className="text-2xl font-black text-gray-900 dark:text-emerald-100 tabular-nums tracking-tighter">₦{formatCurrency(totalWithdrawable)}</p>
+                                <p className="text-2xl font-black text-gray-900 dark:text-emerald-100 tabular-nums tracking-tighter">{formatNaira(totalWithdrawable)}</p>
                             </div>
                         </CardContent>
                         <div className="px-6 pb-6">
@@ -876,7 +909,7 @@ export function Wallet() {
                             <div className="space-y-1">
                                 <p className="text-[10px] text-gray-400 uppercase font-black tracking-widest opacity-60">Portfolio Value</p>
                                 <p className="text-2xl font-black text-gray-900 dark:text-white tabular-nums tracking-tighter">
-                                    ₦{formatCurrency(userPlans.filter(p => p.status === 'active').reduce((acc, p) => acc + (p.current_balance || 0), 0))}
+                                    {formatNaira(userPlans.filter(p => p.status === 'active').reduce((acc, p) => acc + (p.current_balance || 0), 0))}
                                 </p>
                             </div>
                         </CardContent>
@@ -1007,7 +1040,7 @@ export function Wallet() {
                                                                 </span>
                                                             </TableCell>
                                                             <TableCell className={`text-right font-black font-mono tracking-tighter text-[13px] ${amountClass}`}>
-                                                                {amountPrefix}₦{formatCurrency(Math.abs(tx.amount))}
+                                                                {amountPrefix}{formatNaira(Math.abs(tx.amount))}
                                                             </TableCell>
                                                             <TableCell className="text-right pr-8">
                                                                 <Button

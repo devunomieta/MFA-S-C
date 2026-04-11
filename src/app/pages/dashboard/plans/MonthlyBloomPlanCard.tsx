@@ -8,8 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plan, UserPlan } from "@/types";
 import { CheckCircle, AlertTriangle, Sprout, RefreshCw, Trophy } from "lucide-react";
 import { Link } from "react-router-dom";
-import { toast } from "sonner";
 import { SprintJoinModal } from "./SprintJoinModal";
+import { formatNaira } from "@/lib/utils";
 
 interface MonthlyBloomPlanCardProps {
     plan: Plan;
@@ -25,7 +25,6 @@ export function MonthlyBloomPlanCard({ plan, userPlan, onJoin, onDeposit, onAdva
     const [targetAmount, setTargetAmount] = useState<string>("20000");
     const [showJoinModal, setShowJoinModal] = useState(false);
 
-    const formatCurrency = (val: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'NGN' }).format(val);
 
     const isJoined = !!userPlan && userPlan.status !== 'cancelled';
     const isCompleted = userPlan?.status === 'completed' || userPlan?.status === 'matured';
@@ -80,7 +79,7 @@ export function MonthlyBloomPlanCard({ plan, userPlan, onJoin, onDeposit, onAdva
                         </div>
                         <div className="text-right">
                             <div className="text-xs text-gray-500 uppercase font-bold tracking-wider">Total Saved</div>
-                            <div className="text-xl font-bold text-gray-900 dark:text-white">{formatCurrency(userPlan?.current_balance || 0)}</div>
+                            <div className="text-xl font-bold text-gray-900 dark:text-white">{formatNaira(userPlan?.current_balance || 0)}</div>
                         </div>
                     </div>
                 </CardHeader>
@@ -90,7 +89,7 @@ export function MonthlyBloomPlanCard({ plan, userPlan, onJoin, onDeposit, onAdva
                         {arrears > 0 ? (
                             <div className="bg-red-50 p-2 rounded border border-red-100 flex items-center gap-2 text-xs text-red-700 font-medium animate-pulse">
                                 <AlertTriangle className="w-3.5 h-3.5 text-red-500" />
-                                Arrears: {formatCurrency(arrears)}
+                                Arrears: {formatNaira(arrears)}
                             </div>
                         ) : isTargetMet ? (
                             <div className="flex flex-col gap-1">
@@ -100,7 +99,7 @@ export function MonthlyBloomPlanCard({ plan, userPlan, onJoin, onDeposit, onAdva
                                 </div>
                                 {excessAmount > 0 && (
                                     <div className="text-[10px] text-emerald-600 font-bold ml-1">
-                                        You saved an extra {formatCurrency(excessAmount)}! Congratulations! 🌸
+                                        You saved an extra {formatNaira(excessAmount)}! Congratulations! 🌸
                                     </div>
                                 )}
                             </div>
@@ -126,7 +125,7 @@ export function MonthlyBloomPlanCard({ plan, userPlan, onJoin, onDeposit, onAdva
                                 {isTargetMet ? 'Monthly Progress (Completed)' : `Monthly Progress (Month ${monthsCompleted + 1})`}
                             </span>
                             <span className="font-bold text-gray-900 dark:text-gray-200">
-                                {isTargetMet ? formatCurrency(target) : formatCurrency(monthPaid)} / {formatCurrency(target)}
+                                {isTargetMet ? formatNaira(target) : formatNaira(monthPaid)} / {formatNaira(target)}
                             </span>
                         </div>
                         <div className="h-2 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
@@ -146,7 +145,7 @@ export function MonthlyBloomPlanCard({ plan, userPlan, onJoin, onDeposit, onAdva
                         <div className="flex justify-between text-sm">
                             <span className="text-gray-600 dark:text-gray-400 font-medium">Overall Plan Progress</span>
                             <span className="font-bold text-gray-900 dark:text-gray-200">
-                                {formatCurrency(totalSaved)} / {formatCurrency(totalTarget)}
+                                {formatNaira(totalSaved)} / {formatNaira(totalTarget)}
                             </span>
                         </div>
                         <div className="h-1.5 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
@@ -286,7 +285,7 @@ export function MonthlyBloomPlanCard({ plan, userPlan, onJoin, onDeposit, onAdva
 
                         <div className="flex justify-between items-center text-xs text-slate-700 bg-slate-50 p-2 rounded border border-slate-100">
                             <span className="font-semibold">Est. Total Savings:</span>
-                            <span className="font-bold text-sm bg-white px-2 py-0.5 rounded border border-slate-200 shadow-sm">{formatCurrency(parseInt(targetAmount || "0") * parseInt(duration))}</span>
+                            <span className="font-bold text-sm bg-white px-2 py-0.5 rounded border border-slate-200 shadow-sm">{formatNaira(parseInt(targetAmount || "0") * parseInt(duration))}</span>
                         </div>
                     </div>
 
@@ -322,8 +321,8 @@ export function MonthlyBloomPlanCard({ plan, userPlan, onJoin, onDeposit, onAdva
                                                 <tbody className="divide-y divide-pink-50 dark:divide-pink-800 text-pink-700 dark:text-pink-400">
                                                     {plan.service_charge_tiers.map((tier: any, idx: number) => (
                                                         <tr key={idx}>
-                                                            <td className="px-2 py-1">₦{formatCurrency(tier.min).replace('NGN', '').trim()} - {tier.max > 0 && tier.max < 9999999 ? `₦${formatCurrency(tier.max).replace('NGN', '').trim()}` : 'Above'}</td>
-                                                            <td className="px-2 py-1 text-right font-bold">₦{formatCurrency(tier.fee).replace('NGN', '').trim()}</td>
+                                                            <td className="px-2 py-1">{formatNaira(tier.min)} - {tier.max > 0 && tier.max < 9999999 ? formatNaira(tier.max) : 'Above'}</td>
+                                                            <td className="px-2 py-1 text-right font-bold">{formatNaira(tier.fee)}</td>
                                                         </tr>
                                                     ))}
                                                 </tbody>
@@ -374,8 +373,8 @@ export function MonthlyBloomPlanCard({ plan, userPlan, onJoin, onDeposit, onAdva
                 customTitle="Confirm Monthly Saving Plan"
                 customTerms={[
                     `Duration: ${duration} Months`,
-                    `Monthly Target: ${formatCurrency(parseInt(targetAmount))}`,
-                    `Service Charge: ${plan.service_charge_type === 'fixed' ? formatCurrency(plan.service_charge_fixed || plan.service_charge || 0) : 'Calculated based on target'}`,
+                    `Monthly Target: ${formatNaira(parseInt(targetAmount))}`,
+                    `Service Charge: ${plan.service_charge_type === 'fixed' ? formatNaira(plan.service_charge_fixed || plan.service_charge || 0) : 'Calculated based on target'}`,
                     "Withdrawal: Locked until maturity",
                     "Aesthetics: Premium Growth"
                 ]}

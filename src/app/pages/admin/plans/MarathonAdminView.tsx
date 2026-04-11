@@ -57,15 +57,14 @@ export function MarathonAdminView({ plan }: MarathonAdminViewProps) {
 
     const handleTriggerAutoSave = async () => {
         setIsProcessing(true);
-        const { data, error } = await supabase.rpc('trigger_marathon_auto_save');
+        const { data, error } = await supabase.rpc('trigger_all_auto_saves');
         setIsProcessing(false);
         setIsConfirmOpen(false);
 
         if (error) {
             toast.error("Auto-Save failed: " + error.message);
         } else {
-            console.log("Auto-Save result:", data);
-            toast.success(`Auto-Save job completed. Check console/db for details.`);
+            toast.success(`Auto-Save executed: ${data.processed} updated, ${data.arrears_created} arrears recorded.`);
             fetchSubscribers();
         }
     };
@@ -102,8 +101,8 @@ export function MarathonAdminView({ plan }: MarathonAdminViewProps) {
                 isOpen={isConfirmOpen}
                 onOpenChange={setIsConfirmOpen}
                 onConfirm={handleTriggerAutoSave}
-                title="Trigger Marathon Auto-Save"
-                description={`This will attempt to auto-debit funds from the Wallet for ALL active Marathon users who are behind schedule.\n\nThis simulates the recurring background job.`}
+                title="Trigger Global Auto-Save"
+                description={`This will attempt to auto-debit funds from the Wallet for ALL active users across ALL plan types who are behind schedule.\n\nThis simulates the recurring background job.`}
                 confirmText="Run Now"
                 variant="info"
                 isLoading={isProcessing}

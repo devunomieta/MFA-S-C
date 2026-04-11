@@ -3,6 +3,7 @@ import { Button } from "@/app/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Badge } from "@/app/components/ui/badge";
 import { CheckCircle, AlertOctagon, TrendingUp } from "lucide-react";
+import { formatNaira } from "@/lib/utils";
 
 import { UserPlan, Plan } from "@/types";
 import { SprintJoinModal } from "./SprintJoinModal"; // Re-use Sprint Modal as logic is identical, maybe rename later
@@ -37,7 +38,6 @@ export function AnchorPlanCard({ plan, userPlan, onJoin, onDeposit, onAdvanceDep
         onJoin();
     };
 
-    const formatCurrency = (val: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'NGN' }).format(val);
 
 
     // Active State - Minimalist
@@ -61,7 +61,7 @@ export function AnchorPlanCard({ plan, userPlan, onJoin, onDeposit, onAdvanceDep
                         </div>
                         <div className="text-right">
                             <div className="text-xs text-gray-500 uppercase font-bold tracking-wider">Total Saved</div>
-                            <div className="text-xl font-bold text-gray-900 dark:text-white">{formatCurrency(userPlan?.current_balance || 0)}</div>
+                            <div className="text-xl font-bold text-gray-900 dark:text-white">{formatNaira(userPlan?.current_balance || 0)}</div>
                         </div>
                     </div>
                 </CardHeader>
@@ -70,7 +70,7 @@ export function AnchorPlanCard({ plan, userPlan, onJoin, onDeposit, onAdvanceDep
                     {arrears > 0 && (
                         <div className="flex items-center gap-2 p-2 bg-red-50 text-red-700 rounded-md text-xs border border-red-100 font-medium">
                             <AlertOctagon className="w-3.5 h-3.5" />
-                            <span>Penalties: {formatCurrency(arrears)}</span>
+                            <span>Penalties: {formatNaira(arrears)}</span>
                         </div>
                     )}
 
@@ -88,7 +88,7 @@ export function AnchorPlanCard({ plan, userPlan, onJoin, onDeposit, onAdvanceDep
                         <div className="flex justify-between text-xs font-bold text-gray-700 dark:text-gray-300">
                             <span className="flex items-center gap-1.5 uppercase tracking-wider text-[10px] text-gray-500"><TrendingUp className="w-3.5 h-3.5" /> This Week</span>
                             <span className={progressPercent >= 100 ? 'text-emerald-600' : 'text-amber-600'}>
-                                {progressPercent >= 100 ? 'Goal Met 🔒' : `${formatCurrency(currentWeekTotal)} / ${formatCurrency(weeklyTarget)}`}
+                                {progressPercent >= 100 ? 'Goal Met 🔒' : `${formatNaira(currentWeekTotal)} / ${formatNaira(weeklyTarget)}`}
                             </span>
                         </div>
                         <div className="h-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
@@ -98,7 +98,7 @@ export function AnchorPlanCard({ plan, userPlan, onJoin, onDeposit, onAdvanceDep
                             />
                         </div>
                         <div className="flex justify-between text-[10px] text-gray-400">
-                            <span>Left: {formatCurrency(Math.max(0, weeklyTarget - currentWeekTotal))}</span>
+                            <span>Left: {formatNaira(Math.max(0, weeklyTarget - currentWeekTotal))}</span>
                             <span>Resets Sun 11:59PM</span>
                         </div>
                     </div>
@@ -207,8 +207,8 @@ export function AnchorPlanCard({ plan, userPlan, onJoin, onDeposit, onAdvanceDep
                                     {plan.service_charge_type === 'tiered' && plan.service_charge_tiers && plan.service_charge_tiers.length > 0 ? (
                                         plan.service_charge_tiers.map((tier: any, idx: number) => (
                                             <tr key={idx}>
-                                                <td className="px-2 py-1">₦{formatCurrency(tier.min).replace('NGN', '').trim()} - {tier.max > 0 && tier.max < 9999999 ? `₦${formatCurrency(tier.max).replace('NGN', '').trim()}` : 'Above'}</td>
-                                                <td className="px-2 py-1 text-right font-bold">₦{formatCurrency(tier.fee).replace('NGN', '').trim()}</td>
+                                                <td className="px-2 py-1">{formatNaira(tier.min)} - {tier.max > 0 && tier.max < 9999999 ? formatNaira(tier.max) : 'Above'}</td>
+                                                <td className="px-2 py-1 text-right font-bold">{formatNaira(tier.fee)}</td>
                                             </tr>
                                         ))
                                     ) : (

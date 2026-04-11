@@ -73,9 +73,9 @@ export function MonthlyBloomAdminView() {
         setProcessingId("autosave");
         setIsProcessing(true);
         try {
-            const { error } = await supabase.rpc('trigger_monthly_bloom_auto_save');
+            const { data, error } = await supabase.rpc('trigger_all_auto_saves');
             if (error) throw error;
-            toast.success(`Auto-Save Job Executed.`);
+            toast.success(`Auto-Save executed: ${data.processed} updated, ${data.arrears_created} arrears recorded.`);
             fetchPlans();
         } catch (error: any) {
             toast.error(error.message);
@@ -152,8 +152,8 @@ export function MonthlyBloomAdminView() {
                             isOpen={isAutoSaveOpen}
                             onOpenChange={setIsAutoSaveOpen}
                             onConfirm={handleTriggerAutoSave}
-                            title="Trigger Auto-Save"
-                            description="Run AUTO-SAVE Logic for Monthly Bloom? It will attempt to cover deficits from General Wallet."
+                            title="Trigger Global Auto-Save"
+                            description="Run AUTO-SAVE Logic for ALL PLAN TYPES (Daily, Weekly, Monthly)? This will attempt to cover deficits from General Wallet and record arrears if funds are missing."
                             confirmText="Run Now"
                             variant="info"
                             isLoading={isProcessing}
