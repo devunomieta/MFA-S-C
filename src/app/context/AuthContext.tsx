@@ -55,9 +55,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     setSession(session);
                     setUser(session?.user ?? null);
                     if (session?.user) {
-                        await checkAdminStatus(session.user.id);
+                        // Non-blocking background checks
+                        ensureProfileExists(session.user).then(() => {
+                            checkAdminStatus(session.user.id);
+                        }).catch(e => {
+                            console.error("Background auth tasks failed:", e);
+                            setLoading(false);
+                        });
                         SessionManager.saveSession(session);
                         setSavedSessions(SessionManager.getSavedSessions());
+                    } else {
+                        setLoading(false);
                     }
                 }
             } catch (err) {
@@ -96,7 +104,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const {
             data: { subscription },
         } = supabase.auth.onAuthStateChange(async (event, session) => {
-            console.log("Auth Event:", event);
             if (!mounted) return;
 
             setSession(session);
@@ -106,7 +113,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 // Refresh user state on sign in, initial session, or update
                 if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'USER_UPDATED') {
                     setUser(session.user);
-                    checkAdminStatus(session.user.id);
+                    // Non-blocking background checks
+                    ensureProfileExists(session.user).then(() => {
+                        checkAdminStatus(session.user.id);
+                    });
+                    
                     SessionManager.saveSession(session);
                     setSavedSessions(SessionManager.getSavedSessions());
                 }
@@ -130,16 +141,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // NEW: Handle URL-based Impersonation
 
 
+    async function ensureProfileExists(user: User) {
+        try {
+            const { error } = await supabase
+                .from('profiles')
+                .upsert({
+                    id: user.id,
+                    email: user.email,
+                    full_name: user.user_metadata?.full_name || 'User ' + user.id.substring(0, 4)
+                }, { onConflict: 'id' });
+
+            if (error) {
+                console.warn("Profile safety upsert failed (likely trigger already handled it):", error.message);
+            }
+        } catch (e) {
+            console.error("Critical error in ensureProfileExists", e);
+        }
+    }
+
     async function checkAdminStatus(userId: string) {
-        console.log("Checking admin status for:", userId);
         try {
             const { data, error } = await supabase
                 .from('profiles')
-                .select('is_admin')
+                .select('is_admin, is_superadmin')
                 .eq('id', userId)
                 .single();
-
-            console.log("Admin Check Result:", { data, error });
 
             if (data) {
                 setIsAdmin(data.is_admin || false);

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Bell, Inbox, ChevronRight } from 'lucide-react';
 import {
     Popover,
@@ -8,17 +8,14 @@ import {
 import { Button } from "@/app/components/ui/button";
 import { ScrollArea } from "@/app/components/ui/scroll-area";
 import { Badge } from "@/app/components/ui/badge";
-import { notificationService, MTFNotification } from "@/lib/notification";
+import { notificationService } from "@/lib/notification";
 import { useNotifications } from "@/app/context/NotificationContext";
-import { useAuth } from "@/app/context/AuthContext";
 import { formatDistanceToNow } from 'date-fns';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 
 export function NotificationBell() {
-    const { user } = useAuth();
     const { unreadCount, notifications, refreshUnreadCount } = useNotifications();
     const [isOpen, setIsOpen] = useState(false);
-    const navigate = useNavigate();
 
     const handleMarkAllAsRead = async () => {
         try {

@@ -146,6 +146,16 @@ export function AdminTransactions() {
                 }
             }
 
+            // Final Status Update: Mark the transaction as completed/failed in the database
+            const { error: statusError } = await supabase
+                .from('transactions')
+                .update({ 
+                    status: action === 'confirm' ? 'completed' : 'failed'
+                })
+                .eq('id', tx.id);
+
+            if (statusError) throw statusError;
+
             toast.success(`Transaction ${action}ed`);
             fetchTransactions();
         } catch (err: any) {
@@ -354,6 +364,12 @@ export function AdminTransactions() {
                                                 </Button>
                                             </DialogTrigger>
                                             <DialogContent className="max-w-2xl bg-white">
+                                                <DialogHeader>
+                                                    <DialogTitle>Receipt Preview</DialogTitle>
+                                                    <DialogDescription>
+                                                        Review the uploaded payment confirmation receipt for this transaction.
+                                                    </DialogDescription>
+                                                </DialogHeader>
                                                 <div className="flex justify-center bg-gray-100 p-4 rounded min-h-[300px] items-center">
                                                     <img src={tx.receipt_url} alt="Receipt" className="max-h-[500px] w-auto object-contain" />
                                                 </div>

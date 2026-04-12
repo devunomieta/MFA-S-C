@@ -2,7 +2,10 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Dialog,
-    DialogContent
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription
 } from "@/app/components/ui/dialog";
 import { Button } from "@/app/components/ui/button";
 import {
@@ -258,6 +261,12 @@ export function PlanRecommender({ open, onOpenChange, inline }: PlanRecommenderP
             if (!val) setTimeout(reset, 300);
         }}>
             <DialogContent className="sm:max-w-[500px] overflow-hidden p-0 dark:bg-slate-950 border-slate-200 dark:border-slate-800">
+                <DialogHeader className="sr-only">
+                    <DialogTitle>Save-Plan Explorer</DialogTitle>
+                    <DialogDescription>
+                        Explore and find the best savings plan for your financial goals.
+                    </DialogDescription>
+                </DialogHeader>
                 {Content}
             </DialogContent>
         </Dialog>

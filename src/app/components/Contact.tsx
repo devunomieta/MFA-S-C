@@ -58,7 +58,7 @@ export function Contact() {
     setLoading(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('contact-handler', {
+      const { error } = await supabase.functions.invoke('contact-handler', {
         body: formData,
         headers: {
           'x-webhook-secret': import.meta.env.VITE_FUNCTION_SECRET_TOKEN

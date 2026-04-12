@@ -10,6 +10,7 @@ import { Label } from "@/app/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
 import { supabase } from "@/lib/supabase";
 import { formatNaira } from "@/lib/utils";
+import { toast } from "sonner";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -24,7 +25,7 @@ import {
 interface DailyDropPlanCardProps {
     plan: Plan;
     userPlan?: UserPlan;
-    onJoin: () => void; // Used to refresh parent list and potentially open deposit
+    onJoin: (planId: string, amount: number, duration: number) => void; // Used to refresh parent list and potentially open deposit
     onRefresh: () => void; // Silent refresh
     onDeposit: () => void;
     onAdvanceDeposit?: () => void;
@@ -105,52 +106,6 @@ export function DailyDropPlanCard({ plan, userPlan, onJoin, onRefresh, onDeposit
         setShowJoinConfirm(true);
     };
 
-    const confirmJoin = async () => {
-        const amt = parseFloat(joinAmount);
-        setJoining(true);
-
-        try {
-            const user = (await supabase.auth.getUser()).data.user;
-            if (!user) throw new Error("User not found");
-
-            // Check for duplicates
-            const { data: existing } = await supabase
-                .from('user_plans')
-                .select('id')
-                .eq('user_id', user.id)
-                .eq('plan_id', plan.id)
-                .not('status', 'in', '("cancelled", "completed")')
-                .maybeSingle();
-
-            if (existing) {
-                toast.error("You already have an active or pending record for this plan.");
-                setShowJoinConfirm(false);
-                return;
-            }
-
-            const { error } = await supabase.from('user_plans').insert({
-                user_id: user.id,
-                plan_id: plan.id,
-                status: 'pending_activation',
-                plan_metadata: {
-                    fixed_amount: amt,
-                    selected_duration: parseInt(joinDuration),
-                    total_days_paid: 0,
-                    last_payment_date: null
-                },
-                current_balance: 0
-            });
-
-            if (error) throw error;
-            toast.success("Welcome to Daily Drop!");
-            setShowJoinConfirm(false);
-            onJoin(); // Refresh
-        } catch (error: any) {
-            toast.error(error.message || "Failed to join plan");
-        } finally {
-            setJoining(false);
-        }
-    };
 
     const confirmRejoin = async () => {
         if (!userPlan) return;
@@ -616,42 +571,47 @@ export function DailyDropPlanCard({ plan, userPlan, onJoin, onRefresh, onDeposit
                             <Droplets className="w-6 h-6 text-cyan-600" />
                             Confirm Plan Setup
                         </AlertDialogTitle>
-                        <AlertDialogDescription className="space-y-4 pt-4">
-                            <div className="p-4 bg-cyan-50/50 dark:bg-cyan-900/10 rounded-xl border border-cyan-100 dark:border-cyan-800/50">
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <p className="text-[10px] uppercase font-bold text-cyan-600 tracking-wider">Daily Amount</p>
-                                        <p className="text-lg font-black text-gray-900 dark:text-white">{formatNaira(parseFloat(joinAmount))}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-[10px] uppercase font-bold text-cyan-600 tracking-wider">Duration</p>
-                                        <p className="text-lg font-black text-gray-900 dark:text-white">
-                                            {joinDuration === '-1' ? 'Continuous' : `${joinDuration} Days`}
-                                        </p>
+                        <AlertDialogDescription className="space-y-4 pt-4" asChild>
+                            <div>
+                                <div className="p-4 bg-cyan-50/50 dark:bg-cyan-900/10 rounded-xl border border-cyan-100 dark:border-cyan-800/50">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <p className="text-[10px] uppercase font-bold text-cyan-600 tracking-wider">Daily Amount</p>
+                                            <p className="text-lg font-black text-gray-900 dark:text-white">{formatNaira(parseFloat(joinAmount))}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] uppercase font-bold text-cyan-600 tracking-wider">Duration</p>
+                                            <p className="text-lg font-black text-gray-900 dark:text-white">
+                                                {joinDuration === '-1' ? 'Continuous' : `${joinDuration} Days`}
+                                            </p>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                            <div className="flex items-start gap-3 p-3 bg-amber-50 dark:bg-amber-900/10 rounded-lg border border-amber-100 dark:border-amber-800/50">
-                                <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-                                <p className="text-xs text-amber-800 dark:text-amber-400 leading-relaxed">
-                                    <span className="font-bold uppercase tracking-tighter block mb-1">Monthly Service Fee</span>
-                                    {plan.service_charge_type === 'percentage' && plan.service_charge_percentage === 100 ? (
-                                        <>Your first payment of <span className="font-bold">{formatNaira((parseFloat(joinAmount)))}</span> will be charged as service fees. {plan.service_charge_is_recurring ? `This fee will be deducted every ${plan.service_charge_interval_days} days.` : 'Future drops go 100% into your savings.'}</>
-                                    ) : plan.service_charge_type === 'percentage' ? (
-                                        <>Your first payment of <span className="font-bold">{formatNaira((parseFloat(joinAmount) * (plan.service_charge_percentage || 0)) / 100)}</span> {plan.service_charge_is_recurring ? `and subsequent payments every ${plan.service_charge_interval_days} days` : ''} will be charged as service fees.</>
-                                    ) : plan.service_charge_type === 'fixed' ? (
-                                        <>A fixed monthly fee of <span className="font-bold">{formatNaira(plan.service_charge_fixed || plan.service_charge || 0)}</span> will be charged.</>
-                                    ) : (
-                                        <>A tiered service fee will be applied based on your daily drop amount.</>
-                                    )}
-                                </p>
+                                <div className="flex items-start gap-3 p-3 bg-amber-50 dark:bg-amber-900/10 rounded-lg border border-amber-100 dark:border-amber-800/50 mt-4">
+                                    <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                                    <p className="text-xs text-amber-800 dark:text-amber-400 leading-relaxed">
+                                        <span className="font-bold uppercase tracking-tighter block mb-1">Monthly Service Fee</span>
+                                        {plan.service_charge_type === 'percentage' && plan.service_charge_percentage === 100 ? (
+                                            <>Your first payment of <span className="font-bold">{formatNaira((parseFloat(joinAmount)))}</span> will be charged as service fees. {plan.service_charge_is_recurring ? `This fee will be deducted every ${plan.service_charge_interval_days} days.` : 'Future drops go 100% into your savings.'}</>
+                                        ) : plan.service_charge_type === 'percentage' ? (
+                                            <>Your first payment of <span className="font-bold">{formatNaira((parseFloat(joinAmount) * (plan.service_charge_percentage || 0)) / 100)}</span> {plan.service_charge_is_recurring ? `and subsequent payments every ${plan.service_charge_interval_days} days` : ''} will be charged as service fees.</>
+                                        ) : plan.service_charge_type === 'fixed' ? (
+                                            <>A fixed monthly fee of <span className="font-bold">{formatNaira(plan.service_charge_fixed || plan.service_charge || 0)}</span> will be charged.</>
+                                        ) : (
+                                            <>A tiered service fee will be applied based on your daily drop amount.</>
+                                        )}
+                                    </p>
+                                </div>
                             </div>
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter className="gap-2 pt-4">
                         <AlertDialogCancel className="rounded-xl border-gray-200">Cancel</AlertDialogCancel>
                         <AlertDialogAction
-                            onClick={confirmJoin}
+                            onClick={() => {
+                                onJoin(plan.id, parseFloat(joinAmount), parseInt(joinDuration));
+                                setShowJoinConfirm(false);
+                            }}
                             className="bg-cyan-600 hover:bg-cyan-700 text-white rounded-xl px-8 font-bold"
                         >
                             Complete Setup

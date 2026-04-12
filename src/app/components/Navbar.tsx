@@ -1,6 +1,6 @@
 import { Button } from "@/app/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
-import { Menu, X, ArrowRight, Home, Layout, Zap, Smartphone, Mail } from "lucide-react";
+import { Menu, X, Home, Layout, Zap, Smartphone, Mail } from "lucide-react";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabase";

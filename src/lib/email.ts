@@ -1,4 +1,4 @@
-import { supabase } from "./supabase";
+
 
 interface EmailPayload {
     to: string;

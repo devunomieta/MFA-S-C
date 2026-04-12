@@ -10,10 +10,17 @@ import { useAuth } from "@/app/context/AuthContext";
 import { ActionConfirmModal } from "@/app/components/ui/ActionConfirmModal";
 
 export function AdminUsers() {
-    const { isAdmin, isSuperadmin } = useAuth();
+    const { isSuperadmin } = useAuth();
     const [users, setUsers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
+    
+    // Single User Wipe State
+    const [selectedUser, setSelectedUser] = useState<any>(null);
+    const [isSingleConfirmOpen, setIsSingleConfirmOpen] = useState(false);
+    const [singleConfirmText, setSingleConfirmText] = useState("");
+    const [singleDataOnly, setSingleDataOnly] = useState(true);
+    const [singleWiping, setSingleWiping] = useState(false);
 
     useEffect(() => {
         fetchUsers();
@@ -73,6 +80,7 @@ export function AdminUsers() {
                                     <th className="px-4 py-3">Role</th>
                                     <th className="px-4 py-3">Joined</th>
                                     <th className="px-4 py-3">Status</th>
+                                    <th className="px-4 py-3 text-right">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
@@ -122,6 +130,24 @@ export function AdminUsers() {
                                             <td className="px-4 py-3">
                                                 <Badge variant="secondary" className="bg-emerald-100 text-emerald-800">Active</Badge>
                                             </td>
+                                            <td className="px-4 py-3 text-right">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="h-8 w-8 p-0 text-slate-400 hover:text-red-600 transition-colors"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setSelectedUser(user);
+                                                        setSingleConfirmText("");
+                                                        setSingleDataOnly(true);
+                                                        setIsSingleConfirmOpen(true);
+                                                    }}
+                                                    disabled={user.is_superadmin}
+                                                    title={user.is_superadmin ? "Superadmins cannot be wiped" : "Wipe user data"}
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </td>
                                         </tr>
                                     ))
                                 )}
@@ -130,6 +156,93 @@ export function AdminUsers() {
                     </div>
                 </CardContent>
             </Card>
+
+            {/* Single User Wipe Confirmation */}
+            <ActionConfirmModal
+                isOpen={isSingleConfirmOpen}
+                onOpenChange={setIsSingleConfirmOpen}
+                onConfirm={async () => {
+                    if (singleConfirmText !== selectedUser?.email) {
+                        return toast.error("Please type the user's email exactly to confirm.");
+                    }
+                    
+                    setSingleWiping(true);
+                    try {
+                        const { data: { session } } = await supabase.auth.getSession();
+                        const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/system-purge-handler`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${session?.access_token}`,
+                                'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY
+                            },
+                            body: JSON.stringify({ 
+                                scope: 'single-user', 
+                                dataOnly: singleDataOnly, 
+                                targetUserId: selectedUser.id 
+                            })
+                        });
+
+                        const result = await response.json();
+                        if (!response.ok) throw new Error(result.error || "Wipe failed");
+
+                        toast.success(`User ${selectedUser.email} wiped successfully.`);
+                        setIsSingleConfirmOpen(false);
+                        fetchUsers();
+                    } catch (error: any) {
+                        toast.error(error.message);
+                    } finally {
+                        setSingleWiping(false);
+                    }
+                }}
+                isLoading={singleWiping}
+                title="Confirm Targeted Wipe"
+                description={`You are about to wipe data for ${selectedUser?.full_name || selectedUser?.email}.`}
+                confirmText="EXECUTE TARGETED WIPE"
+                variant="destructive"
+            >
+                <div className="space-y-4 pt-4">
+                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800">
+                        <strong>Warning:</strong> This will permanently delete all transactions, plans, and notifications for this user.
+                    </div>
+                    
+                    <div className="space-y-2">
+                        <label className="text-xs font-bold uppercase text-slate-500">Wipe Depth</label>
+                        <div className="flex gap-2">
+                            <Button 
+                                type="button"
+                                variant={singleDataOnly ? "destructive" : "outline"}
+                                size="sm"
+                                className="flex-1"
+                                onClick={() => setSingleDataOnly(true)}
+                            >
+                                Data Only
+                            </Button>
+                            <Button 
+                                type="button"
+                                variant={!singleDataOnly ? "destructive" : "outline"}
+                                size="sm"
+                                className="flex-1"
+                                onClick={() => setSingleDataOnly(false)}
+                            >
+                                Auth + Data
+                            </Button>
+                        </div>
+                    </div>
+
+                    <div className="space-y-2">
+                        <label className="text-xs font-bold uppercase text-slate-500">
+                            Confirm by typing user email: <span className="text-slate-900 font-mono tracking-tighter">{selectedUser?.email}</span>
+                        </label>
+                        <Input
+                            placeholder="Type user email here..."
+                            value={singleConfirmText}
+                            onChange={e => setSingleConfirmText(e.target.value)}
+                            className="border-red-300 focus-visible:ring-red-400"
+                        />
+                    </div>
+                </div>
+            </ActionConfirmModal>
 
             <AdminWipePanel />
         </div>

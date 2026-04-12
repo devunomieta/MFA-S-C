@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/app/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/app/components/ui/dialog";
 import { Button } from "@/app/components/ui/button";
 import { useAuth } from "@/app/context/AuthContext";
 import { Plus, User, Check } from "lucide-react";
@@ -16,6 +16,9 @@ export function AccountSwitcher({ open, onOpenChange }: AccountSwitcherProps) {
             <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
                     <DialogTitle>Switch Account</DialogTitle>
+                    <DialogDescription>
+                        Manage your active sessions and switch between your logged-in accounts.
+                    </DialogDescription>
                 </DialogHeader>
                 <div className="py-4 space-y-4">
                     <div className="space-y-2">

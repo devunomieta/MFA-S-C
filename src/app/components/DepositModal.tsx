@@ -66,6 +66,21 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose, initialAdvance
         }).format(value);
     };
 
+    const checkIsActivated = (up: any) => {
+        if (!up) return false;
+        const status = (up.status || "").toLowerCase().trim();
+        const balance = Number(up.current_balance || 0);
+        const meta = up.plan_metadata || {};
+        
+        return status === 'active' || 
+               balance > 0 || 
+               !!meta.last_payment_date || 
+               Number(meta.total_days_paid || 0) > 0 ||
+               meta.is_setup_fee_paid === true ||
+               (up.plan?.type === 'ajo_circle' && Number(meta.current_cycle_paid || 0) > 0) ||
+               (up.plan?.type === 'daily_drop' && Number(meta.total_days_paid || 0) > 0);
+    };
+
     async function fetchPlans() {
         let query = supabase
             .from("user_plans")
@@ -86,12 +101,31 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose, initialAdvance
         const { data: userPlansData } = await query;
 
         if (userPlansData) {
-            setMyPlans(userPlansData);
-            // If we have a defaultPlanId and found a match, use the specific user_plan.id
-            // so the dropdown (which uses up.id) matches correctly.
-            if (defaultPlanId && userPlansData.length > 0) {
-                // Find a plan that matches the defaultPlanId (template ID)
-                const match = userPlansData.find(up => up.plan_id === defaultPlanId);
+            // Consolidate duplicates: If the user has multiple records for the same plan_id,
+            // we ONLY keep the most "Active" one to prevent stale data from being targeted.
+            const consolidated: any[] = [];
+            const planIdsSeen = new Set<string>();
+
+            // Sort so 'active' comes first, then 'pending_activation', then anything else
+            const sortedData = [...userPlansData].sort((a, b) => {
+                const statusA = (a.status || "").toLowerCase().trim();
+                const statusB = (b.status || "").toLowerCase().trim();
+                if (statusA === 'active' && statusB !== 'active') return -1;
+                if (statusA !== 'active' && statusB === 'active') return 1;
+                return 0;
+            });
+
+            sortedData.forEach(up => {
+                if (!planIdsSeen.has(up.plan_id)) {
+                    consolidated.push(up);
+                    planIdsSeen.add(up.plan_id);
+                }
+            });
+
+            setMyPlans(consolidated);
+            
+            if (defaultPlanId && consolidated.length > 0) {
+                const match = consolidated.find(up => up.plan_id === defaultPlanId);
                 if (match) setSelectedPlanId(match.id);
             }
         }
@@ -266,7 +300,7 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose, initialAdvance
 
                 if (rpcError) {
                     console.error(`${planType} RPC Error:`, rpcError);
-                    toast.error(`Transfer deducted but plan update failed: ${rpcError.message}. Please contact support.`);
+                    toast.error(`Transfer failed: ${rpcError.message}`);
                 } else {
                     let msg = "Deposit Successful!";
                     if (planType === 'marathon') msg = `Marathon Contribution Successful! Week ${rpcData.week_paid} paid.`;
@@ -402,9 +436,10 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose, initialAdvance
     }
 
     // Derived state for the currently selected plan
-    // myPlans now contains UserPlan objects. 
-    // We try to match by Generic Plan ID (p.plan.id) OR UserPlan ID (p.id)
-    const selectedPlanObj = myPlans.find(p => p.id === selectedPlanId || p.plan.id === selectedPlanId);
+    // myPlans now contains unique, prioritized UserPlan objects. 
+    // Match by UserPlan ID (UUID) OR template Plan ID as fallback
+    const selectedPlanObj = myPlans.find(p => p.id === selectedPlanId) || 
+                           myPlans.find(p => p.plan_id === selectedPlanId);
 
     // Basic plan info
     const planType = selectedPlanObj?.plan?.type || selectedPlanObj?.type;
@@ -455,50 +490,7 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose, initialAdvance
 
     // Logic for determining if the input should be disabled
     const isInputLocked = () => {
-        if (activeTab === 'external') return false; // External target is always General Wallet, which is flexible
-        if (!selectedPlanObj) return false;
-        if (isAdvanceMode) return false; // Advance mode overrides everything
-
-        const plan = selectedPlanObj.plan || selectedPlanObj; // Get the actual plan object
-        const userPlan = selectedPlanObj; // The user_plan object
-        const planType = plan.type;
-        const meta = userPlan.plan_metadata || {};
-
-        // Strictly Fixed ALWAYS (Except Monthly Bloom which is flexible even if DB says fixed)
-        if ((planType === 'ajo_circle' || plan.contribution_type === 'fixed') && planType !== 'monthly_bloom' && planType !== 'step_up') return true;
-
-        if (planType === 'daily_drop') {
-            // Check if they can change amount: After 1 month or initial duration
-            const startDate = new Date(userPlan.start_date || meta.start_date || userPlan.created_at);
-            const durationDays = meta.selected_duration || 31;
-
-            const oneMonthAgo = new Date();
-            oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
-
-            const durationEndDate = new Date(startDate);
-            durationEndDate.setDate(durationEndDate.getDate() + durationDays);
-
-            const now = new Date();
-            const hasPassedOneMonth = startDate <= oneMonthAgo;
-            const hasPassedDuration = now >= durationEndDate;
-
-            if (hasPassedOneMonth || hasPassedDuration) {
-                return false; // Unlockable for changing amount
-            }
-            return !isAdvanceMode;
-        }
-
-        // For plans that are flexible but have a goal (Anchor, Sprint, Marathon, Monthly Bloom)
-        const isFlexibleGoalPlan = ['anchor', 'sprint', 'marathon', 'monthly_bloom'].includes(plan.type || planType);
-        if (isFlexibleGoalPlan) {
-            // Point 1: If goal is not met, lock input (must pay mandated amount)
-            // Point 2: Monthly Bloom is EXEMPT from locking by user request - allow manual input >= target
-            if (planType === 'monthly_bloom') return false;
-
-            return !isAdvanceMode && mandatedAmount > 0;
-        }
-
-        return false;
+        return false; // Requirement: Don't lock amount input fields for all plans
     };
 
     const getPeriodsCovered = () => {
@@ -566,6 +558,22 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose, initialAdvance
     const getFee = () => {
         if (!selectedPlanObj) return 0;
         const plan = selectedPlanObj.plan || selectedPlanObj;
+        const userPlan = selectedPlanObj;
+        
+        // Fix: Don't show service fee for plans that have already been activated or have any previous activity
+        // Use fortified shared activation check
+        const isActivated = checkIsActivated(userPlan);
+        const meta = userPlan.plan_metadata || {};
+        const lastFeeDate = meta.last_fee_date ? new Date(meta.last_fee_date) : null;
+        const now = new Date();
+        const daysSinceLastFee = lastFeeDate ? Math.floor((now.getTime() - lastFeeDate.getTime()) / (1000 * 60 * 60 * 24)) : 999;
+        
+        // Suppress fee if already activated AND (not recurring OR already paid this cycle/month)
+        if (isActivated) {
+            if (!plan.service_charge_is_recurring) return 0;
+            if (daysSinceLastFee < 30) return 0;
+        }
+
         const amt = Number(amount) || mandatedAmount || 0;
 
         if (plan.service_charge_type === 'percentage') {
@@ -582,9 +590,16 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose, initialAdvance
         return Number(plan.service_charge_fixed || plan.service_charge || 0);
     };
     const fee = getFee();
+    
+    // Check if the plan is already fully activated (has balance, status, or activity)
+    const currentIsActivated = checkIsActivated(selectedPlanObj);
+
     // CRITICAL: Total deduction from WALLET is amount + fee
     // EXCEPTION: Daily Drop 100% fees are "inclusive" (the user just pays the fixed amount)
-    const isInclusiveFee = planType === 'daily_drop' && selectedPlanObj?.plan?.service_charge_type === 'percentage' && selectedPlanObj?.plan?.service_charge_percentage === 100;
+    // Inclusive fee logic only applies during INITIAL setup (not activated yet)
+    const isInclusiveFee = planType === 'daily_drop' && 
+                          !currentIsActivated;
+    
     const totalDeduction = isInclusiveFee ? (Number(amount) || 0) : ((Number(amount) || 0) + fee);
 
     return (
@@ -908,9 +923,14 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose, initialAdvance
                             />
                         )}
 
-                        {isAdvanceMode && periodsCovered > 0 && (
+                        {isAdvanceMode && (Number(amount) || 0) > 0 && (
                             <p className="text-[10px] text-emerald-500 font-bold uppercase tracking-wider">
                                 ✨ This covers {numUnits} {periodLabel}{parseInt(numUnits) > 1 ? 's' : ''} in advance
+                            </p>
+                        )}
+                        {!isAdvanceMode && selectedPlanId && mandatedAmount === 0 && (Number(amount) || 0) > 0 && (
+                             <p className="text-[10px] text-emerald-500 font-bold uppercase tracking-wider">
+                                ✨ Extra Contribution / Advanced Payment
                             </p>
                         )}
                         {isExcess && (

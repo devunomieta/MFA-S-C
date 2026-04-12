@@ -6,7 +6,7 @@ import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { Textarea } from "@/app/components/ui/textarea";
 import { toast } from "sonner";
-import { Mail, Send, CheckCircle, Clock } from "lucide-react";
+import { Send, Clock } from "lucide-react";
 import { Switch } from "@/app/components/ui/switch";
 import { Badge } from "@/app/components/ui/badge";
 import { ActionConfirmModal } from "@/app/components/ui/ActionConfirmModal";
@@ -28,12 +28,12 @@ export function AdminNewsletter() {
 
     async function fetchHistory() {
         try {
-            const { data, error } = await supabase
+            const { data } = await supabase
                 .from('newsletters')
                 .select('*')
                 .order('created_at', { ascending: false });
             if (data) setNewsletters(data);
-        } catch (e) {
+        } catch {
             console.log("Newsletter table missing or error");
         }
     }

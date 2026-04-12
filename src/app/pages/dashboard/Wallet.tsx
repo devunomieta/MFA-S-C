@@ -13,7 +13,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { DepositModal } from "@/app/components/DepositModal";
 import { checkAndProcessMaturity } from "@/lib/planUtils";
 import { calculateBalance } from "@/lib/walletUtils";
-import { formatNaira } from "@/lib/utils";
+import { formatNaira, formatCurrency } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
 import { LoanRepaymentDialog } from "@/app/components/LoanRepaymentDialog";
 import { TransactionDetailsModal } from "@/app/components/wallet/TransactionDetailsModal";

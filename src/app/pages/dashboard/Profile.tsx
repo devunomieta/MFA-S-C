@@ -904,6 +904,12 @@ export function Profile() {
                                                 <Button variant="outline" className="w-full"><Eye className="w-4 h-4 mr-2" /> View Submitted ID</Button>
                                             </DialogTrigger>
                                             <DialogContent>
+                                                <DialogHeader>
+                                                    <DialogTitle>Submitted Identity Document</DialogTitle>
+                                                    <DialogDescription>
+                                                        Review your uploaded government-issued ID for verification.
+                                                    </DialogDescription>
+                                                </DialogHeader>
                                                 <div className="p-4 flex flex-col items-center justify-center bg-gray-100 rounded-lg">
                                                     {profile.gov_id_url ? (
                                                         <img

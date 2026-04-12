@@ -103,20 +103,25 @@ export function PlanDetailsPage() {
         }
     }
 
-    const handleJoinSimple = async (planId: string) => {
+    const handleJoinPlan = async (planId: string, metadata?: any) => {
         if (!user) return;
         try {
             // Check for duplicates
             const { data: existing } = await supabase
                 .from('user_plans')
-                .select('id')
+                .select('id, status')
                 .eq('user_id', user.id)
                 .eq('plan_id', planId)
                 .not('status', 'in', '("cancelled", "completed")')
                 .maybeSingle();
 
             if (existing) {
-                toast.error("You already have an active or pending record for this plan.");
+                if (existing.status === 'pending_activation') {
+                    toast.info("Resuming setup for your pending plan...");
+                    setSelectedPlanForDeposit({ id: planId });
+                    return;
+                }
+                toast.error("You already have an active record for this plan.");
                 return;
             }
 
@@ -126,7 +131,8 @@ export function PlanDetailsPage() {
                     user_id: user.id,
                     plan_id: planId,
                     status: 'pending_activation',
-                    current_balance: 0
+                    current_balance: 0,
+                    plan_metadata: metadata || {}
                 });
 
             if (error) throw error;
@@ -138,89 +144,6 @@ export function PlanDetailsPage() {
         }
     };
 
-    const handleJoinStepUp = async (planId: string, amount: number, duration: number) => {
-        if (!user) return;
-        try {
-            // Check for duplicates
-            const { data: existing } = await supabase
-                .from('user_plans')
-                .select('id')
-                .eq('user_id', user.id)
-                .eq('plan_id', planId)
-                .not('status', 'in', '("cancelled", "completed")')
-                .maybeSingle();
-
-            if (existing) {
-                toast.error("You already have an active or pending record for this plan.");
-                return;
-            }
-
-            const { error } = await supabase
-                .from("user_plans")
-                .insert({
-                    user_id: user.id,
-                    plan_id: planId,
-                    status: 'pending_activation',
-                    current_balance: 0,
-                    plan_metadata: {
-                        selected_duration: duration,
-                        fixed_amount: amount,
-                        weeks_completed: 0,
-                        week_paid_so_far: 0,
-                        last_payment_date: null
-                    }
-                });
-
-            if (error) throw error;
-            toast.success("Joined Step-Up Plan! Please make your first deposit to activate.");
-            fetchPlanDetails();
-            setSelectedPlanForDeposit({ id: planId });
-        } catch (err: any) {
-            toast.error(err.message || "Failed to join plan");
-        }
-    };
-
-    const handleJoinMonthlyBloom = async (planId: string, amount: number, duration: number) => {
-        if (!user) return;
-        try {
-            // Check for duplicates
-            const { data: existing } = await supabase
-                .from('user_plans')
-                .select('id')
-                .eq('user_id', user.id)
-                .eq('plan_id', planId)
-                .not('status', 'in', '("cancelled", "completed")')
-                .maybeSingle();
-
-            if (existing) {
-                toast.error("You already have an active or pending record for this plan.");
-                return;
-            }
-
-            const { error } = await supabase
-                .from("user_plans")
-                .insert({
-                    user_id: user.id,
-                    plan_id: planId,
-                    status: 'pending_activation',
-                    current_balance: 0,
-                    plan_metadata: {
-                        selected_duration: duration,
-                        fixed_amount: amount,
-                        months_completed: 0,
-                        month_paid_so_far: 0,
-                        last_payment_date: null
-                    }
-                });
-
-            if (error) throw error;
-            toast.success("Joined Monthly Bloom! Please make your first deposit to activate.");
-            fetchPlanDetails();
-            setSelectedPlanForDeposit({ id: planId });
-        } catch (err: any) {
-            toast.error(err.message || "Failed to join plan");
-        }
-    };
 
     const handleJoinAjoCircle = async (planId: string, subscriptions: { slot_index: number, amount: number }[]) => {
         if (!user) return;
@@ -328,11 +251,11 @@ export function PlanDetailsPage() {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className={`grid grid-cols-1 ${(!isJoined || userPlan?.status === 'pending_activation') ? 'lg:grid-cols-3' : ''} gap-8`}>
                 {/* Main Content Area */}
-                <div className="lg:col-span-2 space-y-8">
+                <div className={`${(!isJoined || userPlan?.status === 'pending_activation') ? 'lg:col-span-2' : ''} space-y-8`}>
                     {/* Key Stats / Highlights */}
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                         <div className="bg-white dark:bg-gray-950 p-6 rounded-[2rem] border border-gray-100 dark:border-gray-800 shadow-sm space-y-2">
                             <div className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 size-10 rounded-2xl flex items-center justify-center mb-2">
                                 <Zap className="size-5" />
@@ -349,18 +272,54 @@ export function PlanDetailsPage() {
                             <p className="text-[10px] font-black uppercase text-gray-400 tracking-wider">Commitment</p>
                             <p className="text-lg font-bold text-gray-900 dark:text-white capitalize">{plan.contribution_type}</p>
                         </div>
-                        <div className="bg-white dark:bg-gray-950 p-6 rounded-[2rem] border border-gray-100 dark:border-gray-800 shadow-sm space-y-2 col-span-2 md:col-span-1">
+                        <div className="bg-white dark:bg-gray-950 p-6 rounded-[2rem] border border-gray-100 dark:border-gray-800 shadow-sm space-y-2">
                             <div className="bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 size-10 rounded-2xl flex items-center justify-center mb-2">
                                 <TrendingUp className="size-5" />
                             </div>
                             <p className="text-[10px] font-black uppercase text-gray-400 tracking-wider">Service Fee</p>
-                            <p className="text-lg font-bold text-gray-900 dark:text-white">
+                            <p className="text-sm md:text-md font-bold text-gray-900 dark:text-white">
                                 {plan.service_charge_type === 'percentage' && plan.service_charge_percentage === 100 ? 
                                  (plan.service_charge_is_recurring ? `1st Payment & every ${plan.service_charge_interval_days}d` : '1st Payment') :
                                  plan.service_charge_type === 'percentage' ? `${plan.service_charge_percentage}%` : 
                                  plan.service_charge_type === 'tiered' ? 'Tiered' :
                                  `₦${new Intl.NumberFormat('en-US').format(plan.service_charge_fixed || plan.service_charge || 0)}${plan.service_charge_is_recurring ? ` / ${plan.service_charge_interval_days}d` : ''}`}
                             </p>
+                        </div>
+                        <div className="bg-white dark:bg-gray-950 p-6 rounded-[2rem] border border-gray-100 dark:border-gray-800 shadow-sm space-y-2">
+                            <div className="bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 size-10 rounded-2xl flex items-center justify-center mb-2">
+                                <Coins className="size-5" />
+                            </div>
+                            <p className="text-[10px] font-black uppercase text-gray-400 tracking-wider">Plan Progress</p>
+                            <div className="flex flex-col">
+                                {(() => {
+                                    if (!isJoined) return <p className="text-lg font-bold text-gray-400">---</p>;
+                                    const meta = userPlan.plan_metadata || {};
+                                    let current = 0;
+                                    let total = 0;
+                                    let unit = "Days";
+
+                                    if (plan.type === 'daily_drop') {
+                                        current = meta.total_days_paid || 0;
+                                        total = meta.selected_duration || 31;
+                                        unit = "Days";
+                                    } else if (plan.type === 'step_up') {
+                                        current = meta.weeks_completed || 0;
+                                        total = meta.selected_duration || 52;
+                                        unit = "Weeks";
+                                    } else if (plan.type === 'monthly_bloom') {
+                                        current = meta.months_completed || 0;
+                                        total = meta.selected_duration || 12;
+                                        unit = "Months";
+                                    } else {
+                                        current = meta.weeks_completed || 0;
+                                        total = plan.duration_weeks || 0;
+                                        unit = "Weeks";
+                                    }
+
+                                    if (total === -1) return <p className="text-lg font-bold text-emerald-500">Continuous</p>;
+                                    return <p className="text-lg font-bold text-emerald-600">{current} <span className="text-xs text-gray-400">/ {total} {unit}</span></p>;
+                                })()}
+                            </div>
                         </div>
                     </div>
 
@@ -402,7 +361,12 @@ export function PlanDetailsPage() {
                                     <MarathonPlanCard
                                         plan={plan}
                                         userPlan={userPlan || undefined}
-                                        onJoin={() => handleJoinSimple(plan.id)}
+                                        onJoin={(pId, a, d) => handleJoinPlan(pId, {
+                                            selected_duration: d,
+                                            fixed_amount: a,
+                                            total_weeks_paid: 0,
+                                            last_payment_date: null
+                                        })}
                                         onDeposit={() => setSelectedPlanForDeposit({ id: plan.id })}
                                         onAdvanceDeposit={() => setSelectedPlanForDeposit({ id: plan.id, isAdvance: true })}
                                     />
@@ -411,7 +375,13 @@ export function PlanDetailsPage() {
                                     <SprintPlanCard
                                         plan={plan}
                                         userPlan={userPlan || undefined}
-                                        onJoin={() => handleJoinSimple(plan.id)}
+                                        onJoin={(pId, a, d) => handleJoinPlan(pId, {
+                                            selected_duration: d,
+                                            target_amount: a,
+                                            weeks_completed: 0,
+                                            current_week_total: 0,
+                                            last_payment_date: null
+                                        })}
                                         onDeposit={() => setSelectedPlanForDeposit({ id: plan.id })}
                                         onAdvanceDeposit={() => setSelectedPlanForDeposit({ id: plan.id, isAdvance: true })}
                                     />
@@ -420,7 +390,12 @@ export function PlanDetailsPage() {
                                     <AnchorPlanCard
                                         plan={plan}
                                         userPlan={userPlan || undefined}
-                                        onJoin={() => handleJoinSimple(plan.id)}
+                                        onJoin={(pId, a) => handleJoinPlan(pId, {
+                                            target_amount: a,
+                                            weeks_completed: 0,
+                                            current_week_total: 0,
+                                            last_payment_date: null
+                                        })}
                                         onDeposit={() => setSelectedPlanForDeposit({ id: plan.id })}
                                         onAdvanceDeposit={() => setSelectedPlanForDeposit({ id: plan.id, isAdvance: true })}
                                     />
@@ -429,7 +404,12 @@ export function PlanDetailsPage() {
                                     <DailyDropPlanCard
                                         plan={plan}
                                         userPlan={userPlan || undefined}
-                                        onJoin={() => handleJoinSimple(plan.id)}
+                                        onJoin={(pId, a, d) => handleJoinPlan(pId, {
+                                            selected_duration: d,
+                                            fixed_amount: a,
+                                            total_days_paid: 0,
+                                            last_payment_date: null
+                                        })}
                                         onRefresh={() => fetchPlanDetails()}
                                         onDeposit={() => setSelectedPlanForDeposit({ id: plan.id })}
                                         onAdvanceDeposit={() => setSelectedPlanForDeposit({ id: plan.id, isAdvance: true })}
@@ -439,7 +419,13 @@ export function PlanDetailsPage() {
                                     <StepUpPlanCard
                                         plan={plan}
                                         userPlan={userPlan || undefined}
-                                        onJoin={(pId, a, d) => handleJoinStepUp(pId, a, d)}
+                                        onJoin={(pId, a, d) => handleJoinPlan(pId, {
+                                            selected_duration: d,
+                                            fixed_amount: a,
+                                            weeks_completed: 0,
+                                            week_paid_so_far: 0,
+                                            last_payment_date: null
+                                        })}
                                         onDeposit={() => setSelectedPlanForDeposit({ id: plan.id })}
                                         onAdvanceDeposit={() => setSelectedPlanForDeposit({ id: plan.id, isAdvance: true })}
                                     />
@@ -448,7 +434,13 @@ export function PlanDetailsPage() {
                                     <MonthlyBloomPlanCard
                                         plan={plan}
                                         userPlan={userPlan || undefined}
-                                        onJoin={(pId, a, d) => handleJoinMonthlyBloom(pId, a, d)}
+                                        onJoin={(pId, a, d) => handleJoinPlan(pId, {
+                                            selected_duration: d,
+                                            target_amount: a,
+                                            months_completed: 0,
+                                            month_paid_so_far: 0,
+                                            last_payment_date: null
+                                        })}
                                         onDeposit={() => setSelectedPlanForDeposit({ id: plan.id })}
                                         onAdvanceDeposit={() => setSelectedPlanForDeposit({ id: plan.id, isAdvance: true })}
                                     />
@@ -468,74 +460,73 @@ export function PlanDetailsPage() {
                     </div>
                 </div>
 
-                {/* Sidebar / Info Area */}
-                <div className="space-y-8">
-                    <div className="bg-[#0f172a] text-white p-8 rounded-[2.5rem] shadow-xl space-y-6 relative overflow-hidden group">
-                        <div className="absolute -top-10 -right-10 size-40 bg-emerald-500/10 rounded-full blur-3xl group-hover:bg-emerald-500/20 transition-all duration-700" />
-                        
-                        <div className="flex items-center gap-3">
-                            <div className="bg-emerald-500/20 p-2 rounded-xl">
-                                <ShieldCheck className="size-6 text-emerald-400" />
+                {/* Sidebar / Info Area - Hidden for Active Plans */}
+                {(!isJoined || userPlan?.status === 'pending_activation') && (
+                    <div className="space-y-8">
+                        <div className="bg-[#0f172a] text-white p-8 rounded-[2.5rem] shadow-xl space-y-6 relative overflow-hidden group">
+                            <div className="absolute -top-10 -right-10 size-40 bg-emerald-500/10 rounded-full blur-3xl group-hover:bg-emerald-500/20 transition-all duration-700" />
+                            
+                            <div className="flex items-center gap-3">
+                                <div className="bg-emerald-500/20 p-2 rounded-xl">
+                                    <ShieldCheck className="size-6 text-emerald-400" />
+                                </div>
+                                <h3 className="text-xl font-black tracking-tight">Thrift Security</h3>
                             </div>
-                            <h3 className="text-xl font-black tracking-tight">Thrift Security</h3>
+                            
+                            <p className="text-gray-400 text-sm leading-relaxed font-medium">
+                                Your savings are protected by Mary's Thrift high-standard security protocols. We ensure that every contribution is tracked and payouts are guaranteed.
+                            </p>
+                            
+                            <div className="space-y-4 pt-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="size-2 rounded-full bg-emerald-500" />
+                                    <span className="text-xs font-bold text-gray-300">Automated Ledger Tracking</span>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <div className="size-2 rounded-full bg-emerald-500" />
+                                    <span className="text-xs font-bold text-gray-300">Transparent Payout Cycles</span>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <div className="size-2 rounded-full bg-emerald-500" />
+                                    <span className="text-xs font-bold text-gray-300">24/7 Support for Savings</span>
+                                </div>
+                            </div>
                         </div>
-                        
-                        <p className="text-gray-400 text-sm leading-relaxed font-medium">
-                            Your savings are protected by Mary's Thrift high-standard security protocols. We ensure that every contribution is tracked and payouts are guaranteed.
-                        </p>
-                        
-                        <div className="space-y-4 pt-4">
-                            <div className="flex items-center gap-3">
-                                <div className="size-2 rounded-full bg-emerald-500" />
-                                <span className="text-xs font-bold text-gray-300">Automated Ledger Tracking</span>
-                            </div>
-                            <div className="flex items-center gap-3">
-                                <div className="size-2 rounded-full bg-emerald-500" />
-                                <span className="text-xs font-bold text-gray-300">Transparent Payout Cycles</span>
-                            </div>
-                            <div className="flex items-center gap-3">
-                                <div className="size-2 rounded-full bg-emerald-500" />
-                                <span className="text-xs font-bold text-gray-300">24/7 Support for Savings</span>
-                            </div>
-                        </div>
-                    </div>
 
-                    <div className="bg-white dark:bg-gray-950 p-8 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 shadow-sm space-y-6">
-                        <div className="flex items-center gap-3">
-                            <div className="bg-blue-100 dark:bg-blue-900/30 p-2 rounded-xl">
-                                <History className="size-6 text-blue-600 dark:text-blue-400" />
+                        <div className="bg-white dark:bg-gray-950 p-8 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 shadow-sm space-y-6">
+                            <div className="flex items-center gap-3">
+                                <div className="bg-blue-100 dark:bg-blue-900/30 p-2 rounded-xl">
+                                    <History className="size-6 text-blue-600 dark:text-blue-400" />
+                                </div>
+                                <h3 className="text-xl font-black text-gray-900 dark:text-white tracking-tight">How it Works</h3>
                             </div>
-                            <h3 className="text-xl font-black text-gray-900 dark:text-white tracking-tight">How it Works</h3>
+                            
+                            <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed font-medium">
+                                Join the plan, set your goals, and start making contributions. You can track your progress and withdraw your matured savings once the duration is complete.
+                            </p>
+                            
+                            <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-2xl flex items-center gap-4">
+                                 <div className="bg-blue-500/10 p-2 rounded-lg">
+                                    <Info className="size-5 text-blue-500" />
+                                 </div>
+                                 <p className="text-[10px] font-bold text-gray-500 leading-tight">
+                                    Missed payments may incur a service charge or penalty depending on the plan type.
+                                 </p>
+                            </div>
                         </div>
-                        
-                        <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed font-medium">
-                            Join the plan, set your goals, and start making contributions. You can track your progress and withdraw your matured savings once the duration is complete.
-                        </p>
-                        
-                        <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-2xl flex items-center gap-4">
-                             <div className="bg-blue-500/10 p-2 rounded-lg">
-                                <Info className="size-5 text-blue-500" />
-                             </div>
-                             <p className="text-[10px] font-bold text-gray-500 leading-tight">
-                                Missed payments may incur a service charge or penalty depending on the plan type.
-                             </p>
-                        </div>
-                        
                     </div>
-                </div>
+                )}
             </div>
 
             <Dialog open={!!selectedPlanForDeposit} onOpenChange={() => setSelectedPlanForDeposit(null)}>
-                <DialogContent className="max-w-md p-0 overflow-hidden bg-white dark:bg-gray-950 border-none shadow-2xl rounded-[2.5rem]">
-                    <DepositModal
-                        onSuccess={() => {
-                            fetchPlanDetails();
-                        }}
-                        onClose={() => setSelectedPlanForDeposit(null)}
-                        defaultPlanId={selectedPlanForDeposit?.id || ""}
-                        initialAdvanceMode={selectedPlanForDeposit?.isAdvance}
-                    />
-                </DialogContent>
+                <DepositModal
+                    onSuccess={() => {
+                        fetchPlanDetails();
+                    }}
+                    onClose={() => setSelectedPlanForDeposit(null)}
+                    defaultPlanId={selectedPlanForDeposit?.id || ""}
+                    initialAdvanceMode={selectedPlanForDeposit?.isAdvance}
+                />
             </Dialog>
         </div>
     );

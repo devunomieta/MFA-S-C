@@ -10,6 +10,7 @@ import { CheckCircle, AlertTriangle, Sprout, RefreshCw, Trophy } from "lucide-re
 import { Link } from "react-router-dom";
 import { SprintJoinModal } from "./SprintJoinModal";
 import { formatNaira } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface MonthlyBloomPlanCardProps {
     plan: Plan;

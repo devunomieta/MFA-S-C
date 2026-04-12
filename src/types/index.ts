@@ -21,6 +21,8 @@ export interface Plan {
     type: 'standard' | 'marathon' | 'sprint' | 'anchor' | 'daily_drop' | 'step_up' | 'monthly_bloom' | 'ajo_circle';
     config?: MarathonConfig | any;
     subscriber_count?: number;
+    is_approved?: boolean;
+    approved_at?: string;
 }
 
 export interface MarathonConfig {

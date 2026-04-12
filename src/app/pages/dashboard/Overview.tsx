@@ -320,6 +320,7 @@ export function Overview() {
                                             <th className="px-6 py-3">Plan Details</th>
                                             <th className="px-6 py-3">Start Date</th>
                                             <th className="px-6 py-3">Status</th>
+                                            <th className="px-6 py-3">Progress</th>
                                             <th className="px-6 py-3 text-right">Balance</th>
                                         </tr>
                                     </thead>
@@ -340,9 +341,76 @@ export function Overview() {
                                                         {plan.status}
                                                     </span>
                                                 </td>
+                                                <td className="px-6 py-4">
+                                                    <div className="flex flex-col gap-1">
+                                                        {(() => {
+                                                            const meta = plan.plan_metadata || {};
+                                                            let current = 0;
+                                                            let total = 0;
+                                                            let unit = "Days";
+
+                                                            if (plan.plan?.type === 'daily_drop') {
+                                                                current = meta.total_days_paid || 0;
+                                                                total = meta.selected_duration || 31;
+                                                                unit = "Days";
+                                                            } else if (plan.plan?.type === 'step_up') {
+                                                                current = meta.weeks_completed || 0;
+                                                                total = meta.selected_duration || 52;
+                                                                unit = "Weeks";
+                                                            } else if (plan.plan?.type === 'monthly_bloom') {
+                                                                current = meta.months_completed || 0;
+                                                                total = meta.selected_duration || 12;
+                                                                unit = "Months";
+                                                            } else if (plan.plan?.type === 'ajo_circle') {
+                                                                current = meta.current_cycle_paid || 0;
+                                                                total = plan.plan?.duration_weeks || 10;
+                                                                unit = "Weeks";
+                                                            } else {
+                                                                current = meta.weeks_completed || 0;
+                                                                total = plan.plan?.duration_weeks || 0;
+                                                                unit = "Weeks";
+                                                            }
+
+                                                            if (total === -1) return <span className="text-xs font-bold text-gray-500 italic">Continuous</span>;
+                                                            const percent = total > 0 ? Math.min((current/total) * 100, 100) : 0;
+                                                            
+                                                            return (
+                                                                <>
+                                                                    <div className="text-[10px] font-bold text-gray-900 dark:text-gray-100 flex justify-between gap-2">
+                                                                        <span>{current} / {total} {unit}</span>
+                                                                        <span>{Math.round(percent)}%</span>
+                                                                    </div>
+                                                                    <div className="w-24 h-1 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                                                                        <div 
+                                                                            className="h-full bg-emerald-500 rounded-full transition-all duration-500" 
+                                                                            style={{ width: `${percent}%` }}
+                                                                        />
+                                                                    </div>
+                                                                </>
+                                                            );
+                                                        })()}
+                                                    </div>
+                                                </td>
                                                 <td className="px-6 py-4 text-right">
                                                     <div className="font-bold text-gray-900 dark:text-white">₦{formatCurrency(plan.current_balance)}</div>
-                                                    <div className="text-[10px] text-red-500">₦{plan.plan?.service_charge} Service Fee</div>
+                                                    {(() => {
+                                                        const isActivated = (plan.status || "").toLowerCase().trim() === 'active' || 
+                                                                           Number(plan.current_balance || 0) > 0 || 
+                                                                           (plan.plan_metadata?.total_days_paid > 0) ||
+                                                                           (plan.plan_metadata?.is_setup_fee_paid === true);
+                                                        
+                                                        const hasPaidSetup = (plan.plan?.type === 'daily_drop' && isActivated);
+                                                        const serviceCharge = Number(plan.plan?.service_charge || 0);
+                                                        
+                                                        if (hasPaidSetup) {
+                                                            return <div className="text-[10px] text-emerald-500 font-bold uppercase tracking-wider">Setup Paid</div>;
+                                                        } else if (serviceCharge > 0 && !isActivated) {
+                                                            return <div className="text-[10px] text-red-500">₦{formatCurrency(serviceCharge)} Service Fee</div>;
+                                                        } else if (isActivated) {
+                                                            return <div className="text-[10px] text-emerald-600 font-bold uppercase tracking-wider">PAID</div>;
+                                                        }
+                                                        return <div className="text-[10px] text-gray-400">---</div>;
+                                                    })()}
                                                 </td>
                                             </tr>
                                         ))}

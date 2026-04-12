@@ -12,7 +12,6 @@ import {
     Settings,
     ShieldCheck,
     Mail,
-    Home,
     ChevronDown,
     ChevronRight,
     Anchor,

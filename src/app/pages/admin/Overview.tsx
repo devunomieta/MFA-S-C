@@ -1,12 +1,11 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { formatNaira } from "@/lib/utils";
-import { Users, Banknote, Clock, Wallet, ShieldCheck, ArrowUpRight, ArrowDownRight, Activity } from "lucide-react";
-import { Card, CardContent } from "@/app/components/ui/card";
+import { Users, Banknote, Clock, Wallet, ShieldCheck, ArrowUpRight, Activity } from "lucide-react";
+import { Card } from "@/app/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Button } from "@/app/components/ui/button";
-import { AdminPageHeader } from "@/app/components/admin/AdminPageHeader";
 
 export function AdminOverview() {
     const navigate = useNavigate();

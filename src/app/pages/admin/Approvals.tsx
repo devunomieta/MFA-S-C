@@ -7,7 +7,7 @@ import { Button } from "@/app/components/ui/button";
 import { Badge } from "@/app/components/ui/badge";
 import { toast } from "sonner";
 import { Check, X, Eye, ShieldCheck, Banknote, Mail, ExternalLink } from "lucide-react";
-import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle } from "@/app/components/ui/dialog";
+import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, DialogDescription } from "@/app/components/ui/dialog";
 import { Label } from "@/app/components/ui/label";
 
 export function AdminApprovals() {
@@ -215,6 +215,9 @@ export function AdminApprovals() {
                                                     <DialogContent className="max-w-3xl">
                                                         <DialogHeader>
                                                             <DialogTitle>{req.full_name}'s ID Document</DialogTitle>
+                                                            <DialogDescription>
+                                                                Review the uploaded identification document for verification purposes.
+                                                            </DialogDescription>
                                                         </DialogHeader>
                                                         <img src={req.gov_id_url} alt="Full ID" className="w-full h-auto rounded" />
                                                     </DialogContent>

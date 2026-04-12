@@ -42,17 +42,25 @@ export function DashboardLayout() {
         if (!user) return;
 
         const fetchData = async () => {
-            const { data } = await supabase
-                .from('announcements')
-                .select('*')
-                .eq('is_active', true)
-                .order('created_at', { ascending: false })
-                .limit(1)
-                .single();
+            try {
+                const { data, error } = await supabase
+                    .from('announcements')
+                    .select('*')
+                    .eq('is_active', true)
+                    .order('created_at', { ascending: false })
+                    .limit(1)
+                    .maybeSingle();
 
-            if (data) {
-                if (data.expires_at && new Date(data.expires_at) < new Date()) return;
-                setAnnouncement(data);
+                if (error && error.code !== 'PGRST116') {
+                    console.warn("Announcement fetch error:", error.message);
+                }
+
+                if (data) {
+                    if (data.expires_at && new Date(data.expires_at) < new Date()) return;
+                    setAnnouncement(data);
+                }
+            } catch (err) {
+                console.error("Critical error in announcement fetch:", err);
             }
         };
         fetchData();

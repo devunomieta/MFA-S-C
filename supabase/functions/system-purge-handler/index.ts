@@ -50,9 +50,9 @@ Deno.serve(async (req) => {
     }
 
     const payload = await req.json()
-    const { scope, dataOnly } = payload
+    const { scope, dataOnly, targetUserId } = payload
 
-    console.log(`Payload received - Scope: ${scope}, DataOnly: ${dataOnly}`)
+    console.log(`Payload received - Scope: ${scope}, DataOnly: ${dataOnly}, TargetUserId: ${targetUserId}`)
 
     // Create service client for admin actions
     const serviceClient = createClient(
@@ -61,25 +61,27 @@ Deno.serve(async (req) => {
     )
 
     // Identify target users
-    let query = serviceClient.from('profiles').select('id, email, is_admin, is_superadmin')
+    let targetIds: string[] = []
     
-    if (scope === 'non-admin') {
-      query = query.eq('is_admin', false)
+    if (scope === 'single-user') {
+      if (!targetUserId) throw new Error("Missing targetUserId for single-user scope")
+      targetIds = [targetUserId]
+    } else if (scope === 'non-admin') {
+      const { data: targets, error: targetError } = await serviceClient.from('profiles').select('id').eq('is_admin', false)
+      if (targetError) throw targetError
+      targetIds = (targets || []).map(t => t.id)
     } else if (scope === 'all-except-super') {
       if (!callerProfile.is_superadmin) {
           return new Response(JSON.stringify({ error: 'Forbidden: Superadmin access required for this scope' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
       }
-      query = query.eq('is_superadmin', false)
+      const { data: targets, error: targetError } = await serviceClient.from('profiles').select('id').eq('is_superadmin', false)
+      if (targetError) throw targetError
+      targetIds = (targets || []).map(t => t.id)
     } else {
       return new Response(JSON.stringify({ error: 'Invalid scope: ' + scope }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
-    console.log(`Starting wipe with scope: ${scope}, dataOnly: ${dataOnly}`)
-    const { data: targets, error: targetError } = await query
-    if (targetError) throw targetError
-
-    const targetIds = (targets || []).map(t => t.id)
-    console.log(`Found ${targetIds.length} target users to wipe.`)
+    console.log(`Starting wipe with scope: ${scope}, dataOnly: ${dataOnly}. Found ${targetIds.length} target users.`)
 
     if (targetIds.length === 0) {
         return new Response(JSON.stringify({ message: 'No users found to wipe', success: true, count: 0 }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
@@ -87,9 +89,30 @@ Deno.serve(async (req) => {
 
     // Perform wipe
     if (dataOnly) {
-       console.log("Performing DATA ONLY wipe...")
+       console.log("Performing DATA ONLY wipe for related tables...")
+       
+       // Explicitly clear tables that might not cascade correctly or are linked to auth.users UID
+       const tablesToClear = [
+         'notifications',
+         'notification_settings',
+         'transactions',
+         'user_plans',
+         'bank_accounts',
+         'unpaid_arrears',
+         'email_change_requests',
+         'activity_logs' // User's own activity logs
+       ]
+
+       for (const table of tablesToClear) {
+         const { error } = await serviceClient.from(table).delete().in('user_id', targetIds)
+         if (error) console.warn(`Non-critical: Failed to clear table ${table}:`, error.message)
+       }
+
+       // Finally, clear the profile
+       console.log("Clearing profiles...")
        const { error: deleteError } = await serviceClient.from('profiles').delete().in('id', targetIds)
        if (deleteError) throw deleteError
+       
     } else {
        console.log("Performing COMPLETE AUTH wipe...")
        for (const id of targetIds) {
@@ -100,14 +123,15 @@ Deno.serve(async (req) => {
 
     // Log the action in activity_logs
     try {
-        console.log("Logging bulk wipe action...")
+        console.log("Logging purge action...")
         const { error: logError } = await serviceClient.from('activity_logs').insert({
             user_id: user.id,
-            action: 'BULK_USER_WIPE',
+            action: scope === 'single-user' ? 'SINGLE_USER_WIPE' : 'BULK_USER_WIPE',
             details: {
                 scope,
                 data_only: dataOnly,
-                user_count: targetIds.length
+                user_count: targetIds.length,
+                target_user_id: targetUserId
             },
             ip_address: req.headers.get('x-real-ip') || req.headers.get('x-forwarded-for') || 'edge-function'
         })

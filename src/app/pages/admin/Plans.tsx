@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/app/components/ui/button";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Eye, EyeOff, RotateCcw, Users, Settings, Activity, Anchor, Droplets, TrendingUp } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/app/components/ui/dialog";
+import { Plus, Pencil, Trash2, Eye, EyeOff, RotateCcw, Users, Settings, Activity, TrendingUp } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/app/components/ui/dialog";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { Textarea } from "@/app/components/ui/textarea";
@@ -29,13 +29,12 @@ import { AdminActionAuthModal } from "@/app/components/admin/AdminActionAuthModa
 import { formatNaira } from "@/lib/utils";
 import { ShieldCheck, ShieldAlert, Lock, Unlock, BadgeCheck } from "lucide-react";
 import { Plan } from "@/types";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { useAuth } from "@/app/context/AuthContext";
 
 export function AdminPlans() {
-    const { session, isSuperadmin } = useAuth();
+    const { isSuperadmin } = useAuth();
     const { view } = useParams();
-    const navigate = useNavigate();
     const [plans, setPlans] = useState<Plan[]>([]);
     const [isSystemUnlocked, setIsSystemUnlocked] = useState(false);
     const [loading, setLoading] = useState(true);
@@ -220,12 +219,6 @@ export function AdminPlans() {
         setIsConfirmOpen(true);
     };
 
-    const handleAuthSuccess = () => {
-        if (pendingAction) {
-            pendingAction();
-            setPendingAction(null);
-        }
-    };
 
     const initiateCreatePlan = () => {
         setPendingAction(() => () => setIsDialogOpen(true));
