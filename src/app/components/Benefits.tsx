@@ -14,11 +14,11 @@ export function Benefits() {
             whileInView={{ opacity: 1, x: 0 }}
             className="max-w-2xl"
           >
-            <h2 className="text-4xl md:text-5xl font-black tracking-tight mb-6">
+            <h2 className="text-3xl md:text-4xl font-black tracking-tight mb-6">
               Savings built for <br />
               <span className="text-emerald-600">how you live today.</span>
             </h2>
-            <p className="text-lg text-slate-600 font-medium font-heading">
+            <p className="text-base md:text-lg text-slate-600 font-medium font-heading">
               We've taken everything you love about community savings and added the speed
               and security of modern digital finance. No interest, no over-promising—just pure discipline.
             </p>
@@ -36,7 +36,7 @@ export function Benefits() {
                 <div className="w-14 h-14 bg-emerald-500 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
                   <Shield className="size-8 text-slate-950" />
                 </div>
-                <h3 className="text-3xl font-bold text-white tracking-tight">Registered & 100% Secure.</h3>
+                <h3 className="text-2xl font-bold text-white tracking-tight">Registered & 100% Secure.</h3>
                 <p className="text-emerald-50/60 font-medium">Your money is protected by bank-level encryption and managed with strict accountability standards.</p>
               </div>
               <div className="flex gap-4">

@@ -1,123 +1,154 @@
 import { Button } from "@/app/components/ui/button";
-import { ArrowRight, Sparkles, ShieldCheck, Users, TrendingUp } from "lucide-react";
+import { ArrowRight, Sparkles, ShieldCheck, Users, TrendingUp, CheckCircle2 } from "lucide-react";
 import { motion } from "framer-motion";
-import { ImageWithFallback } from "@/app/components/figma/ImageWithFallback";
 
 export function Hero() {
   return (
-    <section className="relative min-h-[90vh] flex items-center pt-20 pb-12 overflow-hidden bg-white">
-      {/* Dynamic Background Elements */}
+    <section className="relative min-h-[90vh] flex items-center pt-28 pb-16 overflow-hidden bg-white dark:bg-slate-950">
+      {/* Subtle Premium Background */}
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-[-10%] right-[-10%] w-[600px] h-[600px] bg-emerald-50 rounded-full blur-[120px] opacity-60" />
-        <div className="absolute bottom-[-10%] left-[-10%] w-[600px] h-[600px] bg-blue-50 rounded-full blur-[120px] opacity-40" />
+        <motion.div
+          animate={{
+            scale: [1, 1.1, 1],
+            x: [0, 30, 0],
+            y: [0, 20, 0]
+          }}
+          transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute top-[-10%] left-[-5%] w-[500px] md:w-[600px] h-[500px] md:h-[600px] bg-emerald-50/50 dark:bg-emerald-900/10 rounded-full blur-[100px] md:blur-[120px]"
+        />
+        <motion.div
+          animate={{
+            scale: [1.1, 1, 1.1],
+            x: [0, -30, 0],
+            y: [0, -20, 0]
+          }}
+          transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute bottom-[-10%] right-[-5%] w-[500px] md:w-[600px] h-[500px] md:h-[600px] bg-blue-50/50 dark:bg-blue-900/10 rounded-full blur-[100px] md:blur-[120px]"
+        />
       </div>
 
       <div className="container mx-auto px-4 relative z-10">
-        <div className="grid lg:grid-cols-2 gap-16 items-center">
-          {/* Content Block */}
-          <div className="flex flex-col space-y-10 group">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="inline-flex items-center gap-2 bg-emerald-50 border border-emerald-100 text-emerald-700 px-4 py-2 rounded-full w-fit shadow-sm"
-            >
-              <Sparkles className="size-4 animate-pulse" />
-              <span className="text-xs font-bold uppercase tracking-wider">The Future of Traditional Saving</span>
-            </motion.div>
+        <div className="max-w-4xl mx-auto text-center space-y-10">
+          {/* Trust Badge */}
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="inline-flex items-center gap-2 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 px-4 py-1.5 rounded-full shadow-sm"
+          >
+            <CheckCircle2 className="size-4 text-emerald-600" />
+            <span className="text-[10px] md:text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">
+              Join 2,000+ Disciplined Savers today
+            </span>
+          </motion.div>
 
-            <motion.div
+          {/* Main Headline */}
+          <div className="space-y-6">
+            <motion.h1
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="space-y-6"
+              transition={{ delay: 0.1, duration: 0.8 }}
+              className="text-4xl sm:text-5xl md:text-6xl font-extrabold leading-[1.1] tracking-tight text-slate-950 dark:text-white"
             >
-              <h1 className="text-5xl md:text-6xl lg:text-7xl font-extrabold leading-[1.05] tracking-tight text-slate-950">
-                The Modern Ajo <br />
-                for <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-600">Ambitious Savers.</span>
-              </h1>
-              <p className="text-xl text-slate-600 font-medium max-w-xl leading-relaxed">
-                Experience the power of traditional group saving, reinvented with bank-grade security and smart-automation. Join existing circles, save with discipline, and reach your goals.
-              </p>
-            </motion.div>
+              The Smartest Way <br />
+              <span className="text-emerald-600">to Save!</span>
+            </motion.h1>
 
-            <motion.div
+            <motion.p
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-              className="flex flex-wrap gap-5"
+              transition={{ delay: 0.2, duration: 0.8 }}
+              className="text-base md:text-lg text-slate-600 dark:text-slate-400 font-medium max-w-2xl mx-auto leading-relaxed"
             >
-              <Button
-                size="lg"
-                className="bg-emerald-600 hover:bg-emerald-700 text-white h-16 px-10 rounded-2xl text-lg font-bold shadow-xl shadow-emerald-600/20 active:scale-95 transition-all"
-                onClick={() => document.getElementById('plans')?.scrollIntoView({ behavior: 'smooth' })}
-              >
-                Join a Circle
-                <ArrowRight className="ml-2 size-5" />
-              </Button>
-              <Button size="lg" variant="outline" className="h-16 px-10 rounded-2xl text-lg font-bold border-2 hover:bg-emerald-50 hover:text-emerald-700 active:scale-95 transition-all" onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}>
-                How it Works
-              </Button>
-            </motion.div>
-
-            {/* Value Props */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.6 }}
-              className="grid grid-cols-3 gap-8 pt-10 border-t border-slate-100"
-            >
-              <div className="space-y-1 text-center sm:text-left">
-                <div className="flex items-center gap-2 text-emerald-600 font-bold justify-center sm:justify-start">
-                  <ShieldCheck className="size-5" />
-                  <span>CAC Registered</span>
-                </div>
-                <p className="text-xs text-slate-500 font-medium whitespace-nowrap">BN - 8950808</p>
-              </div>
-              <div className="space-y-1 text-center sm:text-left">
-                <div className="flex items-center gap-2 text-emerald-600 font-bold justify-center sm:justify-start">
-                  <TrendingUp className="size-5" />
-                  <span>Personal Choice</span>
-                </div>
-                <p className="text-xs text-slate-500 font-medium">Self or Assisted</p>
-              </div>
-              <div className="space-y-1 text-center sm:text-left">
-                <div className="flex items-center gap-2 text-emerald-600 font-bold justify-center sm:justify-start">
-                  <Users className="size-5" />
-                  <span>50k+</span>
-                </div>
-                <p className="text-xs text-slate-500 font-medium">Active Community</p>
-              </div>
-            </motion.div>
+              A secure platform to save and reach your goals. Put money away daily or weekly, and get your payout when it's your turn. Safe, automated, and built for you.
+            </motion.p>
           </div>
 
-          {/* Visual Block */}
+          {/* Action Buttons */}
           <motion.div
-            initial={{ opacity: 0, x: 40 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8, delay: 0.3 }}
-            className="relative hidden lg:block"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3, duration: 0.8 }}
+            className="flex flex-col sm:flex-row items-center justify-center gap-4"
           >
-            <div className="absolute inset-0 bg-gradient-to-br from-emerald-100 to-transparent rounded-[3rem] blur-2xl transform rotate-6 scale-95" />
-            <div className="relative bg-slate-950 rounded-[3rem] p-4 shadow-2xl border-8 border-slate-900 aspect-[4/5] overflow-hidden group">
-              <div className="absolute inset-0 bg-emerald-600/10 group-hover:bg-transparent transition-colors duration-700" />
-              <ImageWithFallback
-                src="https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&q=80&w=1080"
-                alt="Digital Community Finance"
-                className="w-full h-full object-cover scale-110 group-hover:scale-100 transition-transform duration-1000"
-              />
-              {/* Floating Card Overlay */}
-              <motion.div
-                animate={{ y: [0, -10, 0] }}
-                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                className="absolute top-12 left-12 bg-white/95 backdrop-blur px-6 py-4 rounded-3xl shadow-2xl space-y-2 border border-white"
-              >
-                <div className="text-slate-500 text-[10px] font-black uppercase tracking-widest">Collective Pot</div>
-                <div className="text-2xl font-black text-emerald-600 tracking-tighter">₦12,500,000.00</div>
-              </motion.div>
+            <Button
+              size="lg"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white h-14 md:h-16 px-8 md:px-10 rounded-xl md:rounded-2xl text-base md:text-lg font-bold shadow-xl shadow-emerald-600/20 active:scale-95 transition-all w-full sm:w-auto"
+              onClick={() => document.getElementById('plans')?.scrollIntoView({ behavior: 'smooth' })}
+            >
+              Start Saving Now
+              <ArrowRight className="ml-2 size-5" />
+            </Button>
+            <Button
+              size="lg"
+              variant="outline"
+              className="h-14 md:h-16 px-8 md:px-10 rounded-xl md:rounded-2xl text-base md:text-lg font-bold border-2 bg-white dark:bg-slate-950 hover:bg-slate-50 dark:hover:bg-slate-900 hover:text-white active:scale-95 text-slate-600 dark:text-slate-400 transition-all w-full sm:w-auto"
+              onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
+            >
+              How it Works
+            </Button>
+          </motion.div>
+
+          {/* Social Proof & Features */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5, duration: 1 }}
+            className="pt-12 md:pt-16 grid grid-cols-1 sm:grid-cols-3 gap-6 md:gap-8 border-t border-slate-100 dark:border-slate-800"
+          >
+            <div className="flex flex-col items-center space-y-2">
+              <div className="p-2.5 md:p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl">
+                <ShieldCheck className="size-5 md:size-6 text-emerald-600" />
+              </div>
+              <div className="text-center">
+                <div className="text-sm md:text-base font-bold text-slate-950 dark:text-white">Secure & Registered</div>
+                <div className="text-[10px] md:text-xs text-slate-500 font-medium uppercase tracking-tight">BN - 8950808</div>
+              </div>
+            </div>
+
+            <div className="flex flex-col items-center space-y-2">
+              <div className="p-2.5 md:p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl">
+                <TrendingUp className="size-5 md:size-6 text-emerald-600" />
+              </div>
+              <div className="text-center">
+                <div className="text-sm md:text-base font-bold text-slate-950 dark:text-white">50+ Active Circles</div>
+                <div className="text-[10px] md:text-xs text-slate-500 font-medium">Meeting goals this month</div>
+              </div>
+            </div>
+
+            <div className="flex flex-col items-center space-y-2">
+              <div className="p-2.5 md:p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl">
+                <Users className="size-5 md:size-6 text-emerald-600" />
+              </div>
+              <div className="text-center">
+                <div className="text-sm md:text-base font-bold text-slate-950 dark:text-white">Trusted Community</div>
+                <div className="text-[10px] md:text-xs text-slate-500 font-medium">Private and discipline-focused</div>
+              </div>
             </div>
           </motion.div>
         </div>
       </div>
-    </section >
+
+      {/* Floating Interactive Elements (Decorative) */}
+      <div className="absolute inset-0 pointer-events-none hidden xl:block z-20">
+        <motion.div
+          animate={{ y: [0, -15, 0] }}
+          transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute top-[25%] left-[10%] p-5 bg-white dark:bg-slate-900 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-slate-100 dark:border-slate-800"
+        >
+          <div className="text-emerald-600 font-black text-2xl tracking-tighter">₦12.5M+</div>
+          <div className="text-[10px] uppercase font-bold text-slate-400 mt-1">Total Saved This Month</div>
+        </motion.div>
+
+        <motion.div
+          animate={{ y: [0, 15, 0] }}
+          transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+          className="absolute bottom-[25%] right-[10%] p-5 bg-white dark:bg-slate-900 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-slate-100 dark:border-slate-800"
+        >
+          <Sparkles className="size-5 text-emerald-600 mb-2" />
+          <div className="text-sm font-bold text-slate-950 dark:text-white">Smart Automated Savings</div>
+          <div className="text-[10px] font-medium text-slate-400">Zero-effort discipline</div>
+        </motion.div>
+      </div>
+    </section>
   );
 }
