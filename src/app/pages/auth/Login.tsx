@@ -5,7 +5,10 @@ import { Label } from "@/app/components/ui/label";
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { toast } from "sonner"; // Assuming sonner is installed as per package.json
+import { toast } from "sonner";
+import { motion } from "framer-motion";
+import { ShieldCheck, ArrowRight, Mail, Lock, UserPlus } from "lucide-react";
+import { AuthHeader } from "@/app/components/auth/AuthHeader";
 
 export function Login() {
     const navigate = useNavigate();
@@ -31,124 +34,146 @@ export function Login() {
 
             if (error) throw error;
 
-            toast.success("login successful");
+            toast.success("Welcome back!");
             navigate("/dashboard");
         } catch (error: any) {
             console.error("Login Error:", error);
-            let errorMessage = "Failed to login";
-
-            if (error?.message) {
-                errorMessage = error.message;
-            } else if (typeof error === 'string') {
-                errorMessage = error;
-            } else if (error && typeof error === 'object') {
-                try {
-                    const str = JSON.stringify(error);
-                    if (str !== "{}") errorMessage = str;
-                } catch (e) {
-                    errorMessage = String(error);
-                }
-            }
-
-            if (errorMessage === "{}" || errorMessage === "[object Object]") {
-                errorMessage = "Failed to login. Please check your credentials.";
-            }
-
-            if (errorMessage === "Invalid login credentials") {
-                toast.error("incorrect email or password");
-            } else if (errorMessage.includes("Email not confirmed")) {
-                toast.error("Please verify your email address");
-            } else {
-                toast.error(errorMessage);
-            }
+            toast.error(error.message || "Incorrect email or password");
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-gray-50 transition-colors">
-            <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-lg border border-gray-100">
-                <div>
-                    <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-                        Sign in to your account
-                    </h2>
-                    <p className="mt-2 text-center text-sm text-gray-600">
-                        Or{" "}
-                        <Link
-                            to="/signup"
-                            className="font-medium text-emerald-600 hover:text-emerald-500"
-                        >
-                            create a new account
-                        </Link>
-                    </p>
-                </div>
-                <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-                    <div className="space-y-4">
-                        <div>
-                            <Label htmlFor="email-address">Email address</Label>
-                            <Input
-                                id="email-address"
-                                name="email"
-                                type="email"
-                                autoComplete="email"
-                                required
-                                className="mt-1"
-                                placeholder="you@example.com"
-                                value={formData.email}
-                                onChange={handleChange}
-                            />
-                        </div>
-                        <div>
-                            <Label htmlFor="password">Password</Label>
-                            <PasswordInput
-                                id="password"
-                                name="password"
-                                autoComplete="current-password"
-                                required
-                                className="mt-1"
-                                placeholder="••••••••"
-                                value={formData.password}
-                                onChange={handleChange}
-                            />
-                        </div>
-                    </div>
+        <div className="min-h-screen relative flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 overflow-hidden bg-white dark:bg-slate-950">
+            {/* Premium Background Blobs */}
+            <div className="absolute inset-0 pointer-events-none">
+                <motion.div
+                    animate={{
+                        scale: [1, 1.2, 1],
+                        rotate: [0, 90, 0],
+                    }}
+                    transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
+                    className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-emerald-50/50 dark:bg-emerald-900/10 rounded-full blur-[100px]"
+                />
+                <motion.div
+                    animate={{
+                        scale: [1.2, 1, 1.2],
+                        rotate: [0, -90, 0],
+                    }}
+                    transition={{ duration: 25, repeat: Infinity, ease: "easeInOut" }}
+                    className="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] bg-blue-50/50 dark:bg-blue-900/10 rounded-full blur-[100px]"
+                />
+            </div>
 
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center">
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6 }}
+                className="max-w-md w-full relative z-10"
+            >
+                <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl p-8 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-slate-200/50 dark:border-slate-800/50">
+                    <AuthHeader 
+                        title="Welcome Back" 
+                        subtitle="Sign in to continue your savings journey" 
+                    />
+
+                    <form className="space-y-6" onSubmit={handleSubmit}>
+                        <div className="space-y-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="email" className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1">
+                                    Email Address
+                                </Label>
+                                <div className="relative">
+                                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-slate-400" />
+                                    <Input
+                                        id="email"
+                                        name="email"
+                                        type="email"
+                                        autoComplete="email"
+                                        required
+                                        className="h-14 pl-12 rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 focus:ring-emerald-500 transition-all text-base"
+                                        placeholder="you@example.com"
+                                        value={formData.email}
+                                        onChange={handleChange}
+                                    />
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <div className="flex items-center justify-between ml-1">
+                                    <Label htmlFor="password" className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                                        Password
+                                    </Label>
+                                    <Link
+                                        to="/forgot-password"
+                                        className="text-xs font-bold text-emerald-600 hover:text-emerald-500 transition-colors"
+                                    >
+                                        Forgot Password?
+                                    </Link>
+                                </div>
+                                <div className="relative">
+                                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-slate-400 z-10" />
+                                    <PasswordInput
+                                        id="password"
+                                        name="password"
+                                        autoComplete="current-password"
+                                        required
+                                        className="h-14 pl-12 rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 focus:ring-emerald-500 transition-all text-base"
+                                        placeholder="••••••••"
+                                        value={formData.password}
+                                        onChange={handleChange}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center ml-1">
                             <input
                                 id="remember-me"
                                 name="remember-me"
                                 type="checkbox"
-                                className="h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded"
+                                className="size-4 text-emerald-600 focus:ring-emerald-500 border-slate-300 rounded-lg cursor-pointer"
                             />
                             <label
                                 htmlFor="remember-me"
-                                className="ml-2 block text-sm text-gray-900"
+                                className="ml-2 block text-sm text-slate-600 dark:text-slate-400 font-medium cursor-pointer"
                             >
-                                Remember me
+                                Stay signed in for 30 days
                             </label>
                         </div>
 
-                        <div className="text-sm">
-                            <Link
-                                to="/forgot-password"
-                                className="font-medium text-emerald-600 hover:text-emerald-500"
-                            >
-                                Forgot your password?
-                            </Link>
-                        </div>
-                    </div>
+                        <Button
+                            type="submit"
+                            className="w-full h-14 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-lg font-bold shadow-xl shadow-emerald-600/20 active:scale-[0.98] transition-all"
+                            disabled={loading}
+                        >
+                            {loading ? (
+                                <motion.div
+                                    animate={{ rotate: 360 }}
+                                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                                    className="size-6 border-2 border-white/30 border-t-white rounded-full"
+                                />
+                            ) : (
+                                <span className="flex items-center gap-2">
+                                    Sign In <ArrowRight className="size-5" />
+                                </span>
+                            )}
+                        </Button>
+                    </form>
 
-                    <Button
-                        type="submit"
-                        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
-                        disabled={loading}
-                    >
-                        {loading ? "Signing in..." : "Sign in"}
-                    </Button>
-                </form>
-            </div>
+                    <div className="mt-10 pt-8 border-t border-slate-100 dark:border-slate-800 text-center">
+                        <p className="text-slate-600 dark:text-slate-400 font-medium flex items-center justify-center gap-2">
+                            New to AjoSave? 
+                            <Link
+                                to="/signup"
+                                className="inline-flex items-center gap-1 font-bold text-emerald-600 hover:text-emerald-500 transition-colors"
+                            >
+                                <UserPlus className="size-4" /> Create Account
+                            </Link>
+                        </p>
+                    </div>
+                </div>
+            </motion.div>
         </div>
     );
 }

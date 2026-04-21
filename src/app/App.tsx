@@ -7,6 +7,7 @@ import { Login } from "@/app/pages/auth/Login";
 import { Signup } from "@/app/pages/auth/Signup";
 import { ForgotPassword } from "@/app/pages/auth/ForgotPassword";
 import { UpdatePassword } from "@/app/pages/auth/UpdatePassword";
+import { VerifyOTP } from "@/app/pages/auth/VerifyOTP";
 import { TestSupabase } from "@/app/pages/TestSupabase";
 import { ProtectedRoute } from "@/app/components/ProtectedRoute";
 import { DashboardLayout } from "@/app/layout/DashboardLayout";
@@ -46,13 +47,17 @@ function ScrollToTop() {
 
 // MainLayout is now just a wrapper for public pages
 function MainLayout({ children }: { children: React.ReactNode }) {
+  const location = useLocation();
+  const authPaths = ["/login", "/signup", "/forgot-password", "/update-password", "/verify-otp"];
+  const isAuthPage = authPaths.includes(location.pathname);
+
   return (
     <div className="min-h-screen bg-white">
-      <Navbar />
+      {!isAuthPage && <Navbar />}
       <main>
         {children}
       </main>
-      <Footer />
+      {!isAuthPage && <Footer />}
     </div>
   );
 }
@@ -105,6 +110,7 @@ function AppRoutes() {
           <Route path="/signup" element={<MainLayout><Signup /></MainLayout>} />
           <Route path="/forgot-password" element={<MainLayout><ForgotPassword /></MainLayout>} />
           <Route path="/update-password" element={<MainLayout><UpdatePassword /></MainLayout>} />
+          <Route path="/verify-otp" element={<MainLayout><VerifyOTP /></MainLayout>} />
           <Route path="/test-connection" element={<MainLayout><TestSupabase /></MainLayout>} />
 
           {/* Catch-all to Home */}

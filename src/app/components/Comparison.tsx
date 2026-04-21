@@ -4,33 +4,33 @@ import { Check, X, Shield, AlertTriangle } from "lucide-react";
 export function Comparison() {
     const points = [
         {
-            feature: "Security",
-            traditional: "Physical cash risks",
-            ajosave: "Bank-level encryption",
+            feature: "Money Safety",
+            traditional: "Person fit run with your money",
+            ajosave: "Your money is 100% secured",
             better: true
         },
         {
-            feature: "Transparency",
-            traditional: "Manual ledger errors",
-            ajosave: "Real-time digital tracking",
+            feature: "See your Balance",
+            traditional: "You no fit know how much you get",
+            ajosave: "Check your balance any time",
             better: true
         },
         {
-            feature: "Discipline",
-            traditional: "Inconsistent habits",
-            ajosave: "Social accountability",
+            feature: "Commitment",
+            traditional: "Hard to save every time",
+            ajosave: "Automated daily/weekly savings",
             better: true
         },
         {
-            feature: "Reliability",
-            traditional: "Trust-based (Risky)",
-            ajosave: "Automated & CAC Registered",
+            feature: "Trust",
+            traditional: "Saving with person you no know",
+            ajosave: "CAC Registered & Legally Secure",
             better: true
         },
         {
-            feature: "Accountability",
-            traditional: "Easy to default",
-            ajosave: "Penalties & BVN linked",
+            feature: "Rules",
+            traditional: "People fit fail to pay",
+            ajosave: "System makes sure everyone pays",
             better: true
         }
     ];
@@ -43,8 +43,8 @@ export function Comparison() {
                     whileInView={{ opacity: 1, y: 0 }}
                     className="text-center max-w-3xl mx-auto mb-16"
                 >
-                    <h2 className="text-4xl font-extrabold mb-4">Why upgrade from <span className="text-slate-400">Manual Ajo?</span></h2>
-                    <p className="text-lg text-slate-600 font-medium">Traditional savings are great, but digital savings are smarter, safer, and more rewarding.</p>
+                    <h2 className="text-3xl md:text-4xl font-black mb-4">Why upgrade from <span className="text-slate-400">Manual Ajo?</span></h2>
+                    <p className="text-lg text-slate-600 font-medium">Stop the old risky way of saving. AjoSave is the smarter and safer way to reach your goals.</p>
                 </motion.div>
 
                 <div className="max-w-5xl mx-auto">
@@ -65,7 +65,7 @@ export function Comparison() {
                                         <span className="text-xs font-bold text-slate-400 uppercase mb-1">{p.feature}</span>
                                         <div className="flex items-center gap-3">
                                             <X className="size-4 text-red-500 shrink-0" />
-                                            <span className="text-slate-600 font-medium">{p.traditional}</span>
+                                            <span className="text-slate-600 font-medium text-sm">{p.traditional}</span>
                                         </div>
                                     </li>
                                 ))}
@@ -91,7 +91,7 @@ export function Comparison() {
                                         <span className="text-xs font-bold text-emerald-300/60 uppercase mb-1">{p.feature}</span>
                                         <div className="flex items-center gap-3">
                                             <Check className="size-4 text-emerald-400 shrink-0" />
-                                            <span className="text-emerald-50 font-bold">{p.ajosave}</span>
+                                            <span className="text-emerald-50 font-bold text-sm">{p.ajosave}</span>
                                         </div>
                                     </li>
                                 ))}
@@ -104,18 +104,18 @@ export function Comparison() {
                             whileInView={{ opacity: 1, x: 0 }}
                             className="flex flex-col justify-center p-8 bg-emerald-50 rounded-3xl border border-emerald-100"
                         >
-                            <h4 className="text-2xl font-black text-emerald-900 mb-4 tracking-tighter">The Bottom Line</h4>
-                            <p className="text-emerald-800 font-medium mb-8 leading-relaxed">
-                                By switching to AjoSave, you eliminate the risk of loss while benefiting from a platform designed for consistency and community savings.
+                            <h4 className="text-2xl font-black text-emerald-900 mb-4 tracking-tighter">The Simple Truth</h4>
+                            <p className="text-emerald-800 font-medium mb-8 leading-relaxed text-sm">
+                                With AjoSave, you no fit lose your money. We help you save small small until you reach your target. No story.
                             </p>
                             <div className="space-y-4">
                                 <div className="bg-white p-4 rounded-xl shadow-sm border border-emerald-100">
-                                    <div className="text-3xl font-black text-emerald-600 tracking-tighter">100%</div>
-                                    <div className="text-xs font-bold text-slate-500 uppercase">Payout Guarantee</div>
+                                    <div className="text-2xl font-black text-emerald-600 tracking-tighter">Safe</div>
+                                    <div className="text-xs font-bold text-slate-500 uppercase">100% Guaranteed</div>
                                 </div>
                                 <div className="bg-white p-4 rounded-xl shadow-sm border border-emerald-100">
-                                    <div className="text-3xl font-black text-emerald-600 tracking-tighter">Fast</div>
-                                    <div className="text-xs font-bold text-slate-500 uppercase">Payout Turnaround</div>
+                                    <div className="text-2xl font-black text-emerald-600 tracking-tighter">Fast</div>
+                                    <div className="text-xs font-bold text-slate-500 uppercase">Receive Money Quick</div>
                                 </div>
                             </div>
                         </motion.div>
