@@ -40,10 +40,10 @@ export function Help() {
                                     <ContactCard
                                         icon={<MessageSquare className="size-5" />}
                                         title="WhatsApp Chat"
-                                        value="+234 801 234 5678"
+                                        value="+234 907 404 9667"
                                         description="Real-time assistance, 24/7"
                                         color="text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20"
-                                        onClick={() => window.open('https://wa.me/2348012345678', '_blank')}
+                                        onClick={() => window.open('https://wa.me/2349074049667', '_blank')}
                                     />
                                     <ContactCard
                                         icon={<Mail className="size-5" />}
@@ -56,7 +56,7 @@ export function Help() {
                                     <ContactCard
                                         icon={<Phone className="size-5" />}
                                         title="Call Center"
-                                        value="+234 801 234 5678"
+                                        value="+234 907 404 9667"
                                         description="Mon-Fri, 9am - 5pm"
                                         color="text-indigo-600 bg-indigo-50 dark:bg-indigo-900/20"
                                     />
@@ -66,14 +66,14 @@ export function Help() {
                             <Card className="border-0 shadow-sm bg-emerald-600 text-white overflow-hidden relative">
                                 <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
                                 <CardHeader>
-                                    <CardTitle className="text-xl font-bold">Manual Circle Management</CardTitle>
-                                    <CardDescription className="text-emerald-50/80">Need help creating or managing a circle manually?</CardDescription>
+                                    <CardTitle className="text-xl font-bold">Manual Plan Management</CardTitle>
+                                    <CardDescription className="text-emerald-50/80">Need help creating or managing a plan manually?</CardDescription>
                                 </CardHeader>
                                 <CardContent className="space-y-4">
                                     <p className="text-sm font-medium leading-relaxed">
-                                        Our experts can help you set up custom circles, manage member contributions offline, and provide escrow services for your group.
+                                        Our experts can help you set up custom plans, manage member contributions offline, and provide escrow services for your group.
                                     </p>
-                                    <Button variant="outline" className="w-full bg-white/10 border-white/20 text-white hover:bg-white hover:text-emerald-700 font-bold rounded-xl" onClick={() => window.open('https://wa.me/2348012345678', '_blank')}>
+                                    <Button variant="outline" className="w-full bg-white/10 border-white/20 text-white hover:bg-white hover:text-emerald-700 font-bold rounded-xl" onClick={() => window.open('https://wa.me/2349074049667', '_blank')}>
                                         Speak to an Expert
                                         <ExternalLink className="ml-2 size-4" />
                                     </Button>

@@ -342,7 +342,7 @@ const plans = {
         badgeColor: "bg-teal-100 text-teal-700 border-teal-200"
     },
     ajo: {
-        name: "Digital Ajo Circle",
+        name: "Digital Ajo Plan",
         type: "Community",
         description: "Traditional pooling made digital. Take turns cashing out with friends.",
         badgeColor: "bg-orange-100 text-orange-700 border-orange-200"

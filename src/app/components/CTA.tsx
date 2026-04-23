@@ -39,7 +39,7 @@ export function CTA() {
                 className="w-full sm:w-auto px-10 h-16 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-lg font-bold shadow-xl shadow-emerald-500/20 active:scale-95 transition-all"
                 onClick={() => document.getElementById('plans')?.scrollIntoView({ behavior: 'smooth' })}
               >
-                Join a Circle
+                Join a Plan
               </Button>
               <Button
                 size="lg"

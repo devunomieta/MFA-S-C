@@ -10,14 +10,14 @@ import { Dialog, DialogContent } from "@/app/components/ui/dialog";
 import { DepositModal } from "@/app/components/DepositModal";
 import { Loader2, ArrowLeft, ShieldCheck, TrendingUp, History, Coins, Zap, Shield, Info } from "lucide-react";
 import { Plan, UserPlan } from "@/types";
-import { unslugify } from "@/lib/slug";
+import { unslugify, slugify } from "@/lib/slug";
 import { MarathonPlanCard } from "./plans/MarathonPlanCard";
 import { SprintPlanCard } from "./plans/SprintPlanCard";
 import { AnchorPlanCard } from "./plans/AnchorPlanCard";
 import { DailyDropPlanCard } from "./plans/DailyDropPlanCard";
 import { StepUpPlanCard } from "./plans/StepUpPlanCard";
 import { MonthlyBloomPlanCard } from "./plans/MonthlyBloomPlanCard";
-import { AjoCirclePlanCard } from "./plans/AjoCirclePlanCard";
+import { AjoPlanCard } from "./plans/AjoPlanCard";
 import { PlanHealthCard } from "@/app/components/dashboard/PlanHealthCard";
 import { PlanActivityHistory } from "@/app/components/dashboard/PlanActivityHistory";
 import { Plus, CreditCard } from "lucide-react";
@@ -70,7 +70,6 @@ export function PlanDetailsPage() {
                 } else {
                     // Final fallback: fetch all and find matching slug
                     const { data: allPlans } = await supabase.from("plans").select("*");
-                    const { slugify } = await import("@/lib/slug");
                     planData = allPlans?.find(p => slugify(p.name) === id) || null;
                 }
             }
@@ -145,7 +144,7 @@ export function PlanDetailsPage() {
     };
 
 
-    const handleJoinAjoCircle = async (planId: string, subscriptions: { slot_index: number, amount: number }[]) => {
+    const handleJoinAjoPlan = async (planId: string, subscriptions: { slot_index: number, amount: number }[]) => {
         if (!user) return;
         try {
             // Check for duplicates
@@ -177,7 +176,7 @@ export function PlanDetailsPage() {
                 });
 
             if (error) throw error;
-            toast.success("Joined Ajo Circle! Make your first cycle payment to activate.");
+            toast.success("Joined Ajo Plan! Make your first cycle payment to activate.");
             fetchPlanDetails();
             setSelectedPlanForDeposit({ id: planId });
         } catch (err: any) {
@@ -446,10 +445,10 @@ export function PlanDetailsPage() {
                                     />
                                 )}
                                 {plan.type === 'ajo_circle' && (
-                                    <AjoCirclePlanCard
+                                    <AjoPlanCard
                                         plan={plan}
                                         user_plan={userPlan || undefined}
-                                        onJoin={(_, subs) => handleJoinAjoCircle(plan.id, subs)}
+                                        onJoin={(_, subs) => handleJoinAjoPlan(plan.id, subs)}
                                         onDeposit={() => setSelectedPlanForDeposit({ id: plan.id })}
                                         onAdvanceDeposit={() => setSelectedPlanForDeposit({ id: plan.id, isAdvance: true })}
                                         onWithdraw={() => { /* Withdraw handled in card */ }}

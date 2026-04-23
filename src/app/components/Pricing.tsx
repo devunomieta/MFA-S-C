@@ -97,7 +97,7 @@ const plans = [
   },
   {
     id: "ajo_circle",
-    name: "Digital Ajo Circle",
+    name: "Digital Ajo Plan",
     icon: <Users className="size-6" />,
     color: "bg-emerald-600",
     price: "Community",
@@ -215,7 +215,7 @@ export function Pricing() {
                       }
                     }}
                   >
-                    Join Circle
+                    Join Plan
                   </Button>
                 </CardContent>
               </Card>

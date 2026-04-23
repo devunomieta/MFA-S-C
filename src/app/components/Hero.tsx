@@ -110,7 +110,7 @@ export function Hero() {
                 <TrendingUp className="size-5 md:size-6 text-emerald-600" />
               </div>
               <div className="text-center">
-                <div className="text-sm md:text-base font-bold text-slate-950 dark:text-white">50+ Active Circles</div>
+                <div className="text-sm md:text-base font-bold text-slate-950 dark:text-white">50+ Active Plans</div>
                 <div className="text-[10px] md:text-xs text-slate-500 font-medium">Meeting goals this month</div>
               </div>
             </div>

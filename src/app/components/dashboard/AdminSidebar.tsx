@@ -16,7 +16,8 @@ import {
     ChevronRight,
     Anchor,
     Droplets,
-    TrendingUp
+    TrendingUp,
+    Quote
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -130,6 +131,12 @@ export function AdminSidebar({ isOpen, setIsOpen }: SidebarProps) {
                     icon: Mail,
                     href: "/admin/newsletter",
                     active: pathname.includes("/admin/newsletter"),
+                },
+                {
+                    label: "Testimonials",
+                    icon: Quote,
+                    href: "/admin/testimonials",
+                    active: pathname.includes("/admin/testimonials"),
                 },
             ]
         },

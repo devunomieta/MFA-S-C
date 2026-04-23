@@ -91,7 +91,7 @@ export function Benefits() {
                 className="p-0 text-emerald-600 font-bold flex items-center gap-2 group-hover:gap-4 transition-all w-fit hover:bg-transparent"
                 onClick={() => document.getElementById('plans')?.scrollIntoView({ behavior: 'smooth' })}
               >
-                View Circles <ArrowUpRight className="size-4" />
+                View Plans <ArrowUpRight className="size-4" />
               </Button>
             </div>
             <div className="absolute bottom-[-20%] right-[-10%] opacity-[0.03] group-hover:opacity-[0.07] transition-opacity">
@@ -110,7 +110,7 @@ export function Benefits() {
                   <Zap className="size-6 text-white" />
                 </div>
                 <h3 className="text-2xl font-bold text-slate-950 tracking-tight">Seamless Savings.</h3>
-                <p className="text-slate-600 font-medium">Set your goals and join existing circles. No manual hassle, just pure community-driven discipline.</p>
+                <p className="text-slate-600 font-medium">Set your goals and join existing plans. No manual hassle, just pure community-driven discipline.</p>
                 <div className="flex gap-3 pt-2">
                   <div className="w-2 h-2 rounded-full bg-emerald-500" />
                   <div className="w-2 h-2 rounded-full bg-slate-300" />

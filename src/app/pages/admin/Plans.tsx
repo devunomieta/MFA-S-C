@@ -304,9 +304,9 @@ export function AdminPlans() {
     return (
         <div className="space-y-8 animate-in fade-in duration-700">
             <AdminPageHeader
-                title={currentTab === 'management' ? 'Standard Savings Catalog' : currentTab.replace('_', ' ') + ' Dashboard'}
+                title={currentTab === 'management' ? 'Standard Savings Catalog' : (currentTab === 'ajo_circle' ? 'Digital Ajo Plan Dashboard' : currentTab.replace('_', ' ') + ' Dashboard')}
                 description="Create, monitor, and approve savings products for MTF users."
-                breadcrumbs={[{ label: 'Plans', href: '/admin/plans' }, { label: currentTab.replace('_', ' ') }]}
+                breadcrumbs={[{ label: 'Plans', href: '/admin/plans' }, { label: currentTab === 'ajo_circle' ? 'Ajo Plan' : currentTab.replace('_', ' ') }]}
                 actions={
                     <Button 
                         onClick={handleGlobalAutoSave} 

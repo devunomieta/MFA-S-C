@@ -30,10 +30,12 @@ import { AdminSettings } from "@/app/pages/admin/Settings";
 import { AdminNewsletter } from "@/app/pages/admin/Newsletter";
 import { AdminApprovals } from "@/app/pages/admin/Approvals";
 import { AdminProfile } from "@/app/pages/admin/Profile";
+import AdminTestimonials from "@/app/pages/admin/Testimonials";
 import { useLayoutEffect } from "react";
 import { ThemeProvider } from "@/app/context/ThemeContext";
 import { NotificationProvider } from "@/app/context/NotificationContext";
 import { AutoLogout } from "@/app/components/AutoLogout";
+import { WhatsAppFloating } from "@/app/components/WhatsAppFloating";
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -67,6 +69,7 @@ function AppRoutes() {
   const location = useLocation();
   // Only allow dark mode on dashboard routes. Force light mode everywhere else.
   const isDashboard = location.pathname.startsWith("/dashboard");
+  const isAdminPath = location.pathname.startsWith("/admin");
 
   return (
     <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme" forceTheme={isDashboard ? undefined : 'light'}>
@@ -74,6 +77,7 @@ function AppRoutes() {
         <Toaster />
         <AutoLogout />
         <ScrollToTop />
+        {!isAdminPath && <WhatsAppFloating />}
         <Routes>
           {/* Protected Dashboard Routes */}
           <Route element={<ProtectedRoute />}>
@@ -101,6 +105,7 @@ function AppRoutes() {
             <Route path="settings" element={<AdminSettings />} />
             <Route path="newsletter" element={<AdminNewsletter />} />
             <Route path="approvals" element={<AdminApprovals />} />
+            <Route path="testimonials" element={<AdminTestimonials />} />
             <Route path="profile" element={<AdminProfile />} />
           </Route>
 

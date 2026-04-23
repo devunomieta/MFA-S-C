@@ -94,7 +94,7 @@ export function UpdatePassword() {
                                         id="password"
                                         name="password"
                                         required
-                                        className="h-14 pl-12 rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-base"
+                                        className="h-14 pl-12 rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-base text-slate-900 dark:text-white"
                                         placeholder="••••••••"
                                         value={formData.password}
                                         onChange={handleChange}
@@ -111,7 +111,7 @@ export function UpdatePassword() {
                                         id="confirmPassword"
                                         name="confirmPassword"
                                         required
-                                        className="h-14 pl-12 rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-base"
+                                        className="h-14 pl-12 rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-base text-slate-900 dark:text-white"
                                         placeholder="••••••••"
                                         value={formData.confirmPassword}
                                         onChange={handleChange}

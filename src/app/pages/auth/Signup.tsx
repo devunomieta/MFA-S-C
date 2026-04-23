@@ -7,7 +7,7 @@ import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { ShieldCheck, ArrowRight, Mail, Lock, User, CheckCircle2 } from "lucide-react";
+import { ShieldCheck, ArrowRight, Mail, Lock, User, CheckCircle2, Phone } from "lucide-react";
 import { logActivity } from "@/lib/activity";
 import { validatePassword } from "@/lib/validation";
 import { PasswordStrength } from "@/app/components/ui/PasswordStrength";
@@ -19,6 +19,7 @@ export function Signup() {
     const [formData, setFormData] = useState({
         name: "",
         email: "",
+        phone: "",
         password: "",
         confirmPassword: "",
     });
@@ -51,6 +52,7 @@ export function Signup() {
                 options: {
                     data: {
                         full_name: formData.name,
+                        phone: formData.phone,
                     },
                 },
             });
@@ -118,7 +120,7 @@ export function Signup() {
                     />
 
                     <form className="space-y-6" onSubmit={handleSubmit}>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-6">
                             <div className="space-y-2">
                                 <Label htmlFor="full-name" className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1">
                                     Full Name
@@ -130,7 +132,7 @@ export function Signup() {
                                         name="name"
                                         type="text"
                                         required
-                                        className="h-14 pl-12 rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-base"
+                                        className="h-14 pl-12 rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-base text-slate-900 dark:text-white"
                                         placeholder="John Doe"
                                         value={formData.name}
                                         onChange={handleChange}
@@ -148,16 +150,34 @@ export function Signup() {
                                         name="email"
                                         type="email"
                                         required
-                                        className="h-14 pl-12 rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-base"
+                                        className="h-14 pl-12 rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-base text-slate-900 dark:text-white"
                                         placeholder="you@example.com"
                                         value={formData.email}
                                         onChange={handleChange}
                                     />
                                 </div>
                             </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="phone" className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1">
+                                    Phone Number
+                                </Label>
+                                <div className="relative">
+                                    <Phone className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-slate-400" />
+                                    <Input
+                                        id="phone"
+                                        name="phone"
+                                        type="tel"
+                                        required
+                                        className="h-14 pl-12 rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-base text-slate-900 dark:text-white"
+                                        placeholder="+234..."
+                                        value={formData.phone}
+                                        onChange={handleChange}
+                                    />
+                                </div>
+                            </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-6">
                             <div className="space-y-2">
                                 <Label htmlFor="password" className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1">
                                     Password
@@ -168,7 +188,7 @@ export function Signup() {
                                         id="password"
                                         name="password"
                                         required
-                                        className="h-14 pl-12 rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-base"
+                                        className="h-14 pl-12 rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-base text-slate-900 dark:text-white"
                                         placeholder="••••••••"
                                         value={formData.password}
                                         onChange={handleChange}
@@ -178,7 +198,7 @@ export function Signup() {
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="confirm-password" className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1">
-                                    Confirm
+                                    Confirm Password
                                 </Label>
                                 <div className="relative">
                                     <Lock className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-slate-400 z-10" />
@@ -186,7 +206,7 @@ export function Signup() {
                                         id="confirm-password"
                                         name="confirmPassword"
                                         required
-                                        className="h-14 pl-12 rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-base"
+                                        className="h-14 pl-12 rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-base text-slate-900 dark:text-white"
                                         placeholder="••••••••"
                                         value={formData.confirmPassword}
                                         onChange={handleChange}

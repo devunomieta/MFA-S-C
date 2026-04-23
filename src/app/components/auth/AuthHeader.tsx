@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
-import { ShieldCheck } from "lucide-react";
+import { ShieldCheck, Home } from "lucide-react";
 import { motion } from "framer-motion";
 import { ImageWithFallback } from "@/app/components/figma/ImageWithFallback";
 
@@ -19,7 +19,14 @@ export function AuthHeader({ title, subtitle }: { title: string; subtitle: strin
     }, []);
 
     return (
-        <div className="text-center mb-10">
+        <div className="text-center mb-10 relative">
+            <Link 
+                to="/" 
+                className="absolute -top-4 left-0 p-2 text-slate-400 hover:text-emerald-600 transition-colors flex items-center gap-2 text-xs font-bold uppercase tracking-widest group"
+            >
+                <Home className="size-4 group-hover:-translate-y-0.5 transition-transform" />
+                Home
+            </Link>
             <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}

@@ -255,7 +255,7 @@ export function Contact() {
                 <h4 className="text-3xl md:text-4xl font-black tracking-tight">Need Assisted Management?</h4>
                 <p className="text-emerald-50/80 text-lg font-medium leading-relaxed max-w-xl">
                   Join our community of over 50,000 savers and get real-time assistance through our dedicated channels.
-                  We can help you manage your circles and savings manually.
+                  We can help you manage your plans and savings manually.
                 </p>
               </div>
               <div className="flex flex-col sm:flex-row gap-4 md:justify-end">

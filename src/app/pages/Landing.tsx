@@ -3,9 +3,9 @@ import { Comparison } from "@/app/components/Comparison";
 import { Benefits } from "@/app/components/Benefits";
 import { HowItWorks } from "@/app/components/HowItWorks";
 import { Pricing } from "@/app/components/Pricing";
+import { Testimonials } from "@/app/components/Testimonials";
 import { Contact } from "@/app/components/Contact";
 import { CTA } from "@/app/components/CTA";
-import { ActivityPopup } from "@/app/components/ActivityPopup";
 import { WhatsAppFloating } from "@/app/components/WhatsAppFloating";
 
 export function Landing() {
@@ -18,11 +18,11 @@ export function Landing() {
                 <HowItWorks />
             </section>
             <Pricing />
+            <Testimonials />
             <section id="contact">
                 <Contact />
             </section>
             <CTA />
-            <ActivityPopup />
             <WhatsAppFloating />
         </>
     );

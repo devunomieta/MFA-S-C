@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plan, UserPlan } from "@/types";
 import { Timer, CheckCircle, AlertTriangle, Calendar, Lock, Plus, Trash2 } from "lucide-react";
 
-interface AjoCirclePlanCardProps {
+interface AjoPlanCardProps {
     plan: Plan;
     user_plan?: UserPlan;
     onJoin: (planId: string, subscriptions: { slot_index: number, amount: number }[]) => void;
@@ -17,7 +17,7 @@ interface AjoCirclePlanCardProps {
     onLeave?: () => void;
 }
 
-export function AjoCirclePlanCard({ plan, user_plan, onJoin, onDeposit, onAdvanceDeposit, onWithdraw, onLeave }: AjoCirclePlanCardProps) {
+export function AjoPlanCard({ plan, user_plan, onJoin, onDeposit, onAdvanceDeposit, onWithdraw, onLeave }: AjoPlanCardProps) {
     const [subscriptions, setSubscriptions] = useState<{ slot_index: number, amount: number }[]>([
         { slot_index: 0, amount: 10000 }
     ]);
@@ -343,7 +343,7 @@ export function AjoCirclePlanCard({ plan, user_plan, onJoin, onDeposit, onAdvanc
                     onClick={handleJoin}
                     disabled={subscriptions.length === 0 || !plan.config?.duration_weeks}
                 >
-                    {plan.config?.duration_weeks ? `Join Circle with ${subscriptions.length} Turn${subscriptions.length > 1 ? 's' : ''}` : 'Awaiting Config'}
+                    {plan.config?.duration_weeks ? `Join Plan with ${subscriptions.length} Turn${subscriptions.length > 1 ? 's' : ''}` : 'Awaiting Config'}
                 </Button>
             </CardFooter>
         </Card>

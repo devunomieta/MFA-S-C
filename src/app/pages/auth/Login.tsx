@@ -27,8 +27,11 @@ export function Login() {
         setLoading(true);
 
         try {
+            const identifier = formData.email.trim();
+            const isEmail = identifier.includes('@');
+            
             const { error } = await supabase.auth.signInWithPassword({
-                email: formData.email,
+                [isEmail ? 'email' : 'phone']: identifier,
                 password: formData.password,
             });
 
@@ -38,7 +41,7 @@ export function Login() {
             navigate("/dashboard");
         } catch (error: any) {
             console.error("Login Error:", error);
-            toast.error(error.message || "Incorrect email or password");
+            toast.error(error.message || "Incorrect details or password");
         } finally {
             setLoading(false);
         }
@@ -81,19 +84,19 @@ export function Login() {
                     <form className="space-y-6" onSubmit={handleSubmit}>
                         <div className="space-y-4">
                             <div className="space-y-2">
-                                <Label htmlFor="email" className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1">
-                                    Email Address
+                                <Label htmlFor="identifier" className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1">
+                                    Email or Phone Number
                                 </Label>
                                 <div className="relative">
                                     <Mail className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-slate-400" />
                                     <Input
-                                        id="email"
+                                        id="identifier"
                                         name="email"
-                                        type="email"
-                                        autoComplete="email"
+                                        type="text"
+                                        autoComplete="username"
                                         required
-                                        className="h-14 pl-12 rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 focus:ring-emerald-500 transition-all text-base"
-                                        placeholder="you@example.com"
+                                        className="h-14 pl-12 rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 focus:ring-emerald-500 transition-all text-base text-slate-900 dark:text-white"
+                                        placeholder="Email or Phone"
                                         value={formData.email}
                                         onChange={handleChange}
                                     />
@@ -118,7 +121,7 @@ export function Login() {
                                         name="password"
                                         autoComplete="current-password"
                                         required
-                                        className="h-14 pl-12 rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 focus:ring-emerald-500 transition-all text-base"
+                                        className="h-14 pl-12 rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 focus:ring-emerald-500 transition-all text-base text-slate-900 dark:text-white"
                                         placeholder="••••••••"
                                         value={formData.password}
                                         onChange={handleChange}

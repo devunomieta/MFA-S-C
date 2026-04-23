@@ -165,10 +165,10 @@ export function Navbar() {
               {/* Mobile Toggle Button */}
               <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="md:hidden size-10 flex items-center justify-center rounded-full bg-slate-100/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50 active:scale-90 transition-all relative z-[120]"
+                className="md:hidden size-10 flex items-center justify-center rounded-full bg-emerald-600 border border-emerald-500 shadow-lg shadow-emerald-600/20 active:scale-90 transition-all relative z-[120]"
                 aria-label="Toggle Menu"
               >
-                {isOpen ? <X className="size-5 text-slate-900 dark:text-white" /> : <Menu className="size-5 text-white" />}
+                {isOpen ? <X className="size-5 text-white" /> : <Menu className="size-5 text-white" />}
               </button>
             </div>
           </div>
