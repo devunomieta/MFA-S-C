@@ -30,7 +30,7 @@ const steps = [
 
 export function HowItWorks() {
   return (
-    <section className="py-24 bg-slate-50 relative overflow-hidden" id="how-it-works">
+    <section className="py-20 bg-slate-50 relative overflow-hidden" id="how-it-works">
       {/* Background Glow */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-emerald-500/5 rounded-full blur-[120px]" />
 

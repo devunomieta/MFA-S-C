@@ -95,7 +95,7 @@ export function Contact() {
   };
 
   return (
-    <section className="py-24 md:py-32 bg-white relative overflow-hidden" id="contact">
+    <section className="pt-12 pb-24 bg-white relative overflow-hidden" id="contact">
       <div className="container mx-auto px-4 relative z-10">
         <div className="grid lg:grid-cols-2 gap-16 items-center">
           {/* Left Side: Content & Info */}

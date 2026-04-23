@@ -6,7 +6,7 @@ import { ImageWithFallback } from "@/app/components/figma/ImageWithFallback";
 
 export function Benefits() {
   return (
-    <section className="py-32 bg-white overflow-hidden" id="features">
+    <section className="py-20 bg-white overflow-hidden" id="features">
       <div className="container mx-auto px-4">
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-6">
           <motion.div

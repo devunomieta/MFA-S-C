@@ -37,7 +37,7 @@ export function Testimonials() {
   if (testimonialsList.length === 0) return null;
 
   return (
-    <section className="py-32 bg-white relative overflow-hidden" id="testimonials">
+    <section className="pt-20 pb-12 bg-white relative overflow-hidden" id="testimonials">
       {/* Decorative Background Elements */}
       <div className="absolute top-0 left-0 w-full h-full pointer-events-none overflow-hidden">
         <div className="absolute top-1/4 -left-20 w-96 h-96 bg-emerald-50 rounded-full blur-3xl opacity-60 animate-pulse" />
