@@ -91,6 +91,16 @@ const PlanCardGrid = ({ items, type, myPlans }: {
                                         </span>
                                     </div>
                                     
+                                    <div className="flex items-center justify-between text-xs pt-1">
+                                        <span className="text-gray-400 flex items-center gap-2 font-semibold">
+                                            <ShieldCheck className="size-4 text-emerald-400" />
+                                            Min. Savings
+                                        </span>
+                                        <span className="text-emerald-700 dark:text-emerald-400 font-black">
+                                            ₦{new Intl.NumberFormat('en-US').format(plan.min_amount)} / {plan.contribution_type}
+                                        </span>
+                                    </div>
+                                    
                                     {type === 'active' && (
                                         <div className="flex items-center justify-between text-xs border-t border-gray-50 dark:border-gray-800 pt-3.5">
                                             <span className="text-gray-400 flex items-center gap-2 font-semibold">

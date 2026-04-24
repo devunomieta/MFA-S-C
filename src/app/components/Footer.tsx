@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabase";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { ImageWithFallback } from "@/app/components/figma/ImageWithFallback";
+import { BrandLogo } from "@/app/components/ui/BrandLogo";
 import { toast } from "sonner";
 
 // Custom TikTok Icon
@@ -39,7 +40,7 @@ export function Footer() {
         .from('newsletter_subscribers')
         .select('id')
         .eq('email', email.trim().toLowerCase())
-        .single();
+        .maybeSingle();
 
       if (existing) {
         toast.info("You're already in our inner circle! Stay tuned for updates.");
@@ -72,7 +73,7 @@ export function Footer() {
           <div className="lg:col-span-4 space-y-8">
             <div className="flex items-center gap-2">
               {logoUrl ? (
-                <ImageWithFallback src={logoUrl} alt="Mary's Thrift Services" className="h-10 w-auto object-contain" />
+                <BrandLogo src={logoUrl} alt="Mary's Thrift Services" size="sm" />
               ) : (
                 <span className="text-2xl font-black text-white tracking-tighter">Mary's Thrift<span className="text-emerald-500">.</span></span>
               )}

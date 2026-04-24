@@ -2,7 +2,7 @@ import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { PasswordInput } from "@/app/components/ui/PasswordInput";
 import { Label } from "@/app/components/ui/label";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
@@ -15,6 +15,9 @@ import { AuthHeader } from "@/app/components/auth/AuthHeader";
 
 export function Signup() {
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const joinPlanId = searchParams.get('join');
+    
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
         name: "",
@@ -22,6 +25,7 @@ export function Signup() {
         phone: "",
         password: "",
         confirmPassword: "",
+        website: "", // Honeypot field
     });
 
     const passFeedback = validatePassword(formData.password);
@@ -32,6 +36,14 @@ export function Signup() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        if (formData.website) {
+            console.warn("Honeypot triggered");
+            // Silently fail or pretend it worked
+            toast.success("Welcome to the community!");
+            navigate("/");
+            return;
+        }
 
         if (!passFeedback.isValid) {
             toast.error("Please meet all password security requirements");
@@ -72,7 +84,11 @@ export function Signup() {
                 });
 
                 toast.success("Welcome to the community!");
-                navigate("/dashboard");
+                if (joinPlanId) {
+                    navigate(`/dashboard/plans?join=${joinPlanId}`);
+                } else {
+                    navigate("/dashboard");
+                }
             } else {
                 toast.success("Check your email to verify your account!");
                 navigate("/login");
@@ -174,6 +190,17 @@ export function Signup() {
                                         onChange={handleChange}
                                     />
                                 </div>
+                            </div>
+                            {/* Honeypot field - Hidden from users */}
+                            <div className="hidden" aria-hidden="true">
+                                <Input
+                                    type="text"
+                                    name="website"
+                                    value={formData.website}
+                                    onChange={handleChange}
+                                    tabIndex={-1}
+                                    autoComplete="off"
+                                />
                             </div>
                         </div>
 

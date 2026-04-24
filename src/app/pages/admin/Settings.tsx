@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/ta
 import { toast } from "sonner";
 import { Save, Mail, Settings as SettingsIcon, Image as ImageIcon, Megaphone, Trash2, ShieldCheck, ShieldAlert } from "lucide-react";
 import { ActionConfirmModal } from "@/app/components/ui/ActionConfirmModal";
+import { BrandLogo } from "@/app/components/ui/BrandLogo";
 
 
 export function AdminSettings() {
@@ -186,6 +187,16 @@ export function AdminSettings() {
 
                             <div className="grid gap-6 md:grid-cols-2">
                                 <div className="space-y-2">
+                                    <Label>Platform Name</Label>
+                                    <Input
+                                        value={general.app_name || "Mary's Thrift Services"}
+                                        onChange={(e) => setGeneral({ ...general, app_name: e.target.value })}
+                                        placeholder="e.g. Mary's Thrift Services"
+                                    />
+                                    <p className="text-xs text-slate-500">The display name used across the platform.</p>
+                                </div>
+
+                                <div className="space-y-2">
                                     <Label>Default Loan Interest Rate (%)</Label>
                                     <Input
                                         type="number"
@@ -285,8 +296,8 @@ export function AdminSettings() {
                                 <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-xl bg-slate-50 border-slate-200">
                                     {logoUrl ? (
                                         <div className="relative group">
-                                            <img src={logoUrl} alt="Logo Preview" className="max-h-32 object-contain" />
-                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-lg">
+                                            <BrandLogo src={logoUrl} alt="Logo Preview" size="lg" />
+                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-xl">
                                                 <Button
                                                     variant="destructive"
                                                     size="icon"

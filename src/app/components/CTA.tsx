@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 
 export function CTA() {
   return (
-    <section className="py-20 relative overflow-hidden bg-white">
+    <section className="pt-4 pb-20 relative overflow-hidden bg-white">
       <div className="container mx-auto px-4 relative z-10">
         <div className="bg-slate-900 rounded-[3rem] p-12 md:p-16 text-center relative overflow-hidden shadow-2xl border border-slate-800">
           {/* Background decoration */}

@@ -1,5 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/lib/supabase';
+import { slugify } from '@/lib/slug';
 import {
     Dialog,
     DialogContent,
@@ -36,12 +39,22 @@ interface Selections {
 }
 
 export function PlanRecommender({ open, onOpenChange, inline }: PlanRecommenderProps) {
+    const navigate = useNavigate();
     const [step, setStep] = useState<Step>('frequency');
     const [selections, setSelections] = useState<Selections>({
         frequency: '',
         goal: '',
         duration: ''
     });
+    const [dbPlans, setDbPlans] = useState<any[]>([]);
+
+    useEffect(() => {
+        const fetchPlans = async () => {
+            const { data } = await supabase.from('plans').select('*').eq('is_active', true);
+            if (data) setDbPlans(data);
+        };
+        fetchPlans();
+    }, []);
 
     const reset = () => {
         setStep('frequency');
@@ -74,15 +87,26 @@ export function PlanRecommender({ open, onOpenChange, inline }: PlanRecommenderP
     const getRecommendations = () => {
         const { frequency, goal, duration } = selections;
 
-        if (frequency === 'Daily') return [plans.daily];
-        if (frequency === 'Monthly') return [plans.monthly];
-        if (frequency === 'Lump Sum') return [plans.stepup];
-        if (goal === 'Community') return [plans.ajo];
+        let selected = [];
+        if (frequency === 'Daily') selected = [plans.daily];
+        else if (frequency === 'Monthly') selected = [plans.monthly];
+        else if (frequency === 'Lump Sum') selected = [plans.stepup];
+        else if (goal === 'Community') selected = [plans.ajo];
+        else if (goal === 'Discipline') selected = [plans.anchor];
+        else if (duration === 'Long Term') selected = [plans.marathon];
+        else selected = [plans.sprint];
 
-        if (goal === 'Discipline') return [plans.anchor];
+        // Link with DB IDs if possible
+        return selected.map(rec => {
+            const dbMatch = dbPlans.find(dbp => dbp.type === rec.dbType);
+            return { ...rec, id: dbMatch?.id };
+        });
+    };
 
-        if (duration === 'Long Term') return [plans.marathon];
-        return [plans.sprint];
+    const handleSelectPlan = (plan: any) => {
+        if (onOpenChange) onOpenChange(false);
+        const joinParam = plan.id ? plan.id : slugify(plan.name);
+        navigate(`/login?join=${joinParam}`);
     };
 
     const recommendations = getRecommendations();
@@ -220,7 +244,10 @@ export function PlanRecommender({ open, onOpenChange, inline }: PlanRecommenderP
                                             <Badge className={p.badgeColor}>{p.type}</Badge>
                                         </div>
                                         <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed mb-4">{p.description}</p>
-                                        <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold">
+                                        <Button 
+                                            onClick={() => handleSelectPlan(p)}
+                                            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold"
+                                        >
                                             Select this Plan
                                             <ArrowRight className="ml-2 size-4" />
                                         </Button>
@@ -308,42 +335,49 @@ const plans = {
     daily: {
         name: "Daily Drop",
         type: "Micro-Savings",
+        dbType: "daily_drop",
         description: "Perfect for inconsistent income earners. Save daily and build a habit.",
         badgeColor: "bg-cyan-100 text-cyan-700 border-cyan-200"
     },
     sprint: {
         name: "Saving Sprint",
         type: "Growth",
+        dbType: "sprint",
         description: "A fast-paced weekly saving challenge for target projects.",
         badgeColor: "bg-blue-100 text-blue-700 border-blue-200"
     },
     monthly: {
         name: "Monthly Bloom",
         type: "Stable",
+        dbType: "monthly_bloom",
         description: "Set a monthly target and watch your wealth blossom steadily.",
         badgeColor: "bg-slate-100 text-slate-700 border-slate-200"
     },
     marathon: {
         name: "Marathon Savings",
         type: "Wealth",
+        dbType: "marathon",
         description: "Long-term commitment for massive returns. 52-week strategy.",
         badgeColor: "bg-emerald-100 text-emerald-700 border-emerald-200"
     },
     anchor: {
         name: "Anchor Sprint",
         type: "Discipline",
+        dbType: "anchor",
         description: "Strict rules. No withdrawals until target. The ultimate discipline builder.",
         badgeColor: "bg-indigo-100 text-indigo-700 border-indigo-200"
     },
     stepup: {
         name: "Step-Up Fixed",
         type: "Premium",
+        dbType: "step_up",
         description: "Deposit a lump sum and get fixed guaranteed returns. Rapid growth.",
         badgeColor: "bg-teal-100 text-teal-700 border-teal-200"
     },
     ajo: {
         name: "Digital Ajo Plan",
         type: "Community",
+        dbType: "ajo_circle",
         description: "Traditional pooling made digital. Take turns cashing out with friends.",
         badgeColor: "bg-orange-100 text-orange-700 border-orange-200"
     }

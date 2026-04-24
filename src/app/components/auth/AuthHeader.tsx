@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabase";
 import { ShieldCheck, Home } from "lucide-react";
 import { motion } from "framer-motion";
 import { ImageWithFallback } from "@/app/components/figma/ImageWithFallback";
+import { BrandLogo } from "@/app/components/ui/BrandLogo";
 
 export function AuthHeader({ title, subtitle }: { title: string; subtitle: string }) {
     const [logoUrl, setLogoUrl] = useState<string | null>(null);
@@ -34,9 +35,7 @@ export function AuthHeader({ title, subtitle }: { title: string; subtitle: strin
                 className="inline-flex items-center justify-center mb-6"
             >
                 {logoUrl ? (
-                    <div className="bg-white dark:bg-slate-900 p-4 rounded-3xl shadow-xl border border-slate-100 dark:border-slate-800">
-                        <ImageWithFallback src={logoUrl} alt="Logo" className="h-12 w-auto object-contain" />
-                    </div>
+                    <BrandLogo src={logoUrl} alt="Logo" size="md" />
                 ) : (
                     <div className="size-16 bg-emerald-600 rounded-2xl shadow-xl shadow-emerald-600/30 flex items-center justify-center">
                         <ShieldCheck className="text-white size-8" />

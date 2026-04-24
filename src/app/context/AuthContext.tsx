@@ -15,6 +15,8 @@ interface AuthContextType {
     switchAccount: (session: Session) => Promise<void>;
     addAccount: () => void;
     lastActivity: number;
+    refreshSession: () => Promise<void>;
+    mfaEnabled: boolean;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -28,6 +30,8 @@ const AuthContext = createContext<AuthContextType>({
     switchAccount: async () => { },
     addAccount: () => { },
     lastActivity: Date.now(),
+    refreshSession: async () => { },
+    mfaEnabled: false,
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -38,6 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [loading, setLoading] = useState(true);
     const [savedSessions, setSavedSessions] = useState<SavedSession[]>([]);
     const [lastActivity, setLastActivity] = useState<number>(Date.now());
+    const [mfaEnabled, setMfaEnabled] = useState(false);
 
     useEffect(() => {
         // Load stored sessions initially
@@ -115,14 +120,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     // Non-blocking background checks
                     ensureProfileExists(session.user).then(() => {
                         checkAdminStatus(session.user.id);
+                    }).catch(err => {
+                        console.error("Profile sync/check failed:", err);
+                        setLoading(false);
                     });
                     
                     SessionManager.saveSession(session);
                     setSavedSessions(SessionManager.getSavedSessions());
+                    
+                    // Check MFA status (safely)
+                    supabase.auth.mfa.getAuthenticatorAssuranceLevel().then(({ data: mfaData }) => {
+                        setMfaEnabled(mfaData?.currentLevel === 'aal2');
+                    }).catch(() => {
+                        setMfaEnabled(false);
+                    });
                 }
             } else {
                 setIsAdmin(false);
                 setIsSuperadmin(false);
+                setMfaEnabled(false);
                 setLoading(false);
             }
         });
@@ -205,6 +221,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         window.location.href = '/login';
     };
 
+    const refreshSession = async () => {
+        const { data, error } = await supabase.auth.refreshSession();
+        if (error) {
+            console.error("Session refresh failed:", error);
+            signOut();
+        } else {
+            setSession(data.session);
+            setUser(data.user);
+        }
+    };
+
     // Old state-based impersonation removed.
 
 
@@ -221,7 +248,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         savedSessions,
         switchAccount,
         addAccount,
-        lastActivity
+        lastActivity,
+        refreshSession,
+        mfaEnabled
     };
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

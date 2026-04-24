@@ -24,6 +24,7 @@ import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import { Button } from "@/app/components/ui/button";
 import { supabase } from "@/lib/supabase";
+import { BrandLogo } from "@/app/components/ui/BrandLogo";
 
 interface SidebarProps {
     isOpen?: boolean;
@@ -35,6 +36,7 @@ export function AdminSidebar({ isOpen, setIsOpen }: SidebarProps) {
     const { signOut } = useAuth();
     const [isMobile, setIsMobile] = useState(false);
     const [logoUrl, setLogoUrl] = useState<string | null>(null);
+    const [appName, setAppName] = useState("ADMIN CORE");
     const [expandedGroups, setExpandedGroups] = useState<string[]>(["Manage Plans"]);
 
     useEffect(() => {
@@ -46,6 +48,9 @@ export function AdminSidebar({ isOpen, setIsOpen }: SidebarProps) {
             const { data } = await supabase.from('app_settings').select('value').eq('key', 'general').single();
             if (data?.value?.logo_url) {
                 setLogoUrl(data.value.logo_url);
+            }
+            if (data?.value?.app_name) {
+                setAppName(data.value.app_name);
             }
         };
         fetchBranding();
@@ -163,6 +168,7 @@ export function AdminSidebar({ isOpen, setIsOpen }: SidebarProps) {
             toggleGroup={toggleGroup}
             signOut={signOut}
             pathname={pathname}
+            appName={appName}
         />
     );
 
@@ -204,6 +210,7 @@ interface SidebarContentProps {
     toggleGroup: (label: string) => void;
     signOut: () => void;
     pathname: string;
+    appName: string;
 }
 
 const SidebarContent = ({
@@ -214,18 +221,28 @@ const SidebarContent = ({
     expandedGroups,
     toggleGroup,
     signOut,
-    pathname
+    pathname,
+    appName
 }: SidebarContentProps) => (
     <div className="flex flex-col h-full bg-[#0a0f1c] text-slate-300 font-sans">
         <div className="h-20 flex items-center px-6 mb-4">
             {logoUrl ? (
-                <img src={logoUrl} alt="Logo" className="h-10 w-auto object-contain" />
+                <BrandLogo src={logoUrl} alt="Logo" size="sm" />
             ) : (
                 <div className="flex items-center gap-3">
                     <div className="size-9 rounded-xl bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/20">
                         <Shield className="size-5 text-slate-950 font-bold" />
                     </div>
-                    <span className="text-xl font-black tracking-tighter text-white">ADMIN<span className="text-emerald-500 italic">CORE</span></span>
+                    <span className="text-xl font-black tracking-tighter text-white">
+                        {appName.includes(" ") ? (
+                            <>
+                                {appName.split(' ')[0]}
+                                <span className="text-emerald-500 italic ml-1">{appName.split(' ').slice(1).join(' ')}</span>
+                            </>
+                        ) : (
+                            appName
+                        )}
+                    </span>
                 </div>
             )}
             {isMobile && setIsOpen && (

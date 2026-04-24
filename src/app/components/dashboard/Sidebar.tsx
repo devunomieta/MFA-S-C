@@ -16,12 +16,13 @@ import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
 import { supabase } from "@/lib/supabase";
 import { useEffect, useState } from "react";
+import { BrandLogo } from "@/app/components/ui/BrandLogo";
 
 export function Sidebar() {
     const location = useLocation();
     const { signOut, isAdmin, user } = useAuth();
     const [logoUrl, setLogoUrl] = useState<string | null>(null);
-    const [appName] = useState("Mary's Thrift Services");
+    const [appName, setAppName] = useState("Mary's Thrift Services");
     const { unreadCount } = useNotifications();
 
     const sidebarItems = [
@@ -42,6 +43,9 @@ export function Sidebar() {
             if (data?.value?.logo_url) {
                 setLogoUrl(data.value.logo_url);
             }
+            if (data?.value?.app_name) {
+                setAppName(data.value.app_name);
+            }
         };
         fetchData();
     }, [user]);
@@ -51,7 +55,7 @@ export function Sidebar() {
             <div className="p-6">
                 <Link to="/" className="block">
                     {logoUrl ? (
-                        <img src={logoUrl} alt={appName} className="h-8 w-auto object-contain" />
+                        <BrandLogo src={logoUrl} alt={appName} size="sm" />
                     ) : (
                         <span className="text-2xl font-bold text-emerald-600">{appName}</span>
                     )}

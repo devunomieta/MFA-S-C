@@ -2,16 +2,19 @@ import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { PasswordInput } from "@/app/components/ui/PasswordInput";
 import { Label } from "@/app/components/ui/label";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { ArrowRight, Mail, Lock, UserPlus } from "lucide-react";
 import { AuthHeader } from "@/app/components/auth/AuthHeader";
+import { logActivity } from "@/lib/activity";
 
 export function Login() {
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const joinPlanId = searchParams.get('join');
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
         email: "",
@@ -37,11 +40,27 @@ export function Login() {
             );
 
             if (error) throw error;
+            
+            const { data: { user } } = await supabase.auth.getUser();
 
             toast.success("Welcome back!");
-            navigate("/dashboard");
+            if (joinPlanId) {
+                navigate(`/dashboard/plans?join=${joinPlanId}`);
+            } else {
+                navigate("/dashboard");
+            }
         } catch (error: any) {
             console.error("Login Error:", error);
+            
+            // Log failed login attempt for security audit
+            logActivity({
+                action: 'AUTH_FAILURE',
+                details: {
+                    identifier: formData.email, // Log identifier used
+                    error: error.message
+                }
+            });
+
             toast.error(error.message || "Incorrect details or password");
         } finally {
             setLoading(false);

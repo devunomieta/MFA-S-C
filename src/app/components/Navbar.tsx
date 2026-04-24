@@ -9,12 +9,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { PasswordInput } from "@/app/components/ui/PasswordInput";
 import { toast } from "sonner";
 import { ImageWithFallback } from "@/app/components/figma/ImageWithFallback";
+import { BrandLogo } from "@/app/components/ui/BrandLogo";
 
 export function Navbar() {
   const { user, lastActivity } = useAuth();
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [appName, setAppName] = useState("Mary's Thrift Services");
   const [showVerifyModal, setShowVerifyModal] = useState(false);
   const [verifyPassword, setVerifyPassword] = useState("");
   const [verifying, setVerifying] = useState(false);
@@ -35,6 +37,9 @@ export function Navbar() {
       const { data } = await supabase.from('app_settings').select('value').eq('key', 'general').single();
       if (data?.value?.logo_url) {
         setLogoUrl(data.value.logo_url);
+      }
+      if (data?.value?.app_name) {
+        setAppName(data.value.app_name);
       }
     };
     fetchBranding();
@@ -89,14 +94,14 @@ export function Navbar() {
         element.scrollIntoView({ behavior: "smooth" });
       }
     } else if (href.startsWith("/#")) {
-       e.preventDefault();
-       const id = href.split("#")[1];
-       const element = document.getElementById(id);
-       if (element) {
-         element.scrollIntoView({ behavior: "smooth" });
-       } else {
-         navigate(href);
-       }
+      e.preventDefault();
+      const id = href.split("#")[1];
+      const element = document.getElementById(id);
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth" });
+      } else {
+        navigate(href);
+      }
     }
   };
 
@@ -104,29 +109,39 @@ export function Navbar() {
     <>
       <motion.header
         style={{ top: navbarTop }}
-        className="fixed left-0 right-0 z-[100] flex justify-center pointer-events-none transition-all duration-500"
+        className="fixed left-0 right-0 z-40 flex justify-center pointer-events-none transition-all duration-500"
       >
         <motion.div
           style={{ width: navbarWidth }}
-          className={`pointer-events-auto transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] ${
-            scrolled 
-              ? "bg-white/70 dark:bg-slate-900/70 backdrop-blur-2xl border border-slate-200/50 dark:border-slate-800/50 rounded-full shadow-[0_8px_40px_rgba(0,0,0,0.08)] px-2 py-2" 
+          className={`pointer-events-auto transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] ${scrolled
+              ? "bg-white/70 dark:bg-slate-900/70 backdrop-blur-2xl border border-slate-200/50 dark:border-slate-800/50 rounded-full shadow-[0_8px_40px_rgba(0,0,0,0.08)] px-2 py-2"
               : "bg-transparent border-transparent pt-4"
-          }`}
+            }`}
         >
-          <div className="container mx-auto px-4 md:px-6 relative h-14 md:h-16 flex items-center justify-between">
+          <div className="container mx-auto px-4 md:px-6 relative h-16 md:h-20 flex items-center justify-between">
             {/* Logo Section */}
             <div className="flex-1 flex justify-start z-10">
               <Link to="/" className="flex items-center gap-2 group transition-all" onClick={() => setIsOpen(false)}>
                 {logoUrl ? (
-                  <ImageWithFallback src={logoUrl} alt="Mary's Thrift Services" className="h-8 w-auto object-contain" />
+                  <BrandLogo src={logoUrl} alt={appName} size="sm" />
                 ) : (
                   <>
                     <div className="size-9 bg-emerald-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-600/30 group-hover:rotate-6 transition-transform">
                       <ShieldCheck className="text-white size-5" />
                     </div>
                     <span className="text-lg md:text-xl font-black tracking-tighter text-slate-950 dark:text-white group-hover:opacity-80">
-                      Mary's Thrift<span className="text-emerald-600">.</span>
+                      {appName.includes(" ") ? (
+                        <>
+                          {appName.split(' ').slice(0, -1).join(' ')}
+                          <span className="text-emerald-600 ml-1">{appName.split(' ').slice(-1)}</span>
+                          <span className="text-emerald-600">.</span>
+                        </>
+                      ) : (
+                        <>
+                          {appName}
+                          <span className="text-emerald-600">.</span>
+                        </>
+                      )}
                     </span>
                   </>
                 )}
@@ -155,7 +170,7 @@ export function Navbar() {
 
             {/* Right CTA Section */}
             <div className="flex-1 flex justify-end items-center gap-4 z-10">
-              <Button 
+              <Button
                 className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-full px-6 md:px-8 font-bold shadow-lg shadow-emerald-600/20 active:scale-95 transition-all hidden sm:flex text-xs md:text-sm"
                 onClick={handleDashboardAction}
               >
@@ -187,18 +202,28 @@ export function Navbar() {
               <div className="flex justify-between items-center mb-10">
                 <Link to="/" onClick={() => setIsOpen(false)} className="flex items-center gap-2">
                   {logoUrl ? (
-                    <ImageWithFallback src={logoUrl} alt="Mary's Thrift Services" className="h-8 w-auto object-contain" />
+                    <BrandLogo src={logoUrl} alt={appName} size="sm" />
                   ) : (
                     <>
                       <div className="size-8 bg-emerald-600 rounded-lg flex items-center justify-center">
                         <ShieldCheck className="text-white size-5" />
                       </div>
-                      <span className="text-lg md:text-xl font-black tracking-tighter">Mary's Thrift<span className="text-emerald-600">.</span></span>
+                      <span className="text-lg md:text-xl font-black tracking-tighter">
+                        {appName.includes(" ") ? (
+                          <>
+                            {appName.split(' ').slice(0, -1).join(' ')}
+                            <span className="text-emerald-600 ml-1">{appName.split(' ').slice(-1)}</span>
+                          </>
+                        ) : (
+                          appName
+                        )}
+                        <span className="text-emerald-600">.</span>
+                      </span>
                     </>
                   )}
                 </Link>
-                <button 
-                  onClick={() => setIsOpen(false)} 
+                <button
+                  onClick={() => setIsOpen(false)}
                   className="size-10 rounded-full bg-slate-100 dark:bg-slate-900 flex items-center justify-center active:scale-90 transition-all"
                 >
                   <X className="size-5" />
@@ -231,7 +256,7 @@ export function Navbar() {
               </div>
 
               <div className="mt-auto pt-8 border-t border-slate-100 dark:border-slate-800">
-                <Button 
+                <Button
                   className="w-full h-14 rounded-[1.2rem] text-base md:text-lg font-bold bg-emerald-600 text-white shadow-xl shadow-emerald-600/20 active:scale-95 transition-all"
                   onClick={handleDashboardAction}
                 >

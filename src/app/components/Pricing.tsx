@@ -3,6 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/ca
 import { Button } from "@/app/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/app/context/AuthContext";
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
 import {
   Target,
   Zap,
@@ -13,102 +15,55 @@ import {
   Flower2,
   Check,
   Sparkles,
-  Star
+  Star,
+  Loader2
 } from "lucide-react";
 
-const plans = [
-  {
-    id: "marathon",
-    name: "Marathon Target Savings",
+// Premium UI Metadata mapping for DB plans
+const PLAN_METADATA: Record<string, any> = {
+  "marathon": {
     icon: <Target className="size-6" />,
     color: "bg-slate-900",
-    price: "Long-Term",
-    minAmount: "₦3,000/week",
-    duration: "30 or 48 Weeks",
-    activeSavers: "184",
-    description: "A disciplined, long-term savings plan starting every January to help you hit those massive end-of-year financial goals.",
     features: ["Starts 3rd week of Jan", "Top up any amount", "Extend to 48 weeks easily", "Strictly locked"],
     popular: true
   },
-  {
-    id: "sprint",
-    name: "30-Weeks Saving Sprint",
+  "sprint": {
     icon: <Zap className="size-6" />,
     color: "bg-emerald-600",
-    price: "Rolling",
-    minAmount: "₦3,000/week",
-    duration: "30 Weeks",
-    activeSavers: "156",
-    description: "A fast-paced, rolling savings plan designed to help you crush your short-to-medium-term financial targets.",
     features: ["Start anytime", "Automated wallet deductions", "Flexible top-ups", "Strictly locked"],
     popular: false
   },
-  {
-    id: "anchor",
-    name: "48-Weeks Saving Sprint",
+  "anchor": {
     icon: <Anchor className="size-6" />,
     color: "bg-slate-900",
-    price: "Rolling",
-    minAmount: "₦3,000/week",
-    duration: "48 Weeks",
-    activeSavers: "128",
-    description: "Build a rock-solid financial foundation with a robust, year-round savings commitment.",
     features: ["Maximum discipline", "Start anytime", "Auto-recovery protection", "Strictly locked"],
     popular: false
   },
-  {
-    id: "daily_drop",
-    name: "Daily Savings",
+  "daily_drop": {
     icon: <Droplets className="size-6" />,
     color: "bg-teal-900",
-    price: "Daily",
-    minAmount: "₦500/day",
-    duration: "31 - 93 Days",
-    activeSavers: "192",
-    description: "Save small, fixed amounts every day and watch it grow effortlessly.",
     features: ["Zero late fees", "Bulk advance payments", "Easy rejoin feature", "Strictly locked"],
     popular: false
   },
-  {
-    id: "step_up",
-    name: "Rapid Fixed Savings",
+  "step_up": {
     icon: <TrendingUp className="size-6" />,
     color: "bg-teal-900",
-    price: "Fixed",
-    minAmount: "₦5k - ₦50k/week",
-    duration: "10 - 20 Weeks",
-    activeSavers: "167",
-    description: "Step up your financial game by committing to a high-value fixed weekly amount for rapid growth.",
     features: ["Rapid goal achievement", "Strict weekly targets", "Short-term milestones", "Strictly locked"],
     popular: false
   },
-  {
-    id: "monthly_bloom",
-    name: "Monthly Saving Plan",
+  "monthly_bloom": {
     icon: <Flower2 className="size-6" />,
     color: "bg-slate-900",
-    price: "Monthly",
-    minAmount: "₦20,000/month",
-    duration: "4 - 12 Months",
-    activeSavers: "145",
-    description: "Perfect for business owners or salary earners looking to lock away a chunk of income monthly for major projects.",
     features: ["Ideal for budgeting", "Automated month-end saves", "No maximum limit", "Strictly locked"],
     popular: false
   },
-  {
-    id: "ajo_circle",
-    name: "Digital Ajo Plan",
+  "ajo_circle": {
     icon: <Users className="size-6" />,
     color: "bg-emerald-600",
-    price: "Community",
-    minAmount: "₦10k - ₦100k/week",
-    duration: "Min 10 Weeks",
-    activeSavers: "189",
-    description: "A secure, digital version of the traditional Ajo/Esusu group savings. Contribute weekly and take turns cashing out!",
     features: ["Massive lump-sum payouts", "Multiple picking turns", "Exclusive entry", "Assigned turn withdrawal"],
     popular: true
   }
-];
+};
 
 const colorVariants: Record<string, string> = {
   "bg-emerald-600": "border-emerald-600 text-emerald-600 bg-emerald-50",
@@ -125,10 +80,31 @@ const buttonVariants: Record<string, string> = {
 export function Pricing() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [dbPlans, setDbPlans] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchPlans() {
+      try {
+        const { data, error } = await supabase
+          .from('plans')
+          .select('*')
+          .eq('is_active', true)
+          .order('min_amount', { ascending: true });
+
+        if (error) throw error;
+        setDbPlans(data || []);
+      } catch (err) {
+        console.error("Failed to fetch plans:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchPlans();
+  }, []);
 
   return (
     <section id="plans" className="py-20 bg-slate-50 relative overflow-hidden">
-      {/* Decorative blobs */}
       <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-emerald-100/30 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/2" />
       <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-blue-100/20 rounded-full blur-[120px] translate-y-1/2 -translate-x-1/2" />
 
@@ -150,78 +126,96 @@ export function Pricing() {
           </p>
         </motion.div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
-          {plans.map((plan, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: index * 0.05 }}
-              whileHover={{ y: -5 }}
-              className="relative group"
-            >
-              {plan.popular && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
-                  <span className="bg-emerald-600 text-white text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1 shadow-lg">
-                    <Sparkles className="size-3" /> Popular
-                  </span>
-                </div>
-              )}
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-20 space-y-4">
+            <Loader2 className="size-10 text-emerald-600 animate-spin" />
+            <p className="text-slate-500 font-bold animate-pulse">Fetching latest plans...</p>
+          </div>
+        ) : (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
+            {dbPlans.map((plan, index) => {
+              const meta = PLAN_METADATA[plan.type] || PLAN_METADATA['marathon'];
+              const durationText = plan.duration_weeks ? `${plan.duration_weeks} Weeks` : `${plan.duration_months} Months`;
+              
+              return (
+                <motion.div
+                  key={plan.id}
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5, delay: index * 0.05 }}
+                  whileHover={{ y: -5 }}
+                  className="relative group"
+                >
+                  {meta.popular && (
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
+                      <span className="bg-emerald-600 text-white text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1 shadow-lg">
+                        <Sparkles className="size-3" /> Popular
+                      </span>
+                    </div>
+                  )}
 
-              <Card className={`h-full border-2 transition-all duration-500 rounded-[2.5rem] overflow-hidden group-hover:shadow-[0_20px_50px_rgba(0,0,0,0.1)] ${plan.popular ? 'border-emerald-500 bg-white ring-4 ring-emerald-500/10' : 'border-white bg-white/70 backdrop-blur-sm'}`}>
-                <CardHeader className="space-y-6 p-8 pb-0">
-                  <div className={`p-4 rounded-2xl w-fit shadow-lg ${colorVariants[plan.color]}`}>
-                    {plan.icon}
-                  </div>
-                  <div>
-                    <CardTitle className="text-2xl font-black text-slate-950 tracking-tight">{plan.name}</CardTitle>
-                    <p className="text-sm text-slate-500 font-medium mt-2 leading-relaxed">{plan.description}</p>
-                  </div>
-                  <div className="pt-2 border-b border-slate-100 pb-6 space-y-4">
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="text-slate-400 font-bold uppercase tracking-widest">Amount</span>
-                      <span className="text-slate-900 font-black">{plan.minAmount}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="text-slate-400 font-bold uppercase tracking-widest">Duration</span>
-                      <span className="text-slate-900 font-black">{plan.duration}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="text-slate-400 font-bold uppercase tracking-widest">Savers</span>
-                      <span className="text-emerald-600 font-black">{plan.activeSavers} Active</span>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="p-8 space-y-8">
-                  <ul className="space-y-4">
-                    {plan.features.map((feature, fIdx) => (
-                      <li key={fIdx} className="flex items-start gap-3 text-sm text-slate-600 font-medium">
-                        <div className="p-0.5 rounded-full bg-emerald-100 shrink-0 mt-0.5">
-                          <Check className="size-3 text-emerald-600" />
+                  <Card className={`h-full border-2 transition-all duration-500 rounded-[2.5rem] overflow-hidden group-hover:shadow-[0_20px_50px_rgba(0,0,0,0.1)] ${meta.popular ? 'border-emerald-500 bg-white ring-4 ring-emerald-500/10' : 'border-white bg-white/70 backdrop-blur-sm'}`}>
+                    <CardHeader className="space-y-6 p-8 pb-0">
+                      <div className={`p-4 rounded-2xl w-fit shadow-lg ${colorVariants[meta.color]}`}>
+                        {meta.icon}
+                      </div>
+                      <div>
+                        <CardTitle className="text-2xl font-black text-slate-950 tracking-tight">{plan.name}</CardTitle>
+                        <div className="mt-4 flex flex-col">
+                          <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Minimum Savings</span>
+                          <div className="flex items-baseline gap-1">
+                            <span className="text-3xl font-black text-slate-950">₦{plan.min_amount.toLocaleString()}</span>
+                            <span className="text-xs font-bold text-slate-400">/ {plan.contribution_type}</span>
+                          </div>
+                          <div className="mt-1 inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-lg w-fit">
+                            <div className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                            <span className="text-[10px] font-bold uppercase tracking-tight">Unlimited Funding Cap</span>
+                          </div>
                         </div>
-                        <span>{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
+                      </div>
+                      <div className="pt-4 border-b border-slate-100 pb-6 space-y-4">
+                        <div className="flex justify-between items-center text-sm">
+                          <span className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">Plan Duration</span>
+                          <span className="text-slate-900 font-black">{durationText}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-sm">
+                          <span className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">Method</span>
+                          <span className="text-slate-900 font-black capitalize">{plan.contribution_type} Deductions</span>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="p-8 space-y-8">
+                      <ul className="space-y-4">
+                        {(meta.features || []).map((feature: string, fIdx: number) => (
+                          <li key={fIdx} className="flex items-start gap-3 text-sm text-slate-600 font-medium">
+                            <div className="p-0.5 rounded-full bg-emerald-100 shrink-0 mt-0.5">
+                              <Check className="size-3 text-emerald-600" />
+                            </div>
+                            <span>{feature}</span>
+                          </li>
+                        ))}
+                      </ul>
 
-                  <Button
-                    className={`w-full h-14 rounded-2xl text-white font-bold transition-all active:scale-95 shadow-lg ${buttonVariants[plan.color]}`}
-                    onClick={() => {
-                      if (user) {
-                        navigate(`/dashboard/plans?join=${plan.id}`);
-                      } else {
-                        navigate(`/signup?join=${plan.id}`);
-                      }
-                    }}
-                  >
-                    Join Plan
-                  </Button>
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
-        </div>
+                      <Button
+                        className={`w-full h-14 rounded-2xl text-white font-bold transition-all active:scale-95 shadow-lg ${buttonVariants[meta.color]}`}
+                        onClick={() => {
+                          if (user) {
+                            navigate(`/dashboard/plans?join=${plan.id}`);
+                          } else {
+                            navigate(`/signup?join=${plan.id}`);
+                          }
+                        }}
+                      >
+                        Join Plan
+                      </Button>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              );
+            })}
+          </div>
+        )}
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}

@@ -43,7 +43,8 @@ export function Contact() {
     name: "",
     email: "",
     subject: "",
-    message: ""
+    message: "",
+    website: "" // Honeypot
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -55,7 +56,11 @@ export function Contact() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    if (formData.website) {
+      console.warn("Contact Honeypot triggered");
+      setSubmitted(true);
+      return;
+    }
 
     try {
       const { error } = await supabase.functions.invoke('contact-handler', {
@@ -77,13 +82,11 @@ export function Contact() {
       });
     } catch (error: any) {
       console.error("Full Contact Form Error:", error);
-      console.error("Error Object JSON:", JSON.stringify(error));
-
+      
       let errorMessage = "Failed to send inquiry.";
 
-      // Handle the specific 'Failed to send a request' fetch error
-      if (error?.message?.includes("Failed to send a request")) {
-        errorMessage = "Network Error: Could not reach Supabase. If you have an adblocker or VPN, please disable it and try again.";
+      if (error?.message?.includes("Failed to send a request") || error?.name === "TypeError") {
+        errorMessage = "Network Error: Could not reach Supabase functions. This is often caused by an Adblocker or VPN blocking the request. Please disable them and try again.";
       } else if (error?.message) {
         errorMessage = error.message;
       }
@@ -95,7 +98,7 @@ export function Contact() {
   };
 
   return (
-    <section className="pt-12 pb-24 bg-white relative overflow-hidden" id="contact">
+    <section className="pt-12 pb-4 relative overflow-hidden bg-white" id="contact">
       <div className="container mx-auto px-4 relative z-10">
         <div className="grid lg:grid-cols-2 gap-16 items-center">
           {/* Left Side: Content & Info */}
@@ -217,6 +220,18 @@ export function Contact() {
                           required
                           rows={4}
                           className="rounded-2xl border-slate-100 bg-slate-50 focus:bg-white transition-all focus:ring-emerald-500 p-4"
+                        />
+                      </div>
+
+                      {/* Honeypot field - Hidden from users */}
+                      <div className="hidden" aria-hidden="true">
+                        <Input
+                          type="text"
+                          name="website"
+                          value={formData.website}
+                          onChange={handleChange}
+                          tabIndex={-1}
+                          autoComplete="off"
                         />
                       </div>
 
