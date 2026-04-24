@@ -40,7 +40,7 @@ export function HowItWorks() {
           whileInView={{ opacity: 1, y: 0 }}
           className="text-center max-w-3xl mx-auto mb-20"
         >
-          <h2 className="text-3xl md:text-4xl font-black text-slate-950 mb-6">How AjoSave <span className="text-emerald-600">Works for You.</span></h2>
+          <h2 className="text-3xl md:text-4xl font-black text-slate-950 mb-6">How Mary's Thrift Services <span className="text-emerald-600">Works for You.</span></h2>
           <p className="text-slate-600 text-lg font-medium">Just four simple steps to reach your target. No long story, no hidden charges, just easy savings.</p>
         </motion.div>
 

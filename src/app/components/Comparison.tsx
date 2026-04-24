@@ -6,31 +6,31 @@ export function Comparison() {
         {
             feature: "Money Safety",
             traditional: "Person fit run with your money",
-            ajosave: "Your money is 100% secured",
+            Mary's Thrift Services: "Your money is 100% secured",
             better: true
         },
         {
             feature: "See your Balance",
             traditional: "You no fit know how much you get",
-            ajosave: "Check your balance any time",
+            Mary's Thrift Services: "Check your balance any time",
             better: true
         },
         {
             feature: "Commitment",
             traditional: "Hard to save every time",
-            ajosave: "Automated daily/weekly savings",
+            Mary's Thrift Services: "Automated daily/weekly savings",
             better: true
         },
         {
             feature: "Trust",
             traditional: "Saving with person you no know",
-            ajosave: "CAC Registered & Legally Secure",
+            Mary's Thrift Services: "CAC Registered & Legally Secure",
             better: true
         },
         {
             feature: "Rules",
             traditional: "People fit fail to pay",
-            ajosave: "System makes sure everyone pays",
+            Mary's Thrift Services: "System makes sure everyone pays",
             better: true
         }
     ];
@@ -44,7 +44,7 @@ export function Comparison() {
                     className="text-center max-w-3xl mx-auto mb-16"
                 >
                     <h2 className="text-3xl md:text-4xl font-black mb-4">Why upgrade from <span className="text-slate-400">Manual Ajo?</span></h2>
-                    <p className="text-lg text-slate-600 font-medium">Stop the old risky way of saving. AjoSave is the smarter and safer way to reach your goals.</p>
+                    <p className="text-lg text-slate-600 font-medium">Stop the old risky way of saving. Mary's Thrift Services is the smarter and safer way to reach your goals.</p>
                 </motion.div>
 
                 <div className="max-w-5xl mx-auto">
@@ -72,7 +72,7 @@ export function Comparison() {
                             </ul>
                         </motion.div>
 
-                        {/* AjoSave */}
+                        {/* Mary's Thrift Services */}
                         <motion.div
                             initial={{ opacity: 0, scale: 0.95 }}
                             whileInView={{ opacity: 1, scale: 1 }}
@@ -83,7 +83,7 @@ export function Comparison() {
                             </div>
                             <div className="flex items-center gap-3 mb-8 text-emerald-400">
                                 <Shield className="size-6" />
-                                <h3 className="text-xl font-bold text-white">AjoSave Digital</h3>
+                                <h3 className="text-xl font-bold text-white">Mary's Thrift Services Digital</h3>
                             </div>
                             <ul className="space-y-6">
                                 {points.map((p, i) => (
@@ -91,7 +91,7 @@ export function Comparison() {
                                         <span className="text-xs font-bold text-emerald-300/60 uppercase mb-1">{p.feature}</span>
                                         <div className="flex items-center gap-3">
                                             <Check className="size-4 text-emerald-400 shrink-0" />
-                                            <span className="text-emerald-50 font-bold text-sm">{p.ajosave}</span>
+                                            <span className="text-emerald-50 font-bold text-sm">{p.Mary's Thrift Services}</span>
                                         </div>
                                     </li>
                                 ))}
@@ -106,7 +106,7 @@ export function Comparison() {
                         >
                             <h4 className="text-2xl font-black text-emerald-900 mb-4 tracking-tighter">The Simple Truth</h4>
                             <p className="text-emerald-800 font-medium mb-8 leading-relaxed text-sm">
-                                With AjoSave, you no fit lose your money. We help you save small small until you reach your target. No story.
+                                With Mary's Thrift Services, you no fit lose your money. We help you save small small until you reach your target. No story.
                             </p>
                             <div className="space-y-4">
                                 <div className="bg-white p-4 rounded-xl shadow-sm border border-emerald-100">

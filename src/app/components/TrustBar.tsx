@@ -6,7 +6,7 @@ export function TrustBar() {
         { name: "Safenet", label: "Secure" },
         { name: "PCIDSS", label: "Compliant" },
         { name: "Interswitch", label: "Partner" },
-        { name: "AjoSave", label: "Community" },
+        { name: "Mary's Thrift Services", label: "Community" },
     ];
 
     return (

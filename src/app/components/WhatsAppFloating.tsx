@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 
 export function WhatsAppFloating() {
   const phoneNumber = "+2349074049667";
-  const message = "Hello AjoSave, I'd like to learn more about how to start saving!";
+  const message = "Hello Mary's Thrift Services, I'd like to learn more about how to start saving!";
   const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
 
   return (

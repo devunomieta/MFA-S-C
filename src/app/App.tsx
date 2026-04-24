@@ -31,6 +31,10 @@ import { AdminNewsletter } from "@/app/pages/admin/Newsletter";
 import { AdminApprovals } from "@/app/pages/admin/Approvals";
 import { AdminProfile } from "@/app/pages/admin/Profile";
 import AdminTestimonials from "@/app/pages/admin/Testimonials";
+import { PrivacyPolicy } from "@/app/pages/legal/PrivacyPolicy";
+import { TermsOfService } from "@/app/pages/legal/TermsOfService";
+import { Compliance } from "@/app/pages/legal/Compliance";
+import { Security } from "@/app/pages/legal/Security";
 import { useLayoutEffect } from "react";
 import { ThemeProvider } from "@/app/context/ThemeContext";
 import { NotificationProvider } from "@/app/context/NotificationContext";
@@ -116,6 +120,10 @@ function AppRoutes() {
           <Route path="/forgot-password" element={<MainLayout><ForgotPassword /></MainLayout>} />
           <Route path="/update-password" element={<MainLayout><UpdatePassword /></MainLayout>} />
           <Route path="/verify-otp" element={<MainLayout><VerifyOTP /></MainLayout>} />
+          <Route path="/privacy" element={<MainLayout><PrivacyPolicy /></MainLayout>} />
+          <Route path="/terms" element={<MainLayout><TermsOfService /></MainLayout>} />
+          <Route path="/compliance" element={<MainLayout><Compliance /></MainLayout>} />
+          <Route path="/security" element={<MainLayout><Security /></MainLayout>} />
           <Route path="/test-connection" element={<MainLayout><TestSupabase /></MainLayout>} />
 
           {/* Catch-all to Home */}

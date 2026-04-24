@@ -99,7 +99,7 @@ export function DashboardLayout() {
                             </SheetTrigger>
                             <SheetContent side="left" className="w-64 p-0 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800">
                                 <SheetHeader className="p-6 text-left border-b border-gray-100 dark:border-gray-800">
-                                    <SheetTitle className="text-2xl font-bold text-emerald-600">AjoSave</SheetTitle>
+                                    <SheetTitle className="text-2xl font-bold text-emerald-600">Mary's Thrift Services</SheetTitle>
                                 </SheetHeader>
                                 <nav className="flex-1 px-4 py-6 space-y-2">
                                     {sidebarItems.map((item) => {
@@ -150,7 +150,7 @@ export function DashboardLayout() {
                                 </div>
                             </SheetContent>
                         </Sheet>
-                        <span className="text-xl font-bold text-emerald-600 uppercase">AjoSave</span>
+                        <span className="text-xl font-bold text-emerald-600 uppercase">Mary's Thrift Services</span>
                     </div>
 
                     <div className="ml-auto flex items-center gap-4">

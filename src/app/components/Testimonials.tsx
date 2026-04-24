@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Star, Quote } from "lucide-react";
+import { Star, Quote, CheckCircle2 } from "lucide-react";
 import { ImageWithFallback } from "@/app/components/figma/ImageWithFallback";
 import { Card, CardContent } from "@/app/components/ui/card";
 import useEmblaCarousel from 'embla-carousel-react';
@@ -11,10 +11,18 @@ export function Testimonials() {
   const [emblaRef] = useEmblaCarousel({ loop: true, align: 'center' }, [Autoplay({ delay: 5000, stopOnInteraction: false })]);
   const [testimonialsList, setTestimonialsList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchTestimonials = async () => {
+    const fetchData = async () => {
       try {
+        // Fetch Logo
+        const { data: settings } = await supabase.from('app_settings').select('value').eq('key', 'general').single();
+        if (settings?.value?.logo_url) {
+          setLogoUrl(settings.value.logo_url);
+        }
+
+        // Fetch Testimonials
         const { data, error } = await supabase
           .from('testimonials')
           .select('*')
@@ -24,13 +32,13 @@ export function Testimonials() {
         if (error) throw error;
         setTestimonialsList(data || []);
       } catch (err) {
-        console.error("Error fetching testimonials:", err);
+        console.error("Error fetching testimonials data:", err);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchTestimonials();
+    fetchData();
   }, []);
 
   if (loading) return null;
@@ -67,7 +75,7 @@ export function Testimonials() {
         </motion.div>
 
         <div className="relative overflow-hidden py-10 px-4" ref={emblaRef}>
-          <div className="flex -ml-8">
+          <div className="flex -ml-8 items-stretch">
             {testimonialsList.map((testimonial, index) => (
               <div
                 key={index}
@@ -78,6 +86,7 @@ export function Testimonials() {
                   whileInView={{ opacity: 1, scale: 1 }}
                   transition={{ delay: index * 0.1 }}
                   viewport={{ once: true }}
+                  className="h-full"
                 >
                   <Card className="bg-white border border-slate-100 p-0 rounded-[3rem] relative group transition-all duration-500 hover:border-emerald-200 hover:shadow-[0_20px_50px_rgba(16,185,129,0.1)] overflow-hidden h-full">
                     <CardContent className="p-10 flex flex-col h-full relative">
@@ -85,7 +94,7 @@ export function Testimonials() {
                         <Quote className="size-12 text-emerald-600 rotate-180" />
                       </div>
                       
-                      <div>
+                      <div className="flex-1">
                         <div className="flex gap-1.5 mb-8">
                           {[...Array(5)].map((_, i) => (
                             <Star 
@@ -108,8 +117,12 @@ export function Testimonials() {
                               className="w-16 h-16 rounded-2xl object-cover ring-4 ring-white shadow-md"
                             />
                           ) : (
-                            <div className="w-16 h-16 rounded-2xl bg-emerald-600 flex items-center justify-center text-white font-black text-xl shadow-lg shadow-emerald-600/20">
-                              {testimonial.name[0]}
+                            <div className="w-16 h-16 rounded-2xl bg-emerald-50 flex items-center justify-center shadow-lg border border-emerald-100 overflow-hidden">
+                              {logoUrl ? (
+                                <img src={logoUrl} alt="Mary's Thrift Services" className="w-10 h-10 object-contain opacity-50" />
+                              ) : (
+                                <span className="text-emerald-600 font-black text-xl">{testimonial.name[0]}</span>
+                              )}
                             </div>
                           )}
                           <div className="absolute -bottom-2 -right-2 bg-emerald-500 text-white rounded-full p-1.5 shadow-lg border-2 border-white">
@@ -143,5 +156,3 @@ export function Testimonials() {
     </section>
   );
 }
-
-import { CheckCircle2 } from "lucide-react";

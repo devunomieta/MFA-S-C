@@ -23,7 +23,7 @@ export function CTA() {
                 <span className="text-emerald-400">together?</span>
               </h2>
               <p className="text-xl text-slate-400 font-medium leading-relaxed">
-                Join over 50,000 members who are already revolutionizing their financial discipline with AjoSave. Simple, social, and secure.
+                Join over 50,000 members who are already revolutionizing their financial discipline with Mary's Thrift Services. Simple, social, and secure.
               </p>
             </motion.div>
 

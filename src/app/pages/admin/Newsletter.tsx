@@ -55,8 +55,14 @@ export function AdminNewsletter() {
             // 1. Get Recipients
             let recipients: string[] = [];
             if (sendToAll) {
-                const { data } = await supabase.from('profiles').select('email');
-                if (data) recipients = data.map(p => p.email).filter(Boolean);
+                const { data: profiles } = await supabase.from('profiles').select('email');
+                const { data: subscribers } = await supabase.from('newsletter_subscribers').select('email').eq('is_active', true);
+                
+                const profileEmails = profiles?.map(p => p.email).filter(Boolean) || [];
+                const subscriberEmails = subscribers?.map(s => s.email).filter(Boolean) || [];
+                
+                // Merge and de-duplicate
+                recipients = Array.from(new Set([...profileEmails, ...subscriberEmails]));
             } else {
                 // Determine selected users logic later
                 toast.error("Only 'Send to All' is supported in this version.");

@@ -230,7 +230,7 @@ export function PlanRecommender({ open, onOpenChange, inline }: PlanRecommenderP
 
                             <div className="space-y-3">
                                 <Button
-                                    onClick={() => window.open('https://wa.me/2348012345678', '_blank')}
+                                    onClick={() => window.open('https://wa.me/2349074049667', '_blank')}
                                     className="w-full bg-white dark:bg-slate-900 border-2 border-emerald-600 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/10 rounded-xl font-bold h-12"
                                 >
                                     <MessageSquare className="mr-2 size-5" />

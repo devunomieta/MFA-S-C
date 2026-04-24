@@ -14,14 +14,14 @@ const contactInfo = [
   {
     icon: Mail,
     title: "Email Us",
-    content: "support@ajosave.com",
+    content: "marysthriftservices@gmail.com",
     description: "Response within 24 hours",
     color: "from-emerald-600 to-emerald-400"
   },
   {
     icon: Phone,
     title: "Call Us",
-    content: "+234 801 234 5678",
+    content: "09074049667",
     description: "Mon-Fri, 8am - 6pm",
     color: "from-blue-600 to-blue-400"
   },
@@ -31,7 +31,7 @@ const contactInfo = [
     content: "Chat with our team",
     description: "Available 24/7",
     color: "from-indigo-600 to-indigo-400",
-    action: () => window.open('https://wa.me/2348012345678', '_blank')
+    action: () => window.open('https://wa.me/2349074049667', '_blank')
   }
 ];
 
@@ -110,7 +110,7 @@ export function Contact() {
                 Get in <span className="text-emerald-600">Touch.</span>
               </h2>
               <p className="text-xl text-slate-600 font-medium leading-relaxed max-w-lg">
-                Have questions about how AjoSave works? Our specialized team is here to help you navigate your financial journey.
+                Have questions about how Mary's Thrift Services works? Our specialized team is here to help you navigate your financial journey.
               </p>
             </div>
 
@@ -260,7 +260,7 @@ export function Contact() {
               </div>
               <div className="flex flex-col sm:flex-row gap-4 md:justify-end">
                 <Button
-                  onClick={() => window.open('https://wa.me/2348012345678', '_blank')}
+                  onClick={() => window.open('https://wa.me/2349074049667', '_blank')}
                   variant="outline"
                   className="bg-white text-emerald-700 hover:bg-emerald-50 border-0 font-bold rounded-2xl h-16 px-8 transition-all shadow-xl text-lg"
                 >

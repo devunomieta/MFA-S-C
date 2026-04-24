@@ -119,14 +119,14 @@ export function Navbar() {
             <div className="flex-1 flex justify-start z-10">
               <Link to="/" className="flex items-center gap-2 group transition-all" onClick={() => setIsOpen(false)}>
                 {logoUrl ? (
-                  <ImageWithFallback src={logoUrl} alt="AjoSave" className="h-8 w-auto object-contain" />
+                  <ImageWithFallback src={logoUrl} alt="Mary's Thrift Services" className="h-8 w-auto object-contain" />
                 ) : (
                   <>
                     <div className="size-9 bg-emerald-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-600/30 group-hover:rotate-6 transition-transform">
                       <ShieldCheck className="text-white size-5" />
                     </div>
                     <span className="text-lg md:text-xl font-black tracking-tighter text-slate-950 dark:text-white group-hover:opacity-80">
-                      Ajo<span className="text-emerald-600">Save</span>
+                      Mary's Thrift<span className="text-emerald-600">.</span>
                     </span>
                   </>
                 )}
@@ -187,13 +187,13 @@ export function Navbar() {
               <div className="flex justify-between items-center mb-10">
                 <Link to="/" onClick={() => setIsOpen(false)} className="flex items-center gap-2">
                   {logoUrl ? (
-                    <ImageWithFallback src={logoUrl} alt="AjoSave" className="h-8 w-auto object-contain" />
+                    <ImageWithFallback src={logoUrl} alt="Mary's Thrift Services" className="h-8 w-auto object-contain" />
                   ) : (
                     <>
                       <div className="size-8 bg-emerald-600 rounded-lg flex items-center justify-center">
                         <ShieldCheck className="text-white size-5" />
                       </div>
-                      <span className="text-lg md:text-xl font-black tracking-tighter">Ajo<span className="text-emerald-600">Save</span></span>
+                      <span className="text-lg md:text-xl font-black tracking-tighter">Mary's Thrift<span className="text-emerald-600">.</span></span>
                     </>
                   )}
                 </Link>

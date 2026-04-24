@@ -21,7 +21,7 @@ export function Sidebar() {
     const location = useLocation();
     const { signOut, isAdmin, user } = useAuth();
     const [logoUrl, setLogoUrl] = useState<string | null>(null);
-    const [appName] = useState("AjoSave");
+    const [appName] = useState("Mary's Thrift Services");
     const { unreadCount } = useNotifications();
 
     const sidebarItems = [
