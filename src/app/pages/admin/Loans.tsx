@@ -59,6 +59,14 @@ export function AdminLoans() {
         const loan = loans.find(l => l.id === loanId);
         if (!loan) return;
 
+        // Find the user's withdrawable wallet plan
+        const { data: withdrawablePlan } = await supabase
+            .from('user_plans')
+            .select('plan_id, plans!inner(type)')
+            .eq('user_id', loan.user_id)
+            .eq('plans.type', 'withdrawable_wallet')
+            .maybeSingle();
+
         // Create a 'loan_disbursement' transaction
         await supabase.from('transactions').insert({
             user_id: loan.user_id,
@@ -66,7 +74,8 @@ export function AdminLoans() {
             type: 'loan_disbursement',
             status: 'completed',
             description: `Loan Disbursement ${loan.loan_number}`,
-            loan_id: loan.id
+            loan_id: loan.id,
+            plan_id: (withdrawablePlan as any)?.plan_id || null // Target Withdrawable Wallet if found
         });
     }
 

@@ -1,12 +1,12 @@
 import { Button } from "@/app/components/ui/button";
 import { PasswordInput } from "@/app/components/ui/PasswordInput";
 import { Label } from "@/app/components/ui/label";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { Lock, CheckCircle2 } from "lucide-react";
+import { Lock, CheckCircle2, Home } from "lucide-react";
 import { AuthHeader } from "@/app/components/auth/AuthHeader";
 
 export function UpdatePassword() {
@@ -138,6 +138,16 @@ export function UpdatePassword() {
                             )}
                         </Button>
                     </form>
+
+                    <div className="mt-10 pt-8 border-t border-slate-100 dark:border-slate-800 text-center">
+                        <Link 
+                            to="/" 
+                            className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-slate-400 hover:text-emerald-600 transition-all group"
+                        >
+                            <Home className="size-3.5 group-hover:-translate-y-0.5 transition-transform" />
+                            Return to Homepage
+                        </Link>
+                    </div>
                 </div>
             </motion.div>
         </div>

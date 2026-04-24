@@ -12,23 +12,24 @@ interface BrandLogoProps {
 export function BrandLogo({ src, alt, size = "md", className, containerClassName }: BrandLogoProps) {
   if (!src) return null;
 
-  const heights = {
-    sm: "h-10 md:h-12",
-    md: "h-14 md:h-18",
-    lg: "h-20 md:h-28",
-    xl: "h-32 md:h-40"
+  // Final widths in rem: 5rem (80px), 6rem (96px), 7.5rem (120px)
+  const widths = {
+    sm: "w-[5rem] md:w-[6rem] lg:w-[7.5rem]",
+    md: "w-[7rem] md:w-[9rem] lg:w-[11rem]",
+    lg: "w-[10rem] md:w-[15rem] lg:w-[20rem]",
+    xl: "w-[15rem] md:w-[20rem] lg:w-[25rem]"
   };
 
   return (
     <div className={cn(
-      "bg-white rounded-2xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.1),0_10px_15px_-3px_rgba(0,0,0,0.05)] border border-slate-100 p-2 flex items-center justify-center transition-all duration-300 hover:shadow-[0_25px_50px_-12px_rgba(0,0,0,0.15)] hover:scale-[1.08] active:scale-[0.95] group/logo",
-      heights[size],
+      "bg-white rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.2),0_15px_25px_-5px_rgba(0,0,0,0.1)] border border-slate-100 p-0 flex items-center justify-center transition-all duration-300 hover:shadow-[0_40px_70px_-12px_rgba(0,0,0,0.25)] hover:scale-[1.12] active:scale-[0.9] group/logo overflow-hidden h-auto",
+      widths[size],
       containerClassName
     )}>
-      <ImageWithFallback
-        src={src}
-        alt={alt || "Logo"}
-        className={cn("h-full w-auto object-contain max-w-full drop-shadow-sm transition-transform duration-500", className)}
+      <ImageWithFallback 
+        src={src} 
+        alt={alt || "Logo"} 
+        className={cn("w-full h-auto object-contain drop-shadow-sm transition-transform duration-500", className)} 
       />
     </div>
   );

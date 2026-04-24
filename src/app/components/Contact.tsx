@@ -62,33 +62,58 @@ export function Contact() {
       return;
     }
 
+    setLoading(true);
     try {
-      const { error } = await supabase.functions.invoke('contact-handler', {
-        body: formData,
-        headers: {
-          'x-webhook-secret': import.meta.env.VITE_FUNCTION_SECRET_TOKEN
+      // 1. Primary Action: Save to Database (Ensures we never lose a message)
+      const { error: dbError } = await supabase
+        .from('contact_inquiries')
+        .insert([{
+          name: formData.name,
+          email: formData.email,
+          subject: formData.subject || `Inquiry from ${formData.name}`,
+          message: formData.message
+        }]);
+
+      if (dbError) throw dbError;
+
+      // 2. Secondary Action: Trigger Email Notification (May be blocked by Adblockers)
+      try {
+        const { error: funcError } = await supabase.functions.invoke('contact-handler', {
+          body: {
+            name: formData.name,
+            email: formData.email,
+            subject: formData.subject,
+            message: formData.message
+          },
+          headers: {
+            'x-webhook-secret': import.meta.env.VITE_FUNCTION_SECRET_TOKEN
+          }
+        });
+
+        if (funcError) {
+          console.warn("Edge Function email notification failed, but message is saved to DB:", funcError);
         }
-      });
+      } catch (invokeError) {
+        // This is where "Network Error" (Adblockers) usually happens
+        console.warn("Edge Function blocked by browser/network, message saved to DB fallback.");
+      }
 
-      if (error) throw error;
-
+      // If we got here, the DB save succeeded at minimum
       setSubmitted(true);
-      toast.success("Inquiry sent successfully!");
+      toast.success("Thank you! Your message has been received.");
       setFormData({
         name: "",
         email: "",
         subject: "",
-        message: ""
+        message: "",
+        website: ""
       });
     } catch (error: any) {
-      console.error("Full Contact Form Error:", error);
+      console.error("Contact Form Critical Error:", error);
       
-      let errorMessage = "Failed to send inquiry.";
-
-      if (error?.message?.includes("Failed to send a request") || error?.name === "TypeError") {
-        errorMessage = "Network Error: Could not reach Supabase functions. This is often caused by an Adblocker or VPN blocking the request. Please disable them and try again.";
-      } else if (error?.message) {
-        errorMessage = error.message;
+      let errorMessage = "Failed to send message. Please try again.";
+      if (error?.message?.includes("Failed to fetch") || error?.name === "TypeError") {
+        errorMessage = "Network Error: Could not reach the server. Please check your internet connection and disable any Adblockers/VPNs.";
       }
 
       toast.error(errorMessage);

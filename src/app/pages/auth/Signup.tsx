@@ -7,7 +7,7 @@ import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { Mail, Lock, User, CheckCircle2, Phone } from "lucide-react";
+import { Mail, Lock, User, CheckCircle2, Phone, Home } from "lucide-react";
 import { logActivity } from "@/lib/activity";
 import { validatePassword } from "@/lib/validation";
 import { PasswordStrength } from "@/app/components/ui/PasswordStrength";
@@ -277,7 +277,7 @@ export function Signup() {
                         </Button>
                     </form>
 
-                    <div className="mt-10 pt-8 border-t border-slate-100 dark:border-slate-800 text-center">
+                    <div className="mt-10 pt-8 border-t border-slate-100 dark:border-slate-800 text-center space-y-6">
                         <p className="text-slate-600 dark:text-slate-400 font-medium leading-relaxed">
                             Already have an account?{" "}
                             <Link
@@ -287,6 +287,14 @@ export function Signup() {
                                 Sign In
                             </Link>
                         </p>
+
+                        <Link 
+                            to="/" 
+                            className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-slate-400 hover:text-emerald-600 transition-all group pt-2"
+                        >
+                            <Home className="size-3.5 group-hover:-translate-y-0.5 transition-transform" />
+                            Return to Homepage
+                        </Link>
                     </div>
                 </div>
             </motion.div>

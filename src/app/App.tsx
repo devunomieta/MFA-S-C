@@ -31,6 +31,7 @@ import { AdminNewsletter } from "@/app/pages/admin/Newsletter";
 import { AdminApprovals } from "@/app/pages/admin/Approvals";
 import { AdminProfile } from "@/app/pages/admin/Profile";
 import AdminTestimonials from "@/app/pages/admin/Testimonials";
+import AdminInquiries from "@/app/pages/admin/Inquiries";
 import { PrivacyPolicy } from "@/app/pages/legal/PrivacyPolicy";
 import { TermsOfService } from "@/app/pages/legal/TermsOfService";
 import { Compliance } from "@/app/pages/legal/Compliance";
@@ -110,6 +111,7 @@ function AppRoutes() {
             <Route path="newsletter" element={<AdminNewsletter />} />
             <Route path="approvals" element={<AdminApprovals />} />
             <Route path="testimonials" element={<AdminTestimonials />} />
+            <Route path="inquiries" element={<AdminInquiries />} />
             <Route path="profile" element={<AdminProfile />} />
           </Route>
 

@@ -327,6 +327,7 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose, initialAdvance
             }
 
             // Standard Plan Logic (Double Insert + Manual Update)
+            const relatedId = crypto.randomUUID();
             const { error: txError } = await supabase.from("transactions").insert([
                 {
                     user_id: user.id,
@@ -335,7 +336,8 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose, initialAdvance
                     status: 'completed',
                     description: `Transfer to ${selectedPlanObj?.name}`,
                     plan_id: null, // From General
-                    charge: 0
+                    charge: fee, // Apply fee to the debit record
+                    related_id: relatedId
                 },
                 {
                     user_id: user.id,
@@ -344,7 +346,8 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose, initialAdvance
                     status: 'completed',
                     description: `Transfer from Wallet`,
                     plan_id: selectedPlanId, // To Plan
-                    charge: 0
+                    charge: 0,
+                    related_id: relatedId
                 }
             ]);
 

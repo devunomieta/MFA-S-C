@@ -213,6 +213,14 @@ export function AdminTransactions() {
     async function handleLoanAction(loan: any, action: 'approve' | 'reject') {
         try {
             if (action === 'approve') {
+                // Find the user's withdrawable wallet plan
+                const { data: withdrawablePlan } = await supabase
+                    .from('user_plans')
+                    .select('plan_id, plans!inner(type)')
+                    .eq('user_id', loan.user_id)
+                    .eq('plans.type', 'withdrawable_wallet')
+                    .maybeSingle();
+
                 // 1. Create Disbursement Transaction
                 const { error: txError } = await supabase.from('transactions').insert({
                     user_id: loan.user_id,
@@ -220,7 +228,8 @@ export function AdminTransactions() {
                     type: 'loan_disbursement',
                     status: 'completed',
                     description: `Loan Disbursement: ${loan.loan_number}`,
-                    loan_id: loan.id
+                    loan_id: loan.id,
+                    plan_id: (withdrawablePlan as any)?.plan_id || null
                 });
 
                 if (txError) throw txError;

@@ -114,8 +114,8 @@ export function Navbar() {
         <motion.div
           style={{ width: navbarWidth }}
           className={`pointer-events-auto transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] ${scrolled
-              ? "bg-white/70 dark:bg-slate-900/70 backdrop-blur-2xl border border-slate-200/50 dark:border-slate-800/50 rounded-full shadow-[0_8px_40px_rgba(0,0,0,0.08)] px-2 py-2"
-              : "bg-transparent border-transparent pt-4"
+            ? "bg-white/70 dark:bg-slate-900/70 backdrop-blur-2xl border border-slate-200/50 dark:border-slate-800/50 rounded-full shadow-[0_8px_40px_rgba(0,0,0,0.08)] px-2 py-2"
+            : "bg-transparent border-transparent pt-4"
             }`}
         >
           <div className="container mx-auto px-4 md:px-6 relative h-16 md:h-20 flex items-center justify-between">

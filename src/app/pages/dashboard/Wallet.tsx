@@ -418,40 +418,51 @@ export function Wallet() {
         const amountToLoan = Math.min(withdrawalAmount, loanDebt);
         const amountToUser = Math.max(0, withdrawalAmount - loanDebt);
 
+        const linkId = crypto.randomUUID();
+        let currentLoanAllocation = amountToLoan;
         let remainingToDeduct = withdrawalAmount;
+
         const maturedPlans = userPlans.filter(p => p.status === 'matured' && p.current_balance > 0);
         maturedPlans.sort((a, b) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime());
 
         for (const plan of maturedPlans) {
             if (remainingToDeduct <= 0) break;
             const deduction = Math.min(plan.current_balance, remainingToDeduct);
+            const loanContribution = Math.min(deduction, currentLoanAllocation);
 
             const newBalance = plan.current_balance - deduction;
             const updates: any = { current_balance: newBalance };
             if (newBalance === 0) updates.status = 'completed';
             await supabase.from('user_plans').update(updates).eq('id', plan.id);
 
+            // DOUBLE ENTRY: 1. Debit Plan (The Withdrawal/Outflow)
             await supabase.from("transactions").insert({
                 user_id: user?.id,
                 amount: deduction,
                 type: 'withdrawal',
                 status: 'completed',
                 description: `Auto-Allocation: Loan Repayment & Withdrawal`,
-                plan_id: plan.plan.id
+                plan_id: plan.plan.id,
+                related_id: linkId
             });
+
+            // DOUBLE ENTRY: 2. Credit Loan (The Repayment Record - attached to plan to keep wallet clean)
+            if (loanContribution > 0) {
+                await supabase.from("transactions").insert({
+                    user_id: user?.id,
+                    amount: loanContribution,
+                    type: 'loan_repayment',
+                    status: 'completed',
+                    description: `Repayment for ${activeLoan.loan_number || 'Loan'} (from ${plan.plan.name})`,
+                    plan_id: plan.plan.id, // KEEPING IT ON PLAN TO PREVENT GENERAL WALLET DEBIT
+                    loan_id: activeLoan.id,
+                    related_id: linkId
+                });
+                currentLoanAllocation -= loanContribution;
+            }
 
             remainingToDeduct -= deduction;
         }
-
-        await supabase.from("transactions").insert({
-            user_id: user?.id,
-            amount: amountToLoan,
-            type: 'loan_repayment',
-            status: 'completed',
-            description: `Repayment for ${activeLoan.loan_number || 'Loan'}`,
-            plan_id: null,
-            loan_id: activeLoan.id // Link to specific loan
-        });
 
         const newLoanBalance = loanDebt - amountToLoan;
         const loanUpdates: any = { total_payable: newLoanBalance };

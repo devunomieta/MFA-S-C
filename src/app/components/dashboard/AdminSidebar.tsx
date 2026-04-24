@@ -17,7 +17,8 @@ import {
     Anchor,
     Droplets,
     TrendingUp,
-    Quote
+    Quote,
+    MessageSquare
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -130,6 +131,12 @@ export function AdminSidebar({ isOpen, setIsOpen }: SidebarProps) {
                     icon: Users,
                     href: "/admin/users",
                     active: pathname.includes("/admin/users"),
+                },
+                {
+                    label: "Inquiries",
+                    icon: MessageSquare,
+                    href: "/admin/inquiries",
+                    active: pathname.includes("/admin/inquiries"),
                 },
                 {
                     label: "Newsletter",

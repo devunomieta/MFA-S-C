@@ -6,7 +6,7 @@ import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { ArrowLeft, Mail, Send } from "lucide-react";
+import { ArrowLeft, Mail, Send, Home } from "lucide-react";
 import { AuthHeader } from "@/app/components/auth/AuthHeader";
 
 export function ForgotPassword() {
@@ -122,6 +122,16 @@ export function ForgotPassword() {
                             </p>
                         </div>
                     )}
+
+                    <div className="mt-10 pt-8 border-t border-slate-100 dark:border-slate-800 text-center">
+                        <Link 
+                            to="/" 
+                            className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-slate-400 hover:text-emerald-600 transition-all group"
+                        >
+                            <Home className="size-3.5 group-hover:-translate-y-0.5 transition-transform" />
+                            Return to Homepage
+                        </Link>
+                    </div>
                 </div>
             </motion.div>
         </div>
