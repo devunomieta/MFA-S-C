@@ -251,11 +251,11 @@ export function Signup() {
                     </form>
 
                     <div className="mt-10 pt-8 border-t border-slate-100 dark:border-slate-800 text-center">
-                        <p className="text-slate-600 dark:text-slate-400 font-medium">
-                            Already have an account? 
+                        <p className="text-slate-600 dark:text-slate-400 font-medium leading-relaxed">
+                            Already have an account?{" "}
                             <Link
                                 to="/login"
-                                className="ml-2 font-bold text-emerald-600 hover:text-emerald-500 transition-colors"
+                                className="font-bold text-emerald-600 hover:text-emerald-500 transition-colors"
                             >
                                 Sign In
                             </Link>

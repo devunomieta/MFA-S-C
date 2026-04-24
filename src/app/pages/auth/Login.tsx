@@ -166,11 +166,11 @@ export function Login() {
                     </form>
 
                     <div className="mt-10 pt-8 border-t border-slate-100 dark:border-slate-800 text-center">
-                        <p className="text-slate-600 dark:text-slate-400 font-medium flex items-center justify-center gap-2">
-                            New to Mary's Thrift Services? 
+                        <p className="text-slate-600 dark:text-slate-400 font-medium leading-relaxed">
+                            New to Mary's Thrift Services?{" "}
                             <Link
                                 to="/signup"
-                                className="inline-flex items-center gap-1 font-bold text-emerald-600 hover:text-emerald-500 transition-colors"
+                                className="inline-flex items-center gap-1.5 font-bold text-emerald-600 hover:text-emerald-500 transition-all hover:gap-2"
                             >
                                 <UserPlus className="size-4" /> Create Account
                             </Link>
