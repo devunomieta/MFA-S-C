@@ -11,9 +11,12 @@ import { toast } from "sonner";
 import { Save, Mail, Settings as SettingsIcon, Image as ImageIcon, Megaphone, Trash2, ShieldCheck, ShieldAlert } from "lucide-react";
 import { ActionConfirmModal } from "@/app/components/ui/ActionConfirmModal";
 import { BrandLogo } from "@/app/components/ui/BrandLogo";
+import { useAuth } from "@/app/context/AuthContext";
 
 
 export function AdminSettings() {
+    const { profile } = useAuth();
+    const isSuperadmin = profile?.is_superadmin;
     const [loading, setLoading] = useState(true);
     const [general, setGeneral] = useState<any>({
         withdrawals_enabled: true,
@@ -162,7 +165,9 @@ export function AdminSettings() {
                 <TabsList>
                     <TabsTrigger value="general" className="gap-2"><SettingsIcon className="w-4 h-4" /> General</TabsTrigger>
                     <TabsTrigger value="branding" className="gap-2"><ImageIcon className="w-4 h-4" /> Branding</TabsTrigger>
-                    <TabsTrigger value="security" className="gap-2 font-bold text-emerald-600"><ShieldCheck className="w-4 h-4" /> Security</TabsTrigger>
+                    {isSuperadmin && (
+                        <TabsTrigger value="security" className="gap-2 font-bold text-emerald-600"><ShieldCheck className="w-4 h-4" /> Security</TabsTrigger>
+                    )}
                     <TabsTrigger value="email" className="gap-2"><Mail className="w-4 h-4" /> Email & SMTP</TabsTrigger>
                     <TabsTrigger value="announcements" className="gap-2"><Megaphone className="w-4 h-4" /> Announcements</TabsTrigger>
                 </TabsList>

@@ -1,46 +1,59 @@
+import { lazy, Suspense, useLayoutEffect } from "react";
 import { Navbar } from "@/app/components/Navbar";
 import { Footer } from "@/app/components/Footer";
 import { Toaster } from "sonner";
 import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
-import { Landing } from "@/app/pages/Landing";
-import { Login } from "@/app/pages/auth/Login";
-import { Signup } from "@/app/pages/auth/Signup";
-import { ForgotPassword } from "@/app/pages/auth/ForgotPassword";
-import { UpdatePassword } from "@/app/pages/auth/UpdatePassword";
-import { VerifyOTP } from "@/app/pages/auth/VerifyOTP";
-import { TestSupabase } from "@/app/pages/TestSupabase";
 import { ProtectedRoute } from "@/app/components/ProtectedRoute";
-import { DashboardLayout } from "@/app/layout/DashboardLayout";
-import { Overview } from "@/app/pages/dashboard/Overview";
-import { Plans } from "@/app/pages/dashboard/Plans";
-import { PlanDetailsPage } from "@/app/pages/dashboard/PlanDetailsPage";
-import { Wallet } from "@/app/pages/dashboard/Wallet";
-import { Loans } from "@/app/pages/dashboard/Loans";
-import { Profile } from "@/app/pages/dashboard/Profile";
-import { Help } from "@/app/pages/dashboard/Help";
-import { Notifications } from "@/app/pages/dashboard/Notifications";
-import { AdminLayout } from "@/app/layout/AdminLayout";
-import { AdminOverview } from "@/app/pages/admin/Overview";
-import { AdminLoans } from "@/app/pages/admin/Loans";
-import { AdminTransactions } from "@/app/pages/admin/Transactions";
-import { AdminUsers } from "@/app/pages/admin/Users";
-import { AdminUserDetails } from "@/app/pages/admin/UserDetails";
-import { AdminPlans } from "@/app/pages/admin/Plans";
-import { AdminSettings } from "@/app/pages/admin/Settings";
-import { AdminNewsletter } from "@/app/pages/admin/Newsletter";
-import { AdminApprovals } from "@/app/pages/admin/Approvals";
-import { AdminProfile } from "@/app/pages/admin/Profile";
-import AdminTestimonials from "@/app/pages/admin/Testimonials";
-import AdminInquiries from "@/app/pages/admin/Inquiries";
-import { PrivacyPolicy } from "@/app/pages/legal/PrivacyPolicy";
-import { TermsOfService } from "@/app/pages/legal/TermsOfService";
-import { Compliance } from "@/app/pages/legal/Compliance";
-import { Security } from "@/app/pages/legal/Security";
-import { useLayoutEffect } from "react";
 import { ThemeProvider } from "@/app/context/ThemeContext";
 import { NotificationProvider } from "@/app/context/NotificationContext";
 import { AutoLogout } from "@/app/components/AutoLogout";
 import { WhatsAppFloating } from "@/app/components/WhatsAppFloating";
+import { Loader2 } from "lucide-react";
+
+// Lazy Loaded Pages
+const Landing = lazy(() => import("@/app/pages/Landing").then(m => ({ default: m.Landing })));
+const Login = lazy(() => import("@/app/pages/auth/Login").then(m => ({ default: m.Login })));
+const Signup = lazy(() => import("@/app/pages/auth/Signup").then(m => ({ default: m.Signup })));
+const ForgotPassword = lazy(() => import("@/app/pages/auth/ForgotPassword").then(m => ({ default: m.ForgotPassword })));
+const UpdatePassword = lazy(() => import("@/app/pages/auth/UpdatePassword").then(m => ({ default: m.UpdatePassword })));
+const VerifyOTP = lazy(() => import("@/app/pages/auth/VerifyOTP").then(m => ({ default: m.VerifyOTP })));
+
+const DashboardLayout = lazy(() => import("@/app/layout/DashboardLayout").then(m => ({ default: m.DashboardLayout })));
+const Overview = lazy(() => import("@/app/pages/dashboard/Overview").then(m => ({ default: m.Overview })));
+const Plans = lazy(() => import("@/app/pages/dashboard/Plans").then(m => ({ default: m.Plans })));
+const PlanDetailsPage = lazy(() => import("@/app/pages/dashboard/PlanDetailsPage").then(m => ({ default: m.PlanDetailsPage })));
+const Wallet = lazy(() => import("@/app/pages/dashboard/Wallet").then(m => ({ default: m.Wallet })));
+const Loans = lazy(() => import("@/app/pages/dashboard/Loans").then(m => ({ default: m.Loans })));
+const Profile = lazy(() => import("@/app/pages/dashboard/Profile").then(m => ({ default: m.Profile })));
+const Help = lazy(() => import("@/app/pages/dashboard/Help").then(m => ({ default: m.Help })));
+const Notifications = lazy(() => import("@/app/pages/dashboard/Notifications").then(m => ({ default: m.Notifications })));
+
+const AdminLayout = lazy(() => import("@/app/layout/AdminLayout").then(m => ({ default: m.AdminLayout })));
+const AdminOverview = lazy(() => import("@/app/pages/admin/Overview").then(m => ({ default: m.AdminOverview })));
+const AdminLoans = lazy(() => import("@/app/pages/admin/Loans").then(m => ({ default: m.AdminLoans })));
+const AdminTransactions = lazy(() => import("@/app/pages/admin/Transactions").then(m => ({ default: m.AdminTransactions })));
+const AdminUsers = lazy(() => import("@/app/pages/admin/Users").then(m => ({ default: m.AdminUsers })));
+const AdminUserDetails = lazy(() => import("@/app/pages/admin/UserDetails").then(m => ({ default: m.AdminUserDetails })));
+const AdminPlans = lazy(() => import("@/app/pages/admin/Plans").then(m => ({ default: m.AdminPlans })));
+const AdminSettings = lazy(() => import("@/app/pages/admin/Settings").then(m => ({ default: m.AdminSettings })));
+const AdminNewsletter = lazy(() => import("@/app/pages/admin/Newsletter").then(m => ({ default: m.AdminNewsletter })));
+const AdminApprovals = lazy(() => import("@/app/pages/admin/Approvals").then(m => ({ default: m.AdminApprovals })));
+const AdminProfile = lazy(() => import("@/app/pages/admin/Profile").then(m => ({ default: m.AdminProfile })));
+const AdminTestimonials = lazy(() => import("@/app/pages/admin/Testimonials"));
+const AdminInquiries = lazy(() => import("@/app/pages/admin/Inquiries"));
+
+const PrivacyPolicy = lazy(() => import("@/app/pages/legal/PrivacyPolicy").then(m => ({ default: m.PrivacyPolicy })));
+const TermsOfService = lazy(() => import("@/app/pages/legal/TermsOfService").then(m => ({ default: m.TermsOfService })));
+const Compliance = lazy(() => import("@/app/pages/legal/Compliance").then(m => ({ default: m.Compliance })));
+const Security = lazy(() => import("@/app/pages/legal/Security").then(m => ({ default: m.Security })));
+
+function LoadingFallback() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-white">
+      <Loader2 className="w-10 h-10 animate-spin text-emerald-600" />
+    </div>
+  );
+}
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -52,7 +65,6 @@ function ScrollToTop() {
   return null;
 }
 
-// MainLayout is now just a wrapper for public pages
 function MainLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const authPaths = ["/login", "/signup", "/forgot-password", "/update-password", "/verify-otp"];
@@ -69,10 +81,8 @@ function MainLayout({ children }: { children: React.ReactNode }) {
   );
 }
 
-// Internal component to handle theme logic based on route
 function AppRoutes() {
   const location = useLocation();
-  // Only allow dark mode on dashboard routes. Force light mode everywhere else.
   const isDashboard = location.pathname.startsWith("/dashboard");
   const isAdminPath = location.pathname.startsWith("/admin");
 
@@ -83,54 +93,51 @@ function AppRoutes() {
         <AutoLogout />
         <ScrollToTop />
         {!isAdminPath && <WhatsAppFloating />}
-        <Routes>
-          {/* Protected Dashboard Routes */}
-          <Route element={<ProtectedRoute />}>
-            <Route path="/dashboard" element={<DashboardLayout />}>
-              <Route index element={<Overview />} />
-              <Route path="notifications" element={<Notifications />} />
-              <Route path="plans" element={<Plans />} />
-              <Route path="plans/:id" element={<PlanDetailsPage />} />
-              <Route path="wallet" element={<Wallet />} />
-              <Route path="loans" element={<Loans />} />
-              <Route path="profile" element={<Profile />} />
-              <Route path="help" element={<Help />} />
+        <Suspense fallback={<LoadingFallback />}>
+          <Routes>
+            <Route element={<ProtectedRoute />}>
+              <Route path="/dashboard" element={<DashboardLayout />}>
+                <Route index element={<Overview />} />
+                <Route path="notifications" element={<Notifications />} />
+                <Route path="plans" element={<Plans />} />
+                <Route path="plans/:id" element={<PlanDetailsPage />} />
+                <Route path="wallet" element={<Wallet />} />
+                <Route path="loans" element={<Loans />} />
+                <Route path="profile" element={<Profile />} />
+                <Route path="help" element={<Help />} />
+              </Route>
             </Route>
-          </Route>
 
-          {/* Admin Routes (Protected by AdminLayout) */}
-          <Route path="/admin" element={<AdminLayout />}>
-            <Route index element={<AdminOverview />} />
-            <Route path="loans" element={<AdminLoans />} />
-            <Route path="transactions" element={<AdminTransactions />} />
-            <Route path="users" element={<AdminUsers />} />
-            <Route path="users/:id" element={<AdminUserDetails />} />
-            <Route path="plans" element={<AdminPlans />} />
-            <Route path="plans/:view" element={<AdminPlans />} />
-            <Route path="settings" element={<AdminSettings />} />
-            <Route path="newsletter" element={<AdminNewsletter />} />
-            <Route path="approvals" element={<AdminApprovals />} />
-            <Route path="testimonials" element={<AdminTestimonials />} />
-            <Route path="inquiries" element={<AdminInquiries />} />
-            <Route path="profile" element={<AdminProfile />} />
-          </Route>
+            <Route path="/admin" element={<AdminLayout />}>
+              <Route index element={<AdminOverview />} />
+              <Route path="loans" element={<AdminLoans />} />
+              <Route path="transactions" element={<AdminTransactions />} />
+              <Route path="users" element={<AdminUsers />} />
+              <Route path="users/:id" element={<AdminUserDetails />} />
+              <Route path="plans" element={<AdminPlans />} />
+              <Route path="plans/:view" element={<AdminPlans />} />
+              <Route path="settings" element={<AdminSettings />} />
+              <Route path="newsletter" element={<AdminNewsletter />} />
+              <Route path="approvals" element={<AdminApprovals />} />
+              <Route path="testimonials" element={<AdminTestimonials />} />
+              <Route path="inquiries" element={<AdminInquiries />} />
+              <Route path="profile" element={<AdminProfile />} />
+            </Route>
 
-          {/* Public Routes */}
-          <Route path="/" element={<MainLayout><Landing /></MainLayout>} />
-          <Route path="/login" element={<MainLayout><Login /></MainLayout>} />
-          <Route path="/signup" element={<MainLayout><Signup /></MainLayout>} />
-          <Route path="/forgot-password" element={<MainLayout><ForgotPassword /></MainLayout>} />
-          <Route path="/update-password" element={<MainLayout><UpdatePassword /></MainLayout>} />
-          <Route path="/verify-otp" element={<MainLayout><VerifyOTP /></MainLayout>} />
-          <Route path="/privacy" element={<MainLayout><PrivacyPolicy /></MainLayout>} />
-          <Route path="/terms" element={<MainLayout><TermsOfService /></MainLayout>} />
-          <Route path="/compliance" element={<MainLayout><Compliance /></MainLayout>} />
-          <Route path="/security" element={<MainLayout><Security /></MainLayout>} />
-          <Route path="/test-connection" element={<MainLayout><TestSupabase /></MainLayout>} />
+            <Route path="/" element={<MainLayout><Landing /></MainLayout>} />
+            <Route path="/login" element={<MainLayout><Login /></MainLayout>} />
+            <Route path="/signup" element={<MainLayout><Signup /></MainLayout>} />
+            <Route path="/forgot-password" element={<MainLayout><ForgotPassword /></MainLayout>} />
+            <Route path="/update-password" element={<MainLayout><UpdatePassword /></MainLayout>} />
+            <Route path="/verify-otp" element={<MainLayout><VerifyOTP /></MainLayout>} />
+            <Route path="/privacy" element={<MainLayout><PrivacyPolicy /></MainLayout>} />
+            <Route path="/terms" element={<MainLayout><TermsOfService /></MainLayout>} />
+            <Route path="/compliance" element={<MainLayout><Compliance /></MainLayout>} />
+            <Route path="/security" element={<MainLayout><Security /></MainLayout>} />
 
-          {/* Catch-all to Home */}
-          <Route path="*" element={<MainLayout><Landing /></MainLayout>} />
-        </Routes>
+            <Route path="*" element={<MainLayout><Landing /></MainLayout>} />
+          </Routes>
+        </Suspense>
       </NotificationProvider>
     </ThemeProvider>
   );

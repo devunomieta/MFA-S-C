@@ -47,16 +47,13 @@ export function AdminActionAuthModal({
 
         setIsVerifying(true);
         try {
-            const { data, error } = await supabase
-                .from('app_settings')
-                .select('value')
-                .eq('key', 'security')
-                .single();
+            const { data: isValid, error } = await supabase.rpc('verify_admin_pin', {
+                p_pin: pin
+            });
 
             if (error) throw new Error("Could not verify PIN. System error.");
             
-            const storedPin = data?.value?.admin_pin;
-            if (storedPin && pin === storedPin) {
+            if (isValid) {
                 toast.success("Identity verified successfully");
                 onAuthenticated();
                 onOpenChange(false);

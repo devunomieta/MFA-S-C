@@ -14,7 +14,7 @@ export const emailService = {
      * or a secure API that integrates with Resend, SendGrid, etc.
      */
     async sendEmail(payload: EmailPayload) {
-        console.log(`[Email Service] Sending ${payload.template} to ${payload.to}`, payload.data);
+        // In production, logs are handled by the email provider/service
 
         // Example Edge Function call:
         /*

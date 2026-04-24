@@ -54,21 +54,13 @@ export async function checkAndProcessMaturity(supabase: SupabaseClient, userPlan
     });
 
     if (maturedPlans.length > 0) {
-        console.log(`Found ${maturedPlans.length} plans matured. Updating status...`);
-        // Batch update status to 'matured'
-        // Supabase doesn't support batch update with different values easily in one query without RPC, 
-        // but here all values are 'matured'. We can do a single update for all IDs.
         const ids = maturedPlans.map(up => up.id);
-
         const { error } = await supabase
             .from('user_plans')
             .update({ status: 'matured' })
             .in('id', ids);
 
-        if (error) {
-            console.error("Failed to update matured plans:", error);
-            return false;
-        }
+        if (error) return false;
         return true; // Indicates updates were made
     }
     return false;
