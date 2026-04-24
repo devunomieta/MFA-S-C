@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Shield, Lock, Eye, FileText, ArrowLeft } from "lucide-react";
+import { Shield, Eye, FileText, ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 
 export function PrivacyPolicy() {

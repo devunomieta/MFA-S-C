@@ -6,7 +6,7 @@ import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { ShieldCheck, ArrowLeft, Mail, Send } from "lucide-react";
+import { ArrowLeft, Mail, Send } from "lucide-react";
 import { AuthHeader } from "@/app/components/auth/AuthHeader";
 
 export function ForgotPassword() {

@@ -6,7 +6,7 @@ import { Button } from "@/app/components/ui/button";
 
 import { Badge } from "@/app/components/ui/badge";
 import { toast } from "sonner";
-import { Dialog, DialogContent } from "@/app/components/ui/dialog";
+import { Dialog } from "@/app/components/ui/dialog";
 import { DepositModal } from "@/app/components/DepositModal";
 import { Loader2, ArrowLeft, ShieldCheck, TrendingUp, History, Coins, Zap, Shield, Info } from "lucide-react";
 import { Plan, UserPlan } from "@/types";
@@ -360,12 +360,14 @@ export function PlanDetailsPage() {
                                     <MarathonPlanCard
                                         plan={plan}
                                         userPlan={userPlan || undefined}
-                                        onJoin={(pId, a, d) => handleJoinPlan(pId, {
-                                            selected_duration: d,
-                                            fixed_amount: a,
-                                            total_weeks_paid: 0,
-                                            last_payment_date: null
-                                        })}
+                                        onJoin={() => {
+                                            handleJoinPlan(plan.id, {
+                                                selected_duration: 48,
+                                                fixed_amount: 3000,
+                                                total_weeks_paid: 0,
+                                                last_payment_date: null
+                                            });
+                                        }}
                                         onDeposit={() => setSelectedPlanForDeposit({ id: plan.id })}
                                         onAdvanceDeposit={() => setSelectedPlanForDeposit({ id: plan.id, isAdvance: true })}
                                     />
@@ -374,13 +376,15 @@ export function PlanDetailsPage() {
                                     <SprintPlanCard
                                         plan={plan}
                                         userPlan={userPlan || undefined}
-                                        onJoin={(pId, a, d) => handleJoinPlan(pId, {
-                                            selected_duration: d,
-                                            target_amount: a,
-                                            weeks_completed: 0,
-                                            current_week_total: 0,
-                                            last_payment_date: null
-                                        })}
+                                        onJoin={() => {
+                                            handleJoinPlan(plan.id, {
+                                                selected_duration: 30,
+                                                target_amount: 3000,
+                                                weeks_completed: 0,
+                                                current_week_total: 0,
+                                                last_payment_date: null
+                                            });
+                                        }}
                                         onDeposit={() => setSelectedPlanForDeposit({ id: plan.id })}
                                         onAdvanceDeposit={() => setSelectedPlanForDeposit({ id: plan.id, isAdvance: true })}
                                     />
@@ -389,12 +393,14 @@ export function PlanDetailsPage() {
                                     <AnchorPlanCard
                                         plan={plan}
                                         userPlan={userPlan || undefined}
-                                        onJoin={(pId, a) => handleJoinPlan(pId, {
-                                            target_amount: a,
-                                            weeks_completed: 0,
-                                            current_week_total: 0,
-                                            last_payment_date: null
-                                        })}
+                                        onJoin={() => {
+                                            handleJoinPlan(plan.id, {
+                                                target_amount: 3000,
+                                                weeks_completed: 0,
+                                                current_week_total: 0,
+                                                last_payment_date: null
+                                            });
+                                        }}
                                         onDeposit={() => setSelectedPlanForDeposit({ id: plan.id })}
                                         onAdvanceDeposit={() => setSelectedPlanForDeposit({ id: plan.id, isAdvance: true })}
                                     />
@@ -403,12 +409,14 @@ export function PlanDetailsPage() {
                                     <DailyDropPlanCard
                                         plan={plan}
                                         userPlan={userPlan || undefined}
-                                        onJoin={(pId, a, d) => handleJoinPlan(pId, {
-                                            selected_duration: d,
-                                            fixed_amount: a,
-                                            total_days_paid: 0,
-                                            last_payment_date: null
-                                        })}
+                                        onJoin={(pId: string, a: number, d: number) => {
+                                            handleJoinPlan(pId, {
+                                                selected_duration: d,
+                                                fixed_amount: a,
+                                                total_days_paid: 0,
+                                                last_payment_date: null
+                                            });
+                                        }}
                                         onRefresh={() => fetchPlanDetails()}
                                         onDeposit={() => setSelectedPlanForDeposit({ id: plan.id })}
                                         onAdvanceDeposit={() => setSelectedPlanForDeposit({ id: plan.id, isAdvance: true })}
@@ -418,13 +426,15 @@ export function PlanDetailsPage() {
                                     <StepUpPlanCard
                                         plan={plan}
                                         userPlan={userPlan || undefined}
-                                        onJoin={(pId, a, d) => handleJoinPlan(pId, {
-                                            selected_duration: d,
-                                            fixed_amount: a,
-                                            weeks_completed: 0,
-                                            week_paid_so_far: 0,
-                                            last_payment_date: null
-                                        })}
+                                        onJoin={(_pId: string, a: number, d: number) => {
+                                            handleJoinPlan(plan.id, {
+                                                selected_duration: d,
+                                                fixed_amount: a,
+                                                weeks_completed: 0,
+                                                week_paid_so_far: 0,
+                                                last_payment_date: null
+                                            });
+                                        }}
                                         onDeposit={() => setSelectedPlanForDeposit({ id: plan.id })}
                                         onAdvanceDeposit={() => setSelectedPlanForDeposit({ id: plan.id, isAdvance: true })}
                                     />
@@ -433,13 +443,15 @@ export function PlanDetailsPage() {
                                     <MonthlyBloomPlanCard
                                         plan={plan}
                                         userPlan={userPlan || undefined}
-                                        onJoin={(pId, a, d) => handleJoinPlan(pId, {
-                                            selected_duration: d,
-                                            target_amount: a,
-                                            months_completed: 0,
-                                            month_paid_so_far: 0,
-                                            last_payment_date: null
-                                        })}
+                                        onJoin={(_pId: string, a: number, d: number) => {
+                                            handleJoinPlan(plan.id, {
+                                                selected_duration: d,
+                                                target_amount: a,
+                                                months_completed: 0,
+                                                month_paid_so_far: 0,
+                                                last_payment_date: null
+                                            });
+                                        }}
                                         onDeposit={() => setSelectedPlanForDeposit({ id: plan.id })}
                                         onAdvanceDeposit={() => setSelectedPlanForDeposit({ id: plan.id, isAdvance: true })}
                                     />

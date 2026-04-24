@@ -48,10 +48,10 @@ export function Help() {
                                     <ContactCard
                                         icon={<Mail className="size-5" />}
                                         title="Email Support"
-                                        value="support@Mary's Thrift Services.com"
+                                        value="marysthriftservices@gmail.com"
                                         description="Response within 24 hours"
                                         color="text-blue-600 bg-blue-50 dark:bg-blue-900/20"
-                                        onClick={() => window.open('mailto:support@Mary's Thrift Services.com')}
+                                        onClick={() => window.open('mailto:marysthriftservices@gmail.com')}
                                     />
                                     <ContactCard
                                         icon={<Phone className="size-5" />}

@@ -136,7 +136,7 @@ export function DailyDropPlanCard({ plan, userPlan, onJoin, onRefresh, onDeposit
             if (error) throw error;
             toast.success("Started a fresh Daily Drop cycle!");
             setShowRejoinConfirm(false);
-            onJoin(); // Refresh
+            onRefresh(); // Refresh
         } catch (error: any) {
             toast.error(error.message || "Failed to restart plan");
         } finally {
@@ -165,7 +165,7 @@ export function DailyDropPlanCard({ plan, userPlan, onJoin, onRefresh, onDeposit
             if (error) throw error;
             toast.success("Daily commitment updated!");
             setIsChangingAmount(false);
-            onJoin(); // Refresh
+            onRefresh(); // Refresh
         } catch (error: any) {
             toast.error(error.message || "Failed to update amount");
         }

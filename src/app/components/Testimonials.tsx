@@ -86,7 +86,7 @@ export function Testimonials() {
                   whileInView={{ opacity: 1, scale: 1 }}
                   transition={{ delay: index * 0.1 }}
                   viewport={{ once: true }}
-                  className="h-full"
+                  className="h-full flex flex-col"
                 >
                   <Card className="bg-white border border-slate-100 p-0 rounded-[3rem] relative group transition-all duration-500 hover:border-emerald-200 hover:shadow-[0_20px_50px_rgba(16,185,129,0.1)] overflow-hidden h-full">
                     <CardContent className="p-10 flex flex-col h-full relative">

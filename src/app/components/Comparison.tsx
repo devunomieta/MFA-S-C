@@ -6,31 +6,31 @@ export function Comparison() {
         {
             feature: "Money Safety",
             traditional: "Person fit run with your money",
-            Mary's Thrift Services: "Your money is 100% secured",
+            platform: "Your money is 100% secured",
             better: true
         },
         {
             feature: "See your Balance",
             traditional: "You no fit know how much you get",
-            Mary's Thrift Services: "Check your balance any time",
+            platform: "Check your balance any time",
             better: true
         },
         {
             feature: "Commitment",
             traditional: "Hard to save every time",
-            Mary's Thrift Services: "Automated daily/weekly savings",
+            platform: "Automated daily/weekly savings",
             better: true
         },
         {
             feature: "Trust",
             traditional: "Saving with person you no know",
-            Mary's Thrift Services: "CAC Registered & Legally Secure",
+            platform: "CAC Registered & Legally Secure",
             better: true
         },
         {
             feature: "Rules",
             traditional: "People fit fail to pay",
-            Mary's Thrift Services: "System makes sure everyone pays",
+            platform: "System makes sure everyone pays",
             better: true
         }
     ];
@@ -91,7 +91,7 @@ export function Comparison() {
                                         <span className="text-xs font-bold text-emerald-300/60 uppercase mb-1">{p.feature}</span>
                                         <div className="flex items-center gap-3">
                                             <Check className="size-4 text-emerald-400 shrink-0" />
-                                            <span className="text-emerald-50 font-bold text-sm">{p.Mary's Thrift Services}</span>
+                                            <span className="text-emerald-50 font-bold text-sm">{p.platform}</span>
                                         </div>
                                     </li>
                                 ))}

@@ -48,8 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         async function init() {
             try {
                 // 1. Get initial session
-                const { data: { session }, error } = await supabase.auth.getSession();
-                if (error) throw error;
+                const { data: { session } } = await supabase.auth.getSession();
 
                 if (mounted) {
                     setSession(session);
@@ -161,7 +160,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     async function checkAdminStatus(userId: string) {
         try {
-            const { data, error } = await supabase
+            const { data } = await supabase
                 .from('profiles')
                 .select('is_admin, is_superadmin')
                 .eq('id', userId)

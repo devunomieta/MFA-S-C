@@ -10,7 +10,6 @@ import { useAuth } from "@/app/context/AuthContext";
 import { ActionConfirmModal } from "@/app/components/ui/ActionConfirmModal";
 
 export function AdminUsers() {
-    const { isSuperadmin } = useAuth();
     const [users, setUsers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");

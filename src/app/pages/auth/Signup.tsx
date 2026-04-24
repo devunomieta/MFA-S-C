@@ -7,7 +7,7 @@ import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { ShieldCheck, ArrowRight, Mail, Lock, User, CheckCircle2, Phone } from "lucide-react";
+import { Mail, Lock, User, CheckCircle2, Phone } from "lucide-react";
 import { logActivity } from "@/lib/activity";
 import { validatePassword } from "@/lib/validation";
 import { PasswordStrength } from "@/app/components/ui/PasswordStrength";

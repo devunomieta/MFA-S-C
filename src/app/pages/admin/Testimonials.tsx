@@ -3,9 +3,9 @@ import { supabase } from "@/lib/supabase";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/app/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/app/components/ui/card";
 import { toast } from "sonner";
-import { Loader2, Plus, Trash2, Edit2, Star, CheckCircle2, XCircle, Quote } from "lucide-react";
+import { Loader2, Plus, Trash2, Edit2, Star, Quote } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/app/components/ui/dialog";
 import { Badge } from "@/app/components/ui/badge";
 

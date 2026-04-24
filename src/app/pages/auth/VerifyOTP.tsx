@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { ShieldCheck, ArrowLeft, RefreshCw, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, RefreshCw, CheckCircle2 } from "lucide-react";
 import { AuthHeader } from "@/app/components/auth/AuthHeader";
 import {
   InputOTP,

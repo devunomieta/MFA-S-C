@@ -7,7 +7,7 @@ import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { ShieldCheck, ArrowRight, Mail, Lock, UserPlus } from "lucide-react";
+import { ArrowRight, Mail, Lock, UserPlus } from "lucide-react";
 import { AuthHeader } from "@/app/components/auth/AuthHeader";
 
 export function Login() {
@@ -30,10 +30,11 @@ export function Login() {
             const identifier = formData.email.trim();
             const isEmail = identifier.includes('@');
             
-            const { error } = await supabase.auth.signInWithPassword({
-                [isEmail ? 'email' : 'phone']: identifier,
-                password: formData.password,
-            });
+            const { error } = await supabase.auth.signInWithPassword(
+                isEmail 
+                    ? { email: identifier, password: formData.password }
+                    : { phone: identifier, password: formData.password }
+            );
 
             if (error) throw error;
 

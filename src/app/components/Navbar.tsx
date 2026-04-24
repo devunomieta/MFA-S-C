@@ -32,7 +32,7 @@ export function Navbar() {
 
   useEffect(() => {
     const fetchBranding = async () => {
-      const { data, error } = await supabase.from('app_settings').select('value').eq('key', 'general').single();
+      const { data } = await supabase.from('app_settings').select('value').eq('key', 'general').single();
       if (data?.value?.logo_url) {
         setLogoUrl(data.value.logo_url);
       }
