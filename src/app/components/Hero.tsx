@@ -1,6 +1,7 @@
-import { Button } from "@/app/components/ui/button";
-import { ArrowRight, Sparkles, ShieldCheck, Users, TrendingUp, CheckCircle2 } from "lucide-react";
 import { motion } from "framer-motion";
+import { ArrowRight, Sparkles, ShieldCheck, Users, TrendingUp, CheckCircle2 } from "lucide-react";
+
+import { Button } from "@/app/components/ui/button";
 
 export function Hero() {
   return (
@@ -11,7 +12,7 @@ export function Hero() {
           animate={{
             scale: [1, 1.1, 1],
             x: [0, 30, 0],
-            y: [0, 20, 0]
+            y: [0, 20, 0],
           }}
           transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
           className="absolute top-[-10%] left-[-5%] w-[500px] md:w-[600px] h-[500px] md:h-[600px] bg-emerald-50/50 dark:bg-emerald-900/10 rounded-full blur-[100px] md:blur-[120px]"
@@ -20,7 +21,7 @@ export function Hero() {
           animate={{
             scale: [1.1, 1, 1.1],
             x: [0, -30, 0],
-            y: [0, -20, 0]
+            y: [0, -20, 0],
           }}
           transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
           className="absolute bottom-[-10%] right-[-5%] w-[500px] md:w-[600px] h-[500px] md:h-[600px] bg-blue-50/50 dark:bg-blue-900/10 rounded-full blur-[100px] md:blur-[120px]"
@@ -59,7 +60,8 @@ export function Hero() {
               transition={{ delay: 0.2, duration: 0.8 }}
               className="text-base md:text-lg text-slate-600 dark:text-slate-400 font-medium max-w-2xl mx-auto leading-relaxed"
             >
-              A secure platform to save and reach your goals. Put money away daily or weekly, and get your payout when it's your turn. Safe, automated, and built for you.
+              A secure platform to save and reach your goals. Put money away daily or weekly, and
+              get your payout when it's your turn. Safe, automated, and built for you.
             </motion.p>
           </div>
 
@@ -73,7 +75,9 @@ export function Hero() {
             <Button
               size="lg"
               className="bg-emerald-600 hover:bg-emerald-700 text-white h-14 md:h-16 px-8 md:px-10 rounded-xl md:rounded-2xl text-base md:text-lg font-bold shadow-xl shadow-emerald-600/20 active:scale-95 transition-all w-full sm:w-auto"
-              onClick={() => document.getElementById('plans')?.scrollIntoView({ behavior: 'smooth' })}
+              onClick={() =>
+                document.getElementById("plans")?.scrollIntoView({ behavior: "smooth" })
+              }
             >
               Start Saving Now
               <ArrowRight className="ml-2 size-5" />
@@ -82,7 +86,9 @@ export function Hero() {
               size="lg"
               variant="outline"
               className="h-14 md:h-16 px-8 md:px-10 rounded-xl md:rounded-2xl text-base md:text-lg font-bold border-2 bg-white dark:bg-slate-950 hover:bg-slate-50 dark:hover:bg-slate-900 hover:text-white active:scale-95 text-slate-600 dark:text-slate-400 transition-all w-full sm:w-auto"
-              onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
+              onClick={() =>
+                document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" })
+              }
             >
               How it Works
             </Button>
@@ -100,8 +106,12 @@ export function Hero() {
                 <ShieldCheck className="size-5 md:size-6 text-emerald-600" />
               </div>
               <div className="text-center">
-                <div className="text-sm md:text-base font-bold text-slate-950 dark:text-white">Secure & Registered</div>
-                <div className="text-[10px] md:text-xs text-slate-500 font-medium uppercase tracking-tight">BN - 8950808</div>
+                <div className="text-sm md:text-base font-bold text-slate-950 dark:text-white">
+                  Secure & Registered
+                </div>
+                <div className="text-[10px] md:text-xs text-slate-500 font-medium uppercase tracking-tight">
+                  BN - 8950808
+                </div>
               </div>
             </div>
 
@@ -110,8 +120,12 @@ export function Hero() {
                 <TrendingUp className="size-5 md:size-6 text-emerald-600" />
               </div>
               <div className="text-center">
-                <div className="text-sm md:text-base font-bold text-slate-950 dark:text-white">50+ Active Plans</div>
-                <div className="text-[10px] md:text-xs text-slate-500 font-medium">Meeting goals this month</div>
+                <div className="text-sm md:text-base font-bold text-slate-950 dark:text-white">
+                  50+ Active Plans
+                </div>
+                <div className="text-[10px] md:text-xs text-slate-500 font-medium">
+                  Meeting goals this month
+                </div>
               </div>
             </div>
 
@@ -120,8 +134,12 @@ export function Hero() {
                 <Users className="size-5 md:size-6 text-emerald-600" />
               </div>
               <div className="text-center">
-                <div className="text-sm md:text-base font-bold text-slate-950 dark:text-white">Trusted Community</div>
-                <div className="text-[10px] md:text-xs text-slate-500 font-medium">Private and discipline-focused</div>
+                <div className="text-sm md:text-base font-bold text-slate-950 dark:text-white">
+                  Trusted Community
+                </div>
+                <div className="text-[10px] md:text-xs text-slate-500 font-medium">
+                  Private and discipline-focused
+                </div>
               </div>
             </div>
           </motion.div>
@@ -136,7 +154,9 @@ export function Hero() {
           className="absolute top-[25%] left-[10%] p-5 bg-white dark:bg-slate-900 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-slate-100 dark:border-slate-800"
         >
           <div className="text-emerald-600 font-black text-2xl tracking-tighter">₦12.5M+</div>
-          <div className="text-[10px] uppercase font-bold text-slate-400 mt-1">Total Saved This Month</div>
+          <div className="text-[10px] uppercase font-bold text-slate-400 mt-1">
+            Total Saved This Month
+          </div>
         </motion.div>
 
         <motion.div
@@ -145,7 +165,9 @@ export function Hero() {
           className="absolute bottom-[25%] right-[10%] p-5 bg-white dark:bg-slate-900 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-slate-100 dark:border-slate-800"
         >
           <Sparkles className="size-5 text-emerald-600 mb-2" />
-          <div className="text-sm font-bold text-slate-950 dark:text-white">Smart Automated Savings</div>
+          <div className="text-sm font-bold text-slate-950 dark:text-white">
+            Smart Automated Savings
+          </div>
           <div className="text-[10px] font-medium text-slate-400">Zero-effort discipline</div>
         </motion.div>
       </div>

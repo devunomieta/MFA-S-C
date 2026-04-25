@@ -1,11 +1,12 @@
-import { Instagram, Mail, Phone, Send, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
+
+import { Instagram, Mail, Phone, Send, Loader2 } from "lucide-react";
+import { toast } from "sonner";
+
+import { BrandLogo } from "@/app/components/ui/BrandLogo";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
-import { ImageWithFallback } from "@/app/components/figma/ImageWithFallback";
-import { BrandLogo } from "@/app/components/ui/BrandLogo";
-import { toast } from "sonner";
+import { supabase } from "@/lib/supabase";
 
 // Custom TikTok Icon
 const TikTokIcon = ({ className }: { className?: string }) => (
@@ -21,7 +22,11 @@ export function Footer() {
 
   useEffect(() => {
     const fetchBranding = async () => {
-      const { data } = await supabase.from('app_settings').select('value').eq('key', 'general').single();
+      const { data } = await supabase
+        .from("app_settings")
+        .select("value")
+        .eq("key", "general")
+        .single();
       if (data?.value?.logo_url) {
         setLogoUrl(data.value.logo_url);
       }
@@ -37,9 +42,9 @@ export function Footer() {
     try {
       // Check if already subscribed
       const { data: existing } = await supabase
-        .from('newsletter_subscribers')
-        .select('id')
-        .eq('email', email.trim().toLowerCase())
+        .from("newsletter_subscribers")
+        .select("id")
+        .eq("email", email.trim().toLowerCase())
         .maybeSingle();
 
       if (existing) {
@@ -50,7 +55,7 @@ export function Footer() {
       }
 
       const { error } = await supabase
-        .from('newsletter_subscribers')
+        .from("newsletter_subscribers")
         .insert({ email: email.trim().toLowerCase() });
 
       if (error) throw error;
@@ -75,14 +80,19 @@ export function Footer() {
               {logoUrl ? (
                 <BrandLogo src={logoUrl} alt="Mary's Thrift Services" size="sm" />
               ) : (
-                <span className="text-2xl font-black text-white tracking-tighter">Mary's Thrift<span className="text-emerald-500">.</span></span>
+                <span className="text-2xl font-black text-white tracking-tighter">
+                  Mary's Thrift<span className="text-emerald-500">.</span>
+                </span>
               )}
             </div>
             <p className="text-lg font-medium leading-relaxed max-w-sm">
-              Reinventing community finance for the digital age. Save, grow, and prosper with the people you trust.
+              Reinventing community finance for the digital age. Save, grow, and prosper with the
+              people you trust.
             </p>
             <form onSubmit={handleSubscribe} className="space-y-4">
-              <h4 className="text-white font-bold text-sm uppercase tracking-widest">Stay Updated</h4>
+              <h4 className="text-white font-bold text-sm uppercase tracking-widest">
+                Stay Updated
+              </h4>
               <div className="flex gap-2 max-w-sm">
                 <Input
                   type="email"
@@ -92,38 +102,71 @@ export function Footer() {
                   onChange={(e) => setEmail(e.target.value)}
                   className="bg-slate-900 border-slate-800 rounded-xl focus:ring-emerald-500 text-white h-12"
                 />
-                <Button 
+                <Button
                   type="submit"
                   disabled={loading}
                   className="bg-emerald-600 hover:bg-emerald-700 rounded-xl h-12 px-4 shadow-lg shadow-emerald-500/20"
                 >
-                  {loading ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
+                  {loading ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <Send className="size-4" />
+                  )}
                 </Button>
               </div>
             </form>
             <div className="flex gap-5">
-              <a href="https://instagram.com/marysthriftservices" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center border border-slate-800 hover:border-emerald-500/50 hover:text-white transition-all">
+              <a
+                href="https://instagram.com/marysthriftservices"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center border border-slate-800 hover:border-emerald-500/50 hover:text-white transition-all"
+              >
                 <Instagram className="size-5" />
               </a>
-              <a href="https://tiktok.com/@marysthriftservices" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center border border-slate-800 hover:border-emerald-500/50 hover:text-white transition-all">
+              <a
+                href="https://tiktok.com/@marysthriftservices"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center border border-slate-800 hover:border-emerald-500/50 hover:text-white transition-all"
+              >
                 <TikTokIcon className="size-5" />
               </a>
             </div>
           </div>
-
           {/* Links Groups */}
           <div className="lg:col-span-1" /> {/* Spacer */}
-
           <div className="lg:col-span-2 space-y-6">
             <h4 className="text-white font-bold uppercase tracking-widest text-xs">Platform</h4>
             <ul className="space-y-4">
-              <li><a href="#how-it-works" className="hover:text-emerald-400 transition-colors font-medium">How It Works</a></li>
-              <li><a href="#features" className="hover:text-emerald-400 transition-colors font-medium">Features</a></li>
-              <li><a href="#plans" className="hover:text-emerald-400 transition-colors font-medium">Pricing</a></li>
-              <li><a href="#contact" className="hover:text-emerald-400 transition-colors font-medium">Contact</a></li>
+              <li>
+                <a
+                  href="#how-it-works"
+                  className="hover:text-emerald-400 transition-colors font-medium"
+                >
+                  How It Works
+                </a>
+              </li>
+              <li>
+                <a
+                  href="#features"
+                  className="hover:text-emerald-400 transition-colors font-medium"
+                >
+                  Features
+                </a>
+              </li>
+              <li>
+                <a href="#plans" className="hover:text-emerald-400 transition-colors font-medium">
+                  Pricing
+                </a>
+              </li>
+              <li>
+                <a href="#contact" className="hover:text-emerald-400 transition-colors font-medium">
+                  Contact
+                </a>
+              </li>
             </ul>
           </div>
-
           <div className="lg:col-span-2 space-y-6">
             <h4 className="text-white font-bold uppercase tracking-widest text-xs">Legal</h4>
             <ul className="space-y-4">
@@ -131,13 +174,19 @@ export function Footer() {
                 { name: "Privacy Policy", href: "/privacy" },
                 { name: "Terms of Service", href: "/terms" },
                 { name: "Compliance", href: "/compliance" },
-                { name: "Security", href: "/security" }
+                { name: "Security", href: "/security" },
               ].map((item) => (
-                <li key={item.name}><a href={item.href} className="hover:text-emerald-400 transition-colors font-medium">{item.name}</a></li>
+                <li key={item.name}>
+                  <a
+                    href={item.href}
+                    className="hover:text-emerald-400 transition-colors font-medium"
+                  >
+                    {item.name}
+                  </a>
+                </li>
               ))}
             </ul>
           </div>
-
           {/* Contact */}
           <div className="lg:col-span-3 space-y-6">
             <h4 className="text-white font-bold uppercase tracking-widest text-xs">Connect</h4>
@@ -147,8 +196,15 @@ export function Footer() {
                   <Mail className="size-5 text-emerald-500" />
                 </div>
                 <div>
-                  <div className="text-slate-500 text-[10px] font-black uppercase tracking-widest mb-1">Email Us</div>
-                  <a href="mailto:marysthriftservices@gmail.com" className="hover:text-white transition-colors font-bold text-slate-200">marysthriftservices@gmail.com</a>
+                  <div className="text-slate-500 text-[10px] font-black uppercase tracking-widest mb-1">
+                    Email Us
+                  </div>
+                  <a
+                    href="mailto:marysthriftservices@gmail.com"
+                    className="hover:text-white transition-colors font-bold text-slate-200"
+                  >
+                    marysthriftservices@gmail.com
+                  </a>
                 </div>
               </li>
               <li className="flex items-start gap-4">
@@ -156,8 +212,15 @@ export function Footer() {
                   <Phone className="size-5 text-emerald-500" />
                 </div>
                 <div>
-                  <div className="text-slate-500 text-[10px] font-black uppercase tracking-widest mb-1">Call Us</div>
-                  <a href="tel:+2349074049667" className="hover:text-white transition-colors font-bold text-slate-200">09074049667</a>
+                  <div className="text-slate-500 text-[10px] font-black uppercase tracking-widest mb-1">
+                    Call Us
+                  </div>
+                  <a
+                    href="tel:+2349074049667"
+                    className="hover:text-white transition-colors font-bold text-slate-200"
+                  >
+                    09074049667
+                  </a>
                 </div>
               </li>
             </ul>
@@ -170,7 +233,9 @@ export function Footer() {
           </p>
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">CAC Registered BN-8950808</span>
+            <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">
+              CAC Registered BN-8950808
+            </span>
           </div>
         </div>
       </div>

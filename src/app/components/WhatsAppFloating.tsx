@@ -1,5 +1,5 @@
-import { MessageCircle } from "lucide-react";
 import { motion } from "framer-motion";
+import { MessageCircle } from "lucide-react";
 
 export function WhatsAppFloating() {
   const phoneNumber = "+2349074049667";

@@ -1,151 +1,190 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-}
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
 
 Deno.serve(async (req) => {
   // Handle CORS preflight
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
   }
 
   try {
-    const authHeader = req.headers.get('Authorization')
+    const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-        console.error("Missing Authorization header")
-        return new Response(JSON.stringify({ error: 'Missing Authorization header' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      console.error("Missing Authorization header");
+      return new Response(JSON.stringify({ error: "Missing Authorization header" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    console.log(`Auth header received: ${authHeader.substring(0, 20)}...`)
+    console.log(`Auth header received: ${authHeader.substring(0, 20)}...`);
 
     const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: authHeader } } }
-    )
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      { global: { headers: { Authorization: authHeader } } },
+    );
 
-    console.log("Wipe service invoked. Checking user session...")
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser()
-    
+    console.log("Wipe service invoked. Checking user session...");
+    const {
+      data: { user },
+      error: authError,
+    } = await supabaseClient.auth.getUser();
+
     if (authError || !user) {
-        console.error("Authentication failed:", authError)
-        return new Response(JSON.stringify({ error: 'Unauthorized', message: authError?.message }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      console.error("Authentication failed:", authError);
+      return new Response(JSON.stringify({ error: "Unauthorized", message: authError?.message }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    console.log(`Authenticated as ${user.email}. Checking privileges...`)
-    
+    console.log(`Authenticated as ${user.email}. Checking privileges...`);
+
     // Check admin status of caller
     const { data: callerProfile, error: profileError } = await supabaseClient
-      .from('profiles')
-      .select('is_admin, is_superadmin')
-      .eq('id', user.id)
-      .single()
+      .from("profiles")
+      .select("is_admin, is_superadmin")
+      .eq("id", user.id)
+      .single();
 
     if (profileError || !callerProfile?.is_admin) {
-        console.error("Privilege check failed:", profileError || "Not an admin")
-        return new Response(JSON.stringify({ error: 'Forbidden: Admins only' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      console.error("Privilege check failed:", profileError || "Not an admin");
+      return new Response(JSON.stringify({ error: "Forbidden: Admins only" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    const payload = await req.json()
-    const { scope, dataOnly, targetUserId } = payload
+    const payload = await req.json();
+    const { scope, dataOnly, targetUserId } = payload;
 
-    console.log(`Payload received - Scope: ${scope}, DataOnly: ${dataOnly}, TargetUserId: ${targetUserId}`)
+    console.log(
+      `Payload received - Scope: ${scope}, DataOnly: ${dataOnly}, TargetUserId: ${targetUserId}`,
+    );
 
     // Create service client for admin actions
     const serviceClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+    );
 
     // Identify target users
-    let targetIds: string[] = []
-    
-    if (scope === 'single-user') {
-      if (!targetUserId) throw new Error("Missing targetUserId for single-user scope")
-      targetIds = [targetUserId]
-    } else if (scope === 'non-admin') {
-      const { data: targets, error: targetError } = await serviceClient.from('profiles').select('id').eq('is_admin', false)
-      if (targetError) throw targetError
-      targetIds = (targets || []).map(t => t.id)
-    } else if (scope === 'all-except-super') {
+    let targetIds: string[] = [];
+
+    if (scope === "single-user") {
+      if (!targetUserId) throw new Error("Missing targetUserId for single-user scope");
+      targetIds = [targetUserId];
+    } else if (scope === "non-admin") {
+      const { data: targets, error: targetError } = await serviceClient
+        .from("profiles")
+        .select("id")
+        .eq("is_admin", false);
+      if (targetError) throw targetError;
+      targetIds = (targets || []).map((t) => t.id);
+    } else if (scope === "all-except-super") {
       if (!callerProfile.is_superadmin) {
-          return new Response(JSON.stringify({ error: 'Forbidden: Superadmin access required for this scope' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+        return new Response(
+          JSON.stringify({ error: "Forbidden: Superadmin access required for this scope" }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
       }
-      const { data: targets, error: targetError } = await serviceClient.from('profiles').select('id').eq('is_superadmin', false)
-      if (targetError) throw targetError
-      targetIds = (targets || []).map(t => t.id)
+      const { data: targets, error: targetError } = await serviceClient
+        .from("profiles")
+        .select("id")
+        .eq("is_superadmin", false);
+      if (targetError) throw targetError;
+      targetIds = (targets || []).map((t) => t.id);
     } else {
-      return new Response(JSON.stringify({ error: 'Invalid scope: ' + scope }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      return new Response(JSON.stringify({ error: "Invalid scope: " + scope }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    console.log(`Starting wipe with scope: ${scope}, dataOnly: ${dataOnly}. Found ${targetIds.length} target users.`)
+    console.log(
+      `Starting wipe with scope: ${scope}, dataOnly: ${dataOnly}. Found ${targetIds.length} target users.`,
+    );
 
     if (targetIds.length === 0) {
-        return new Response(JSON.stringify({ message: 'No users found to wipe', success: true, count: 0 }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      return new Response(
+        JSON.stringify({ message: "No users found to wipe", success: true, count: 0 }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
 
     // Perform wipe
     if (dataOnly) {
-       console.log("Performing DATA ONLY wipe for related tables...")
-       
-       // Explicitly clear tables that might not cascade correctly or are linked to auth.users UID
-       const tablesToClear = [
-         'notifications',
-         'notification_settings',
-         'transactions',
-         'user_plans',
-         'bank_accounts',
-         'unpaid_arrears',
-         'email_change_requests',
-         'activity_logs' // User's own activity logs
-       ]
+      console.log("Performing DATA ONLY wipe for related tables...");
 
-       for (const table of tablesToClear) {
-         const { error } = await serviceClient.from(table).delete().in('user_id', targetIds)
-         if (error) console.warn(`Non-critical: Failed to clear table ${table}:`, error.message)
-       }
+      // Explicitly clear tables that might not cascade correctly or are linked to auth.users UID
+      const tablesToClear = [
+        "notifications",
+        "notification_settings",
+        "transactions",
+        "user_plans",
+        "bank_accounts",
+        "unpaid_arrears",
+        "email_change_requests",
+        "activity_logs", // User's own activity logs
+      ];
 
-       // Finally, clear the profile
-       console.log("Clearing profiles...")
-       const { error: deleteError } = await serviceClient.from('profiles').delete().in('id', targetIds)
-       if (deleteError) throw deleteError
-       
+      for (const table of tablesToClear) {
+        const { error } = await serviceClient.from(table).delete().in("user_id", targetIds);
+        if (error) console.warn(`Non-critical: Failed to clear table ${table}:`, error.message);
+      }
+
+      // Finally, clear the profile
+      console.log("Clearing profiles...");
+      const { error: deleteError } = await serviceClient
+        .from("profiles")
+        .delete()
+        .in("id", targetIds);
+      if (deleteError) throw deleteError;
     } else {
-       console.log("Performing COMPLETE AUTH wipe...")
-       for (const id of targetIds) {
-          const { error: authError } = await serviceClient.auth.admin.deleteUser(id)
-          if (authError) console.error(`Failed to delete auth user ${id}:`, authError)
-       }
+      console.log("Performing COMPLETE AUTH wipe...");
+      for (const id of targetIds) {
+        const { error: authError } = await serviceClient.auth.admin.deleteUser(id);
+        if (authError) console.error(`Failed to delete auth user ${id}:`, authError);
+      }
     }
 
     // Log the action in activity_logs
     try {
-        console.log("Logging purge action...")
-        const { error: logError } = await serviceClient.from('activity_logs').insert({
-            user_id: user.id,
-            action: scope === 'single-user' ? 'SINGLE_USER_WIPE' : 'BULK_USER_WIPE',
-            details: {
-                scope,
-                data_only: dataOnly,
-                user_count: targetIds.length,
-                target_user_id: targetUserId
-            },
-            ip_address: req.headers.get('x-real-ip') || req.headers.get('x-forwarded-for') || 'edge-function'
-        })
-        if (logError) console.error("Activity log insert failed (non-blocking):", logError)
+      console.log("Logging purge action...");
+      const { error: logError } = await serviceClient.from("activity_logs").insert({
+        user_id: user.id,
+        action: scope === "single-user" ? "SINGLE_USER_WIPE" : "BULK_USER_WIPE",
+        details: {
+          scope,
+          data_only: dataOnly,
+          user_count: targetIds.length,
+          target_user_id: targetUserId,
+        },
+        ip_address:
+          req.headers.get("x-real-ip") || req.headers.get("x-forwarded-for") || "edge-function",
+      });
+      if (logError) console.error("Activity log insert failed (non-blocking):", logError);
     } catch (logCatch) {
-        console.error("Failed to log activity (non-blocking):", logCatch)
+      console.error("Failed to log activity (non-blocking):", logCatch);
     }
 
-    console.log("Wipe completed successfully.")
-    return new Response(JSON.stringify({ success: true, count: targetIds.length }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
-
+    console.log("Wipe completed successfully.");
+    return new Response(JSON.stringify({ success: true, count: targetIds.length }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (error: any) {
-    console.error("Wipe Service Critical Error:", error)
-    const errorMsg = error.message || "An unexpected error occurred during the wipe process"
-    return new Response(JSON.stringify({ error: errorMsg, message: errorMsg }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    console.error("Wipe Service Critical Error:", error);
+    const errorMsg = error.message || "An unexpected error occurred during the wipe process";
+    return new Response(JSON.stringify({ error: errorMsg, message: errorMsg }), {
+      status: 400,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
-})
+});

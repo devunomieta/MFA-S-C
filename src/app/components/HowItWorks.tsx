@@ -1,31 +1,35 @@
-import { Target, Users, Zap, TrendingUp } from "lucide-react";
 import { motion } from "framer-motion";
+import { Target, Users, Zap, TrendingUp } from "lucide-react";
 
 const steps = [
   {
     title: "Decide what you want to buy",
-    description: "Whether it is for a new business, school fees, or a new phone, start by picking what you are saving for.",
+    description:
+      "Whether it is for a new business, school fees, or a new phone, start by picking what you are saving for.",
     icon: <Target className="size-8 text-emerald-600" />,
-    color: "emerald"
+    color: "emerald",
   },
   {
     title: "Pick a group that fits your pocket",
-    description: "Look for a group that matches the amount you want to pay and how often you can pay it.",
+    description:
+      "Look for a group that matches the amount you want to pay and how often you can pay it.",
     icon: <Users className="size-8 text-blue-600" />,
-    color: "blue"
+    color: "blue",
   },
   {
     title: "Pay small small every time",
-    description: "Daily, weekly, or monthly—our system will help you save automatically so you don't forget.",
+    description:
+      "Daily, weekly, or monthly—our system will help you save automatically so you don't forget.",
     icon: <Zap className="size-8 text-orange-600" />,
-    color: "orange"
+    color: "orange",
   },
   {
     title: "Collect your total money",
-    description: "When it is your turn, receive your total money directly into your bank account. No stress.",
+    description:
+      "When it is your turn, receive your total money directly into your bank account. No stress.",
     icon: <TrendingUp className="size-8 text-emerald-600" />,
-    color: "emerald"
-  }
+    color: "emerald",
+  },
 ];
 
 export function HowItWorks() {
@@ -40,8 +44,13 @@ export function HowItWorks() {
           whileInView={{ opacity: 1, y: 0 }}
           className="text-center max-w-3xl mx-auto mb-20"
         >
-          <h2 className="text-3xl md:text-4xl font-black text-slate-950 mb-6">How Mary's Thrift Services <span className="text-emerald-600">Works for You.</span></h2>
-          <p className="text-slate-600 text-lg font-medium">Just four simple steps to reach your target. No long story, no hidden charges, just easy savings.</p>
+          <h2 className="text-3xl md:text-4xl font-black text-slate-950 mb-6">
+            How Mary's Thrift Services <span className="text-emerald-600">Works for You.</span>
+          </h2>
+          <p className="text-slate-600 text-lg font-medium">
+            Just four simple steps to reach your target. No long story, no hidden charges, just easy
+            savings.
+          </p>
         </motion.div>
 
         <div className="max-w-4xl mx-auto relative">
@@ -55,7 +64,7 @@ export function HowItWorks() {
                 initial={{ opacity: 0, y: 40 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ margin: "-100px" }}
-                className={`relative flex flex-col md:flex-row items-center gap-12 ${index % 2 !== 0 ? 'md:flex-row-reverse' : ''}`}
+                className={`relative flex flex-col md:flex-row items-center gap-12 ${index % 2 !== 0 ? "md:flex-row-reverse" : ""}`}
               >
                 {/* Dot */}
                 <div className="absolute left-0 md:left-1/2 md:-translate-x-1/2 flex items-center justify-center">
@@ -66,12 +75,20 @@ export function HowItWorks() {
 
                 {/* Content */}
                 <div className="flex-1 ml-20 md:ml-0">
-                  <div className={`p-8 rounded-[2rem] bg-white border border-slate-100 shadow-sm transition-all hover:shadow-md group ${index % 2 === 0 ? 'md:text-right' : 'md:text-left'}`}>
-                    <div className={`text-emerald-600 font-black text-6xl opacity-5 absolute ${index % 2 === 0 ? 'left-8' : 'right-8'} top-4`}>
+                  <div
+                    className={`p-8 rounded-[2rem] bg-white border border-slate-100 shadow-sm transition-all hover:shadow-md group ${index % 2 === 0 ? "md:text-right" : "md:text-left"}`}
+                  >
+                    <div
+                      className={`text-emerald-600 font-black text-6xl opacity-5 absolute ${index % 2 === 0 ? "left-8" : "right-8"} top-4`}
+                    >
                       0{index + 1}
                     </div>
-                    <h3 className="text-xl font-bold text-slate-950 mb-3 group-hover:text-emerald-600 transition-colors">{step.title}</h3>
-                    <p className="text-slate-600 font-medium leading-relaxed text-sm">{step.description}</p>
+                    <h3 className="text-xl font-bold text-slate-950 mb-3 group-hover:text-emerald-600 transition-colors">
+                      {step.title}
+                    </h3>
+                    <p className="text-slate-600 font-medium leading-relaxed text-sm">
+                      {step.description}
+                    </p>
                   </div>
                 </div>
 

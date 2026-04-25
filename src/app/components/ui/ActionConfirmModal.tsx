@@ -1,5 +1,8 @@
 "use client";
 
+import { AlertTriangle, Info, CheckCircle2, AlertCircle, LucideIcon } from "lucide-react";
+
+import { Button } from "@/app/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -8,8 +11,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/app/components/ui/dialog";
-import { Button } from "@/app/components/ui/button";
-import { AlertTriangle, Info, CheckCircle2, AlertCircle, LucideIcon } from "lucide-react";
 import { cn } from "@/app/components/ui/utils";
 
 export type ConfirmVariant = "default" | "destructive" | "warning" | "success" | "info";
@@ -27,7 +28,7 @@ interface ActionConfirmModalProps {
   children?: React.ReactNode;
 }
 
-const variantStyles: Record<ConfirmVariant, { icon: LucideIcon, color: string, button: string }> = {
+const variantStyles: Record<ConfirmVariant, { icon: LucideIcon; color: string; button: string }> = {
   default: {
     icon: Info,
     color: "text-blue-600 bg-blue-50",
@@ -79,9 +80,7 @@ export function ActionConfirmModal({
             </div>
             <div className="space-y-1">
               <DialogHeader>
-                <DialogTitle className="text-xl font-bold tracking-tight">
-                  {title}
-                </DialogTitle>
+                <DialogTitle className="text-xl font-bold tracking-tight">{title}</DialogTitle>
                 <DialogDescription className="text-slate-500 text-sm leading-relaxed whitespace-pre-wrap pt-2">
                   {description}
                 </DialogDescription>
@@ -89,13 +88,9 @@ export function ActionConfirmModal({
             </div>
           </div>
         </div>
-        
-        {children && (
-          <div className="px-6 pb-4">
-            {children}
-          </div>
-        )}
-        
+
+        {children && <div className="px-6 pb-4">{children}</div>}
+
         <DialogFooter className="bg-slate-50/80 p-4 border-t flex flex-row gap-2 sm:gap-0 justify-end">
           <Button
             variant="ghost"
@@ -110,7 +105,10 @@ export function ActionConfirmModal({
               onConfirm();
             }}
             disabled={isLoading}
-            className={cn("font-semibold shadow-sm transition-all active:scale-95", variantStyles[variant].button)}
+            className={cn(
+              "font-semibold shadow-sm transition-all active:scale-95",
+              variantStyles[variant].button,
+            )}
           >
             {isLoading ? "Processing..." : confirmText}
           </Button>

@@ -1,13 +1,16 @@
+import { useState } from "react";
+
 import { motion, AnimatePresence } from "framer-motion";
 import { Mail, Phone, MessageSquare, Send, CheckCircle2 } from "lucide-react";
-import { Card, CardContent } from "@/app/components/ui/card";
-import { Button } from "@/app/components/ui/button";
-import { Input } from "@/app/components/ui/input";
-import { Textarea } from "@/app/components/ui/textarea";
-import { Label } from "@/app/components/ui/label";
-import { useState } from "react";
-import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+
+import { Button } from "@/app/components/ui/button";
+import { Card, CardContent } from "@/app/components/ui/card";
+import { Input } from "@/app/components/ui/input";
+import { Label } from "@/app/components/ui/label";
+import { Textarea } from "@/app/components/ui/textarea";
+import { supabase } from "@/lib/supabase";
+
 import { PlanRecommender } from "./PlanRecommender";
 
 const contactInfo = [
@@ -16,14 +19,14 @@ const contactInfo = [
     title: "Email Us",
     content: "marysthriftservices@gmail.com",
     description: "Response within 24 hours",
-    color: "from-emerald-600 to-emerald-400"
+    color: "from-emerald-600 to-emerald-400",
   },
   {
     icon: Phone,
     title: "Call Us",
     content: "09074049667",
     description: "Mon-Fri, 8am - 6pm",
-    color: "from-blue-600 to-blue-400"
+    color: "from-blue-600 to-blue-400",
   },
   {
     icon: MessageSquare,
@@ -31,8 +34,8 @@ const contactInfo = [
     content: "Chat with our team",
     description: "Available 24/7",
     color: "from-indigo-600 to-indigo-400",
-    action: () => window.open('https://wa.me/2349074049667', '_blank')
-  }
+    action: () => window.open("https://wa.me/2349074049667", "_blank"),
+  },
 ];
 
 export function Contact() {
@@ -44,13 +47,13 @@ export function Contact() {
     email: "",
     subject: "",
     message: "",
-    website: "" // Honeypot
+    website: "", // Honeypot
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     });
   };
 
@@ -65,33 +68,36 @@ export function Contact() {
     setLoading(true);
     try {
       // 1. Primary Action: Save to Database (Ensures we never lose a message)
-      const { error: dbError } = await supabase
-        .from('contact_inquiries')
-        .insert([{
+      const { error: dbError } = await supabase.from("contact_inquiries").insert([
+        {
           name: formData.name,
           email: formData.email,
           subject: formData.subject || `Inquiry from ${formData.name}`,
-          message: formData.message
-        }]);
+          message: formData.message,
+        },
+      ]);
 
       if (dbError) throw dbError;
 
       // 2. Secondary Action: Trigger Email Notification (May be blocked by Adblockers)
       try {
-        const { error: funcError } = await supabase.functions.invoke('contact-handler', {
+        const { error: funcError } = await supabase.functions.invoke("contact-handler", {
           body: {
             name: formData.name,
             email: formData.email,
             subject: formData.subject,
-            message: formData.message
+            message: formData.message,
           },
           headers: {
-            'x-webhook-secret': import.meta.env.VITE_FUNCTION_SECRET_TOKEN
-          }
+            "x-webhook-secret": import.meta.env.VITE_FUNCTION_SECRET_TOKEN,
+          },
         });
 
         if (funcError) {
-          console.warn("Edge Function email notification failed, but message is saved to DB:", funcError);
+          console.warn(
+            "Edge Function email notification failed, but message is saved to DB:",
+            funcError,
+          );
         }
       } catch (invokeError) {
         // This is where "Network Error" (Adblockers) usually happens
@@ -106,14 +112,15 @@ export function Contact() {
         email: "",
         subject: "",
         message: "",
-        website: ""
+        website: "",
       });
     } catch (error: any) {
       console.error("Contact Form Critical Error:", error);
-      
+
       let errorMessage = "Failed to send message. Please try again.";
       if (error?.message?.includes("Failed to fetch") || error?.name === "TypeError") {
-        errorMessage = "Network Error: Could not reach the server. Please check your internet connection and disable any Adblockers/VPNs.";
+        errorMessage =
+          "Network Error: Could not reach the server. Please check your internet connection and disable any Adblockers/VPNs.";
       }
 
       toast.error(errorMessage);
@@ -138,7 +145,8 @@ export function Contact() {
                 Get in <span className="text-emerald-600">Touch.</span>
               </h2>
               <p className="text-xl text-slate-600 font-medium leading-relaxed max-w-lg">
-                Have questions about how Mary's Thrift Services works? Our specialized team is here to help you navigate your financial journey.
+                Have questions about how Mary's Thrift Services works? Our specialized team is here
+                to help you navigate your financial journey.
               </p>
             </div>
 
@@ -147,15 +155,19 @@ export function Contact() {
                 <div
                   key={index}
                   onClick={info.action}
-                  className={`flex items-center gap-6 p-6 bg-slate-50 rounded-2xl border border-slate-100 group transition-all ${info.action ? 'cursor-pointer hover:border-indigo-400 hover:bg-white hover:shadow-xl hover:shadow-indigo-500/5' : 'hover:border-emerald-200'}`}
+                  className={`flex items-center gap-6 p-6 bg-slate-50 rounded-2xl border border-slate-100 group transition-all ${info.action ? "cursor-pointer hover:border-indigo-400 hover:bg-white hover:shadow-xl hover:shadow-indigo-500/5" : "hover:border-emerald-200"}`}
                 >
-                  <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${info.color} flex items-center justify-center shadow-lg shrink-0`}>
+                  <div
+                    className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${info.color} flex items-center justify-center shadow-lg shrink-0`}
+                  >
                     <info.icon className="size-6 text-white" />
                   </div>
                   <div>
                     <h3 className="font-bold text-slate-950">{info.title}</h3>
                     <p className="text-sm text-slate-600 font-medium">{info.content}</p>
-                    <p className="text-[10px] text-emerald-600 font-black uppercase tracking-widest mt-1">{info.description}</p>
+                    <p className="text-[10px] text-emerald-600 font-black uppercase tracking-widest mt-1">
+                      {info.description}
+                    </p>
                   </div>
                 </div>
               ))}
@@ -163,10 +175,7 @@ export function Contact() {
           </motion.div>
 
           {/* Recommender Tool */}
-          <PlanRecommender
-            open={showRecommender}
-            onOpenChange={setShowRecommender}
-          />
+          <PlanRecommender open={showRecommender} onOpenChange={setShowRecommender} />
 
           {/* Right Side: Form */}
           <motion.div
@@ -188,8 +197,12 @@ export function Contact() {
                         <CheckCircle2 className="size-10 text-emerald-600" />
                       </div>
                       <div className="space-y-2">
-                        <h3 className="text-3xl font-black text-slate-950 tracking-tight">Message Sent!</h3>
-                        <p className="text-slate-600 font-medium">Thank you for reaching out. Our team will get back to you within 24 hours.</p>
+                        <h3 className="text-3xl font-black text-slate-950 tracking-tight">
+                          Message Sent!
+                        </h3>
+                        <p className="text-slate-600 font-medium">
+                          Thank you for reaching out. Our team will get back to you within 24 hours.
+                        </p>
                       </div>
                       <Button
                         onClick={() => setSubmitted(false)}
@@ -208,7 +221,9 @@ export function Contact() {
                       className="space-y-6"
                     >
                       <div className="space-y-2">
-                        <Label htmlFor="name" className="text-sm font-bold text-slate-900 ml-1">Full Name</Label>
+                        <Label htmlFor="name" className="text-sm font-bold text-slate-900 ml-1">
+                          Full Name
+                        </Label>
                         <Input
                           id="name"
                           name="name"
@@ -221,7 +236,9 @@ export function Contact() {
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="email" className="text-sm font-bold text-slate-900 ml-1">Email Address</Label>
+                        <Label htmlFor="email" className="text-sm font-bold text-slate-900 ml-1">
+                          Email Address
+                        </Label>
                         <Input
                           id="email"
                           name="email"
@@ -235,7 +252,9 @@ export function Contact() {
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="message" className="text-sm font-bold text-slate-900 ml-1">Message</Label>
+                        <Label htmlFor="message" className="text-sm font-bold text-slate-900 ml-1">
+                          Message
+                        </Label>
                         <Textarea
                           id="message"
                           name="message"
@@ -290,17 +309,21 @@ export function Contact() {
               <div className="space-y-4">
                 <div className="flex items-center gap-2 text-emerald-100">
                   <MessageSquare className="size-5" />
-                  <span className="font-bold uppercase tracking-widest text-xs">Direct Support</span>
+                  <span className="font-bold uppercase tracking-widest text-xs">
+                    Direct Support
+                  </span>
                 </div>
-                <h4 className="text-3xl md:text-4xl font-black tracking-tight">Need Assisted Management?</h4>
+                <h4 className="text-3xl md:text-4xl font-black tracking-tight">
+                  Need Assisted Management?
+                </h4>
                 <p className="text-emerald-50/80 text-lg font-medium leading-relaxed max-w-xl">
-                  Join our community of over 50,000 savers and get real-time assistance through our dedicated channels.
-                  We can help you manage your plans and savings manually.
+                  Join our community of over 50,000 savers and get real-time assistance through our
+                  dedicated channels. We can help you manage your plans and savings manually.
                 </p>
               </div>
               <div className="flex flex-col sm:flex-row gap-4 md:justify-end">
                 <Button
-                  onClick={() => window.open('https://wa.me/2349074049667', '_blank')}
+                  onClick={() => window.open("https://wa.me/2349074049667", "_blank")}
                   variant="outline"
                   className="bg-white text-emerald-700 hover:bg-emerald-50 border-0 font-bold rounded-2xl h-16 px-8 transition-all shadow-xl text-lg"
                 >

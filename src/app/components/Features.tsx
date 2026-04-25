@@ -1,38 +1,44 @@
 import { Users, Shield, TrendingUp, Clock, Bell, Award } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { motion } from "motion/react";
+
+import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
 
 const features = [
   {
     icon: Users,
     title: "Group Savings",
-    description: "Create or join savings groups with friends, family, or colleagues. Save together towards common goals."
+    description:
+      "Create or join savings groups with friends, family, or colleagues. Save together towards common goals.",
   },
   {
     icon: Shield,
     title: "100% Secure",
-    description: "Bank-grade security with encryption ensures your money and data are always protected."
+    description:
+      "Bank-grade security with encryption ensures your money and data are always protected.",
   },
   {
     icon: TrendingUp,
     title: "Collective Growth",
-    description: "Watch your savings multiply with social accountability and group-based growth rewards."
+    description:
+      "Watch your savings multiply with social accountability and group-based growth rewards.",
   },
   {
     icon: Clock,
     title: "Flexible Schedules",
-    description: "Daily, weekly, or monthly contributions. Choose a schedule that works for your lifestyle."
+    description:
+      "Daily, weekly, or monthly contributions. Choose a schedule that works for your lifestyle.",
   },
   {
     icon: Bell,
     title: "Smart Reminders",
-    description: "Never miss a contribution with automated notifications and payment reminders."
+    description: "Never miss a contribution with automated notifications and payment reminders.",
   },
   {
     icon: Award,
     title: "Trusted Platform",
-    description: "Join thousands of satisfied savers who have achieved their financial goals with us."
-  }
+    description:
+      "Join thousands of satisfied savers who have achieved their financial goals with us.",
+  },
 ];
 
 export function Features() {

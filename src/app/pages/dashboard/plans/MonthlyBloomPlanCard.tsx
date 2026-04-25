@@ -1,385 +1,463 @@
 import { useState } from "react";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/app/components/ui/card";
-import { Button } from "@/app/components/ui/button";
-import { Badge } from "@/app/components/ui/badge";
-import { Label } from "@/app/components/ui/label";
-import { Input } from "@/app/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
-import { Plan, UserPlan } from "@/types";
+
 import { CheckCircle, AlertTriangle, Sprout, RefreshCw, Trophy } from "lucide-react";
 import { Link } from "react-router-dom";
-import { SprintJoinModal } from "./SprintJoinModal";
-import { formatNaira } from "@/lib/utils";
 import { toast } from "sonner";
 
+import { Badge } from "@/app/components/ui/badge";
+import { Button } from "@/app/components/ui/button";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/app/components/ui/card";
+import { Input } from "@/app/components/ui/input";
+import { Label } from "@/app/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/app/components/ui/select";
+import { formatNaira } from "@/lib/utils";
+import { Plan, UserPlan } from "@/types";
+
+import { SprintJoinModal } from "./SprintJoinModal";
+
 interface MonthlyBloomPlanCardProps {
-    plan: Plan;
-    userPlan?: UserPlan;
-    onJoin: (planId: string, targetAmount: number, duration: number) => void;
-    onDeposit: () => void;
-    onAdvanceDeposit?: () => void;
-    onLeave?: () => void;
+  plan: Plan;
+  userPlan?: UserPlan;
+  onJoin: (planId: string, targetAmount: number, duration: number) => void;
+  onDeposit: () => void;
+  onAdvanceDeposit?: () => void;
+  onLeave?: () => void;
 }
 
-export function MonthlyBloomPlanCard({ plan, userPlan, onJoin, onDeposit, onAdvanceDeposit, onLeave }: MonthlyBloomPlanCardProps) {
-    const [duration, setDuration] = useState<string>("4");
-    const [targetAmount, setTargetAmount] = useState<string>("20000");
-    const [showJoinModal, setShowJoinModal] = useState(false);
+export function MonthlyBloomPlanCard({
+  plan,
+  userPlan,
+  onJoin,
+  onDeposit,
+  onAdvanceDeposit,
+  onLeave,
+}: MonthlyBloomPlanCardProps) {
+  const [duration, setDuration] = useState<string>("4");
+  const [targetAmount, setTargetAmount] = useState<string>("20000");
+  const [showJoinModal, setShowJoinModal] = useState(false);
 
+  const isJoined = !!userPlan && userPlan.status !== "cancelled";
+  const isCompleted = userPlan?.status === "completed" || userPlan?.status === "matured";
+  const meta = userPlan?.plan_metadata || {};
 
-    const isJoined = !!userPlan && userPlan.status !== 'cancelled';
-    const isCompleted = userPlan?.status === 'completed' || userPlan?.status === 'matured';
-    const meta = userPlan?.plan_metadata || {};
+  // Active State Data
+  const monthPaid = meta.month_paid_so_far || 0;
+  const monthsCompleted = meta.months_completed || 0;
+  const selectedDuration = meta.selected_duration || 4;
+  const target = meta.target_amount || 20000;
+  const arrears = meta.arrears || 0;
 
-    // Active State Data
-    const monthPaid = meta.month_paid_so_far || 0;
-    const monthsCompleted = meta.months_completed || 0;
-    const selectedDuration = meta.selected_duration || 4;
-    const target = meta.target_amount || 20000;
-    const arrears = meta.arrears || 0;
+  const isTargetMet = monthsCompleted >= selectedDuration;
+  const progressPercent = isTargetMet ? 100 : Math.min((monthPaid / target) * 100, 100);
 
-    const isTargetMet = monthsCompleted >= selectedDuration;
-    const progressPercent = isTargetMet ? 100 : Math.min((monthPaid / target) * 100, 100);
+  const totalTarget = target * selectedDuration;
+  const totalSaved = userPlan?.current_balance || 0;
+  const overallProgressPercent = Math.min((totalSaved / totalTarget) * 100, 100);
+  const excessAmount = Math.max(0, totalSaved - totalTarget);
 
-    const totalTarget = target * selectedDuration;
-    const totalSaved = userPlan?.current_balance || 0;
-    const overallProgressPercent = Math.min((totalSaved / totalTarget) * 100, 100);
-    const excessAmount = Math.max(0, totalSaved - totalTarget);
-
-    const handleJoin = () => {
-        const amount = parseFloat(targetAmount);
-        if (isNaN(amount) || amount < 20000) {
-            toast.error("Minimum monthly target is ₦20,000");
-            return;
-        }
-        setShowJoinModal(true);
-    };
-
-    const confirmJoin = () => {
-        onJoin(plan.id, parseFloat(targetAmount), parseInt(duration));
-    };
-
-    // Joined State - Minimalist
-    if (isJoined && !isCompleted) {
-        return (
-            <Card className="flex flex-col relative overflow-hidden bg-white dark:bg-gray-900 border-l-4 border-l-pink-500 shadow-sm hover:shadow-md transition-shadow">
-                <CardHeader className="pb-2">
-                    <div className="flex justify-between items-start">
-                        <div>
-                            <div className="flex items-center gap-2 mb-2">
-                                <Badge variant="outline" className="text-slate-700 border-slate-200 bg-slate-50">{plan.name}</Badge>
-                                <Badge className={
-                                    userPlan.status === 'pending_activation'
-                                        ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200'
-                                        : 'bg-emerald-600 border-emerald-500 text-white'
-                                }>
-                                    {userPlan.status === 'pending_activation' ? 'PENDING ACTIVATION' : 'Active'}
-                                </Badge>
-                            </div>
-                            <CardTitle className="text-xl font-bold text-gray-900 dark:text-gray-100">{plan.name}</CardTitle>
-                        </div>
-                        <div className="text-right">
-                            <div className="text-xs text-gray-500 uppercase font-bold tracking-wider">Total Saved</div>
-                            <div className="text-xl font-bold text-gray-900 dark:text-white">{formatNaira(userPlan?.current_balance || 0)}</div>
-                        </div>
-                    </div>
-                </CardHeader>
-
-                <CardContent className="space-y-6 flex-1 pt-4 overflow-y-auto max-h-[60vh] custom-scrollbar">
-                    <div className="flex flex-col gap-2">
-                        {arrears > 0 ? (
-                            <div className="bg-red-50 p-2 rounded border border-red-100 flex items-center gap-2 text-xs text-red-700 font-medium animate-pulse">
-                                <AlertTriangle className="w-3.5 h-3.5 text-red-500" />
-                                Arrears: {formatNaira(arrears)}
-                            </div>
-                        ) : isTargetMet ? (
-                            <div className="flex flex-col gap-1">
-                                <div className="flex items-center gap-2 p-2 bg-emerald-50 text-emerald-700 rounded-md text-xs border border-emerald-100 font-bold">
-                                    <Trophy className="w-3.5 h-3.5 text-emerald-500" />
-                                    <span>Goal Achieved! You reached your target.</span>
-                                </div>
-                                {excessAmount > 0 && (
-                                    <div className="text-[10px] text-emerald-600 font-bold ml-1">
-                                        You saved an extra {formatNaira(excessAmount)}! Congratulations! 🌸
-                                    </div>
-                                )}
-                            </div>
-                        ) : (
-                            <div className="flex items-center gap-2 p-2 bg-emerald-50 text-emerald-700 rounded-md text-xs border border-emerald-100 font-bold">
-                                <CheckCircle className="w-3.5 h-3.5" />
-                                <span>On Track</span>
-                            </div>
-                        )}
-
-                        {monthsCompleted > 0 && !isTargetMet && (
-                            <div className="flex items-center gap-2 p-2 bg-blue-50 text-blue-700 rounded-md text-[10px] border border-blue-100 font-bold">
-                                <RefreshCw className="w-3 h-3 text-blue-500" />
-                                <span>Advance Payment: {monthsCompleted} {monthsCompleted === 1 ? 'Month' : 'Months'} Covered</span>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Monthly Progress */}
-                    <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                            <span className="text-gray-600 dark:text-gray-400 font-medium">
-                                {isTargetMet ? 'Monthly Progress (Completed)' : `Monthly Progress (Month ${monthsCompleted + 1})`}
-                            </span>
-                            <span className="font-bold text-gray-900 dark:text-gray-200">
-                                {isTargetMet ? formatNaira(target) : formatNaira(monthPaid)} / {formatNaira(target)}
-                            </span>
-                        </div>
-                        <div className="h-2 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                            <div
-                                className={`h-full rounded-full transition-all duration-500 ${isTargetMet ? 'bg-emerald-500' : 'bg-pink-500'}`}
-                                style={{ width: `${progressPercent}%` }}
-                            />
-                        </div>
-                        <div className="flex justify-between text-[10px] text-gray-400 font-medium">
-                            <span>{isTargetMet ? '100%' : `${Math.round(progressPercent)}%`} of Current Month</span>
-                            {monthsCompleted > 0 && !isTargetMet && <span>Advanced {monthsCompleted} Mo</span>}
-                        </div>
-                    </div>
-
-                    {/* Overall Progress */}
-                    <div className="pt-2 border-t border-gray-50 dark:border-gray-800 space-y-2">
-                        <div className="flex justify-between text-sm">
-                            <span className="text-gray-600 dark:text-gray-400 font-medium">Overall Plan Progress</span>
-                            <span className="font-bold text-gray-900 dark:text-gray-200">
-                                {formatNaira(totalSaved)} / {formatNaira(totalTarget)}
-                            </span>
-                        </div>
-                        <div className="h-1.5 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                            <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${overallProgressPercent}%` }} />
-                        </div>
-                        <div className="flex justify-between text-[10px] text-gray-400 font-medium">
-                            <span>Month {monthsCompleted} of {selectedDuration} Completed</span>
-                            <span>{Math.round(overallProgressPercent)}% Total</span>
-                        </div>
-                    </div>
-                </CardContent>
-
-                <CardFooter className="flex flex-col gap-3 pt-2">
-                    <div className="grid grid-cols-2 gap-3 w-full">
-                        {(monthPaid < target || arrears > 0) ? (
-                            <Button
-                                className="w-full bg-gray-900 hover:bg-gray-800 text-white dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
-                                onClick={onDeposit}
-                            >
-                                {arrears > 0 ? "Pay Arrears" : "Add Funds"}
-                            </Button>
-                        ) : !isTargetMet && (
-                            <Button
-                                variant="secondary"
-                                className="w-full bg-pink-50 text-pink-700 hover:bg-pink-100 border border-pink-200 font-bold"
-                                onClick={onAdvanceDeposit}
-                            >
-                                Pay in Advance
-                            </Button>
-                        )}
-                        <Button variant="outline" asChild className="w-full text-center">
-                            <Link to={`/dashboard/wallet?planId=${userPlan?.plan.id}`}>Details</Link>
-                        </Button>
-                    </div>
-
-                    {userPlan.status === 'pending_activation' && onLeave && (
-                        <Button
-                            variant="ghost"
-                            className="w-full text-red-600 hover:text-red-700 hover:bg-red-50 text-xs font-semibold"
-                            onClick={onLeave}
-                        >
-                            Leave Plan
-                        </Button>
-                    )}
-                </CardFooter>
-            </Card>
-        );
+  const handleJoin = () => {
+    const amount = parseFloat(targetAmount);
+    if (isNaN(amount) || amount < 20000) {
+      toast.error("Minimum monthly target is ₦20,000");
+      return;
     }
+    setShowJoinModal(true);
+  };
 
-    if (isCompleted) {
-        return (
-            <Card className="flex flex-col relative overflow-hidden bg-white dark:bg-gray-900 border-l-4 border-l-emerald-500 shadow-sm hover:shadow-md transition-shadow">
-                <CardHeader className="pb-2">
-                    <div className="flex justify-between items-start">
-                        <div>
-                            <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 mb-2">Completed</Badge>
-                            <CardTitle className="text-xl font-bold text-emerald-900 dark:text-emerald-100">{plan.name}</CardTitle>
-                        </div>
-                    </div>
-                </CardHeader>
-                <CardContent className="flex-1 flex flex-col items-center justify-center text-center space-y-4 pt-4">
-                    <div className="w-16 h-16 bg-emerald-50 dark:bg-emerald-900/20 rounded-full flex items-center justify-center">
-                        <CheckCircle className="w-8 h-8 text-emerald-500" />
-                    </div>
-                    <div>
-                        <h3 className="text-lg font-bold text-emerald-800 dark:text-emerald-200">Goal Achieved! 🌸</h3>
-                        <p className="text-sm text-emerald-600 dark:text-emerald-400 mt-1">You have successfully reached your Monthly Bloom target.</p>
-                    </div>
-                </CardContent>
-                <CardFooter className="pt-2">
-                    <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold" onClick={() => {
-                        onJoin(plan.id, parseInt(targetAmount), parseInt(duration));
-                    }}>
-                        <RefreshCw className="w-4 h-4 mr-2" /> Start New Bloom
-                    </Button>
-                </CardFooter>
-            </Card>
-        )
-    }
+  const confirmJoin = () => {
+    onJoin(plan.id, parseFloat(targetAmount), parseInt(duration));
+  };
 
-    // Available State (Minimalist Redesign)
+  // Joined State - Minimalist
+  if (isJoined && !isCompleted) {
     return (
-        <>
-            <Card className="flex flex-col relative overflow-hidden bg-white dark:bg-gray-900 border-l-4 border-l-pink-500 shadow-sm hover:shadow-md transition-shadow group">
-                <CardHeader className="pb-4">
-                    <div className="flex justify-between items-start">
-                        <div>
-                            <Badge variant="secondary" className="mb-2 bg-slate-50 text-slate-700 border-slate-100 hover:bg-slate-100">
-                                Monthly Plan
-                            </Badge>
-                            <CardTitle className="text-xl font-bold text-gray-900 dark:text-white">
-                                {plan.name}
-                            </CardTitle>
-                        </div>
-                    </div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 font-medium leading-relaxed mt-1 line-clamp-2">
-                        Perfect for business owners or salary earners looking to lock away a chunk of income monthly for major projects.
-                    </p>
-                </CardHeader>
+      <Card className="flex flex-col relative overflow-hidden bg-white dark:bg-gray-900 border-l-4 border-l-pink-500 shadow-sm hover:shadow-md transition-shadow">
+        <CardHeader className="pb-2">
+          <div className="flex justify-between items-start">
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <Badge variant="outline" className="text-slate-700 border-slate-200 bg-slate-50">
+                  {plan.name}
+                </Badge>
+                <Badge
+                  className={
+                    userPlan.status === "pending_activation"
+                      ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200"
+                      : "bg-emerald-600 border-emerald-500 text-white"
+                  }
+                >
+                  {userPlan.status === "pending_activation" ? "PENDING ACTIVATION" : "Active"}
+                </Badge>
+              </div>
+              <CardTitle className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                {plan.name}
+              </CardTitle>
+            </div>
+            <div className="text-right">
+              <div className="text-xs text-gray-500 uppercase font-bold tracking-wider">
+                Total Saved
+              </div>
+              <div className="text-xl font-bold text-gray-900 dark:text-white">
+                {formatNaira(userPlan?.current_balance || 0)}
+              </div>
+            </div>
+          </div>
+        </CardHeader>
 
-                <CardContent className="flex-1 space-y-6 pt-2 overflow-y-auto max-h-[60vh] custom-scrollbar">
-                    {/* Input Section - Minimalist UI */}
-                    <div className="space-y-4 pt-2">
-                        <div className="grid grid-cols-2 gap-3">
-                            <div className="space-y-1.5">
-                                <Label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Duration</Label>
-                                <Select value={duration} onValueChange={setDuration}>
-                                    <SelectTrigger className="bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 h-9 font-medium text-sm focus:ring-pink-500">
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {[4, 5, 6, 7, 8, 9, 10, 11, 12].map(m => (
-                                            <SelectItem key={m} value={m.toString()}>{m} Months</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="space-y-1.5">
-                                <Label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Monthly Target</Label>
-                                <Input
-                                    type="number"
-                                    className="bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 h-9 font-semibold text-sm focus-visible:ring-slate-500"
-                                    value={targetAmount}
-                                    onChange={(e) => {
-                                        const val = e.target.value;
-                                        setTargetAmount(val);
-                                        const num = parseFloat(val);
-                                        if (val && !isNaN(num) && num < 20000) {
-                                            toast.warning("Monthly target must be at least ₦20,000", {
-                                                id: "monthly-bloom-min-warning", // Prevent duplicate toasts
-                                            });
-                                        }
-                                    }}
-                                />
-                            </div>
-                        </div>
+        <CardContent className="space-y-6 flex-1 pt-4 overflow-y-auto max-h-[60vh] custom-scrollbar">
+          <div className="flex flex-col gap-2">
+            {arrears > 0 ? (
+              <div className="bg-red-50 p-2 rounded border border-red-100 flex items-center gap-2 text-xs text-red-700 font-medium animate-pulse">
+                <AlertTriangle className="w-3.5 h-3.5 text-red-500" />
+                Arrears: {formatNaira(arrears)}
+              </div>
+            ) : isTargetMet ? (
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-2 p-2 bg-emerald-50 text-emerald-700 rounded-md text-xs border border-emerald-100 font-bold">
+                  <Trophy className="w-3.5 h-3.5 text-emerald-500" />
+                  <span>Goal Achieved! You reached your target.</span>
+                </div>
+                {excessAmount > 0 && (
+                  <div className="text-[10px] text-emerald-600 font-bold ml-1">
+                    You saved an extra {formatNaira(excessAmount)}! Congratulations! 🌸
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 p-2 bg-emerald-50 text-emerald-700 rounded-md text-xs border border-emerald-100 font-bold">
+                <CheckCircle className="w-3.5 h-3.5" />
+                <span>On Track</span>
+              </div>
+            )}
 
-                        <div className="flex justify-between items-center text-xs text-slate-700 bg-slate-50 p-2 rounded border border-slate-100">
-                            <span className="font-semibold">Est. Total Savings:</span>
-                            <span className="font-bold text-sm bg-white px-2 py-0.5 rounded border border-slate-200 shadow-sm">{formatNaira(parseInt(targetAmount || "0") * parseInt(duration))}</span>
-                        </div>
-                    </div>
+            {monthsCompleted > 0 && !isTargetMet && (
+              <div className="flex items-center gap-2 p-2 bg-blue-50 text-blue-700 rounded-md text-[10px] border border-blue-100 font-bold">
+                <RefreshCw className="w-3 h-3 text-blue-500" />
+                <span>
+                  Advance Payment: {monthsCompleted} {monthsCompleted === 1 ? "Month" : "Months"}{" "}
+                  Covered
+                </span>
+              </div>
+            )}
+          </div>
 
-                    <div className="space-y-4 pt-2">
-                        <div className="p-3 bg-pink-50 dark:bg-pink-900/20 rounded-lg border border-pink-100 dark:border-pink-800">
-                            <h4 className="text-[10px] font-bold text-pink-800 dark:text-pink-400 uppercase tracking-wider mb-2">Rules & Features</h4>
-                            <ul className="space-y-1.5">
-                                <li className="flex items-center gap-2 text-xs text-pink-700 dark:text-pink-400">
-                                    <div className="w-1 h-1 rounded-full bg-pink-500" />
-                                    Flexible monthly savings target
-                                </li>
-                                <li className="flex items-center gap-2 text-xs text-pink-700 dark:text-pink-400">
-                                    <div className="w-1 h-1 rounded-full bg-pink-500" />
-                                    Lock Duration: 4 to 12 Months
-                                </li>
-                                <li className="flex flex-col gap-2 text-xs text-pink-700 dark:text-pink-400">
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-1 h-1 rounded-full bg-pink-500" />
-                                        Monthly Service Charge: {plan.service_charge_type === 'percentage' ? `${plan.service_charge_percentage}%` : 
-                                                                plan.service_charge_type === 'fixed' ? `₦${(plan.service_charge_fixed || plan.service_charge || 0).toLocaleString()}` : 
-                                                                'See table below'}
-                                    </div>
-                                    
-                                    {plan.service_charge_type === 'tiered' && plan.service_charge_tiers && plan.service_charge_tiers.length > 0 && (
-                                        <div className="rounded border border-pink-100 dark:border-pink-800 overflow-hidden mt-1 mx-2">
-                                            <table className="w-full text-[10px] text-left">
-                                                <thead className="bg-pink-100/50 dark:bg-pink-900/40 font-bold text-pink-800 dark:text-pink-400">
-                                                    <tr>
-                                                        <th className="px-2 py-1">Monthly Target</th>
-                                                        <th className="px-2 py-1 text-right">Charge</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody className="divide-y divide-pink-50 dark:divide-pink-800 text-pink-700 dark:text-pink-400">
-                                                    {plan.service_charge_tiers.map((tier: any, idx: number) => (
-                                                        <tr key={idx}>
-                                                            <td className="px-2 py-1">{formatNaira(tier.min)} - {tier.max > 0 && tier.max < 9999999 ? formatNaira(tier.max) : 'Above'}</td>
-                                                            <td className="px-2 py-1 text-right font-bold">{formatNaira(tier.fee)}</td>
-                                                        </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    )}
-                                </li>
-                                <li className="flex items-center gap-2 text-xs text-pink-700 dark:text-pink-400">
-                                    <div className="w-1 h-1 rounded-full bg-pink-500" />
-                                    Charges are auto-deducted monthly
-                                </li>
-                                <li className="flex items-center gap-2 text-xs text-pink-700 dark:text-pink-400">
-                                    <div className="w-1 h-1 rounded-full bg-pink-500" />
-                                    Locked until total maturity reached
-                                </li>
-                            </ul>
-                        </div>
+          {/* Monthly Progress */}
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600 dark:text-gray-400 font-medium">
+                {isTargetMet
+                  ? "Monthly Progress (Completed)"
+                  : `Monthly Progress (Month ${monthsCompleted + 1})`}
+              </span>
+              <span className="font-bold text-gray-900 dark:text-gray-200">
+                {isTargetMet ? formatNaira(target) : formatNaira(monthPaid)} / {formatNaira(target)}
+              </span>
+            </div>
+            <div className="h-2 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all duration-500 ${isTargetMet ? "bg-emerald-500" : "bg-pink-500"}`}
+                style={{ width: `${progressPercent}%` }}
+              />
+            </div>
+            <div className="flex justify-between text-[10px] text-gray-400 font-medium">
+              <span>
+                {isTargetMet ? "100%" : `${Math.round(progressPercent)}%`} of Current Month
+              </span>
+              {monthsCompleted > 0 && !isTargetMet && <span>Advanced {monthsCompleted} Mo</span>}
+            </div>
+          </div>
 
-                        <div className="grid grid-cols-2 gap-3 text-xs text-gray-500 dark:text-gray-400 font-medium pt-2">
-                            <div className="flex items-center gap-2">
-                                <CheckCircle className="w-3.5 h-3.5 text-pink-600" />
-                                <span>Flexible Target</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <Sprout className="w-3.5 h-3.5 text-pink-600" />
-                                <span>Growth Focused</span>
-                            </div>
-                        </div>
-                    </div>
-                </CardContent>
+          {/* Overall Progress */}
+          <div className="pt-2 border-t border-gray-50 dark:border-gray-800 space-y-2">
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600 dark:text-gray-400 font-medium">
+                Overall Plan Progress
+              </span>
+              <span className="font-bold text-gray-900 dark:text-gray-200">
+                {formatNaira(totalSaved)} / {formatNaira(totalTarget)}
+              </span>
+            </div>
+            <div className="h-1.5 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-emerald-500 rounded-full"
+                style={{ width: `${overallProgressPercent}%` }}
+              />
+            </div>
+            <div className="flex justify-between text-[10px] text-gray-400 font-medium">
+              <span>
+                Month {monthsCompleted} of {selectedDuration} Completed
+              </span>
+              <span>{Math.round(overallProgressPercent)}% Total</span>
+            </div>
+          </div>
+        </CardContent>
 
-                <CardFooter className="pt-2">
-                    <Button
-                        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-12 rounded-2xl shadow-lg shadow-emerald-500/20 transition-all duration-300 hover:-translate-y-0.5"
-                        onClick={handleJoin}
-                    >
-                        Start Saving Plan
-                    </Button>
-                </CardFooter>
-            </Card>
+        <CardFooter className="flex flex-col gap-3 pt-2">
+          <div className="grid grid-cols-2 gap-3 w-full">
+            {monthPaid < target || arrears > 0 ? (
+              <Button
+                className="w-full bg-gray-900 hover:bg-gray-800 text-white dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
+                onClick={onDeposit}
+              >
+                {arrears > 0 ? "Pay Arrears" : "Add Funds"}
+              </Button>
+            ) : (
+              !isTargetMet && (
+                <Button
+                  variant="secondary"
+                  className="w-full bg-pink-50 text-pink-700 hover:bg-pink-100 border border-pink-200 font-bold"
+                  onClick={onAdvanceDeposit}
+                >
+                  Pay in Advance
+                </Button>
+              )
+            )}
+            <Button variant="outline" asChild className="w-full text-center">
+              <Link to={`/dashboard/wallet?planId=${userPlan?.plan.id}`}>Details</Link>
+            </Button>
+          </div>
 
-            <SprintJoinModal
-                isOpen={showJoinModal}
-                onClose={() => setShowJoinModal(false)}
-                onSuccess={() => { }} // SUCCESS handled by Plans.tsx handleJoinMonthlyBloom
-                onJoinWithMetadata={confirmJoin}
-                plan={plan}
-                customTitle="Confirm Monthly Saving Plan"
-                customTerms={[
-                    `Duration: ${duration} Months`,
-                    `Monthly Target: ${formatNaira(parseInt(targetAmount))}`,
-                    `Service Charge: ${plan.service_charge_type === 'fixed' ? formatNaira(plan.service_charge_fixed || plan.service_charge || 0) : 'Calculated based on target'}`,
-                    "Withdrawal: Locked until maturity",
-                    "Aesthetics: Premium Growth"
-                ]}
-            />
-        </>
+          {userPlan.status === "pending_activation" && onLeave && (
+            <Button
+              variant="ghost"
+              className="w-full text-red-600 hover:text-red-700 hover:bg-red-50 text-xs font-semibold"
+              onClick={onLeave}
+            >
+              Leave Plan
+            </Button>
+          )}
+        </CardFooter>
+      </Card>
     );
+  }
+
+  if (isCompleted) {
+    return (
+      <Card className="flex flex-col relative overflow-hidden bg-white dark:bg-gray-900 border-l-4 border-l-emerald-500 shadow-sm hover:shadow-md transition-shadow">
+        <CardHeader className="pb-2">
+          <div className="flex justify-between items-start">
+            <div>
+              <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 mb-2">
+                Completed
+              </Badge>
+              <CardTitle className="text-xl font-bold text-emerald-900 dark:text-emerald-100">
+                {plan.name}
+              </CardTitle>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="flex-1 flex flex-col items-center justify-center text-center space-y-4 pt-4">
+          <div className="w-16 h-16 bg-emerald-50 dark:bg-emerald-900/20 rounded-full flex items-center justify-center">
+            <CheckCircle className="w-8 h-8 text-emerald-500" />
+          </div>
+          <div>
+            <h3 className="text-lg font-bold text-emerald-800 dark:text-emerald-200">
+              Goal Achieved! 🌸
+            </h3>
+            <p className="text-sm text-emerald-600 dark:text-emerald-400 mt-1">
+              You have successfully reached your Monthly Bloom target.
+            </p>
+          </div>
+        </CardContent>
+        <CardFooter className="pt-2">
+          <Button
+            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+            onClick={() => {
+              onJoin(plan.id, parseInt(targetAmount), parseInt(duration));
+            }}
+          >
+            <RefreshCw className="w-4 h-4 mr-2" /> Start New Bloom
+          </Button>
+        </CardFooter>
+      </Card>
+    );
+  }
+
+  // Available State (Minimalist Redesign)
+  return (
+    <>
+      <Card className="flex flex-col relative overflow-hidden bg-white dark:bg-gray-900 border-l-4 border-l-pink-500 shadow-sm hover:shadow-md transition-shadow group">
+        <CardHeader className="pb-4">
+          <div className="flex justify-between items-start">
+            <div>
+              <Badge
+                variant="secondary"
+                className="mb-2 bg-slate-50 text-slate-700 border-slate-100 hover:bg-slate-100"
+              >
+                Monthly Plan
+              </Badge>
+              <CardTitle className="text-xl font-bold text-gray-900 dark:text-white">
+                {plan.name}
+              </CardTitle>
+            </div>
+          </div>
+          <p className="text-sm text-gray-500 dark:text-gray-400 font-medium leading-relaxed mt-1 line-clamp-2">
+            Perfect for business owners or salary earners looking to lock away a chunk of income
+            monthly for major projects.
+          </p>
+        </CardHeader>
+
+        <CardContent className="flex-1 space-y-6 pt-2 overflow-y-auto max-h-[60vh] custom-scrollbar">
+          {/* Input Section - Minimalist UI */}
+          <div className="space-y-4 pt-2">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
+                  Duration
+                </Label>
+                <Select value={duration} onValueChange={setDuration}>
+                  <SelectTrigger className="bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 h-9 font-medium text-sm focus:ring-pink-500">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[4, 5, 6, 7, 8, 9, 10, 11, 12].map((m) => (
+                      <SelectItem key={m} value={m.toString()}>
+                        {m} Months
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
+                  Monthly Target
+                </Label>
+                <Input
+                  type="number"
+                  className="bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 h-9 font-semibold text-sm focus-visible:ring-slate-500"
+                  value={targetAmount}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setTargetAmount(val);
+                    const num = parseFloat(val);
+                    if (val && !isNaN(num) && num < 20000) {
+                      toast.warning("Monthly target must be at least ₦20,000", {
+                        id: "monthly-bloom-min-warning", // Prevent duplicate toasts
+                      });
+                    }
+                  }}
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-between items-center text-xs text-slate-700 bg-slate-50 p-2 rounded border border-slate-100">
+              <span className="font-semibold">Est. Total Savings:</span>
+              <span className="font-bold text-sm bg-white px-2 py-0.5 rounded border border-slate-200 shadow-sm">
+                {formatNaira(parseInt(targetAmount || "0") * parseInt(duration))}
+              </span>
+            </div>
+          </div>
+
+          <div className="space-y-4 pt-2">
+            <div className="p-3 bg-pink-50 dark:bg-pink-900/20 rounded-lg border border-pink-100 dark:border-pink-800">
+              <h4 className="text-[10px] font-bold text-pink-800 dark:text-pink-400 uppercase tracking-wider mb-2">
+                Rules & Features
+              </h4>
+              <ul className="space-y-1.5">
+                <li className="flex items-center gap-2 text-xs text-pink-700 dark:text-pink-400">
+                  <div className="w-1 h-1 rounded-full bg-pink-500" />
+                  Flexible monthly savings target
+                </li>
+                <li className="flex items-center gap-2 text-xs text-pink-700 dark:text-pink-400">
+                  <div className="w-1 h-1 rounded-full bg-pink-500" />
+                  Lock Duration: 4 to 12 Months
+                </li>
+                <li className="flex flex-col gap-2 text-xs text-pink-700 dark:text-pink-400">
+                  <div className="flex items-center gap-2">
+                    <div className="w-1 h-1 rounded-full bg-pink-500" />
+                    Monthly Service Charge:{" "}
+                    {plan.service_charge_type === "percentage"
+                      ? `${plan.service_charge_percentage}%`
+                      : plan.service_charge_type === "fixed"
+                        ? `₦${(plan.service_charge_fixed || plan.service_charge || 0).toLocaleString()}`
+                        : "See table below"}
+                  </div>
+
+                  {plan.service_charge_type === "tiered" &&
+                    plan.service_charge_tiers &&
+                    plan.service_charge_tiers.length > 0 && (
+                      <div className="rounded border border-pink-100 dark:border-pink-800 overflow-hidden mt-1 mx-2">
+                        <table className="w-full text-[10px] text-left">
+                          <thead className="bg-pink-100/50 dark:bg-pink-900/40 font-bold text-pink-800 dark:text-pink-400">
+                            <tr>
+                              <th className="px-2 py-1">Monthly Target</th>
+                              <th className="px-2 py-1 text-right">Charge</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-pink-50 dark:divide-pink-800 text-pink-700 dark:text-pink-400">
+                            {plan.service_charge_tiers.map((tier: any, idx: number) => (
+                              <tr key={idx}>
+                                <td className="px-2 py-1">
+                                  {formatNaira(tier.min)} -{" "}
+                                  {tier.max > 0 && tier.max < 9999999
+                                    ? formatNaira(tier.max)
+                                    : "Above"}
+                                </td>
+                                <td className="px-2 py-1 text-right font-bold">
+                                  {formatNaira(tier.fee)}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                </li>
+                <li className="flex items-center gap-2 text-xs text-pink-700 dark:text-pink-400">
+                  <div className="w-1 h-1 rounded-full bg-pink-500" />
+                  Charges are auto-deducted monthly
+                </li>
+                <li className="flex items-center gap-2 text-xs text-pink-700 dark:text-pink-400">
+                  <div className="w-1 h-1 rounded-full bg-pink-500" />
+                  Locked until total maturity reached
+                </li>
+              </ul>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 text-xs text-gray-500 dark:text-gray-400 font-medium pt-2">
+              <div className="flex items-center gap-2">
+                <CheckCircle className="w-3.5 h-3.5 text-pink-600" />
+                <span>Flexible Target</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Sprout className="w-3.5 h-3.5 text-pink-600" />
+                <span>Growth Focused</span>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+
+        <CardFooter className="pt-2">
+          <Button
+            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-12 rounded-2xl shadow-lg shadow-emerald-500/20 transition-all duration-300 hover:-translate-y-0.5"
+            onClick={handleJoin}
+          >
+            Start Saving Plan
+          </Button>
+        </CardFooter>
+      </Card>
+
+      <SprintJoinModal
+        isOpen={showJoinModal}
+        onClose={() => setShowJoinModal(false)}
+        onSuccess={() => {}} // SUCCESS handled by Plans.tsx handleJoinMonthlyBloom
+        onJoinWithMetadata={confirmJoin}
+        plan={plan}
+        customTitle="Confirm Monthly Saving Plan"
+        customTerms={[
+          `Duration: ${duration} Months`,
+          `Monthly Target: ${formatNaira(parseInt(targetAmount))}`,
+          `Service Charge: ${plan.service_charge_type === "fixed" ? formatNaira(plan.service_charge_fixed || plan.service_charge || 0) : "Calculated based on target"}`,
+          "Withdrawal: Locked until maturity",
+          "Aesthetics: Premium Growth",
+        ]}
+      />
+    </>
+  );
 }

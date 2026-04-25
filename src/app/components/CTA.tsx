@@ -1,5 +1,6 @@
-import { Button } from "@/app/components/ui/button";
 import { motion } from "framer-motion";
+
+import { Button } from "@/app/components/ui/button";
 
 export function CTA() {
   return (
@@ -23,7 +24,8 @@ export function CTA() {
                 <span className="text-emerald-400">together?</span>
               </h2>
               <p className="text-xl text-slate-400 font-medium leading-relaxed">
-                Join over 50,000 members who are already revolutionizing their financial discipline with Mary's Thrift Services. Simple, social, and secure.
+                Join over 50,000 members who are already revolutionizing their financial discipline
+                with Mary's Thrift Services. Simple, social, and secure.
               </p>
             </motion.div>
 
@@ -37,7 +39,9 @@ export function CTA() {
               <Button
                 size="lg"
                 className="w-full sm:w-auto px-10 h-16 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-lg font-bold shadow-xl shadow-emerald-500/20 active:scale-95 transition-all"
-                onClick={() => document.getElementById('plans')?.scrollIntoView({ behavior: 'smooth' })}
+                onClick={() =>
+                  document.getElementById("plans")?.scrollIntoView({ behavior: "smooth" })
+                }
               >
                 Join a Plan
               </Button>
@@ -45,7 +49,9 @@ export function CTA() {
                 size="lg"
                 variant="outline"
                 className="w-full sm:w-auto px-10 h-16 bg-transparent border-2 border-slate-700 text-white hover:bg-slate-800 hover:text-white rounded-2xl text-lg font-bold active:scale-95 transition-all"
-                onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
+                onClick={() =>
+                  document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" })
+                }
               >
                 How it Works
               </Button>
@@ -61,17 +67,23 @@ export function CTA() {
             >
               <div className="flex flex-col items-center">
                 <span className="text-2xl font-black text-white">100%</span>
-                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Secure</span>
+                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                  Secure
+                </span>
               </div>
               <div className="w-px h-8 bg-slate-800" />
               <div className="flex flex-col items-center">
                 <span className="text-2xl font-black text-white">#1</span>
-                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Choice</span>
+                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                  Choice
+                </span>
               </div>
               <div className="w-px h-8 bg-slate-800" />
               <div className="flex flex-col items-center">
                 <span className="text-2xl font-black text-white">24/7</span>
-                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Support</span>
+                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                  Support
+                </span>
               </div>
             </motion.div>
           </div>

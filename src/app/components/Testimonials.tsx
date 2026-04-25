@@ -1,14 +1,18 @@
+import { useState, useEffect } from "react";
+
+import Autoplay from "embla-carousel-autoplay";
+import useEmblaCarousel from "embla-carousel-react";
 import { motion } from "framer-motion";
 import { Star, Quote, CheckCircle2 } from "lucide-react";
+
 import { ImageWithFallback } from "@/app/components/figma/ImageWithFallback";
 import { Card, CardContent } from "@/app/components/ui/card";
-import useEmblaCarousel from 'embla-carousel-react';
-import Autoplay from 'embla-carousel-autoplay';
-import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 
 export function Testimonials() {
-  const [emblaRef] = useEmblaCarousel({ loop: true, align: 'center' }, [Autoplay({ delay: 5000, stopOnInteraction: false })]);
+  const [emblaRef] = useEmblaCarousel({ loop: true, align: "center" }, [
+    Autoplay({ delay: 5000, stopOnInteraction: false }),
+  ]);
   const [testimonialsList, setTestimonialsList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
@@ -17,17 +21,21 @@ export function Testimonials() {
     const fetchData = async () => {
       try {
         // Fetch Logo
-        const { data: settings } = await supabase.from('app_settings').select('value').eq('key', 'general').single();
+        const { data: settings } = await supabase
+          .from("app_settings")
+          .select("value")
+          .eq("key", "general")
+          .single();
         if (settings?.value?.logo_url) {
           setLogoUrl(settings.value.logo_url);
         }
 
         // Fetch Testimonials
         const { data, error } = await supabase
-          .from('testimonials')
-          .select('*')
-          .eq('is_active', true)
-          .order('created_at', { ascending: false });
+          .from("testimonials")
+          .select("*")
+          .eq("is_active", true)
+          .order("created_at", { ascending: false });
 
         if (error) throw error;
         setTestimonialsList(data || []);
@@ -49,8 +57,11 @@ export function Testimonials() {
       {/* Decorative Background Elements */}
       <div className="absolute top-0 left-0 w-full h-full pointer-events-none overflow-hidden">
         <div className="absolute top-1/4 -left-20 w-96 h-96 bg-emerald-50 rounded-full blur-3xl opacity-60 animate-pulse" />
-        <div className="absolute bottom-1/4 -right-20 w-96 h-96 bg-indigo-50 rounded-full blur-3xl opacity-60 animate-pulse" style={{ animationDelay: '2s' }} />
-        
+        <div
+          className="absolute bottom-1/4 -right-20 w-96 h-96 bg-indigo-50 rounded-full blur-3xl opacity-60 animate-pulse"
+          style={{ animationDelay: "2s" }}
+        />
+
         <Quote className="absolute top-20 left-10 size-32 text-slate-50 rotate-12 opacity-50" />
         <Quote className="absolute bottom-20 right-10 size-32 text-slate-50 -rotate-12 opacity-50" />
       </div>
@@ -70,17 +81,15 @@ export function Testimonials() {
             Savers Who <span className="text-emerald-600">Dream Big.</span>
           </h2>
           <p className="text-xl text-slate-500 font-medium max-w-2xl mx-auto leading-relaxed">
-            Join thousands of smart Nigerians who are hitting their financial goals faster than ever.
+            Join thousands of smart Nigerians who are hitting their financial goals faster than
+            ever.
           </p>
         </motion.div>
 
         <div className="relative overflow-hidden py-10 px-4" ref={emblaRef}>
           <div className="flex -ml-8 items-stretch">
             {testimonialsList.map((testimonial, index) => (
-              <div
-                key={index}
-                className="flex-[0_0_100%] md:flex-[0_0_450px] min-w-0 pl-8"
-              >
+              <div key={index} className="flex-[0_0_100%] md:flex-[0_0_450px] min-w-0 pl-8">
                 <motion.div
                   initial={{ opacity: 0, scale: 0.9 }}
                   whileInView={{ opacity: 1, scale: 1 }}
@@ -93,13 +102,13 @@ export function Testimonials() {
                       <div className="absolute top-10 right-10 opacity-10 group-hover:opacity-20 transition-opacity">
                         <Quote className="size-12 text-emerald-600 rotate-180" />
                       </div>
-                      
+
                       <div className="flex-1">
                         <div className="flex gap-1.5 mb-8">
                           {[...Array(5)].map((_, i) => (
-                            <Star 
-                              key={i} 
-                              className={`size-4 ${i < (testimonial.rating || 5) ? "fill-emerald-500 text-emerald-500" : "text-slate-200"}`} 
+                            <Star
+                              key={i}
+                              className={`size-4 ${i < (testimonial.rating || 5) ? "fill-emerald-500 text-emerald-500" : "text-slate-200"}`}
                             />
                           ))}
                         </div>
@@ -119,9 +128,15 @@ export function Testimonials() {
                           ) : (
                             <div className="w-16 h-16 rounded-2xl bg-emerald-50 flex items-center justify-center shadow-lg border border-emerald-100 overflow-hidden">
                               {logoUrl ? (
-                                <img src={logoUrl} alt="Mary's Thrift Services" className="w-10 h-10 object-contain opacity-50" />
+                                <img
+                                  src={logoUrl}
+                                  alt="Mary's Thrift Services"
+                                  className="w-10 h-10 object-contain opacity-50"
+                                />
                               ) : (
-                                <span className="text-emerald-600 font-black text-xl">{testimonial.name[0]}</span>
+                                <span className="text-emerald-600 font-black text-xl">
+                                  {testimonial.name[0]}
+                                </span>
                               )}
                             </div>
                           )}
@@ -130,8 +145,12 @@ export function Testimonials() {
                           </div>
                         </div>
                         <div>
-                          <div className="font-black text-slate-900 text-base">{testimonial.name}</div>
-                          <div className="text-xs text-emerald-600 font-black uppercase tracking-widest">{testimonial.role || "Verified Saver"}</div>
+                          <div className="font-black text-slate-900 text-base">
+                            {testimonial.name}
+                          </div>
+                          <div className="text-xs text-emerald-600 font-black uppercase tracking-widest">
+                            {testimonial.role || "Verified Saver"}
+                          </div>
                         </div>
                       </div>
                     </CardContent>
@@ -145,10 +164,10 @@ export function Testimonials() {
         {/* Dynamic Navigation Dots */}
         <div className="flex justify-center mt-12 gap-3">
           {testimonialsList.map((_, i) => (
-            <motion.div 
-              key={i} 
+            <motion.div
+              key={i}
               className="h-2 w-2 rounded-full bg-slate-200"
-              whileHover={{ scale: 1.5, backgroundColor: '#10b981' }}
+              whileHover={{ scale: 1.5, backgroundColor: "#10b981" }}
             />
           ))}
         </div>

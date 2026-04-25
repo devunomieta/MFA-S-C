@@ -1,8 +1,8 @@
 import { motion } from "framer-motion";
 import { Zap, Shield, TrendingUp, Users, ArrowUpRight } from "lucide-react";
-import { Button } from "@/app/components/ui/button";
-import { ImageWithFallback } from "@/app/components/figma/ImageWithFallback";
 
+import { ImageWithFallback } from "@/app/components/figma/ImageWithFallback";
+import { Button } from "@/app/components/ui/button";
 
 export function Benefits() {
   return (
@@ -19,8 +19,9 @@ export function Benefits() {
               <span className="text-emerald-600">how you live today.</span>
             </h2>
             <p className="text-base md:text-lg text-slate-600 font-medium font-heading">
-              We've taken everything you love about community savings and added the speed
-              and security of modern digital finance. No interest, no over-promising—just pure discipline.
+              We've taken everything you love about community savings and added the speed and
+              security of modern digital finance. No interest, no over-promising—just pure
+              discipline.
             </p>
           </motion.div>
         </div>
@@ -36,12 +37,21 @@ export function Benefits() {
                 <div className="w-14 h-14 bg-emerald-500 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
                   <Shield className="size-8 text-slate-950" />
                 </div>
-                <h3 className="text-2xl font-bold text-white tracking-tight">Registered & 100% Secure.</h3>
-                <p className="text-emerald-50/60 font-medium">Your money is protected by bank-level encryption and managed with strict accountability standards.</p>
+                <h3 className="text-2xl font-bold text-white tracking-tight">
+                  Registered & 100% Secure.
+                </h3>
+                <p className="text-emerald-50/60 font-medium">
+                  Your money is protected by bank-level encryption and managed with strict
+                  accountability standards.
+                </p>
               </div>
               <div className="flex gap-4">
-                <div className="px-4 py-2 bg-white/5 rounded-full text-[10px] font-black text-emerald-400 uppercase tracking-widest border border-white/10 backdrop-blur-sm">PCIDSS Compliant</div>
-                <div className="px-4 py-2 bg-white/5 rounded-full text-[10px] font-black text-emerald-400 uppercase tracking-widest border border-white/10 backdrop-blur-sm">CAC: BN-8950808</div>
+                <div className="px-4 py-2 bg-white/5 rounded-full text-[10px] font-black text-emerald-400 uppercase tracking-widest border border-white/10 backdrop-blur-sm">
+                  PCIDSS Compliant
+                </div>
+                <div className="px-4 py-2 bg-white/5 rounded-full text-[10px] font-black text-emerald-400 uppercase tracking-widest border border-white/10 backdrop-blur-sm">
+                  CAC: BN-8950808
+                </div>
               </div>
             </div>
             {/* Visual Decoration */}
@@ -58,19 +68,30 @@ export function Benefits() {
                 <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-sm border border-emerald-100">
                   <Users className="size-6 text-emerald-600" />
                 </div>
-                <h3 className="text-2xl font-bold text-emerald-950 tracking-tight">Community Driven.</h3>
-                <p className="text-emerald-800/70 text-sm font-medium leading-relaxed">Join thousands of members saving together. Social accountability is our secret weapon for success.</p>
+                <h3 className="text-2xl font-bold text-emerald-950 tracking-tight">
+                  Community Driven.
+                </h3>
+                <p className="text-emerald-800/70 text-sm font-medium leading-relaxed">
+                  Join thousands of members saving together. Social accountability is our secret
+                  weapon for success.
+                </p>
               </div>
               <div className="flex -space-x-3 pt-6">
                 {[
                   "https://images.unsplash.com/photo-1531123897727-8f129e16fd3c?auto=format&fit=crop&q=80&w=100",
                   "https://images.unsplash.com/photo-1627161683077-e34782c24d81?auto=format&fit=crop&q=80&w=100",
                   "https://images.unsplash.com/photo-1664575602554-2087b04935a5?auto=format&fit=crop&q=80&w=100",
-                  "https://images.unsplash.com/photo-1681545303529-b6beb2e19f02?auto=format&fit=crop&q=80&w=100"
+                  "https://images.unsplash.com/photo-1681545303529-b6beb2e19f02?auto=format&fit=crop&q=80&w=100",
                 ].map((src, i) => (
-                  <ImageWithFallback key={i} src={src} className="w-10 h-10 rounded-full border-2 border-white bg-slate-200 object-cover" />
+                  <ImageWithFallback
+                    key={i}
+                    src={src}
+                    className="w-10 h-10 rounded-full border-2 border-white bg-slate-200 object-cover"
+                  />
                 ))}
-                <div className="w-10 h-10 rounded-full border-2 border-white bg-emerald-600 flex items-center justify-center text-[10px] font-bold text-white uppercase tracking-tighter shadow-lg">+50k</div>
+                <div className="w-10 h-10 rounded-full border-2 border-white bg-emerald-600 flex items-center justify-center text-[10px] font-bold text-white uppercase tracking-tighter shadow-lg">
+                  +50k
+                </div>
               </div>
             </div>
           </motion.div>
@@ -84,12 +105,17 @@ export function Benefits() {
               <div className="space-y-3">
                 <div className="text-4xl font-black text-emerald-600 tracking-tighter">Solid</div>
                 <h3 className="text-xl font-bold text-slate-900">Collective Discipline.</h3>
-                <p className="text-slate-500 text-sm font-medium">Shared accountability helps you hit targets without the pressure of growth promises. We keep you consistent.</p>
+                <p className="text-slate-500 text-sm font-medium">
+                  Shared accountability helps you hit targets without the pressure of growth
+                  promises. We keep you consistent.
+                </p>
               </div>
               <Button
                 variant="ghost"
                 className="p-0 text-emerald-600 font-bold flex items-center gap-2 group-hover:gap-4 transition-all w-fit hover:bg-transparent"
-                onClick={() => document.getElementById('plans')?.scrollIntoView({ behavior: 'smooth' })}
+                onClick={() =>
+                  document.getElementById("plans")?.scrollIntoView({ behavior: "smooth" })
+                }
               >
                 View Plans <ArrowUpRight className="size-4" />
               </Button>
@@ -109,8 +135,13 @@ export function Benefits() {
                 <div className="w-12 h-12 bg-emerald-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
                   <Zap className="size-6 text-white" />
                 </div>
-                <h3 className="text-2xl font-bold text-slate-950 tracking-tight">Seamless Savings.</h3>
-                <p className="text-slate-600 font-medium">Set your goals and join existing plans. No manual hassle, just pure community-driven discipline.</p>
+                <h3 className="text-2xl font-bold text-slate-950 tracking-tight">
+                  Seamless Savings.
+                </h3>
+                <p className="text-slate-600 font-medium">
+                  Set your goals and join existing plans. No manual hassle, just pure
+                  community-driven discipline.
+                </p>
                 <div className="flex gap-3 pt-2">
                   <div className="w-2 h-2 rounded-full bg-emerald-500" />
                   <div className="w-2 h-2 rounded-full bg-slate-300" />
@@ -119,7 +150,9 @@ export function Benefits() {
               </div>
               <div className="bg-white rounded-2xl p-6 shadow-2xl border border-slate-100 relative group">
                 <div className="flex justify-between items-center mb-6">
-                  <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Auto-Contribution</div>
+                  <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    Auto-Contribution
+                  </div>
                   <div className="w-8 h-4 bg-emerald-600 rounded-full relative">
                     <div className="absolute top-1 right-1 w-2 h-2 bg-white rounded-full" />
                   </div>
@@ -127,13 +160,17 @@ export function Benefits() {
                 <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
                   <motion.div
                     initial={{ width: 0 }}
-                    whileInView={{ width: '75%' }}
+                    whileInView={{ width: "75%" }}
                     className="h-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"
                   />
                 </div>
                 <div className="flex justify-between mt-3">
-                  <span className="text-[10px] font-bold text-slate-900 uppercase tracking-tighter">Progress</span>
-                  <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-tighter">75%</span>
+                  <span className="text-[10px] font-bold text-slate-900 uppercase tracking-tighter">
+                    Progress
+                  </span>
+                  <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-tighter">
+                    75%
+                  </span>
                 </div>
               </div>
             </div>

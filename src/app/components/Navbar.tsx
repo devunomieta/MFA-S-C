@@ -1,18 +1,25 @@
-import { Button } from "@/app/components/ui/button";
-import { Link, useNavigate } from "react-router-dom";
-import { Menu, X, Home, Layout, Zap, Smartphone, Mail, ShieldCheck } from "lucide-react";
 import { useState, useEffect } from "react";
+
 import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
-import { supabase } from "@/lib/supabase";
-import { useAuth } from "@/app/context/AuthContext";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/app/components/ui/dialog";
-import { PasswordInput } from "@/app/components/ui/PasswordInput";
+import { Menu, X, Home, Layout, Zap, Smartphone, Mail, ShieldCheck } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { ImageWithFallback } from "@/app/components/figma/ImageWithFallback";
+
 import { BrandLogo } from "@/app/components/ui/BrandLogo";
+import { Button } from "@/app/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/app/components/ui/dialog";
+import { PasswordInput } from "@/app/components/ui/PasswordInput";
+import { useAuth } from "@/app/context/AuthContext";
+import { supabase } from "@/lib/supabase";
 
 export function Navbar() {
-  const { user, lastActivity } = useAuth();
+  const { user, lastActivity, isAdmin } = useAuth();
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
@@ -34,7 +41,11 @@ export function Navbar() {
 
   useEffect(() => {
     const fetchBranding = async () => {
-      const { data } = await supabase.from('app_settings').select('value').eq('key', 'general').single();
+      const { data } = await supabase
+        .from("app_settings")
+        .select("value")
+        .eq("key", "general")
+        .single();
       if (data?.value?.logo_url) {
         setLogoUrl(data.value.logo_url);
       }
@@ -57,7 +68,7 @@ export function Navbar() {
     if (timeSinceLastActivity > INACTIVITY_THRESHOLD) {
       setShowVerifyModal(true);
     } else {
-      navigate("/dashboard");
+      navigate(isAdmin ? "/admin" : "/dashboard");
     }
   };
 
@@ -76,7 +87,7 @@ export function Navbar() {
 
       setShowVerifyModal(false);
       setVerifyPassword("");
-      navigate("/dashboard");
+      navigate(isAdmin ? "/admin" : "/dashboard");
     } catch (error: any) {
       console.error("Dashboard Access Verification Error:", error);
       toast.error(error.message || "Incorrect password");
@@ -113,15 +124,20 @@ export function Navbar() {
       >
         <motion.div
           style={{ width: navbarWidth }}
-          className={`pointer-events-auto transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] ${scrolled
-            ? "bg-white/70 dark:bg-slate-900/70 backdrop-blur-2xl border border-slate-200/50 dark:border-slate-800/50 rounded-full shadow-[0_8px_40px_rgba(0,0,0,0.08)] px-2 py-2"
-            : "bg-transparent border-transparent pt-4"
-            }`}
+          className={`pointer-events-auto transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] ${
+            scrolled
+              ? "bg-white/70 dark:bg-slate-900/70 backdrop-blur-2xl border border-slate-200/50 dark:border-slate-800/50 rounded-full shadow-[0_8px_40px_rgba(0,0,0,0.08)] px-2 py-2"
+              : "bg-transparent border-transparent pt-4"
+          }`}
         >
           <div className="container mx-auto px-4 md:px-6 relative h-16 md:h-20 flex items-center justify-between">
             {/* Logo Section */}
             <div className="flex-1 flex justify-start z-10">
-              <Link to="/" className="flex items-center gap-2 group transition-all" onClick={() => setIsOpen(false)}>
+              <Link
+                to="/"
+                className="flex items-center gap-2 group transition-all"
+                onClick={() => setIsOpen(false)}
+              >
                 {logoUrl ? (
                   <BrandLogo src={logoUrl} alt={appName} size="sm" />
                 ) : (
@@ -132,8 +148,10 @@ export function Navbar() {
                     <span className="text-lg md:text-xl font-black tracking-tighter text-slate-950 dark:text-white group-hover:opacity-80">
                       {appName.includes(" ") ? (
                         <>
-                          {appName.split(' ').slice(0, -1).join(' ')}
-                          <span className="text-emerald-600 ml-1">{appName.split(' ').slice(-1)}</span>
+                          {appName.split(" ").slice(0, -1).join(" ")}
+                          <span className="text-emerald-600 ml-1">
+                            {appName.split(" ").slice(-1)}
+                          </span>
                           <span className="text-emerald-600">.</span>
                         </>
                       ) : (
@@ -154,7 +172,7 @@ export function Navbar() {
                 { name: "Plans", href: "/#plans" },
                 { name: "Features", href: "#features" },
                 { name: "How It Works", href: "#how-it-works" },
-                { name: "Contact", href: "#contact" }
+                { name: "Contact", href: "#contact" },
               ].map((link) => (
                 <a
                   key={link.name}
@@ -183,7 +201,11 @@ export function Navbar() {
                 className="md:hidden size-10 flex items-center justify-center rounded-full bg-emerald-600 border border-emerald-500 shadow-lg shadow-emerald-600/20 active:scale-90 transition-all relative z-[120]"
                 aria-label="Toggle Menu"
               >
-                {isOpen ? <X className="size-5 text-white" /> : <Menu className="size-5 text-white" />}
+                {isOpen ? (
+                  <X className="size-5 text-white" />
+                ) : (
+                  <Menu className="size-5 text-white" />
+                )}
               </button>
             </div>
           </div>
@@ -211,8 +233,10 @@ export function Navbar() {
                       <span className="text-lg md:text-xl font-black tracking-tighter">
                         {appName.includes(" ") ? (
                           <>
-                            {appName.split(' ').slice(0, -1).join(' ')}
-                            <span className="text-emerald-600 ml-1">{appName.split(' ').slice(-1)}</span>
+                            {appName.split(" ").slice(0, -1).join(" ")}
+                            <span className="text-emerald-600 ml-1">
+                              {appName.split(" ").slice(-1)}
+                            </span>
                           </>
                         ) : (
                           appName
@@ -235,8 +259,12 @@ export function Navbar() {
                   { name: "Home", href: "/", icon: <Home className="size-6" /> },
                   { name: "Plans", href: "/#plans", icon: <Layout className="size-6" /> },
                   { name: "Features", href: "#features", icon: <Zap className="size-6" /> },
-                  { name: "How It Works", href: "#how-it-works", icon: <Smartphone className="size-6" /> },
-                  { name: "Contact", href: "#contact", icon: <Mail className="size-6" /> }
+                  {
+                    name: "How It Works",
+                    href: "#how-it-works",
+                    icon: <Smartphone className="size-6" />,
+                  },
+                  { name: "Contact", href: "#contact", icon: <Mail className="size-6" /> },
                 ].map((item, i) => (
                   <motion.a
                     key={item.name}
@@ -272,7 +300,9 @@ export function Navbar() {
       <Dialog open={showVerifyModal} onOpenChange={setShowVerifyModal}>
         <DialogContent className="sm:max-w-md rounded-[2rem] z-[200]">
           <DialogHeader>
-            <DialogTitle className="text-lg md:text-2xl font-black tracking-tight">Security Check</DialogTitle>
+            <DialogTitle className="text-lg md:text-2xl font-black tracking-tight">
+              Security Check
+            </DialogTitle>
             <DialogDescription className="font-medium text-slate-600 dark:text-slate-400 text-xs md:text-sm">
               Please enter your password to access your dashboard.
             </DialogDescription>

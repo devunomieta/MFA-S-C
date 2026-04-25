@@ -1,10 +1,6 @@
-import { motion } from "framer-motion";
-import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
-import { Button } from "@/app/components/ui/button";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/app/context/AuthContext";
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
+
+import { motion } from "framer-motion";
 import {
   Target,
   Zap,
@@ -16,53 +12,89 @@ import {
   Check,
   Sparkles,
   Star,
-  Loader2
+  Loader2,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+
+import { Button } from "@/app/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
+import { useAuth } from "@/app/context/AuthContext";
+import { supabase } from "@/lib/supabase";
 
 // Premium UI Metadata mapping for DB plans
 const PLAN_METADATA: Record<string, any> = {
-  "marathon": {
+  marathon: {
     icon: <Target className="size-6" />,
     color: "bg-slate-900",
-    features: ["Starts 3rd week of Jan", "Top up any amount", "Extend to 48 weeks easily", "Strictly locked"],
-    popular: true
+    features: [
+      "Starts 3rd week of Jan",
+      "Top up any amount",
+      "Extend to 48 weeks easily",
+      "Strictly locked",
+    ],
+    popular: true,
   },
-  "sprint": {
+  sprint: {
     icon: <Zap className="size-6" />,
     color: "bg-emerald-600",
-    features: ["Start anytime", "Automated wallet deductions", "Flexible top-ups", "Strictly locked"],
-    popular: false
+    features: [
+      "Start anytime",
+      "Automated wallet deductions",
+      "Flexible top-ups",
+      "Strictly locked",
+    ],
+    popular: false,
   },
-  "anchor": {
+  anchor: {
     icon: <Anchor className="size-6" />,
     color: "bg-slate-900",
-    features: ["Maximum discipline", "Start anytime", "Auto-recovery protection", "Strictly locked"],
-    popular: false
+    features: [
+      "Maximum discipline",
+      "Start anytime",
+      "Auto-recovery protection",
+      "Strictly locked",
+    ],
+    popular: false,
   },
-  "daily_drop": {
+  daily_drop: {
     icon: <Droplets className="size-6" />,
     color: "bg-teal-900",
     features: ["Zero late fees", "Bulk advance payments", "Easy rejoin feature", "Strictly locked"],
-    popular: false
+    popular: false,
   },
-  "step_up": {
+  step_up: {
     icon: <TrendingUp className="size-6" />,
     color: "bg-teal-900",
-    features: ["Rapid goal achievement", "Strict weekly targets", "Short-term milestones", "Strictly locked"],
-    popular: false
+    features: [
+      "Rapid goal achievement",
+      "Strict weekly targets",
+      "Short-term milestones",
+      "Strictly locked",
+    ],
+    popular: false,
   },
-  "monthly_bloom": {
+  monthly_bloom: {
     icon: <Flower2 className="size-6" />,
     color: "bg-slate-900",
-    features: ["Ideal for budgeting", "Automated month-end saves", "No maximum limit", "Strictly locked"],
-    popular: false
+    features: [
+      "Ideal for budgeting",
+      "Automated month-end saves",
+      "No maximum limit",
+      "Strictly locked",
+    ],
+    popular: false,
   },
-  "ajo_circle": {
+  ajo_circle: {
     icon: <Users className="size-6" />,
     color: "bg-emerald-600",
-    features: ["Massive lump-sum payouts", "Multiple picking turns", "Exclusive entry", "Assigned turn withdrawal"],
-    popular: true
-  }
+    features: [
+      "Massive lump-sum payouts",
+      "Multiple picking turns",
+      "Exclusive entry",
+      "Assigned turn withdrawal",
+    ],
+    popular: true,
+  },
 };
 
 const colorVariants: Record<string, string> = {
@@ -87,10 +119,10 @@ export function Pricing() {
     async function fetchPlans() {
       try {
         const { data, error } = await supabase
-          .from('plans')
-          .select('*')
-          .eq('is_active', true)
-          .order('min_amount', { ascending: true });
+          .from("plans")
+          .select("*")
+          .eq("is_active", true)
+          .order("min_amount", { ascending: true });
 
         if (error) throw error;
         setDbPlans(data || []);
@@ -122,7 +154,8 @@ export function Pricing() {
             Tailored <span className="text-emerald-600">Savings Plans.</span>
           </h2>
           <p className="text-lg text-slate-600 font-medium max-w-2xl mx-auto">
-            Choose the strategy that fits your lifestyle. From daily drops to monthly blooms, we've got you covered.
+            Choose the strategy that fits your lifestyle. From daily drops to monthly blooms, we've
+            got you covered.
           </p>
         </motion.div>
 
@@ -134,9 +167,11 @@ export function Pricing() {
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
             {dbPlans.map((plan, index) => {
-              const meta = PLAN_METADATA[plan.type] || PLAN_METADATA['marathon'];
-              const durationText = plan.duration_weeks ? `${plan.duration_weeks} Weeks` : `${plan.duration_months} Months`;
-              
+              const meta = PLAN_METADATA[plan.type] || PLAN_METADATA["marathon"];
+              const durationText = plan.duration_weeks
+                ? `${plan.duration_weeks} Weeks`
+                : `${plan.duration_months} Months`;
+
               return (
                 <motion.div
                   key={plan.id}
@@ -155,40 +190,63 @@ export function Pricing() {
                     </div>
                   )}
 
-                  <Card className={`h-full border-2 transition-all duration-500 rounded-[2.5rem] overflow-hidden group-hover:shadow-[0_20px_50px_rgba(0,0,0,0.1)] ${meta.popular ? 'border-emerald-500 bg-white ring-4 ring-emerald-500/10' : 'border-white bg-white/70 backdrop-blur-sm'}`}>
+                  <Card
+                    className={`h-full border-2 transition-all duration-500 rounded-[2.5rem] overflow-hidden group-hover:shadow-[0_20px_50px_rgba(0,0,0,0.1)] ${meta.popular ? "border-emerald-500 bg-white ring-4 ring-emerald-500/10" : "border-white bg-white/70 backdrop-blur-sm"}`}
+                  >
                     <CardHeader className="space-y-6 p-8 pb-0">
-                      <div className={`p-4 rounded-2xl w-fit shadow-lg ${colorVariants[meta.color]}`}>
+                      <div
+                        className={`p-4 rounded-2xl w-fit shadow-lg ${colorVariants[meta.color]}`}
+                      >
                         {meta.icon}
                       </div>
                       <div>
-                        <CardTitle className="text-2xl font-black text-slate-950 tracking-tight">{plan.name}</CardTitle>
+                        <CardTitle className="text-2xl font-black text-slate-950 tracking-tight">
+                          {plan.name}
+                        </CardTitle>
                         <div className="mt-4 flex flex-col">
-                          <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Minimum Savings</span>
+                          <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600">
+                            Minimum Savings
+                          </span>
                           <div className="flex items-baseline gap-1">
-                            <span className="text-3xl font-black text-slate-950">₦{plan.min_amount.toLocaleString()}</span>
-                            <span className="text-xs font-bold text-slate-400">/ {plan.contribution_type}</span>
+                            <span className="text-3xl font-black text-slate-950">
+                              ₦{plan.min_amount.toLocaleString()}
+                            </span>
+                            <span className="text-xs font-bold text-slate-400">
+                              / {plan.contribution_type}
+                            </span>
                           </div>
                           <div className="mt-1 inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-lg w-fit">
                             <div className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                            <span className="text-[10px] font-bold uppercase tracking-tight">Unlimited Funding Cap</span>
+                            <span className="text-[10px] font-bold uppercase tracking-tight">
+                              Unlimited Funding Cap
+                            </span>
                           </div>
                         </div>
                       </div>
                       <div className="pt-4 border-b border-slate-100 pb-6 space-y-4">
                         <div className="flex justify-between items-center text-sm">
-                          <span className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">Plan Duration</span>
+                          <span className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">
+                            Plan Duration
+                          </span>
                           <span className="text-slate-900 font-black">{durationText}</span>
                         </div>
                         <div className="flex justify-between items-center text-sm">
-                          <span className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">Method</span>
-                          <span className="text-slate-900 font-black capitalize">{plan.contribution_type} Deductions</span>
+                          <span className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">
+                            Method
+                          </span>
+                          <span className="text-slate-900 font-black capitalize">
+                            {plan.contribution_type} Deductions
+                          </span>
                         </div>
                       </div>
                     </CardHeader>
                     <CardContent className="p-8 space-y-8">
                       <ul className="space-y-4">
                         {(meta.features || []).map((feature: string, fIdx: number) => (
-                          <li key={fIdx} className="flex items-start gap-3 text-sm text-slate-600 font-medium">
+                          <li
+                            key={fIdx}
+                            className="flex items-start gap-3 text-sm text-slate-600 font-medium"
+                          >
                             <div className="p-0.5 rounded-full bg-emerald-100 shrink-0 mt-0.5">
                               <Check className="size-3 text-emerald-600" />
                             </div>

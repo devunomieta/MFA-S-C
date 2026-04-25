@@ -1,15 +1,16 @@
-import React from 'react'
-import ReactDOM from 'react-dom/client'
-import App from './app/App'
-import { ErrorBoundary } from './app/components/ErrorBoundary'
-import { AuthProvider } from './app/context/AuthContext'
+import React from "react";
 
-import './styles/index.css'
-import './styles/tailwind.css'
-import './styles/theme.css'
+import ReactDOM from "react-dom/client";
 
+import App from "./app/App";
+import { ErrorBoundary } from "./app/components/ErrorBoundary";
+import { AuthProvider } from "./app/context/AuthContext";
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
+import "./styles/index.css";
+import "./styles/tailwind.css";
+import "./styles/theme.css";
+
+ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <ErrorBoundary>
       <AuthProvider>
@@ -17,4 +18,4 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       </AuthProvider>
     </ErrorBoundary>
   </React.StrictMode>,
-)
+);

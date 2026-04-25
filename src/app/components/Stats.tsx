@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { DollarSign, Users, Target, Award } from "lucide-react";
+
 import { Card, CardContent } from "@/app/components/ui/card";
 
 const stats = [
@@ -8,29 +9,29 @@ const stats = [
     value: "₦2.5B+",
     label: "Total Savings Pooled",
     description: "Collectively saved by our members",
-    color: "from-emerald-600 to-teal-600"
+    color: "from-emerald-600 to-teal-600",
   },
   {
     icon: Users,
     value: "50,000+",
     label: "Active Savers",
     description: "Trust our platform daily",
-    color: "from-blue-600 to-emerald-600"
+    color: "from-blue-600 to-emerald-600",
   },
   {
     icon: Target,
     value: "95%",
     label: "Goals Achieved",
     description: "Members reaching their targets",
-    color: "from-emerald-600 to-teal-600"
+    color: "from-emerald-600 to-teal-600",
   },
   {
     icon: Award,
     value: "4.9/5",
     label: "Average Rating",
     description: "From satisfied users",
-    color: "from-emerald-600 to-teal-600"
-  }
+    color: "from-emerald-600 to-teal-600",
+  },
 ];
 
 export function Stats() {
