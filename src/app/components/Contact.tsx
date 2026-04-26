@@ -145,8 +145,8 @@ export function Contact() {
                 Get in <span className="text-emerald-600">Touch.</span>
               </h2>
               <p className="text-xl text-slate-600 font-medium leading-relaxed max-w-lg">
-                Have questions about how Mary's Thrift Services works? Our specialized team is here
-                to help you navigate your financial journey.
+                Have questions about how Mary's Thrift Services works? Our team is here to help you
+                achieve your financial goals.
               </p>
             </div>
 

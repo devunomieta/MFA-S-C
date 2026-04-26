@@ -148,14 +148,13 @@ export function Pricing() {
         >
           <div className="inline-flex items-center gap-2 bg-emerald-100 text-emerald-700 px-4 py-2 rounded-full mb-4">
             <Star className="size-4 fill-emerald-600" />
-            <span className="text-xs font-black uppercase tracking-widest">Flexible Options</span>
+            <span className="text-xs font-black uppercase tracking-widest">Growth Plans</span>
           </div>
           <h2 className="text-4xl md:text-5xl font-black text-slate-950">
-            Tailored <span className="text-emerald-600">Savings Plans.</span>
+            Personalized <span className="text-emerald-600">Savings Plans.</span>
           </h2>
           <p className="text-lg text-slate-600 font-medium max-w-2xl mx-auto">
-            Choose the strategy that fits your lifestyle. From daily drops to monthly blooms, we've
-            got you covered.
+            Pick the plan that best suits your financial goals and start saving with confidence.
           </p>
         </motion.div>
 
@@ -205,7 +204,7 @@ export function Pricing() {
                         </CardTitle>
                         <div className="mt-4 flex flex-col">
                           <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600">
-                            Minimum Savings
+                            Minimum Savings Amount
                           </span>
                           <div className="flex items-baseline gap-1">
                             <span className="text-3xl font-black text-slate-950">
@@ -218,7 +217,7 @@ export function Pricing() {
                           <div className="mt-1 inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-lg w-fit">
                             <div className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
                             <span className="text-[10px] font-bold uppercase tracking-tight">
-                              Unlimited Funding Cap
+                              No Maximum Limit
                             </span>
                           </div>
                         </div>

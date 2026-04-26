@@ -14,6 +14,7 @@ import {
   Shield,
   LifeBuoy,
   Bell,
+  Phone,
 } from "lucide-react";
 import { Outlet } from "react-router-dom";
 import { Link, useLocation } from "react-router-dom";
@@ -42,15 +43,18 @@ import { useAuth } from "@/app/context/AuthContext";
 import { useNotifications } from "@/app/context/NotificationContext";
 import { supabase } from "@/lib/supabase";
 
+
 export function DashboardLayout() {
   const { user, signOut, isAdmin } = useAuth();
 
-  // Strict Admin Check handled by AdminRoute guard
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showSwitcher, setShowSwitcher] = useState(false);
   const [announcement, setAnnouncement] = useState<any>(null);
   const location = useLocation();
   const { unreadCount } = useNotifications();
+
+  // Google OAuth phone notice — shown to Google users who haven't added a phone
+  const [showPhoneNotice, setShowPhoneNotice] = useState(false);
 
   const sidebarItems = [
     { icon: LayoutDashboard, label: "Overview", href: "/dashboard" },
@@ -83,6 +87,28 @@ export function DashboardLayout() {
           if (data.expires_at && new Date(data.expires_at) < new Date()) return;
           setAnnouncement(data);
         }
+
+        // Check if user is a Google OAuth user who hasn't added a phone
+        const isGoogleUser =
+          user.app_metadata?.provider === "google" ||
+          (user.app_metadata?.providers as string[] | undefined)?.includes("google");
+
+        if (isGoogleUser) {
+          const dismissedKey = `phone_notice_dismissed_${user.id}`;
+          const alreadyDismissed = localStorage.getItem(dismissedKey) === "true";
+
+          if (!alreadyDismissed) {
+            // Check if they have a phone on their profile
+            const { data: profile } = await supabase
+              .from("profiles")
+              .select("phone")
+              .eq("id", user.id)
+              .maybeSingle();
+
+            const hasPhone = !!profile?.phone && profile.phone.trim().length > 3;
+            if (!hasPhone) setShowPhoneNotice(true);
+          }
+        }
       } catch (err) {
         console.error("Critical error in announcement fetch:", err);
       }
@@ -90,9 +116,38 @@ export function DashboardLayout() {
     fetchData();
   }, [user]);
 
+  const dismissPhoneNotice = () => {
+    if (user) localStorage.setItem(`phone_notice_dismissed_${user.id}`, "true");
+    setShowPhoneNotice(false);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 flex dark:bg-gray-900 transition-colors relative">
-      {/* Announcement Banner */}
+      {/* Google OAuth — Add Phone Number Notice */}
+      {showPhoneNotice && (
+        <div className="fixed top-0 left-0 right-0 z-[70] px-4 py-2.5 bg-amber-500 text-white text-sm font-medium flex items-center justify-center gap-3">
+          <Phone className="w-4 h-4 shrink-0" />
+          <span>
+            Your account doesn't have a phone number yet.{" "}
+            <Link
+              to="/dashboard/profile"
+              className="underline underline-offset-2 font-bold hover:text-amber-100 transition-colors"
+            >
+              Add it in your Profile
+            </Link>
+            {" "}to improve account recovery options.
+          </span>
+          <button
+            onClick={dismissPhoneNotice}
+            aria-label="Dismiss phone notice"
+            className="absolute right-4 hover:bg-white/20 p-1 rounded transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {/* Admin / System Announcement Banner */}
       {announcement && (
         <div
           className={`fixed top-0 left-0 right-0 z-[60] px-4 py-2 text-white text-sm font-medium flex items-center justify-center gap-2 ${

@@ -5,6 +5,7 @@ import { CTA } from "@/app/components/CTA";
 import { Hero } from "@/app/components/Hero";
 import { HowItWorks } from "@/app/components/HowItWorks";
 import { Pricing } from "@/app/components/Pricing";
+import { ScrollToTop } from "@/app/components/ScrollToTop";
 import { Testimonials } from "@/app/components/Testimonials";
 import { WhatsAppFloating } from "@/app/components/WhatsAppFloating";
 
@@ -24,6 +25,7 @@ export function Landing() {
       </section>
       <CTA />
       <WhatsAppFloating />
+      <ScrollToTop />
     </>
   );
 }

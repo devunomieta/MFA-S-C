@@ -81,8 +81,7 @@ export function Testimonials() {
             Savers Who <span className="text-emerald-600">Dream Big.</span>
           </h2>
           <p className="text-xl text-slate-500 font-medium max-w-2xl mx-auto leading-relaxed">
-            Join thousands of smart Nigerians who are hitting their financial goals faster than
-            ever.
+            Join thousands of smart Savers who are achieving their financial goals.
           </p>
         </motion.div>
 
