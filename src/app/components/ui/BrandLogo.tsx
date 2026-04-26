@@ -27,7 +27,13 @@ export function BrandLogo({
     xl: "w-[15rem] md:w-[20rem] lg:w-[25rem]",
   };
 
+  // Optimize Supabase Storage URL if applicable
+  const optimizedSrc = src?.includes("supabase.co/storage/v1/object/public/") 
+    ? src.replace("/object/public/", "/render/image/public/") + "?width=400&quality=80&format=webp"
+    : src;
+
   return (
+
     <div
       className={cn(
         "bg-white rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.2),0_15px_25px_-5px_rgba(0,0,0,0.1)] border border-slate-100 p-0 flex items-center justify-center transition-all duration-300 hover:shadow-[0_40px_70px_-12px_rgba(0,0,0,0.25)] hover:scale-[1.12] active:scale-[0.9] group/logo overflow-hidden h-auto",
@@ -36,13 +42,15 @@ export function BrandLogo({
       )}
     >
       <ImageWithFallback
-        src={src}
+        src={optimizedSrc}
         alt={alt || "Logo"}
+        fetchpriority="high"
         className={cn(
           "w-full h-auto object-contain drop-shadow-sm transition-transform duration-500",
           className,
         )}
       />
+
     </div>
   );
 }
