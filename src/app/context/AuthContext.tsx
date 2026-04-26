@@ -171,18 +171,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     resetTimer();
 
-    // 3. Listen for changes
+    // 3. Listen for auth state changes
+    // NOTE: We explicitly skip INITIAL_SESSION — init() above already handles it.
+    // Handling it here too causes a double-execution race: loading flips to true again
+    // AFTER init() resolves, trapping AdminRoute in an infinite spinner.
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
 
+      // Skip INITIAL_SESSION — handled by init() above to avoid double-load
+      if (event === "INITIAL_SESSION") return;
+
       setSession(session);
       setUser(session?.user ?? null);
 
       if (session?.user) {
-        if (event === "SIGNED_IN" || event === "INITIAL_SESSION" || event === "USER_UPDATED") {
-          // Set loading state for transitions
+        if (event === "SIGNED_IN" || event === "USER_UPDATED" || event === "TOKEN_REFRESHED") {
           setLoading(true);
           try {
             await ensureProfileExists(session.user);
@@ -196,10 +201,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           } catch (err) {
             console.error("Auth change tasks failed:", err);
           } finally {
-            setLoading(false);
+            if (mounted) setLoading(false);
           }
         }
       } else {
+        // Signed out
         setIsAdmin(false);
         setIsSuperadmin(false);
         setMfaEnabled(false);

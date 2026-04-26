@@ -140,7 +140,12 @@ function AppRoutes() {
   const isAdminPath = location.pathname.startsWith("/admin");
 
   useEffect(() => {
-    if (!loading && user && isAdmin && location.pathname.startsWith("/dashboard")) {
+    if (loading) return;
+    if (!user || !isAdmin) return;
+
+    // Admin is logged in — redirect away from any non-admin path
+    const isOnAdminPath = location.pathname.startsWith("/admin");
+    if (!isOnAdminPath) {
       navigate("/admin", { replace: true });
     }
   }, [loading, user, isAdmin, location.pathname, navigate]);
