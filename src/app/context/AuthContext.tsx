@@ -131,134 +131,109 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    async function init() {
-      try {
-        const {
-          data: { session },
-          error: sessionError
-        } = await supabase.auth.getSession();
-
-        if (sessionError) {
-          console.error("Session fetch error during init:", sessionError);
-        }
-
+    useEffect(() => {
+      let mounted = true;
+      
+      // Failsafe: Ensure loading is ALWAYS turned off after 10s regardless of network/auth state
+      const failsafeTimer = setTimeout(() => {
         if (mounted) {
-          setSession(session);
-          setUser(session?.user ?? null);
+          setLoading(current => {
+            if (current) console.warn("Auth loading failsafe triggered after 10s");
+            return false;
+          });
+        }
+      }, 10000);
 
-          if (session?.user) {
+      async function handleAuthStateChange(event: string, newSession: Session | null) {
+        if (!mounted) return;
+
+        // Skip redundant INITIAL_SESSION if we already have a session from init
+        // But we actually want to handle it to unify the logic
+        
+        setSession(newSession);
+        setUser(newSession?.user ?? null);
+
+        if (newSession?.user) {
+          const isNewUser = initializedUserId.current !== newSession.user.id;
+          
+          // Only show loading for actual sign-ins or initial loads
+          if (isNewUser || event === "SIGNED_IN") {
+            setLoading(true);
             try {
-              await ensureProfileExists(session.user);
-              const success = await fetchRoleStatus(session.user.id, session.user.email);
+              await ensureProfileExists(newSession.user);
+              const success = await fetchRoleStatus(newSession.user.id, newSession.user.email);
               
               if (!success) {
-                console.warn("Session validation failed during init, signing out...");
-                await signOut();
+                console.warn("Session validation failed, signing out...");
+                await supabase.auth.signOut();
                 return;
               }
-            } catch (innerErr) {
-              console.error("Secondary init tasks failed:", innerErr);
+
+              SessionManager.saveSession(newSession);
+              setSavedSessions(SessionManager.getSavedSessions());
+              initializedUserId.current = newSession.user.id;
+
+              const { data: mfaData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+              if (mounted) setMfaEnabled(mfaData?.currentLevel === "aal2");
+            } catch (err) {
+              console.error("Auth task failure:", err);
+            } finally {
+              if (mounted) setLoading(false);
             }
-
-            SessionManager.saveSession(session);
-            setSavedSessions(SessionManager.getSavedSessions());
-            initializedUserId.current = session.user.id;
-          }
-        }
-      } catch (err) {
-        console.error("Auth init critical failure:", err);
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    }
-
-
-    init();
-
-    // ── Inactivity Timer ──────────────────────────────────────────────────
-    let inactivityTimer: NodeJS.Timeout;
-    const activityEvents = ["mousedown", "mousemove", "keypress", "scroll", "touchstart"];
-
-    const resetTimer = () => {
-      setLastActivity(Date.now());
-      if (inactivityTimer) clearTimeout(inactivityTimer);
-      // Optional: auto-logout after 30 mins of total inactivity
-      // inactivityTimer = setTimeout(signOut, 30 * 60 * 1000);
-    };
-
-    activityEvents.forEach((e) => window.addEventListener(e, resetTimer));
-    resetTimer();
-
-
-    // ── Auth State Listener ────────────────────────────────────────────────
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, newSession) => {
-      if (!mounted) return;
-      if (event === "INITIAL_SESSION") return;
-
-      setSession(newSession);
-      setUser(newSession?.user ?? null);
-
-      if (newSession?.user) {
-        const isNewUser = initializedUserId.current !== newSession.user.id;
-
-        if (event === "SIGNED_IN" && isNewUser) {
-          initializedUserId.current = newSession.user.id;
-          setLoading(true);
-          try {
-            await ensureProfileExists(newSession.user);
-            const success = await fetchRoleStatus(newSession.user.id, newSession.user.email);
-            
-            if (!success) {
-              console.warn("Session validation failed during auth change, signing out...");
-              await signOut();
-              return;
-            }
-
-            SessionManager.saveSession(newSession);
-
-            setSavedSessions(SessionManager.getSavedSessions());
-            const { data: mfaData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-            if (mounted) setMfaEnabled(mfaData?.currentLevel === "aal2");
-          } catch (err) {
-            console.error("Auth change tasks failed:", err);
-          } finally {
-            if (mounted) setLoading(false);
-          }
-        } else if (event === "SIGNED_IN" && !isNewUser) {
-          SessionManager.saveSession(newSession);
-          setSavedSessions(SessionManager.getSavedSessions());
-        } else if (event === "USER_UPDATED" || event === "PASSWORD_RECOVERY") {
-          try {
-            await fetchRoleStatus(newSession.user.id, newSession.user.email);
+          } else {
+            // Token refreshed or user updated - just sync local storage
             SessionManager.saveSession(newSession);
             setSavedSessions(SessionManager.getSavedSessions());
-          } catch (err) {
-            console.error("Silent profile refresh failed:", err);
           }
-        } else if (event === "TOKEN_REFRESHED") {
-          SessionManager.saveSession(newSession);
-          setSavedSessions(SessionManager.getSavedSessions());
+        } else {
+          // No user
+          initializedUserId.current = null;
+          setIsAdmin(false);
+          setIsSuperadmin(false);
+          setMfaEnabled(false);
+          setLoading(false);
         }
-      } else {
-        initializedUserId.current = null;
-        setIsAdmin(false);
-        setIsSuperadmin(false);
-        setMfaEnabled(false);
-        setLoading(false);
       }
-    });
 
-    return () => {
-      mounted = false;
-      subscription.unsubscribe();
-      activityEvents.forEach((e) => window.removeEventListener(e, resetTimer));
-      if (inactivityTimer) clearTimeout(inactivityTimer);
-    };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+      // Initial Session Fetch
+      const init = async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (mounted) {
+          await handleAuthStateChange("INITIAL_SESSION", session);
+        }
+      };
+
+      init();
+
+      // Auth State Listener
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event, newSession) => {
+        if (event === "INITIAL_SESSION") return; // Handled by init()
+        handleAuthStateChange(event, newSession);
+      });
+
+      // ── Inactivity Timer ──────────────────────────────────────────────────
+      let inactivityTimer: NodeJS.Timeout;
+      const activityEvents = ["mousedown", "mousemove", "keypress", "scroll", "touchstart"];
+
+      const resetTimer = () => {
+        setLastActivity(Date.now());
+        if (inactivityTimer) clearTimeout(inactivityTimer);
+      };
+
+      activityEvents.forEach((e) => window.addEventListener(e, resetTimer));
+      resetTimer();
+
+      return () => {
+        mounted = false;
+        subscription.unsubscribe();
+        clearTimeout(failsafeTimer);
+        activityEvents.forEach((e) => window.removeEventListener(e, resetTimer));
+        if (inactivityTimer) clearTimeout(inactivityTimer);
+      };
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const switchAccount = async (targetSession: Session) => {
+
     const { error } = await supabase.auth.setSession(targetSession);
     if (error) {
       console.error("Failed to switch session:", error);
