@@ -187,7 +187,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(session?.user ?? null);
 
       if (session?.user) {
-        if (event === "SIGNED_IN" || event === "USER_UPDATED" || event === "TOKEN_REFRESHED") {
+        if (event === "SIGNED_IN") {
+          // Full cycle with loading indicator only on explicit sign-in
           setLoading(true);
           try {
             await ensureProfileExists(session.user);
@@ -203,6 +204,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           } finally {
             if (mounted) setLoading(false);
           }
+        } else if (event === "USER_UPDATED") {
+          // Silently re-fetch role in background — no loading spinner
+          try {
+            await fetchRoleStatus(session.user.id);
+            SessionManager.saveSession(session);
+            setSavedSessions(SessionManager.getSavedSessions());
+          } catch (err) {
+            console.error("Silent role refresh failed:", err);
+          }
+        } else if (event === "TOKEN_REFRESHED") {
+          // Token refresh is a silent background event — just update session state
+          // NEVER set loading=true here — it causes a UI loading loop after every DB action
+          setSession(session);
+          SessionManager.saveSession(session);
+          setSavedSessions(SessionManager.getSavedSessions());
         }
       } else {
         // Signed out
