@@ -15,13 +15,12 @@ export function Benefits() {
             className="max-w-2xl"
           >
             <h2 className="text-3xl md:text-4xl font-black tracking-tight mb-6">
-              Savings built for <br />
+              Saving plans built for <br />
               <span className="text-emerald-600">how you live today.</span>
             </h2>
             <p className="text-base md:text-lg text-slate-600 font-medium font-heading">
-              We've taken everything you love about community savings and added the speed and
-              security of modern digital finance. No interest, no over-promising—just pure
-              discipline.
+              We've taken everything you love about manual savings and added the speed and security
+              of modern digital finance. No interest, no over-promising—just pure discipline.
             </p>
           </motion.div>
         </div>
@@ -68,12 +67,10 @@ export function Benefits() {
                 <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-sm border border-emerald-100">
                   <Users className="size-6 text-emerald-600" />
                 </div>
-                <h3 className="text-2xl font-bold text-emerald-950 tracking-tight">
-                  Community Driven.
-                </h3>
+                <h3 className="text-2xl font-bold text-emerald-950 tracking-tight">YOU-CENTRIC</h3>
                 <p className="text-emerald-800/70 text-sm font-medium leading-relaxed">
-                  Join thousands of members saving together. Social accountability is our secret
-                  weapon for success.
+                  You call the shots. Pick your plan, your amount, your frequency—and stick to it
+                  with the support of a system built around your goals.
                 </p>
               </div>
               <div className="flex -space-x-3 pt-6">
@@ -90,7 +87,7 @@ export function Benefits() {
                   />
                 ))}
                 <div className="w-10 h-10 rounded-full border-2 border-white bg-emerald-600 flex items-center justify-center text-[10px] font-bold text-white uppercase tracking-tighter shadow-lg">
-                  +50k
+                  +2k
                 </div>
               </div>
             </div>
@@ -104,10 +101,10 @@ export function Benefits() {
             <div className="relative z-10 flex flex-col h-full justify-between">
               <div className="space-y-3">
                 <div className="text-4xl font-black text-emerald-600 tracking-tighter">Solid</div>
-                <h3 className="text-xl font-bold text-slate-900">Collective Discipline.</h3>
+                <h3 className="text-xl font-bold text-slate-900">System Assisted Discipline.</h3>
                 <p className="text-slate-500 text-sm font-medium">
-                  Shared accountability helps you hit targets without the pressure of growth
-                  promises. We keep you consistent.
+                  Accountability without the pressure. Our system gently keeps you on track so you
+                  can focus on saving—not chasing due dates.
                 </p>
               </div>
               <Button
@@ -136,11 +133,12 @@ export function Benefits() {
                   <Zap className="size-6 text-white" />
                 </div>
                 <h3 className="text-2xl font-bold text-slate-950 tracking-tight">
-                  Seamless Savings.
+                  One-Time Setup. Automatic Savings.
                 </h3>
                 <p className="text-slate-600 font-medium">
-                  Set your goals and join existing plans. No manual hassle, just pure
-                  community-driven discipline.
+                  Set up your profile once, join any plan that matches your goals, and let the
+                  system handle the rest. No manual tracking, no forgotten payments—just smooth,
+                  automated progress.
                 </p>
                 <div className="flex gap-3 pt-2">
                   <div className="w-2 h-2 rounded-full bg-emerald-500" />

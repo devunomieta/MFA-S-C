@@ -25,9 +25,9 @@ export function VerifyOTP() {
     const emailParam = params.get("email");
 
     if (state?.email) {
-      setEmail(state.email);
+      Promise.resolve().then(() => setEmail(state.email as string));
     } else if (emailParam) {
-      setEmail(emailParam);
+      Promise.resolve().then(() => setEmail(emailParam));
     }
   }, [location]);
 

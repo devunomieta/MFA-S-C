@@ -35,10 +35,6 @@ export function AdminUserDetails() {
     action: () => Promise<void>;
   } | null>(null);
 
-  useEffect(() => {
-    if (id) fetchUserDetails();
-  }, [id]);
-
   async function fetchUserDetails() {
     setLoading(true);
     try {
@@ -131,7 +127,7 @@ export function AdminUserDetails() {
         if (!logsError) {
           setActivityLogs(logsData || []);
         }
-      } catch (e) {
+      } catch {
         console.warn("Could not load activity logs - table might be missing");
       }
     } catch (error: any) {
@@ -140,6 +136,10 @@ export function AdminUserDetails() {
       setLoading(false);
     }
   }
+
+  useEffect(() => {
+    if (id) Promise.resolve().then(() => fetchUserDetails());
+  }, [id]);
 
   async function toggleSuperadmin() {
     if (!profile) return;

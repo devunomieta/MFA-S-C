@@ -24,8 +24,8 @@ export function CTA() {
                 <span className="text-emerald-400">together?</span>
               </h2>
               <p className="text-xl text-slate-400 font-medium leading-relaxed">
-                Join over 50,000 members who are already revolutionizing their financial discipline
-                with Mary's Thrift Services. Simple, social, and secure.
+                Ready to start your savings journey? Choose a plan that matches your goals and join
+                a community that supports your financial growth.
               </p>
             </motion.div>
 

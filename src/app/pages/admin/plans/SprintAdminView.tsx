@@ -64,7 +64,7 @@ export function SprintAdminView({ plan }: SprintAdminViewProps) {
 
     setProcessingId(selectedUserPlanId);
     setIsProcessing(true);
-    const { error, data } = await supabase.rpc("settle_sprint_week", {
+    const { error } = await supabase.rpc("settle_sprint_week", {
       p_user_plan_id: selectedUserPlanId,
     });
     setIsProcessing(false);

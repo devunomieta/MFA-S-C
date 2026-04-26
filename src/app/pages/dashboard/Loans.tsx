@@ -91,8 +91,10 @@ export function Loans() {
     if (loanId && loans.length > 0) {
       const loan = loans.find((l) => l.id === loanId);
       if (loan) {
-        setSelectedLoan(loan);
-        setRepayOpen(true);
+        Promise.resolve().then(() => {
+          setSelectedLoan(loan);
+          setRepayOpen(true);
+        });
         window.history.replaceState({}, "", window.location.pathname);
       }
     }

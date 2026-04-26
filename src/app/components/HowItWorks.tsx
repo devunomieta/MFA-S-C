@@ -3,30 +3,30 @@ import { Target, Users, Zap, TrendingUp } from "lucide-react";
 
 const steps = [
   {
-    title: "Decide what you want to buy",
+    title: "Set your savings goal",
     description:
-      "Whether it is for a new business, school fees, or a new phone, start by picking what you are saving for.",
+      "Decide how much you want to save and how often. Whether it's for school fees, a new phone, or starting a business, we help you define a clear target.",
     icon: <Target className="size-8 text-emerald-600" />,
     color: "emerald",
   },
   {
-    title: "Pick a group that fits your pocket",
+    title: "Join the right plan",
     description:
-      "Look for a group that matches the amount you want to pay and how often you can pay it.",
+      "Choose from existing daily, weekly, or monthly savings groups. Find the perfect fit for your budget and goals.",
     icon: <Users className="size-8 text-blue-600" />,
     color: "blue",
   },
   {
-    title: "Pay small small every time",
+    title: "Automate your savings",
     description:
-      "Daily, weekly, or monthly—our system will help you save automatically so you don't forget.",
+      "Whether it's daily, weekly, or monthly, our system automatically collects your contributions—making saving effortless and consistent.",
     icon: <Zap className="size-8 text-orange-600" />,
     color: "orange",
   },
   {
-    title: "Collect your total money",
+    title: "Receive your total savings",
     description:
-      "When it is your turn, receive your total money directly into your bank account. No stress.",
+      "Once your savings cycle is complete, the full amount is credited directly to your bank account. No delays, no complications.",
     icon: <TrendingUp className="size-8 text-emerald-600" />,
     color: "emerald",
   },
@@ -44,12 +44,10 @@ export function HowItWorks() {
           whileInView={{ opacity: 1, y: 0 }}
           className="text-center max-w-3xl mx-auto mb-20"
         >
-          <h2 className="text-3xl md:text-4xl font-black text-slate-950 mb-6">
-            How Mary's Thrift Services <span className="text-emerald-600">Works for You.</span>
-          </h2>
+          <h2 className="text-3xl md:text-4xl font-black text-slate-950 mb-6">How It Works</h2>
           <p className="text-slate-600 text-lg font-medium">
-            Just four simple steps to reach your target. No long story, no hidden charges, just easy
-            savings.
+            From setting your goals to receiving your payout, we've designed a simple, transparent
+            process that keeps you in control.
           </p>
         </motion.div>
 

@@ -128,24 +128,28 @@ export function DepositModal({
   }
 
   useEffect(() => {
-    setIsAdvanceMode(initialAdvanceMode || false);
+    Promise.resolve().then(() => setIsAdvanceMode(initialAdvanceMode || false));
   }, [initialAdvanceMode]);
 
   useEffect(() => {
     if (user) {
-      fetchPlans();
-      fetchGeneralBalance();
-      fetchBankDetails();
+      Promise.resolve().then(() => {
+        fetchPlans();
+        fetchGeneralBalance();
+        fetchBankDetails();
+      });
     }
   }, [user]);
 
   useEffect(() => {
     if (defaultPlanId) {
-      setSelectedPlanId(defaultPlanId);
-      setActiveTab("wallet"); // Automatically switch to wallet if a plan is targeted
-      fetchPlans(); // Refresh plans to ensure the newly joined plan is found
+      Promise.resolve().then(() => {
+        setSelectedPlanId(defaultPlanId);
+        setActiveTab("wallet"); // Automatically switch to wallet if a plan is targeted
+        fetchPlans(); // Refresh plans to ensure the newly joined plan is found
+      });
     } else {
-      setActiveTab("external");
+      Promise.resolve().then(() => setActiveTab("external"));
     }
   }, [defaultPlanId]);
 
@@ -266,7 +270,7 @@ export function DepositModal({
     if (receiptFile) {
       try {
         const fileExt = receiptFile.name.split(".").pop();
-        const fileName = `${user.id}-${Math.random()}.${fileExt}`;
+        const fileName = `${user.id}-${receiptFile.size}-${receiptFile.name.length}.${fileExt}`;
 
         const { error: uploadError } = await supabase.storage
           .from("receipts")

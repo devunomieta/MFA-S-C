@@ -59,7 +59,7 @@ export function StepUpAdminView({ plan }: StepUpAdminViewProps) {
   async function handleSettleWeek() {
     setLoading(true);
     setIsProcessing(true);
-    const { error, data } = await supabase.rpc("settle_step_up_week");
+    const { error } = await supabase.rpc("settle_step_up_week");
     setLoading(false);
     setIsProcessing(false);
     setIsSettleOpen(false);

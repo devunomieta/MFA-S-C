@@ -18,7 +18,7 @@ export function Comparison() {
     {
       feature: "Commitment",
       traditional: "Hard to save every time",
-      platform: "Automated daily/weekly savings",
+      platform: "Automated daily/weekly/monthly savings",
       better: true,
     },
     {
@@ -28,7 +28,7 @@ export function Comparison() {
       better: true,
     },
     {
-      feature: "Rules",
+      feature: "Rules for Ajo plan type",
       traditional: "People fit fail to pay",
       platform: "System makes sure everyone pays",
       better: true,
@@ -44,7 +44,7 @@ export function Comparison() {
           className="text-center max-w-3xl mx-auto mb-16"
         >
           <h2 className="text-3xl md:text-4xl font-black mb-4">
-            Why upgrade from <span className="text-slate-400">Manual Ajo?</span>
+            Why upgrade from <span className="text-slate-400">Manual Savings & Ajo?</span>
           </h2>
           <p className="text-lg text-slate-600 font-medium">
             Stop the old risky way of saving. Mary's Thrift Services is the smarter and safer way to
@@ -62,7 +62,7 @@ export function Comparison() {
             >
               <div className="flex items-center gap-3 mb-8 text-slate-500">
                 <AlertTriangle className="size-6" />
-                <h3 className="text-xl font-bold">Traditional Ajo</h3>
+                <h3 className="text-xl font-bold">Traditional Savings</h3>
               </div>
               <ul className="space-y-6">
                 {points.map((p, i) => (
@@ -85,12 +85,12 @@ export function Comparison() {
               whileInView={{ opacity: 1, scale: 1 }}
               className="bg-emerald-900 p-8 rounded-[2rem] border-4 border-emerald-400/30 shadow-2xl relative md:-my-4"
             >
-              <div className="absolute top-4 right-4 bg-emerald-400 text-emerald-900 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest animate-pulse">
+              <div className="absolute top-4 left-8 bg-emerald-400 text-emerald-900 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest animate-pulse">
                 Recommended
               </div>
-              <div className="flex items-center gap-3 mb-8 text-emerald-400">
+              <div className="flex items-center gap-3 mb-8 mt-4 text-emerald-400">
                 <Shield className="size-6" />
-                <h3 className="text-xl font-bold text-white">Mary's Thrift Services Digital</h3>
+                <h3 className="text-xl font-bold text-white">Mary's Thrift Services</h3>
               </div>
               <ul className="space-y-6">
                 {points.map((p, i) => (
@@ -128,7 +128,7 @@ export function Comparison() {
                 <div className="bg-white p-4 rounded-xl shadow-sm border border-emerald-100">
                   <div className="text-2xl font-black text-emerald-600 tracking-tighter">Fast</div>
                   <div className="text-xs font-bold text-slate-500 uppercase">
-                    Receive Money Quick
+                    Quick Payout When Due
                   </div>
                 </div>
               </div>

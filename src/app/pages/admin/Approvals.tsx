@@ -40,7 +40,7 @@ export function AdminApprovals() {
 
   useEffect(() => {
     if (user) {
-      fetchData();
+      Promise.resolve().then(() => fetchData());
     }
   }, [user]);
 

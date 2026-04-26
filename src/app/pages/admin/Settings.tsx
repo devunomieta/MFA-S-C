@@ -122,7 +122,7 @@ export function AdminSettings() {
         if (smtpSettings) setSmtp(smtpSettings);
         if (templateSettings) setTemplates(templateSettings);
       }
-    } catch (error) {
+    } catch {
       toast.error("Failed to load settings");
     } finally {
       setLoading(false);

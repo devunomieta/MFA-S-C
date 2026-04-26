@@ -45,7 +45,7 @@ export default function Testimonials() {
 
       if (error) throw error;
       setTestimonials(data || []);
-    } catch (error: any) {
+    } catch {
       toast.error("Failed to load testimonials");
     } finally {
       setLoading(false);
@@ -106,7 +106,7 @@ export default function Testimonials() {
       if (error) throw error;
       toast.success("Testimonial deleted");
       fetchTestimonials();
-    } catch (error: any) {
+    } catch {
       toast.error("Delete failed");
     }
   };
@@ -119,7 +119,7 @@ export default function Testimonials() {
         .eq("id", testimonial.id);
       if (error) throw error;
       fetchTestimonials();
-    } catch (error: any) {
+    } catch {
       toast.error("Toggle failed");
     }
   };

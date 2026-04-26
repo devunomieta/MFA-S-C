@@ -17,6 +17,22 @@ import { Card } from "@/app/components/ui/card";
 import { supabase } from "@/lib/supabase";
 import { formatNaira } from "@/lib/utils";
 
+const StatCard = ({ title, value, label, icon: Icon, color, onClick }: any) => (
+  <Card
+    className="border border-slate-200/60 bg-white hover:border-slate-300 transition-all cursor-pointer rounded-2xl group shadow-sm flex flex-col items-center justify-center py-6 px-4"
+    onClick={onClick}
+  >
+    <div
+      className={`p-2.5 rounded-xl ${color} bg-opacity-10 mb-4 group-hover:scale-110 transition-transform`}
+    >
+      <Icon className={`size-5 ${color.replace("bg-", "text-")}`} />
+    </div>
+    <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">{title}</h3>
+    <div className="text-2xl font-semibold text-slate-900 mb-1">{value}</div>
+    <p className="text-[10px] font-medium text-slate-500">{label}</p>
+  </Card>
+);
+
 export function AdminOverview() {
   const navigate = useNavigate();
   const [stats, setStats] = useState({
@@ -32,10 +48,6 @@ export function AdminOverview() {
   const [activity, setActivity] = useState<any[]>([]);
   const [chartData, setChartData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchStats();
-  }, []);
 
   async function fetchStats() {
     setLoading(true);
@@ -116,25 +128,11 @@ export function AdminOverview() {
     }
   }
 
-  const StatCard = ({ title, value, label, icon: Icon, color, onClick }: any) => (
-    <Card
-      className="border border-slate-200/60 bg-white hover:border-slate-300 transition-all cursor-pointer rounded-2xl group shadow-sm flex flex-col items-center justify-center py-6 px-4"
-      onClick={onClick}
-    >
-      <div
-        className={`p-2.5 rounded-xl ${color} bg-opacity-10 mb-4 group-hover:scale-110 transition-transform`}
-      >
-        <Icon className={`size-5 ${color.replace("bg-", "text-")}`} />
-      </div>
-      <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-        {title}
-      </h3>
-      <div className="text-2xl font-semibold text-slate-900 mb-1">{value}</div>
-      <p className="text-[10px] font-medium text-slate-500">{label}</p>
-    </Card>
-  );
+  useEffect(() => {
+    Promise.resolve().then(() => fetchStats());
+  }, []);
 
-  if (loading)
+  if (loading) {
     return (
       <div className="min-h-[50vh] flex flex-col items-center justify-center gap-3">
         <div className="size-8 border-2 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin" />
@@ -143,6 +141,7 @@ export function AdminOverview() {
         </span>
       </div>
     );
+  }
 
   return (
     <div className="max-w-7xl mx-auto space-y-12 py-4 animate-in fade-in duration-700">

@@ -46,10 +46,6 @@ export function AjoCircleAdminView() {
     action: () => Promise<void>;
   } | null>(null);
 
-  useEffect(() => {
-    fetchSubscribers();
-  }, []);
-
   const fetchSubscribers = async () => {
     // Get Plan ID
     const { data: planData } = await supabase
@@ -74,6 +70,10 @@ export function AjoCircleAdminView() {
     }
     setLoading(false);
   };
+
+  useEffect(() => {
+    Promise.resolve().then(() => fetchSubscribers());
+  }, []);
 
   const handleAssignTurn = async (userPlanId: string, turn: string) => {
     if (!turn) return;

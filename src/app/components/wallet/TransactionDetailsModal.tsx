@@ -84,7 +84,7 @@ export function TransactionDetailsModal({
 
   useEffect(() => {
     if (transaction && open) {
-      fetchContextData();
+      Promise.resolve().then(() => fetchContextData());
     }
   }, [transaction, open]);
 

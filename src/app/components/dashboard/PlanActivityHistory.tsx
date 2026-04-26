@@ -15,10 +15,6 @@ export function PlanActivityHistory({ userId, planId, userPlanId }: PlanActivity
   const [activities, setActivities] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchHistory();
-  }, [userId, planId, userPlanId]);
-
   async function fetchHistory() {
     setLoading(true);
     try {
@@ -40,6 +36,10 @@ export function PlanActivityHistory({ userId, planId, userPlanId }: PlanActivity
       setLoading(false);
     }
   }
+
+  useEffect(() => {
+    Promise.resolve().then(() => fetchHistory());
+  }, [userId, planId, userPlanId]);
 
   const formatCurrency = (val: number) =>
     new Intl.NumberFormat("en-US", { style: "currency", currency: "NGN" }).format(val);

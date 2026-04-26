@@ -41,15 +41,19 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
   useEffect(() => {
     if (!user) {
-      setUnreadCount(0);
-      setNotifications([]);
-      setLastEvent(null);
+      Promise.resolve().then(() => {
+        setUnreadCount(0);
+        setNotifications([]);
+        setLastEvent(null);
+      });
       return;
     }
 
     // Initial fetch
-    refreshUnreadCount();
-    refreshNotifications();
+    Promise.resolve().then(() => {
+      refreshUnreadCount();
+      refreshNotifications();
+    });
 
     // Subscribe to changes (Single subscription for the entire app)
     const subscription = notificationService.subscribeToNotifications(user.id, (payload) => {

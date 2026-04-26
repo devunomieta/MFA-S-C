@@ -33,19 +33,17 @@ export function PlansDeck({ plans, loading, walletBalance, onActiveChange }: Pla
     }));
 
     const items = [walletItem, ...planItems];
-    setAllItems(items);
-
-    // Initialize order if not set or if plans changed drastically (re-init on load)
-    // We only reset if the length is different to avoid resetting rotation on simple updates?
-    // Actually, for simplicity, let's just reset order when plans change for now.
-    // A smarter diff would be better but complex.
     const ids = items.map((i) => i.id);
-    setDeckItemIds(ids);
 
-    // Notify parent of initial active item (the top one)
-    if (ids.length > 0 && onActiveChange) {
-      onActiveChange("wallet", "wallet", "General Wallet");
-    }
+    Promise.resolve().then(() => {
+      setAllItems(items);
+      setDeckItemIds(ids);
+
+      // Notify parent of initial active item (the top one)
+      if (ids.length > 0 && onActiveChange) {
+        onActiveChange("wallet", "wallet", "General Wallet");
+      }
+    });
   }, [plans, walletBalance, loading]); // Logic dependency needs care to avoid loops
 
   const rotateDeck = () => {

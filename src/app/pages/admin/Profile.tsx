@@ -26,12 +26,6 @@ export function AdminProfile() {
     avatar_url: "",
   });
 
-  useEffect(() => {
-    if (user) {
-      fetchProfile();
-    }
-  }, [user]);
-
   async function fetchProfile() {
     const { data } = await supabase.from("profiles").select("*").eq("id", user?.id).single();
 
@@ -43,6 +37,12 @@ export function AdminProfile() {
       });
     }
   }
+
+  useEffect(() => {
+    if (user) {
+      Promise.resolve().then(() => fetchProfile());
+    }
+  }, [user]);
 
   async function updateProfile() {
     if (!profile.full_name.trim()) {

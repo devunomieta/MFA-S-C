@@ -47,6 +47,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [lastActivity, setLastActivity] = useState<number>(() => Date.now());
   const [mfaEnabled, setMfaEnabled] = useState(false);
 
+  const signOut = async () => {
+    if (user) {
+      SessionManager.removeSession(user.id);
+      setSavedSessions(SessionManager.getSavedSessions());
+    }
+    await supabase.auth.signOut();
+  };
+
   useEffect(() => {
     let mounted = true;
 
@@ -208,14 +216,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (inactivityTimer) clearTimeout(inactivityTimer);
     };
   }, []);
-
-  const signOut = async () => {
-    if (user) {
-      SessionManager.removeSession(user.id);
-      setSavedSessions(SessionManager.getSavedSessions());
-    }
-    await supabase.auth.signOut();
-  };
 
   const switchAccount = async (targetSession: Session) => {
     const { error } = await supabase.auth.setSession(targetSession);

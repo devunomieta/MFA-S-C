@@ -50,31 +50,6 @@ export function Notifications() {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
 
-  useEffect(() => {
-    if (!user) return;
-    fetchInitialData();
-  }, [user, filter, searchQuery, dateRange, page]);
-
-  useEffect(() => {
-    if (!lastEvent) return;
-
-    if (lastEvent.eventType === "INSERT") {
-      // If on first page and no filters, prepend. Otherwise refetch.
-      if (page === 1 && !searchQuery && filter === "all") {
-        // Deduplicate to prevent double triggers
-        setNotifications((prev) => {
-          const exists = prev.some((n) => n.id === lastEvent.new.id);
-          if (exists) return prev;
-          return [lastEvent.new as MTFNotification, ...prev].slice(0, 25);
-        });
-      } else {
-        fetchInitialData();
-      }
-    } else if (lastEvent.eventType === "UPDATE" || lastEvent.eventType === "DELETE") {
-      fetchInitialData();
-    }
-  }, [lastEvent]);
-
   const fetchInitialData = async () => {
     try {
       setLoading(true);
@@ -101,6 +76,33 @@ export function Notifications() {
     }
   };
 
+  useEffect(() => {
+    if (!user) return;
+    Promise.resolve().then(() => fetchInitialData());
+  }, [user, filter, searchQuery, dateRange, page]);
+
+  useEffect(() => {
+    if (!lastEvent) return;
+
+    if (lastEvent.eventType === "INSERT") {
+      // If on first page and no filters, prepend. Otherwise refetch.
+      if (page === 1 && !searchQuery && filter === "all") {
+        // Deduplicate to prevent double triggers
+        Promise.resolve().then(() => {
+          setNotifications((prev) => {
+            const exists = prev.some((n) => n.id === lastEvent.new.id);
+            if (exists) return prev;
+            return [lastEvent.new as MTFNotification, ...prev].slice(0, 25);
+          });
+        });
+      } else {
+        Promise.resolve().then(() => fetchInitialData());
+      }
+    } else if (lastEvent.eventType === "UPDATE" || lastEvent.eventType === "DELETE") {
+      Promise.resolve().then(() => fetchInitialData());
+    }
+  }, [lastEvent]);
+
   const loadMore = async () => {
     if (loadingMore || !hasMore) return;
     try {
@@ -117,7 +119,7 @@ export function Notifications() {
       setNotifications((prev) => [...prev, ...data.notifications]);
       setHasMore(data.hasMore);
       setPage(nextPage);
-    } catch (error) {
+    } catch {
       toast.error("Failed to load more notifications");
     } finally {
       setLoadingMore(false);
@@ -130,7 +132,7 @@ export function Notifications() {
       setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, is_read: true } : n)));
       await refreshUnreadCount();
       toast.success("Marked as read");
-    } catch (error) {
+    } catch {
       toast.error("Failed to update notification");
     }
   };
@@ -141,7 +143,7 @@ export function Notifications() {
       setNotifications((prev) => prev.filter((n) => n.id !== id));
       await refreshUnreadCount();
       toast.success("Notification deleted");
-    } catch (error) {
+    } catch {
       toast.error("Failed to delete notification");
     }
   };
@@ -187,7 +189,7 @@ export function Notifications() {
       setSettings(newSettings);
       await notificationService.updateSettings({ [key]: value });
       toast.success("Settings updated");
-    } catch (error) {
+    } catch {
       toast.error("Failed to update settings");
     }
   };

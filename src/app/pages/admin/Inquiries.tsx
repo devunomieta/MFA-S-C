@@ -31,10 +31,6 @@ export default function AdminInquiries() {
   const [selectedInquiry, setSelectedInquiry] = useState<any>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchInquiries();
-  }, [statusFilter]);
-
   const fetchInquiries = async () => {
     setLoading(true);
     try {
@@ -50,12 +46,16 @@ export default function AdminInquiries() {
       const { data, error } = await query;
       if (error) throw error;
       setInquiries(data || []);
-    } catch (error: any) {
+    } catch {
       toast.error("Failed to load inquiries");
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    Promise.resolve().then(() => fetchInquiries());
+  }, [statusFilter]);
 
   const updateStatus = async (id: string, status: string) => {
     try {
@@ -67,7 +67,7 @@ export default function AdminInquiries() {
       if (selectedInquiry?.id === id) {
         setSelectedInquiry({ ...selectedInquiry, status });
       }
-    } catch (error: any) {
+    } catch {
       toast.error("Update failed");
     }
   };
@@ -81,7 +81,7 @@ export default function AdminInquiries() {
       toast.success("Inquiry deleted");
       setInquiries(inquiries.filter((i) => i.id !== deleteId));
       if (selectedInquiry?.id === deleteId) setSelectedInquiry(null);
-    } catch (error: any) {
+    } catch {
       toast.error("Delete failed");
     } finally {
       setDeleteId(null);

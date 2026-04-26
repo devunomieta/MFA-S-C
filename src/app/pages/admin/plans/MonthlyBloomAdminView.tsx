@@ -66,7 +66,7 @@ export function MonthlyBloomAdminView() {
   };
 
   useEffect(() => {
-    fetchPlans();
+    Promise.resolve().then(() => fetchPlans());
   }, []);
 
   const handleSettleMonth = async () => {

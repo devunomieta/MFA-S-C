@@ -64,7 +64,7 @@ export function AnchorAdminView({ plan }: AnchorAdminViewProps) {
 
     setProcessingId(selectedUserPlanId);
     setIsProcessing(true);
-    const { error, data } = await supabase.rpc("settle_anchor_week", {
+    const { error } = await supabase.rpc("settle_anchor_week", {
       p_user_plan_id: selectedUserPlanId,
     });
     setIsProcessing(false);

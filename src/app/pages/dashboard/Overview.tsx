@@ -110,9 +110,9 @@ export function Overview() {
 
   useEffect(() => {
     if (user?.id) {
-      fetchDashboardData();
+      Promise.resolve().then(() => fetchDashboardData());
     } else {
-      setLoading(false);
+      Promise.resolve().then(() => setLoading(false));
     }
   }, [user?.id]);
 

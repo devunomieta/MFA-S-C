@@ -198,8 +198,10 @@ export function Plans() {
   }
 
   useEffect(() => {
-    fetchPlans();
-    fetchMyPlans();
+    Promise.resolve().then(() => {
+      fetchPlans();
+      fetchMyPlans();
+    });
 
     const channel = supabase
       .channel("user_plans_changes")

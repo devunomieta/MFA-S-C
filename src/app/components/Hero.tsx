@@ -110,7 +110,7 @@ export function Hero() {
                   Secure & Registered
                 </div>
                 <div className="text-[10px] md:text-xs text-slate-500 font-medium uppercase tracking-tight">
-                  BN - 8950808
+                  CAC: BN - 8950808
                 </div>
               </div>
             </div>
@@ -121,10 +121,10 @@ export function Hero() {
               </div>
               <div className="text-center">
                 <div className="text-sm md:text-base font-bold text-slate-950 dark:text-white">
-                  50+ Active Plans
+                  5+ Active Plans
                 </div>
                 <div className="text-[10px] md:text-xs text-slate-500 font-medium">
-                  Meeting goals this month
+                  Daily, Weekly or Monthly Plans
                 </div>
               </div>
             </div>
@@ -168,7 +168,7 @@ export function Hero() {
           <div className="text-sm font-bold text-slate-950 dark:text-white">
             Smart Automated Savings
           </div>
-          <div className="text-[10px] font-medium text-slate-400">Zero-effort discipline</div>
+          <div className="text-[10px] font-medium text-slate-400">Assistive Saving</div>
         </motion.div>
       </div>
     </section>

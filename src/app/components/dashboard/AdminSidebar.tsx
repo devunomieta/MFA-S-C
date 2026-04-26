@@ -62,7 +62,11 @@ export function AdminSidebar({ isOpen, setIsOpen }: SidebarProps) {
 
     // Auto-expand group if on a sub-route
     if (pathname.includes("/admin/plans") && !expandedGroups.includes("Manage Plans")) {
-      setExpandedGroups((prev) => [...prev, "Manage Plans"]);
+      Promise.resolve().then(() => {
+        setExpandedGroups((prev) =>
+          prev.includes("Manage Plans") ? prev : [...prev, "Manage Plans"],
+        );
+      });
     }
 
     return () => window.removeEventListener("resize", checkMobile);

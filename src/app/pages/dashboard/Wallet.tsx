@@ -110,19 +110,21 @@ export function Wallet() {
   useEffect(() => {
     const planId = searchParams.get("planId");
     if (planId && planId !== selectedPlanFilter) {
-      setSelectedPlanFilter(planId);
+      Promise.resolve().then(() => setSelectedPlanFilter(planId));
     }
   }, [searchParams, selectedPlanFilter]);
 
   useEffect(() => {
     if (user) {
-      fetchWalletData();
-      fetchPlansData();
-      fetchBankAccounts();
-      fetchUserPlans();
-      fetchActiveLoan();
-      fetchGlobalSettings();
-      fetchPendingArrears();
+      Promise.resolve().then(() => {
+        fetchWalletData();
+        fetchPlansData();
+        fetchActiveLoan();
+        fetchBankAccounts();
+        fetchPendingArrears();
+        fetchUserPlans();
+        fetchGlobalSettings();
+      });
     }
   }, [user]);
 

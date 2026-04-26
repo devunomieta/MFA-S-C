@@ -99,7 +99,7 @@ export function Contact() {
             funcError,
           );
         }
-      } catch (invokeError) {
+      } catch {
         // This is where "Network Error" (Adblockers) usually happens
         console.warn("Edge Function blocked by browser/network, message saved to DB fallback.");
       }
