@@ -20,7 +20,9 @@ import { Outlet } from "react-router-dom";
 import { Link, useLocation } from "react-router-dom";
 
 import { AccountSwitcher } from "@/app/components/AccountSwitcher";
+import { SecurityOnboarding } from "@/app/components/auth/SecurityOnboarding";
 import { NotificationBell } from "@/app/components/dashboard/NotificationBell";
+
 import { Sidebar } from "@/app/components/dashboard/Sidebar";
 import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
@@ -53,8 +55,8 @@ export function DashboardLayout() {
   const location = useLocation();
   const { unreadCount } = useNotifications();
 
-  // Google OAuth phone notice — shown to Google users who haven't added a phone
-  const [showPhoneNotice, setShowPhoneNotice] = useState(false);
+  // Mandatory Security Onboarding
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   const sidebarItems = [
     { icon: LayoutDashboard, label: "Overview", href: "/dashboard" },
@@ -88,26 +90,22 @@ export function DashboardLayout() {
           setAnnouncement(data);
         }
 
-        // Check if user is a Google OAuth user who hasn't added a phone
+        // Check if user needs onboarding
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("phone, onboarding_completed, has_password")
+          .eq("id", user.id)
+          .maybeSingle();
+
         const isGoogleUser =
           user.app_metadata?.provider === "google" ||
           (user.app_metadata?.providers as string[] | undefined)?.includes("google");
 
-        if (isGoogleUser) {
-          const dismissedKey = `phone_notice_dismissed_${user.id}`;
-          const alreadyDismissed = localStorage.getItem(dismissedKey) === "true";
+        const hasPhone = !!profile?.phone && profile.phone.trim().length > 3;
+        const needsPassword = isGoogleUser && !profile?.has_password;
 
-          if (!alreadyDismissed) {
-            // Check if they have a phone on their profile
-            const { data: profile } = await supabase
-              .from("profiles")
-              .select("phone")
-              .eq("id", user.id)
-              .maybeSingle();
-
-            const hasPhone = !!profile?.phone && profile.phone.trim().length > 3;
-            if (!hasPhone) setShowPhoneNotice(true);
-          }
+        if (!profile?.onboarding_completed && (!hasPhone || needsPassword)) {
+          setShowOnboarding(true);
         }
       } catch (err) {
         console.error("Critical error in announcement fetch:", err);
@@ -116,35 +114,11 @@ export function DashboardLayout() {
     fetchData();
   }, [user]);
 
-  const dismissPhoneNotice = () => {
-    if (user) localStorage.setItem(`phone_notice_dismissed_${user.id}`, "true");
-    setShowPhoneNotice(false);
-  };
-
   return (
     <div className="min-h-screen bg-gray-50 flex dark:bg-gray-900 transition-colors relative">
-      {/* Google OAuth — Add Phone Number Notice */}
-      {showPhoneNotice && (
-        <div className="fixed top-0 left-0 right-0 z-[70] px-4 py-2.5 bg-amber-500 text-white text-sm font-medium flex items-center justify-center gap-3">
-          <Phone className="w-4 h-4 shrink-0" />
-          <span>
-            Your account doesn't have a phone number yet.{" "}
-            <Link
-              to="/dashboard/profile"
-              className="underline underline-offset-2 font-bold hover:text-amber-100 transition-colors"
-            >
-              Add it in your Profile
-            </Link>
-            {" "}to improve account recovery options.
-          </span>
-          <button
-            onClick={dismissPhoneNotice}
-            aria-label="Dismiss phone notice"
-            className="absolute right-4 hover:bg-white/20 p-1 rounded transition-colors"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
+      {/* Mandatory Security Onboarding Wizard */}
+      {showOnboarding && (
+        <SecurityOnboarding onComplete={() => setShowOnboarding(false)} />
       )}
 
       {/* Admin / System Announcement Banner */}

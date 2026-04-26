@@ -9,7 +9,10 @@ import { AuthHeader } from "@/app/components/auth/AuthHeader";
 import { Button } from "@/app/components/ui/button";
 import { Label } from "@/app/components/ui/label";
 import { PasswordInput } from "@/app/components/ui/PasswordInput";
+import { PasswordStrength } from "@/app/components/ui/PasswordStrength";
 import { supabase } from "@/lib/supabase";
+import { validatePassword } from "@/lib/validation";
+
 
 export function UpdatePassword() {
   const navigate = useNavigate();
@@ -18,6 +21,8 @@ export function UpdatePassword() {
     password: "",
     confirmPassword: "",
   });
+
+  const passFeedback = validatePassword(formData.password);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -34,34 +39,23 @@ export function UpdatePassword() {
     setLoading(true);
 
     try {
-      const { data, error } = await supabase.auth.updateUser({
+      const { error } = await supabase.auth.updateUser({
         password: formData.password,
       });
 
       if (error) throw error;
 
-      const user = data?.user;
-      toast.success("Password updated successfully");
+      toast.success("Password updated successfully! Please login with your new password.");
 
-      // Check if user is an admin
-      let isAdmin = false;
-      try {
-        const { data: isRpcAdmin } = await supabase.rpc("is_admin_check", {
-          p_email: user?.email,
-        });
-        if (isRpcAdmin) {
-          isAdmin = true;
-        }
-      } catch (err) {
-        console.warn("Admin check failed on update password:", err);
-      }
+      // Sign out to clear any partial sessions and ensure user logs in fresh
+      await supabase.auth.signOut();
 
-      navigate(isAdmin ? "/admin" : "/dashboard");
+      // Redirect to login page as requested
+      navigate("/login");
     } catch (error: any) {
       console.error("Update Password Error:", error);
       toast.error(error.message || "Failed to update password");
-    } finally {
-      setLoading(false);
+      setLoading(false); // Explicitly clear loading on error
     }
   };
 
@@ -138,6 +132,8 @@ export function UpdatePassword() {
                   />
                 </div>
               </div>
+
+              <PasswordStrength feedback={passFeedback} passwordLength={formData.password.length} />
             </div>
 
             <Button

@@ -16,7 +16,7 @@ import {
   Eye,
   Camera,
 } from "lucide-react";
-import { User, KeyRound, UserCheck, Landmark, Shield, Mail } from "lucide-react";
+import { User, KeyRound, UserCheck, Landmark, Shield, Mail, Phone } from "lucide-react";
 import { toast } from "sonner";
 
 import { ActionConfirmModal } from "@/app/components/ui/ActionConfirmModal";
@@ -47,10 +47,12 @@ import {
   InputOTPSlot,
 } from "@/app/components/ui/input-otp";
 import { Label } from "@/app/components/ui/label";
+import { PasswordStrength } from "@/app/components/ui/PasswordStrength";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
 import { useAuth } from "@/app/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { validateFile, validatePassword } from "@/lib/validation";
+
 
 export function Profile() {
   const { user } = useAuth();
@@ -60,10 +62,12 @@ export function Profile() {
   const [profile, setProfile] = useState({
     full_name: "",
     email: "",
+    phone: "",
     avatar_url: "",
     gov_id_status: "not_uploaded",
     gov_id_url: "",
   });
+
   // Keep track of original name to detect changes
   const [originalName, setOriginalName] = useState("");
 
@@ -144,22 +148,26 @@ export function Profile() {
       setProfile({
         full_name: data.full_name || "",
         email: data.email || user?.email || "",
+        phone: data.phone || user?.phone || user?.user_metadata?.phone || "",
         avatar_url: data.avatar_url || "",
         gov_id_status: data.gov_id_status || "not_uploaded",
-        gov_id_url: data.gov_id_url || "", // Ensure this is not undefined
+        gov_id_url: data.gov_id_url || "",
       });
       setOriginalName(data.full_name || "");
     } else {
       const metaName = user?.user_metadata?.full_name || "";
+      const metaPhone = user?.phone || user?.user_metadata?.phone || "";
       setProfile({
         full_name: metaName,
         email: user?.email || "",
+        phone: metaPhone,
         avatar_url: "",
         gov_id_status: "not_uploaded",
         gov_id_url: "",
       });
       setOriginalName(metaName);
     }
+
   }
 
   async function fetchNameHistory() {
@@ -371,6 +379,7 @@ export function Profile() {
       .from("profiles")
       .update({
         full_name: profile.full_name,
+        phone: profile.phone,
       })
       .eq("id", user?.id);
 
@@ -379,8 +388,10 @@ export function Profile() {
     } else {
       toast.success("Profile updated successfully");
       await supabase.auth.updateUser({
-        data: { full_name: profile.full_name },
+        phone: profile.phone,
+        data: { full_name: profile.full_name, phone: profile.phone },
       });
+
       setOriginalName(profile.full_name);
       if (nameChanged) {
         fetchNameHistory();
@@ -614,25 +625,18 @@ export function Profile() {
 
     if (error) {
       console.error("Password Update Error:", error);
-      let errorMessage = "Failed to update password. Please check your connection and try again.";
-      if (error.message) {
-        errorMessage = error.message;
-      } else if (typeof error === "object" && JSON.stringify(error) !== "{}") {
-        errorMessage = JSON.stringify(error);
-      }
-      if (errorMessage === "{}" || errorMessage === "[object Object]") {
-        errorMessage = "Failed to update password. Please try again.";
-      }
-      toast.error(errorMessage);
+      toast.error(error.message || "Failed to update password");
+      setUpdatingPassword(false); // Explicitly clear loading on error
     } else {
       toast.success("Password updated successfully");
       setPasswordData({ current_password: "", new_password: "", confirm_password: "" });
       setOtpCode("");
       setCodeRequested(false);
       setShowPasswordForm(false);
+      setUpdatingPassword(false);
     }
-    setUpdatingPassword(false);
   }
+
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -848,6 +852,26 @@ export function Profile() {
                   className="bg-gray-50 text-gray-500 dark:bg-gray-800/50 dark:text-gray-400 dark:border-gray-700"
                 />
               </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="phone" className="dark:text-gray-300">
+                  Phone Number
+                </Label>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <Input
+                    id="phone"
+                    value={profile.phone}
+                    onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+                    className="pl-10 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+                    placeholder="+234..."
+                  />
+                </div>
+                <p className="text-[10px] text-gray-500">
+                  Can be used for login alongside your email.
+                </p>
+              </div>
+
 
               {/* NAME HISTORY SECTION */}
               {nameHistory.length > 0 && (
@@ -1462,7 +1486,7 @@ export function Profile() {
                         </Label>
                         <Input
                           type="password"
-                          placeholder="Match new password"
+                          placeholder="Confirm your new password"
                           value={passwordData.confirm_password}
                           onChange={(e) =>
                             setPasswordData({ ...passwordData, confirm_password: e.target.value })
@@ -1470,6 +1494,12 @@ export function Profile() {
                           className="dark:bg-gray-800 dark:border-gray-700"
                         />
                       </div>
+
+                      <PasswordStrength
+                        feedback={passFeedback}
+                        passwordLength={passwordData.new_password.length}
+                      />
+
                       <div className="flex gap-2 justify-end pt-2">
                         <Button
                           variant="ghost"

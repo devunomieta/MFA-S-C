@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 
+import HCaptcha from "@hcaptcha/react-hcaptcha";
 import { motion } from "framer-motion";
 import { ArrowRight, Mail, Lock, UserPlus, Home } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
@@ -13,15 +14,15 @@ import { PasswordInput } from "@/app/components/ui/PasswordInput";
 import { logActivity } from "@/lib/activity";
 import { supabase } from "@/lib/supabase";
 
+const HCAPTCHA_SITE_KEY = "2aac9114-5cba-4dbe-97a0-ad1ac7f80daa";
+
 export function Login() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const joinPlanId = searchParams.get("join");
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-  });
+  const [formData, setFormData] = useState({ email: "", password: "" });
+  const captchaRef = useRef<HCaptcha>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -32,14 +33,25 @@ export function Login() {
     setLoading(true);
 
     try {
+      // Execute captcha challenge and get token
+      const captchaToken = await captchaRef.current?.execute({ async: true });
+      if (!captchaToken?.response) {
+        toast.error("Please complete the security check.");
+        setLoading(false);
+        return;
+      }
+
       const identifier = formData.email.trim();
       const isEmail = identifier.includes("@");
 
-      const { data, error } = await supabase.auth.signInWithPassword(
-        isEmail
-          ? { email: identifier, password: formData.password }
-          : { phone: identifier, password: formData.password },
-      );
+      const { data, error } = await supabase.auth.signInWithPassword({
+        ...(isEmail ? { email: identifier } : { phone: identifier }),
+        password: formData.password,
+        options: { captchaToken: captchaToken.response },
+      });
+
+      // Always reset captcha after use
+      captchaRef.current?.resetCaptcha();
 
       if (error) throw error;
 
@@ -48,7 +60,6 @@ export function Login() {
 
       toast.success("Welcome back!");
 
-      // Detect role and navigate
       let isAdminUser = false;
       try {
         const { data: profile } = await supabase
@@ -56,17 +67,14 @@ export function Login() {
           .select("is_admin")
           .eq("id", user.id)
           .maybeSingle();
-
         isAdminUser = profile?.is_admin || false;
 
         if (!isAdminUser) {
-          const { data: isRpcAdmin } = await supabase.rpc("is_admin_check", {
-            p_email: user.email,
-          });
+          const { data: isRpcAdmin } = await supabase.rpc("is_admin_check", { p_email: user.email });
           if (isRpcAdmin) isAdminUser = true;
         }
       } catch (adminError) {
-        console.warn("Secondary admin check failed, defaulting to user view:", adminError);
+        console.warn("Secondary admin check failed:", adminError);
       }
 
       if (isAdminUser) {
@@ -78,10 +86,8 @@ export function Login() {
       }
     } catch (error: any) {
       console.error("Login Error:", error);
-      logActivity({
-        action: "AUTH_FAILURE",
-        details: { identifier: formData.email, error: error.message },
-      });
+      captchaRef.current?.resetCaptcha();
+      logActivity({ action: "AUTH_FAILURE", details: { identifier: formData.email, error: error.message } });
       toast.error(error.message || "Incorrect details or password");
     } finally {
       setLoading(false);
@@ -92,17 +98,12 @@ export function Login() {
     const redirectTo = joinPlanId
       ? `${window.location.origin}/dashboard/plans?join=${joinPlanId}`
       : `${window.location.origin}/dashboard`;
-
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo },
-    });
+    const { error } = await supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo } });
     if (error) toast.error(error.message);
   };
 
   return (
     <div className="min-h-screen relative flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 overflow-hidden bg-white dark:bg-slate-950">
-      {/* Premium Background Blobs */}
       <div className="absolute inset-0 pointer-events-none">
         <motion.div
           animate={{ scale: [1, 1.2, 1], rotate: [0, 90, 0] }}
@@ -140,7 +141,6 @@ export function Login() {
               </svg>
               <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Continue with Google</span>
             </button>
-
             <div className="relative flex items-center gap-3">
               <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
               <span className="text-xs font-bold uppercase tracking-widest text-slate-400">or sign in with email</span>
@@ -151,10 +151,7 @@ export function Login() {
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label
-                  htmlFor="identifier"
-                  className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1"
-                >
+                <Label htmlFor="identifier" className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1">
                   Email or Phone Number
                 </Label>
                 <div className="relative">
@@ -174,16 +171,10 @@ export function Login() {
               </div>
               <div className="space-y-2">
                 <div className="flex items-center justify-between ml-1">
-                  <Label
-                    htmlFor="password"
-                    className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400"
-                  >
+                  <Label htmlFor="password" className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
                     Password
                   </Label>
-                  <Link
-                    to="/forgot-password"
-                    className="text-xs font-bold text-emerald-600 hover:text-emerald-500 transition-colors"
-                  >
+                  <Link to="/forgot-password" className="text-xs font-bold text-emerald-600 hover:text-emerald-500 transition-colors">
                     Forgot Password?
                   </Link>
                 </div>
@@ -204,19 +195,20 @@ export function Login() {
             </div>
 
             <div className="flex items-center ml-1">
-              <input
-                id="remember-me"
-                name="remember-me"
-                type="checkbox"
-                className="size-4 text-emerald-600 focus:ring-emerald-500 border-slate-300 rounded-lg cursor-pointer"
-              />
-              <label
-                htmlFor="remember-me"
-                className="ml-2 block text-sm text-slate-600 dark:text-slate-400 font-medium cursor-pointer"
-              >
+              <input id="remember-me" name="remember-me" type="checkbox" className="size-4 text-emerald-600 focus:ring-emerald-500 border-slate-300 rounded-lg cursor-pointer" />
+              <label htmlFor="remember-me" className="ml-2 block text-sm text-slate-600 dark:text-slate-400 font-medium cursor-pointer">
                 Stay signed in for 30 days
               </label>
             </div>
+
+            {/* hCaptcha — invisible mode, executes programmatically on submit */}
+            <HCaptcha
+              ref={captchaRef}
+              sitekey={HCAPTCHA_SITE_KEY}
+              size="invisible"
+              onError={() => toast.error("Captcha error. Please try again.")}
+              onExpire={() => captchaRef.current?.resetCaptcha()}
+            />
 
             <Button
               type="submit"
@@ -224,35 +216,21 @@ export function Login() {
               disabled={loading}
             >
               {loading ? (
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                  className="size-6 border-2 border-white/30 border-t-white rounded-full"
-                />
+                <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }} className="size-6 border-2 border-white/30 border-t-white rounded-full" />
               ) : (
-                <span className="flex items-center gap-2">
-                  Sign In <ArrowRight className="size-5" />
-                </span>
+                <span className="flex items-center gap-2">Sign In <ArrowRight className="size-5" /></span>
               )}
             </Button>
-
           </form>
 
           <div className="mt-10 pt-8 border-t border-slate-100 dark:border-slate-800 text-center space-y-6">
             <p className="text-slate-600 dark:text-slate-400 font-medium leading-relaxed">
               New to Mary's Thrift Services?{" "}
-              <Link
-                to="/signup"
-                className="inline-flex items-center gap-1.5 font-bold text-emerald-600 hover:text-emerald-500 transition-all hover:gap-2"
-              >
+              <Link to="/signup" className="inline-flex items-center gap-1.5 font-bold text-emerald-600 hover:text-emerald-500 transition-all hover:gap-2">
                 <UserPlus className="size-4" /> Create Account
               </Link>
             </p>
-
-            <Link
-              to="/"
-              className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-slate-400 hover:text-emerald-600 transition-all group pt-2"
-            >
+            <Link to="/" className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-slate-400 hover:text-emerald-600 transition-all group pt-2">
               <Home className="size-3.5 group-hover:-translate-y-0.5 transition-transform" />
               Return to Homepage
             </Link>

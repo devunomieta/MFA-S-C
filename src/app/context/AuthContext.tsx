@@ -126,26 +126,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const {
           data: { session },
+          error: sessionError
         } = await supabase.auth.getSession();
+
+        if (sessionError) {
+          console.error("Session fetch error during init:", sessionError);
+        }
 
         if (mounted) {
           setSession(session);
           setUser(session?.user ?? null);
 
           if (session?.user) {
-            await ensureProfileExists(session.user);
-            await fetchRoleStatus(session.user.id, session.user.email);
+            // We run these, but don't let them block the overall init if they fail partially
+            try {
+              await ensureProfileExists(session.user);
+              await fetchRoleStatus(session.user.id, session.user.email);
+            } catch (innerErr) {
+              console.error("Secondary init tasks failed:", innerErr);
+            }
 
             SessionManager.saveSession(session);
             setSavedSessions(SessionManager.getSavedSessions());
-
-            // Mark this user ID as already initialized.
-            // onAuthStateChange SIGNED_IN for the same ID = session restore, not new login.
             initializedUserId.current = session.user.id;
           }
         }
       } catch (err) {
-        console.error("Auth init failed:", err);
+        console.error("Auth init critical failure:", err);
       } finally {
         if (mounted) setLoading(false);
       }
@@ -153,31 +160,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     init();
 
-    // ── Inactivity Timer (4 hours) ─────────────────────────────────────────
+    // ── Inactivity Timer ──────────────────────────────────────────────────
     let inactivityTimer: NodeJS.Timeout;
-    const AUTO_LOGOUT_TIMEOUT = 4 * 60 * 60 * 1000;
+    const activityEvents = ["mousedown", "mousemove", "keypress", "scroll", "touchstart"];
 
     const resetTimer = () => {
-      if (mounted) setLastActivity(Date.now());
+      setLastActivity(Date.now());
       if (inactivityTimer) clearTimeout(inactivityTimer);
-      inactivityTimer = setTimeout(() => {
-        console.debug("Auto-logout timeout reached. Signing out.");
-        signOut();
-      }, AUTO_LOGOUT_TIMEOUT);
+      // Optional: auto-logout after 30 mins of total inactivity
+      // inactivityTimer = setTimeout(signOut, 30 * 60 * 1000);
     };
 
-    const activityEvents = ["mousedown", "mousemove", "keydown", "scroll", "touchstart"];
     activityEvents.forEach((e) => window.addEventListener(e, resetTimer));
     resetTimer();
 
+
     // ── Auth State Listener ────────────────────────────────────────────────
-    // KEY RULES:
-    //  • INITIAL_SESSION  — skip entirely (init() already handled it).
-    //  • SIGNED_IN        — Supabase fires this BOTH for genuine new logins AND
-    //                       for session restores (tab focus, page reload from storage).
-    //                       Use initializedUserId to tell them apart.
-    //  • TOKEN_REFRESHED  — silent background refresh; update session only.
-    //  • USER_UPDATED     — re-fetch role silently, no spinner.
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, newSession) => {
@@ -191,7 +189,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const isNewUser = initializedUserId.current !== newSession.user.id;
 
         if (event === "SIGNED_IN" && isNewUser) {
-          // ✅ Genuine new login — run full cycle with loading spinner
           initializedUserId.current = newSession.user.id;
           setLoading(true);
           try {
@@ -207,25 +204,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (mounted) setLoading(false);
           }
         } else if (event === "SIGNED_IN" && !isNewUser) {
-          // 🔕 Same user — tab restore / page reload. NO loading spinner.
           SessionManager.saveSession(newSession);
           setSavedSessions(SessionManager.getSavedSessions());
-        } else if (event === "USER_UPDATED") {
-          // Silent role refresh — no spinner
+        } else if (event === "USER_UPDATED" || event === "PASSWORD_RECOVERY") {
           try {
             await fetchRoleStatus(newSession.user.id, newSession.user.email);
             SessionManager.saveSession(newSession);
             setSavedSessions(SessionManager.getSavedSessions());
           } catch (err) {
-            console.error("Silent role refresh failed:", err);
+            console.error("Silent profile refresh failed:", err);
           }
         } else if (event === "TOKEN_REFRESHED") {
-          // Silent session token update only — NEVER show a loading spinner here
           SessionManager.saveSession(newSession);
           setSavedSessions(SessionManager.getSavedSessions());
         }
       } else {
-        // Signed out — reset everything
         initializedUserId.current = null;
         setIsAdmin(false);
         setIsSuperadmin(false);

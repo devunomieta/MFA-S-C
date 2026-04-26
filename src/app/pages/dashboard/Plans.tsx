@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 
 import { Loader2, PiggyBank, Calendar, ShieldCheck } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+
 
 import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
@@ -169,9 +170,13 @@ const PlanCardGrid = ({
 
 export function Plans() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [availablePlans, setAvailablePlans] = useState<Plan[]>([]);
   const [myPlans, setMyPlans] = useState<UserPlan[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchParams] = useSearchParams();
+  const joinId = searchParams.get("join");
+
 
   async function fetchPlans() {
     const { data, error } = await supabase
@@ -198,10 +203,8 @@ export function Plans() {
   }
 
   useEffect(() => {
-    Promise.resolve().then(() => {
-      fetchPlans();
-      fetchMyPlans();
-    });
+    fetchPlans();
+    fetchMyPlans();
 
     const channel = supabase
       .channel("user_plans_changes")
@@ -218,6 +221,17 @@ export function Plans() {
       supabase.removeChannel(channel);
     };
   }, [user]);
+
+  // Handle auto-join from URL param
+  useEffect(() => {
+    if (joinId && availablePlans.length > 0) {
+      const targetPlan = availablePlans.find((p) => p.id === joinId);
+      if (targetPlan) {
+        // Clear param to avoid infinite loop or repeated redirects
+        navigate(`/dashboard/plans/${slugify(targetPlan.name)}`, { replace: true });
+      }
+    }
+  }, [joinId, availablePlans, navigate]);
 
   // Filter and De-duplicate active plans list
   const activePlansList = myPlans

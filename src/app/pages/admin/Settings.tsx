@@ -48,7 +48,29 @@ export function AdminSettings() {
   });
   const [logoUrl, setLogoUrl] = useState("");
   const [uploadingLogo, setUploadingLogo] = useState(false);
-  const [templates, setTemplates] = useState<any>({});
+  const [templates, setTemplates] = useState<any>({
+    welcome: {
+      subject: "Welcome to Mary's Thrift Services",
+      body: "Hello {name},\n\nWelcome to Mary's Thrift Services! We are excited to have you on board. Start your savings journey today.",
+    },
+    plan_join: {
+      subject: "New Plan Joined: {planName}",
+      body: "Hello {name},\n\nYou have successfully joined the {planName} plan. Your financial future starts now!",
+    },
+    transaction: {
+      subject: "Transaction Notification: {status}",
+      body: "Hello {name},\n\nYour transaction of {amount} has been {status}. Log in to your dashboard for details.",
+    },
+    loan: {
+      subject: "Loan Application Update: {status}",
+      body: "Hello {name},\n\nYour loan application for {amount} has been {status}.",
+    },
+    newsletter: {
+      subject: "New Update from Mary's Thrift",
+      body: "Hello,\n\nWe have some exciting news to share with you...",
+    }
+  });
+
 
   // Announcement State
   const [announcements, setAnnouncements] = useState<any[]>([]);
@@ -120,7 +142,10 @@ export function AdminSettings() {
         if (generalSettings) setGeneral(generalSettings);
         if (generalSettings?.logo_url) setLogoUrl(generalSettings.logo_url);
         if (smtpSettings) setSmtp(smtpSettings);
-        if (templateSettings) setTemplates(templateSettings);
+        if (templateSettings) {
+          setTemplates({ ...templates, ...templateSettings });
+        }
+
       }
     } catch {
       toast.error("Failed to load settings");
