@@ -65,27 +65,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     async function ensureProfileExists(authUser: User) {
       try {
-        const { data: existing, error: fetchError } = await supabase
-          .from("profiles")
-          .select("id")
-          .eq("id", authUser.id)
-          .maybeSingle();
+        const metadata = authUser.user_metadata || {};
+        const fullName = metadata.full_name || metadata.name || "User " + authUser.id.substring(0, 4);
+        const avatarUrl = metadata.avatar_url || metadata.picture || null;
 
-        if (fetchError) throw fetchError;
+        const { error: upsertError } = await supabase.from("profiles").upsert({
+          id: authUser.id,
+          email: authUser.email,
+          full_name: fullName,
+          avatar_url: avatarUrl,
+        }, { onConflict: 'id' });
 
-        if (!existing) {
-          const { error: insertError } = await supabase.from("profiles").insert({
-            id: authUser.id,
-            email: authUser.email,
-            full_name:
-              authUser.user_metadata?.full_name || "User " + authUser.id.substring(0, 4),
-          });
-          if (insertError) console.error("Profile auto-creation failed:", insertError.message);
+        if (upsertError) {
+          console.error("Profile synchronization failed:", upsertError.message);
         }
       } catch (e) {
         console.error("Critical error in ensureProfileExists", e);
       }
     }
+
 
     async function fetchRoleStatus(userId: string, userEmail?: string | null) {
       try {
@@ -95,13 +93,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           .eq("id", userId)
           .single();
 
-        if (error) throw error;
-
-        if (data) {
-          if (mounted) {
-            setIsAdmin(data.is_admin || false);
-            setIsSuperadmin(data.is_superadmin || false);
+        if (error) {
+          if (error.code === "PGRST116") {
+            // Profile missing — might be a race condition or invalid session
+            console.warn("Profile not found during role check");
+            return false;
           }
+          throw error;
+        }
+
+        if (data && mounted) {
+          setIsAdmin(data.is_admin || false);
+          setIsSuperadmin(data.is_superadmin || false);
 
           // Secondary RPC check — failsafe if profiles.is_admin not yet set
           if (!data.is_admin) {
@@ -117,8 +120,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
           }
         }
-      } catch (e) {
+        return true;
+      } catch (e: any) {
         console.error("Error fetching role status:", e);
+        // If it's an auth error (401/403/JWT expired), we should probably sign out
+        if (e.status === 401 || e.status === 403 || e.message?.includes("JWT")) {
+          return false;
+        }
+        return true; // Keep session for other errors
       }
     }
 
@@ -138,10 +147,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(session?.user ?? null);
 
           if (session?.user) {
-            // We run these, but don't let them block the overall init if they fail partially
             try {
               await ensureProfileExists(session.user);
-              await fetchRoleStatus(session.user.id, session.user.email);
+              const success = await fetchRoleStatus(session.user.id, session.user.email);
+              
+              if (!success) {
+                console.warn("Session validation failed during init, signing out...");
+                await signOut();
+                return;
+              }
             } catch (innerErr) {
               console.error("Secondary init tasks failed:", innerErr);
             }
@@ -157,6 +171,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (mounted) setLoading(false);
       }
     }
+
 
     init();
 
@@ -193,8 +208,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setLoading(true);
           try {
             await ensureProfileExists(newSession.user);
-            await fetchRoleStatus(newSession.user.id, newSession.user.email);
+            const success = await fetchRoleStatus(newSession.user.id, newSession.user.email);
+            
+            if (!success) {
+              console.warn("Session validation failed during auth change, signing out...");
+              await signOut();
+              return;
+            }
+
             SessionManager.saveSession(newSession);
+
             setSavedSessions(SessionManager.getSavedSessions());
             const { data: mfaData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
             if (mounted) setMfaEnabled(mfaData?.currentLevel === "aal2");

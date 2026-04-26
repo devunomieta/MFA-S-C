@@ -22,6 +22,8 @@ import { Link, useLocation } from "react-router-dom";
 import { AccountSwitcher } from "@/app/components/AccountSwitcher";
 import { SecurityOnboarding } from "@/app/components/auth/SecurityOnboarding";
 import { NotificationBell } from "@/app/components/dashboard/NotificationBell";
+import { SurveyPopup } from "@/app/components/SurveyPopup";
+
 
 import { Sidebar } from "@/app/components/dashboard/Sidebar";
 import { Badge } from "@/app/components/ui/badge";
@@ -57,6 +59,8 @@ export function DashboardLayout() {
 
   // Mandatory Security Onboarding
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [surveyTrigger, setSurveyTrigger] = useState<string | null>(null);
+
 
   const sidebarItems = [
     { icon: LayoutDashboard, label: "Overview", href: "/dashboard" },
@@ -107,12 +111,43 @@ export function DashboardLayout() {
         if (!profile?.onboarding_completed && (!hasPhone || needsPassword)) {
           setShowOnboarding(true);
         }
+
+        // Survey Trigger Logic
+        const checkSurveys = async () => {
+          // 1. Check for first deposit
+          const { count: depCount } = await supabase.from('transactions').select('*', { count: 'exact', head: true }).eq('user_id', user.id).eq('type', 'deposit').eq('status', 'completed');
+          if (depCount && depCount > 0) {
+            setSurveyTrigger('first_deposit');
+            return;
+          }
+
+          // 2. Check for first plan
+          const { count: planCount } = await supabase.from('user_plans').select('*', { count: 'exact', head: true }).eq('user_id', user.id);
+          if (planCount && planCount > 0) {
+            setSurveyTrigger('first_plan');
+            return;
+          }
+
+          // 3. Check for first loan
+          const { count: loanCount } = await supabase.from('loans').select('*', { count: 'exact', head: true }).eq('user_id', user.id);
+          if (loanCount && loanCount > 0) {
+            setSurveyTrigger('first_loan');
+            return;
+          }
+        };
+        
+        // Only run survey check if not showing onboarding
+        if (profile?.onboarding_completed) {
+          checkSurveys();
+        }
+
       } catch (err) {
-        console.error("Critical error in announcement fetch:", err);
+        console.error("Critical error in dashboard initialization:", err);
       }
     };
     fetchData();
   }, [user]);
+
 
   return (
     <div className="min-h-screen bg-gray-50 flex dark:bg-gray-900 transition-colors relative">
@@ -120,6 +155,11 @@ export function DashboardLayout() {
       {showOnboarding && (
         <SecurityOnboarding onComplete={() => setShowOnboarding(false)} />
       )}
+
+      {surveyTrigger && (
+        <SurveyPopup triggerEvent={surveyTrigger} />
+      )}
+
 
       {/* Admin / System Announcement Banner */}
       {announcement && (

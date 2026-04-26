@@ -84,6 +84,10 @@ const AdminApprovals = lazy(() =>
 const AdminProfile = lazy(() =>
   import("@/app/pages/admin/Profile").then((m) => ({ default: m.AdminProfile })),
 );
+const AdminSurvey = lazy(() =>
+  import("@/app/pages/admin/Survey").then((m) => ({ default: m.default })),
+);
+
 const AdminTestimonials = lazy(() => import("@/app/pages/admin/Testimonials"));
 const AdminInquiries = lazy(() => import("@/app/pages/admin/Inquiries"));
 
@@ -191,6 +195,8 @@ function AppRoutes() {
                 <Route path="testimonials" element={<AdminTestimonials />} />
                 <Route path="inquiries" element={<AdminInquiries />} />
                 <Route path="profile" element={<AdminProfile />} />
+                <Route path="surveys" element={<AdminSurvey />} />
+
               </Route>
             </Route>
 

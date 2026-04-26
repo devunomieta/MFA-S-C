@@ -18,7 +18,9 @@ import {
   TrendingUp,
   Quote,
   MessageSquare,
+  BarChart3,
 } from "lucide-react";
+
 import { Link, useLocation } from "react-router-dom";
 
 import { BrandLogo } from "@/app/components/ui/BrandLogo";
@@ -156,6 +158,13 @@ export function AdminSidebar({ isOpen, setIsOpen }: SidebarProps) {
           href: "/admin/testimonials",
           active: pathname.includes("/admin/testimonials"),
         },
+        {
+          label: "Surveys",
+          icon: BarChart3,
+          href: "/admin/surveys",
+          active: pathname.includes("/admin/surveys"),
+        },
+
       ],
     },
     {

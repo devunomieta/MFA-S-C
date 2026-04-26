@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Shield, Phone, KeyRound, CheckCircle2, ArrowRight, LogOut, Loader2 } from "lucide-react";
+import { Shield, Phone, KeyRound, CheckCircle2, ArrowRight, LogOut, Loader2, Eye, EyeOff } from "lucide-react";
+
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/app/context/AuthContext";
@@ -24,7 +25,10 @@ export function SecurityOnboarding({ onComplete }: SecurityOnboardingProps) {
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const passFeedback = validatePassword(password);
+
 
   const isGoogleUser = 
     user?.app_metadata?.provider === "google" || 
@@ -240,30 +244,53 @@ export function SecurityOnboarding({ onComplete }: SecurityOnboardingProps) {
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label className="text-xs font-bold uppercase text-slate-500">New Password</Label>
-                    <Input 
-                      type="password" 
-                      placeholder="••••••••" 
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="h-12 rounded-xl dark:bg-slate-800 dark:border-slate-700"
-                    />
+                    <div className="relative">
+                      <Input 
+                        type={showPassword ? "text" : "password"} 
+                        placeholder="••••••••" 
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="h-12 rounded-xl dark:bg-slate-800 dark:border-slate-700 pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-emerald-500 transition-colors"
+                      >
+                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <Label className="text-xs font-bold uppercase text-slate-500">Confirm Password</Label>
-                    <Input 
-                      type="password" 
-                      placeholder="••••••••" 
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="h-12 rounded-xl dark:bg-slate-800 dark:border-slate-700"
-                    />
+                    <div className="relative">
+                      <Input 
+                        type={showConfirmPassword ? "text" : "password"} 
+                        placeholder="••••••••" 
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        className="h-12 rounded-xl dark:bg-slate-800 dark:border-slate-700 pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-emerald-500 transition-colors"
+                      >
+                        {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
                   </div>
                   <PasswordStrength feedback={passFeedback} passwordLength={password.length} />
                 </div>
 
-                <Button onClick={handlePasswordSubmit} disabled={loading} className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 rounded-xl font-bold shadow-lg shadow-emerald-500/20">
+                <Button 
+                  onClick={handlePasswordSubmit} 
+                  disabled={loading || !passFeedback.isValid || password !== confirmPassword} 
+                  className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 rounded-xl font-bold shadow-lg shadow-emerald-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
                   {loading ? <Loader2 className="animate-spin" /> : "Complete Setup"}
                 </Button>
+
               </motion.div>
             )}
 
