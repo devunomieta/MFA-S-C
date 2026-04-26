@@ -119,39 +119,76 @@ Deno.serve(async (req) => {
       );
     }
 
+    // App data tables to explicitly clear for all wipe modes.
+    // We always delete these explicitly rather than relying solely on CASCADE,
+    // because FK cascade behaviour depends on how each migration defined its constraints.
+    const tablesToClear = [
+      "notifications",
+      "notification_settings",
+      "transactions",
+      "user_plans",
+      "bank_accounts",
+      "unpaid_arrears",
+      "email_change_requests",
+      "activity_logs",
+    ];
+
     // Perform wipe
     if (dataOnly) {
       console.log("Performing DATA ONLY wipe for related tables...");
-
-      // Explicitly clear tables that might not cascade correctly or are linked to auth.users UID
-      const tablesToClear = [
-        "notifications",
-        "notification_settings",
-        "transactions",
-        "user_plans",
-        "bank_accounts",
-        "unpaid_arrears",
-        "email_change_requests",
-        "activity_logs", // User's own activity logs
-      ];
 
       for (const table of tablesToClear) {
         const { error } = await serviceClient.from(table).delete().in("user_id", targetIds);
         if (error) console.warn(`Non-critical: Failed to clear table ${table}:`, error.message);
       }
 
-      // Finally, clear the profile
+      // Clear the profile row (auth.users record remains — user can still log in, fresh account)
       console.log("Clearing profiles...");
       const { error: deleteError } = await serviceClient
         .from("profiles")
         .delete()
         .in("id", targetIds);
       if (deleteError) throw deleteError;
+
     } else {
-      console.log("Performing COMPLETE AUTH wipe...");
+      // AUTH + DATA: Explicitly delete all app data FIRST, then remove the auth.users record.
+      // Do NOT rely on CASCADE alone — some tables may not have ON DELETE CASCADE defined.
+      console.log("Performing COMPLETE AUTH wipe — clearing app data first...");
+
+      for (const table of tablesToClear) {
+        const { error } = await serviceClient.from(table).delete().in("user_id", targetIds);
+        if (error) console.warn(`Non-critical: Failed to clear table ${table}:`, error.message);
+      }
+
+      // Clear the profile row explicitly before auth deletion
+      const { error: profileError } = await serviceClient
+        .from("profiles")
+        .delete()
+        .in("id", targetIds);
+      if (profileError) console.warn("Profile delete warning:", profileError.message);
+
+      // Now permanently delete from auth.users — this frees the email for re-registration
+      console.log("Deleting auth.users records...");
+      const authFailures: string[] = [];
       for (const id of targetIds) {
         const { error: authError } = await serviceClient.auth.admin.deleteUser(id);
-        if (authError) console.error(`Failed to delete auth user ${id}:`, authError);
+        if (authError) {
+          // Log every failure with full detail
+          console.error(`FAILED to delete auth user ${id}:`, JSON.stringify(authError));
+          authFailures.push(`${id}: ${authError.message}`);
+        } else {
+          console.log(`Auth user ${id} deleted successfully.`);
+        }
+      }
+
+      // If ANY auth deletions failed, surface the error — don't silently return success
+      if (authFailures.length > 0) {
+        throw new Error(
+          `Auth deletion failed for ${authFailures.length} user(s). ` +
+          `App data was wiped but auth.users records remain. ` +
+          `Details: ${authFailures.join(" | ")}. ` +
+          `Check that SUPABASE_SERVICE_ROLE_KEY is correctly set in the Edge Function environment.`
+        );
       }
     }
 
