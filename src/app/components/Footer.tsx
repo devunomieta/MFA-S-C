@@ -89,7 +89,7 @@ export function Footer() {
         <div className="border-t border-slate-800/60 mb-14" />
 
         {/* ── Four columns ───────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-10 mb-16">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 mb-16">
 
           {/* Platform */}
           <div className="space-y-5">
@@ -137,9 +137,13 @@ export function Footer() {
                 <div className="w-9 h-9 rounded-xl bg-slate-900 flex items-center justify-center border border-slate-800 shrink-0">
                   <Mail className="size-4 text-emerald-500" />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <div className="text-slate-500 text-[10px] font-black uppercase tracking-widest mb-0.5">Email</div>
-                  <a href="mailto:marysthriftservices@gmail.com" className="text-sm hover:text-white transition-colors font-semibold text-slate-300 break-all">
+                  <a
+                    href="mailto:marysthriftservices@gmail.com"
+                    className="text-sm hover:text-white transition-colors font-semibold text-slate-300 block truncate"
+                    title="marysthriftservices@gmail.com"
+                  >
                     marysthriftservices@gmail.com
                   </a>
                 </div>
@@ -206,15 +210,15 @@ export function Footer() {
         </div>
 
         {/* ── Bottom bar ──────────────────────────────────────────────── */}
-        <div className="pt-8 border-t border-slate-900 flex flex-col sm:flex-row justify-between items-center gap-4 text-xs">
-          <p className="font-medium text-slate-500">
+        <div className="pt-8 border-t border-slate-900 flex flex-col items-center gap-3 sm:flex-row sm:justify-between text-xs">
+          <p className="font-medium text-slate-500 text-center sm:text-left">
             &copy; {new Date().getFullYear()} Mary's Thrift Services. All rights reserved.
           </p>
           <a
             href="https://devunomieta.xyz"
             target="_blank"
             rel="noopener noreferrer"
-            className="font-medium text-slate-600 hover:text-slate-400 transition-colors tracking-wide"
+            className="font-medium text-slate-600 hover:text-slate-400 transition-colors tracking-wide order-last sm:order-none"
           >
             Developed by{" "}
             <span className="text-slate-500 font-bold hover:text-emerald-500 transition-colors">
@@ -223,9 +227,7 @@ export function Footer() {
           </a>
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="font-bold text-slate-500 uppercase tracking-widest">
-              CAC Registered BN-8950808
-            </span>
+            <span className="font-bold text-slate-500 uppercase tracking-widest">CAC Registered BN-8950808</span>
           </div>
         </div>
 
