@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, ReactNode } from "react";
 
 import { Session, User } from "@supabase/supabase-js";
 
@@ -47,6 +47,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [lastActivity, setLastActivity] = useState<number>(() => Date.now());
   const [mfaEnabled, setMfaEnabled] = useState(false);
 
+  // Tracks the user ID that init() resolved — lets onAuthStateChange distinguish
+  // a genuine new sign-in from a session-restore SIGNED_IN.
+  // Supabase fires SIGNED_IN on tab restore / page reload from storage, NOT just on login.
+  const initializedUserId = useRef<string | null>(null);
+
   const signOut = async () => {
     if (user) {
       SessionManager.removeSession(user.id);
@@ -58,22 +63,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let mounted = true;
 
-    async function ensureProfileExists(user: User) {
+    async function ensureProfileExists(authUser: User) {
       try {
-        // First check if profile exists to avoid unnecessary upserts that might trigger DB locks or race conditions
         const { data: existing, error: fetchError } = await supabase
           .from("profiles")
           .select("id")
-          .eq("id", user.id)
+          .eq("id", authUser.id)
           .maybeSingle();
 
         if (fetchError) throw fetchError;
 
         if (!existing) {
           const { error: insertError } = await supabase.from("profiles").insert({
-            id: user.id,
-            email: user.email,
-            full_name: user.user_metadata?.full_name || "User " + user.id.substring(0, 4),
+            id: authUser.id,
+            email: authUser.email,
+            full_name:
+              authUser.user_metadata?.full_name || "User " + authUser.id.substring(0, 4),
           });
           if (insertError) console.error("Profile auto-creation failed:", insertError.message);
         }
@@ -82,9 +87,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    async function fetchRoleStatus(userId: string) {
+    async function fetchRoleStatus(userId: string, userEmail?: string | null) {
       try {
-        // 1. Check profiles table first
         const { data, error } = await supabase
           .from("profiles")
           .select("is_admin, is_superadmin, email")
@@ -94,19 +98,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (error) throw error;
 
         if (data) {
-          setIsAdmin(data.is_admin || false);
-          setIsSuperadmin(data.is_superadmin || false);
+          if (mounted) {
+            setIsAdmin(data.is_admin || false);
+            setIsSuperadmin(data.is_superadmin || false);
+          }
 
-          // 2. Double-check against system_config via secure RPC if they aren't marked as admin yet
-          // This acts as a real-time fail-safe using server-side logic
+          // Secondary RPC check — failsafe if profiles.is_admin not yet set
           if (!data.is_admin) {
-            const checkEmail = data.email || session?.user?.email;
+            const checkEmail = data.email || userEmail;
             if (checkEmail) {
               const { data: isRpcAdmin, error: rpcError } = await supabase.rpc("is_admin_check", {
                 p_email: checkEmail,
               });
-
-              if (!rpcError && isRpcAdmin) {
+              if (!rpcError && isRpcAdmin && mounted) {
                 setIsAdmin(true);
                 setIsSuperadmin(true);
               }
@@ -115,13 +119,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       } catch (e) {
         console.error("Error fetching role status:", e);
-        // Fallback is already handled by default state (false)
       }
     }
 
     async function init() {
       try {
-        // 1. Get initial session
         const {
           data: { session },
         } = await supabase.auth.getSession();
@@ -131,12 +133,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(session?.user ?? null);
 
           if (session?.user) {
-            // Blocking checks for initial load
             await ensureProfileExists(session.user);
-            await fetchRoleStatus(session.user.id);
+            await fetchRoleStatus(session.user.id, session.user.email);
 
             SessionManager.saveSession(session);
             setSavedSessions(SessionManager.getSavedSessions());
+
+            // Mark this user ID as already initialized.
+            // onAuthStateChange SIGNED_IN for the same ID = session restore, not new login.
+            initializedUserId.current = session.user.id;
           }
         }
       } catch (err) {
@@ -148,14 +153,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     init();
 
-    // 2. Inactivity Timer (4 hours for auto-logout)
+    // ── Inactivity Timer (4 hours) ─────────────────────────────────────────
     let inactivityTimer: NodeJS.Timeout;
-    const AUTO_LOGOUT_TIMEOUT = 4 * 60 * 60 * 1000; // 4 hours
+    const AUTO_LOGOUT_TIMEOUT = 4 * 60 * 60 * 1000;
 
     const resetTimer = () => {
-      const now = Date.now();
-      if (mounted) setLastActivity(now);
-
+      if (mounted) setLastActivity(Date.now());
       if (inactivityTimer) clearTimeout(inactivityTimer);
       inactivityTimer = setTimeout(() => {
         console.debug("Auto-logout timeout reached. Signing out.");
@@ -164,64 +167,66 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     const activityEvents = ["mousedown", "mousemove", "keydown", "scroll", "touchstart"];
-
-    activityEvents.forEach((event) => {
-      window.addEventListener(event, resetTimer);
-    });
-
+    activityEvents.forEach((e) => window.addEventListener(e, resetTimer));
     resetTimer();
 
-    // 3. Listen for auth state changes
-    // NOTE: We explicitly skip INITIAL_SESSION — init() above already handles it.
-    // Handling it here too causes a double-execution race: loading flips to true again
-    // AFTER init() resolves, trapping AdminRoute in an infinite spinner.
+    // ── Auth State Listener ────────────────────────────────────────────────
+    // KEY RULES:
+    //  • INITIAL_SESSION  — skip entirely (init() already handled it).
+    //  • SIGNED_IN        — Supabase fires this BOTH for genuine new logins AND
+    //                       for session restores (tab focus, page reload from storage).
+    //                       Use initializedUserId to tell them apart.
+    //  • TOKEN_REFRESHED  — silent background refresh; update session only.
+    //  • USER_UPDATED     — re-fetch role silently, no spinner.
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
+    } = supabase.auth.onAuthStateChange(async (event, newSession) => {
       if (!mounted) return;
-
-      // Skip INITIAL_SESSION — handled by init() above to avoid double-load
       if (event === "INITIAL_SESSION") return;
 
-      setSession(session);
-      setUser(session?.user ?? null);
+      setSession(newSession);
+      setUser(newSession?.user ?? null);
 
-      if (session?.user) {
-        if (event === "SIGNED_IN") {
-          // Full cycle with loading indicator only on explicit sign-in
+      if (newSession?.user) {
+        const isNewUser = initializedUserId.current !== newSession.user.id;
+
+        if (event === "SIGNED_IN" && isNewUser) {
+          // ✅ Genuine new login — run full cycle with loading spinner
+          initializedUserId.current = newSession.user.id;
           setLoading(true);
           try {
-            await ensureProfileExists(session.user);
-            await fetchRoleStatus(session.user.id);
-
-            SessionManager.saveSession(session);
+            await ensureProfileExists(newSession.user);
+            await fetchRoleStatus(newSession.user.id, newSession.user.email);
+            SessionManager.saveSession(newSession);
             setSavedSessions(SessionManager.getSavedSessions());
-
             const { data: mfaData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-            setMfaEnabled(mfaData?.currentLevel === "aal2");
+            if (mounted) setMfaEnabled(mfaData?.currentLevel === "aal2");
           } catch (err) {
             console.error("Auth change tasks failed:", err);
           } finally {
             if (mounted) setLoading(false);
           }
+        } else if (event === "SIGNED_IN" && !isNewUser) {
+          // 🔕 Same user — tab restore / page reload. NO loading spinner.
+          SessionManager.saveSession(newSession);
+          setSavedSessions(SessionManager.getSavedSessions());
         } else if (event === "USER_UPDATED") {
-          // Silently re-fetch role in background — no loading spinner
+          // Silent role refresh — no spinner
           try {
-            await fetchRoleStatus(session.user.id);
-            SessionManager.saveSession(session);
+            await fetchRoleStatus(newSession.user.id, newSession.user.email);
+            SessionManager.saveSession(newSession);
             setSavedSessions(SessionManager.getSavedSessions());
           } catch (err) {
             console.error("Silent role refresh failed:", err);
           }
         } else if (event === "TOKEN_REFRESHED") {
-          // Token refresh is a silent background event — just update session state
-          // NEVER set loading=true here — it causes a UI loading loop after every DB action
-          setSession(session);
-          SessionManager.saveSession(session);
+          // Silent session token update only — NEVER show a loading spinner here
+          SessionManager.saveSession(newSession);
           setSavedSessions(SessionManager.getSavedSessions());
         }
       } else {
-        // Signed out
+        // Signed out — reset everything
+        initializedUserId.current = null;
         setIsAdmin(false);
         setIsSuperadmin(false);
         setMfaEnabled(false);
@@ -232,12 +237,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       mounted = false;
       subscription.unsubscribe();
-      activityEvents.forEach((event) => {
-        window.removeEventListener(event, resetTimer);
-      });
+      activityEvents.forEach((e) => window.removeEventListener(e, resetTimer));
       if (inactivityTimer) clearTimeout(inactivityTimer);
     };
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const switchAccount = async (targetSession: Session) => {
     const { error } = await supabase.auth.setSession(targetSession);
@@ -267,22 +270,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const value = {
-    session,
-    user,
-    isAdmin,
-    isSuperadmin,
-    loading,
-    signOut,
-    savedSessions,
-    switchAccount,
-    addAccount,
-    lastActivity,
-    refreshSession,
-    mfaEnabled,
-  };
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider
+      value={{
+        session,
+        user,
+        isAdmin,
+        isSuperadmin,
+        loading,
+        signOut,
+        savedSessions,
+        switchAccount,
+        addAccount,
+        lastActivity,
+        refreshSession,
+        mfaEnabled,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 export const useAuth = () => {
