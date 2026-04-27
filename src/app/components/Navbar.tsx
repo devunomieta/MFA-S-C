@@ -52,9 +52,14 @@ export function Navbar() {
       if (data?.value?.app_name) {
         setAppName(data.value.app_name);
       }
+      if (data?.value?.favicon_url) {
+        let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
+        if (link) link.href = data.value.favicon_url;
+      }
     };
     fetchBranding();
   }, []);
+
 
   const handleDashboardAction = () => {
     setIsOpen(false);

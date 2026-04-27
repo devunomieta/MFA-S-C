@@ -14,6 +14,8 @@ import { WhatsAppFloating } from "@/app/components/WhatsAppFloating";
 import { AuthProvider, useAuth } from "@/app/context/AuthContext";
 import { NotificationProvider } from "@/app/context/NotificationContext";
 import { ThemeProvider } from "@/app/context/ThemeContext";
+import { supabase } from "@/lib/supabase";
+
 
 // Lazy Loaded Pages
 const Landing = lazy(() => import("@/app/pages/Landing").then((m) => ({ default: m.Landing })));
@@ -153,6 +155,34 @@ function AppRoutes() {
       navigate("/admin", { replace: true });
     }
   }, [loading, user, isAdmin, location.pathname, navigate]);
+
+  useEffect(() => {
+    const applyBranding = async () => {
+      const { data } = await supabase
+        .from("app_settings")
+        .select("value")
+        .eq("key", "general")
+        .maybeSingle();
+
+      if (data?.value) {
+        const { app_name, favicon_url } = data.value;
+        if (app_name) {
+          document.title = `${app_name} | Secure Thrift & Loan Management`;
+        }
+        if (favicon_url) {
+          let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
+          if (!link) {
+            link = document.createElement("link");
+            link.rel = "icon";
+            document.getElementsByTagName("head")[0].appendChild(link);
+          }
+          link.href = favicon_url;
+        }
+      }
+    };
+    applyBranding();
+  }, []);
+
 
   return (
     <ThemeProvider

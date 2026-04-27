@@ -47,7 +47,10 @@ export function AdminSettings() {
     from_email: "",
   });
   const [logoUrl, setLogoUrl] = useState("");
+  const [faviconUrl, setFaviconUrl] = useState("");
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [uploadingFavicon, setUploadingFavicon] = useState(false);
+
   const [templates, setTemplates] = useState<any>({
     welcome: {
       subject: "Welcome to Mary's Thrift Services",
@@ -140,7 +143,9 @@ export function AdminSettings() {
 
         if (generalSettings) setGeneral(generalSettings);
         if (generalSettings?.logo_url) setLogoUrl(generalSettings.logo_url);
+        if (generalSettings?.favicon_url) setFaviconUrl(generalSettings.favicon_url);
         if (smtpSettings) setSmtp(smtpSettings);
+
         if (templateSettings) {
           setTemplates({ ...templates, ...templateSettings });
         }
@@ -184,7 +189,39 @@ export function AdminSettings() {
     }
   }
 
+  async function handleFaviconUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setUploadingFavicon(true);
+
+      try {
+        const fileExt = file.name.split(".").pop();
+        const fileName = `system_favicon_${Date.now()}.${fileExt}`;
+        const filePath = `branding/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from("branding")
+          .upload(filePath, file);
+
+        if (uploadError) throw uploadError;
+
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from("branding").getPublicUrl(filePath);
+
+        setFaviconUrl(publicUrl);
+        setGeneral((prev: any) => ({ ...prev, favicon_url: publicUrl }));
+        toast.success("Favicon uploaded. Remember to save settings.");
+      } catch (error: any) {
+        toast.error("Favicon upload failed: " + error.message);
+      } finally {
+        setUploadingFavicon(false);
+      }
+    }
+  }
+
   async function saveSettings(key: string, value: any) {
+
     try {
       const { error } = await supabase
         .from("app_settings")
@@ -424,14 +461,62 @@ export function AdminSettings() {
                 </div>
               </div>
 
+              <div className="grid gap-4">
+                <Label>Platform Favicon</Label>
+                <div className="flex flex-col items-center justify-center p-6 border-2 border-dashed rounded-xl bg-slate-50 border-slate-200">
+                  {faviconUrl ? (
+                    <div className="relative group p-2 bg-white rounded-lg shadow-sm">
+                      <img src={faviconUrl} alt="Favicon" className="size-8 object-contain" />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-lg">
+                        <Button
+                          variant="destructive"
+                          size="icon"
+                          onClick={() => setFaviconUrl("")}
+                          className="h-6 w-6"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center">
+                      <SettingsIcon className="w-8 h-8 text-slate-300 mx-auto mb-1" />
+                      <p className="text-[10px] text-slate-500">No favicon uploaded</p>
+                    </div>
+                  )}
+
+                  <div className="mt-4">
+                    <input
+                      type="file"
+                      id="favicon-upload"
+                      className="hidden"
+                      accept="image/*"
+                      onChange={handleFaviconUpload}
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => document.getElementById("favicon-upload")?.click()}
+                      disabled={uploadingFavicon}
+                    >
+                      {uploadingFavicon ? "Uploading..." : "Upload Favicon"}
+                    </Button>
+                  </div>
+                  <p className="text-[9px] text-slate-400 mt-2">Recommended: 32x32 PNG or ICO.</p>
+                </div>
+              </div>
+
               <div className="flex justify-end pt-4 border-t">
                 <Button
-                  onClick={() => saveSettings("general", { ...general, logo_url: logoUrl })}
+                  onClick={() =>
+                    saveSettings("general", { ...general, logo_url: logoUrl, favicon_url: faviconUrl })
+                  }
                   className="bg-emerald-600 hover:bg-emerald-700"
                 >
                   <Save className="w-4 h-4 mr-2" /> Save Branding
                 </Button>
               </div>
+
             </CardContent>
           </Card>
         </TabsContent>
