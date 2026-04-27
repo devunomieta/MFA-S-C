@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 
-
 import { Loader2, PiggyBank, Calendar, ShieldCheck } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
