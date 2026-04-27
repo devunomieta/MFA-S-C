@@ -24,7 +24,6 @@ export const emailService = {
     }
   },
 
-
   async sendTransactionUpdate(email: string, type: string, amount: number, status: string) {
     return this.sendEmail({
       to: email,

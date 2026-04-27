@@ -13,7 +13,6 @@ import { PasswordStrength } from "@/app/components/ui/PasswordStrength";
 import { supabase } from "@/lib/supabase";
 import { validatePassword } from "@/lib/validation";
 
-
 export function UpdatePassword() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);

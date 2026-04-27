@@ -53,7 +53,6 @@ import { useAuth } from "@/app/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { validateFile, validatePassword } from "@/lib/validation";
 
-
 export function Profile() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
@@ -167,7 +166,6 @@ export function Profile() {
       });
       setOriginalName(metaName);
     }
-
   }
 
   async function fetchNameHistory() {
@@ -637,7 +635,6 @@ export function Profile() {
     }
   }
 
-
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
@@ -871,7 +868,6 @@ export function Profile() {
                   Can be used for login alongside your email.
                 </p>
               </div>
-
 
               {/* NAME HISTORY SECTION */}
               {nameHistory.length > 0 && (

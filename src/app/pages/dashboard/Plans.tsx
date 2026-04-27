@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 
+
 import { Loader2, PiggyBank, Calendar, ShieldCheck } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-
 
 import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
@@ -177,34 +177,35 @@ export function Plans() {
   const [searchParams] = useSearchParams();
   const joinId = searchParams.get("join");
 
-
-  async function fetchPlans() {
-    const { data, error } = await supabase
-      .from("plans")
-      .select("*")
-      .eq("is_active", true)
-      .eq("is_approved", true);
-
-    if (!error && data) setAvailablePlans(data as Plan[]);
-  }
-
-  async function fetchMyPlans() {
-    if (!user) return;
-    const { data, error } = await supabase
-      .from("user_plans")
-      .select(`*, plan:plans(*)`)
-      .eq("user_id", user.id);
-
-    if (!error && data) {
-      setMyPlans(data as any);
-      await checkAndProcessMaturity(supabase, data);
-    }
-    setLoading(false);
-  }
-
   useEffect(() => {
-    fetchPlans();
-    fetchMyPlans();
+    const fetchData = async () => {
+      // Fetch Plans
+      const { data: plansData, error: plansError } = await supabase
+        .from("plans")
+        .select("*")
+        .eq("is_active", true)
+        .order("min_amount", { ascending: true });
+
+      if (!plansError && plansData) {
+        setAvailablePlans(plansData as any);
+      }
+
+      // Fetch My Plans
+      if (user) {
+        const { data: myData, error: myError } = await supabase
+          .from("user_plans")
+          .select(`*, plan:plans(*)`)
+          .eq("user_id", user.id);
+
+        if (!myError && myData) {
+          setMyPlans(myData as any);
+          await checkAndProcessMaturity(supabase, myData);
+        }
+        setLoading(false);
+      }
+    };
+
+    fetchData();
 
     const channel = supabase
       .channel("user_plans_changes")
@@ -212,7 +213,7 @@ export function Plans() {
         "postgres_changes",
         { event: "*", schema: "public", table: "user_plans", filter: `user_id=eq.${user?.id}` },
         () => {
-          fetchMyPlans();
+          fetchData();
         },
       )
       .subscribe();

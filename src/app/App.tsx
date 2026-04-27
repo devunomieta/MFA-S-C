@@ -196,7 +196,6 @@ function AppRoutes() {
                 <Route path="inquiries" element={<AdminInquiries />} />
                 <Route path="profile" element={<AdminProfile />} />
                 <Route path="surveys" element={<AdminSurvey />} />
-
               </Route>
             </Route>
 

@@ -39,13 +39,11 @@ export function BrandLogo({
         src={src}
         alt={alt || "Logo"}
         fetchpriority="high"
-
         className={cn(
           "w-full h-auto object-contain drop-shadow-sm transition-transform duration-500",
           className,
         )}
       />
-
     </div>
   );
 }

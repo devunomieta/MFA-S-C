@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
+
 import { motion, AnimatePresence } from "framer-motion";
 import { MessageSquare, X, CheckCircle2 } from "lucide-react";
-import { supabase } from "@/lib/supabase";
-import { useAuth } from "@/app/context/AuthContext";
-import { Button } from "@/app/components/ui/button";
 import { toast } from "sonner";
+
+import { Button } from "@/app/components/ui/button";
+import { useAuth } from "@/app/context/AuthContext";
+import { supabase } from "@/lib/supabase";
 
 interface SurveyPopupProps {
   triggerEvent: string; // e.g. 'first_deposit'
@@ -19,51 +21,40 @@ export function SurveyPopup({ triggerEvent }: SurveyPopupProps) {
   const [completed, setCompleted] = useState(false);
 
   useEffect(() => {
-    if (user && triggerEvent) {
-      checkAndFetchSurvey();
-    }
-  }, [user, triggerEvent]);
+    const checkAndFetchSurvey = async () => {
+      if (!user || !triggerEvent) return;
+      try {
+        // Better check: fetch the survey first, then check response
+        const { data: activeSurveys } = await supabase
+          .from("surveys")
+          .select("*")
+          .eq("trigger_event", triggerEvent)
+          .eq("is_active", true)
+          .limit(1);
 
-  async function checkAndFetchSurvey() {
-    try {
-      // 1. Check if user already responded to this type of survey
-      const { data: existing } = await supabase
-        .from("survey_responses")
-        .select("id")
-        .eq("user_id", user?.id)
-        .eq("survey_id", (
-          supabase.from("surveys").select("id").eq("trigger_event", triggerEvent).eq("is_active", true).limit(1)
-        ))
-        .maybeSingle();
+        if (!activeSurveys || activeSurveys.length === 0) return;
 
-      // Better check: fetch the survey first, then check response
-      const { data: activeSurveys } = await supabase
-        .from("surveys")
-        .select("*")
-        .eq("trigger_event", triggerEvent)
-        .eq("is_active", true)
-        .limit(1);
+        const activeSurvey = activeSurveys[0];
 
-      if (!activeSurveys || activeSurveys.length === 0) return;
+        const { data: response } = await supabase
+          .from("survey_responses")
+          .select("id")
+          .eq("user_id", user?.id)
+          .eq("survey_id", activeSurvey.id)
+          .maybeSingle();
 
-      const activeSurvey = activeSurveys[0];
-
-      const { data: response } = await supabase
-        .from("survey_responses")
-        .select("id")
-        .eq("user_id", user?.id)
-        .eq("survey_id", activeSurvey.id)
-        .maybeSingle();
-
-      if (!response) {
-        setSurvey(activeSurvey);
-        // Delay popup slightly for better UX
-        setTimeout(() => setIsVisible(true), 3000);
+        if (!response) {
+          setSurvey(activeSurvey);
+          // Delay popup slightly for better UX
+          setTimeout(() => setIsVisible(true), 3000);
+        }
+      } catch {
+        // Silent error for surveys
       }
-    } catch (err) {
-      console.error("Survey check failed:", err);
-    }
-  }
+    };
+
+    checkAndFetchSurvey();
+  }, [user, triggerEvent]);
 
   async function handleSubmit() {
     if (!selectedOption || !survey) return;
@@ -73,16 +64,16 @@ export function SurveyPopup({ triggerEvent }: SurveyPopupProps) {
       const { error } = await supabase.from("survey_responses").insert({
         user_id: user?.id,
         survey_id: survey.id,
-        answer: selectedOption
+        answer: selectedOption,
       });
 
       if (error) throw error;
-      
+
       setCompleted(true);
       setTimeout(() => {
         setIsVisible(false);
       }, 3000);
-    } catch (err: any) {
+    } catch {
       toast.error("Failed to submit feedback");
     } finally {
       setSubmitting(false);
@@ -100,7 +91,7 @@ export function SurveyPopup({ triggerEvent }: SurveyPopupProps) {
         className="fixed bottom-6 right-6 z-[60] w-full max-w-sm"
       >
         <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 p-6 overflow-hidden relative">
-          <button 
+          <button
             onClick={() => setIsVisible(false)}
             className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
           >
@@ -116,9 +107,7 @@ export function SurveyPopup({ triggerEvent }: SurveyPopupProps) {
                 <h3 className="font-bold dark:text-white">Quick Feedback</h3>
               </div>
 
-              <p className="text-sm font-medium dark:text-slate-300">
-                {survey.question}
-              </p>
+              <p className="text-sm font-medium dark:text-slate-300">{survey.question}</p>
 
               <div className="grid grid-cols-2 gap-2">
                 {survey.options.map((opt: string) => (
@@ -145,7 +134,7 @@ export function SurveyPopup({ triggerEvent }: SurveyPopupProps) {
               </Button>
             </div>
           ) : (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.5 }}
               animate={{ opacity: 1, scale: 1 }}
               className="text-center py-4 space-y-3"

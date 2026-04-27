@@ -18,9 +18,7 @@ import {
 import { Label } from "@/app/components/ui/label";
 import { supabase } from "@/lib/supabase";
 
-
 const HCAPTCHA_SITE_KEY = "2aac9114-5cba-4dbe-97a0-ad1ac7f80daa";
-
 
 export function ForgotPassword() {
   const [loading, setLoading] = useState(false);
@@ -149,12 +147,7 @@ export function ForgotPassword() {
                     Enter 6-Digit Verification Code
                   </Label>
                   <div className="flex justify-center">
-                    <InputOTP
-                      maxLength={6}
-                      value={otpCode}
-                      onChange={setOtpCode}
-                      className="gap-2"
-                    >
+                    <InputOTP maxLength={6} value={otpCode} onChange={setOtpCode} className="gap-2">
                       <InputOTPGroup>
                         <InputOTPSlot index={0} />
                         <InputOTPSlot index={1} />
@@ -247,7 +240,6 @@ export function ForgotPassword() {
               </Button>
             </form>
           )}
-
 
           <div className="mt-10 pt-8 border-t border-slate-100 dark:border-slate-800 text-center">
             <Link

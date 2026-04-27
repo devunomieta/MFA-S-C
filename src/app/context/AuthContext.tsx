@@ -60,180 +60,175 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut();
   };
 
-  useEffect(() => {
-    let mounted = true;
+  async function ensureProfileExists(authUser: User) {
+    try {
+      const metadata = authUser.user_metadata || {};
+      const fullName = metadata.full_name || metadata.name || "User " + authUser.id.substring(0, 4);
+      const avatarUrl = metadata.avatar_url || metadata.picture || null;
 
-    async function ensureProfileExists(authUser: User) {
-      try {
-        const metadata = authUser.user_metadata || {};
-        const fullName = metadata.full_name || metadata.name || "User " + authUser.id.substring(0, 4);
-        const avatarUrl = metadata.avatar_url || metadata.picture || null;
-
-        const { error: upsertError } = await supabase.from("profiles").upsert({
+      const { error: upsertError } = await supabase.from("profiles").upsert(
+        {
           id: authUser.id,
           email: authUser.email,
           full_name: fullName,
           avatar_url: avatarUrl,
-        }, { onConflict: 'id' });
+        },
+        { onConflict: "id" },
+      );
 
-        if (upsertError) {
-          console.error("Profile synchronization failed:", upsertError.message);
-        }
-      } catch (e) {
-        console.error("Critical error in ensureProfileExists", e);
+      if (upsertError) {
+        console.error("Profile synchronization failed:", upsertError.message);
       }
+    } catch (e) {
+      console.error("Critical error in ensureProfileExists", e);
     }
+  }
 
+  async function fetchRoleStatus(userId: string, userEmail?: string | null) {
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("is_admin, is_superadmin, email")
+        .eq("id", userId)
+        .single();
 
-    async function fetchRoleStatus(userId: string, userEmail?: string | null) {
-      try {
-        const { data, error } = await supabase
-          .from("profiles")
-          .select("is_admin, is_superadmin, email")
-          .eq("id", userId)
-          .single();
-
-        if (error) {
-          if (error.code === "PGRST116") {
-            // Profile missing — might be a race condition or invalid session
-            console.warn("Profile not found during role check");
-            return false;
-          }
-          throw error;
-        }
-
-        if (data && mounted) {
-          setIsAdmin(data.is_admin || false);
-          setIsSuperadmin(data.is_superadmin || false);
-
-          // Secondary RPC check — failsafe if profiles.is_admin not yet set
-          if (!data.is_admin) {
-            const checkEmail = data.email || userEmail;
-            if (checkEmail) {
-              const { data: isRpcAdmin, error: rpcError } = await supabase.rpc("is_admin_check", {
-                p_email: checkEmail,
-              });
-              if (!rpcError && isRpcAdmin && mounted) {
-                setIsAdmin(true);
-                setIsSuperadmin(true);
-              }
-            }
-          }
-        }
-        return true;
-      } catch (e: any) {
-        console.error("Error fetching role status:", e);
-        // If it's an auth error (401/403/JWT expired), we should probably sign out
-        if (e.status === 401 || e.status === 403 || e.message?.includes("JWT")) {
+      if (error) {
+        if (error.code === "PGRST116") {
+          console.warn("Profile not found during role check");
           return false;
         }
-        return true; // Keep session for other errors
+        throw error;
+      }
+
+      if (data) {
+        setIsAdmin(data.is_admin || false);
+        setIsSuperadmin(data.is_superadmin || false);
+
+        if (!data.is_admin) {
+          const checkEmail = data.email || userEmail;
+          if (checkEmail) {
+            const { data: isRpcAdmin, error: rpcError } = await supabase.rpc("is_admin_check", {
+              p_email: checkEmail,
+            });
+            if (!rpcError && isRpcAdmin) {
+              setIsAdmin(true);
+              setIsSuperadmin(true);
+            }
+          }
+        }
+      }
+      return true;
+    } catch (e: any) {
+      console.error("Error fetching role status:", e);
+      if (e.status === 401 || e.status === 403 || e.message?.includes("JWT")) {
+        return false;
+      }
+      return true;
+    }
+  }
+
+  // Failsafe: Ensure loading is ALWAYS turned off after 10s regardless of network/auth state
+  useEffect(() => {
+    let mounted = true;
+
+    const failsafeTimer = setTimeout(() => {
+      if (mounted) {
+        setLoading((current) => {
+          if (current) console.warn("Auth loading failsafe triggered after 10s");
+          return false;
+        });
+      }
+    }, 10000);
+
+    async function handleAuthStateChange(event: string, newSession: Session | null) {
+      if (!mounted) return;
+
+      // Skip redundant INITIAL_SESSION if we already have a session from init
+      // But we actually want to handle it to unify the logic
+
+      setSession(newSession);
+      setUser(newSession?.user ?? null);
+
+      if (newSession?.user) {
+        const isNewUser = initializedUserId.current !== newSession.user.id;
+
+        // Only show loading for actual sign-ins or initial loads
+        if (isNewUser || event === "SIGNED_IN") {
+          setLoading(true);
+          try {
+            await ensureProfileExists(newSession.user);
+            const success = await fetchRoleStatus(newSession.user.id, newSession.user.email);
+
+            if (!success) {
+              console.warn("Session validation failed, signing out...");
+              await supabase.auth.signOut();
+              return;
+            }
+
+            SessionManager.saveSession(newSession);
+            setSavedSessions(SessionManager.getSavedSessions());
+            initializedUserId.current = newSession.user.id;
+
+            const { data: mfaData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+            if (mounted) setMfaEnabled(mfaData?.currentLevel === "aal2");
+          } catch (err) {
+            console.error("Auth task failure:", err);
+          } finally {
+            if (mounted) setLoading(false);
+          }
+        } else {
+          // Token refreshed or user updated - just sync local storage
+          SessionManager.saveSession(newSession);
+          setSavedSessions(SessionManager.getSavedSessions());
+        }
+      } else {
+        // No user
+        initializedUserId.current = null;
+        setIsAdmin(false);
+        setIsSuperadmin(false);
+        setMfaEnabled(false);
+        setLoading(false);
       }
     }
 
-    useEffect(() => {
-      let mounted = true;
-      
-      // Failsafe: Ensure loading is ALWAYS turned off after 10s regardless of network/auth state
-      const failsafeTimer = setTimeout(() => {
-        if (mounted) {
-          setLoading(current => {
-            if (current) console.warn("Auth loading failsafe triggered after 10s");
-            return false;
-          });
-        }
-      }, 10000);
-
-      async function handleAuthStateChange(event: string, newSession: Session | null) {
-        if (!mounted) return;
-
-        // Skip redundant INITIAL_SESSION if we already have a session from init
-        // But we actually want to handle it to unify the logic
-        
-        setSession(newSession);
-        setUser(newSession?.user ?? null);
-
-        if (newSession?.user) {
-          const isNewUser = initializedUserId.current !== newSession.user.id;
-          
-          // Only show loading for actual sign-ins or initial loads
-          if (isNewUser || event === "SIGNED_IN") {
-            setLoading(true);
-            try {
-              await ensureProfileExists(newSession.user);
-              const success = await fetchRoleStatus(newSession.user.id, newSession.user.email);
-              
-              if (!success) {
-                console.warn("Session validation failed, signing out...");
-                await supabase.auth.signOut();
-                return;
-              }
-
-              SessionManager.saveSession(newSession);
-              setSavedSessions(SessionManager.getSavedSessions());
-              initializedUserId.current = newSession.user.id;
-
-              const { data: mfaData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-              if (mounted) setMfaEnabled(mfaData?.currentLevel === "aal2");
-            } catch (err) {
-              console.error("Auth task failure:", err);
-            } finally {
-              if (mounted) setLoading(false);
-            }
-          } else {
-            // Token refreshed or user updated - just sync local storage
-            SessionManager.saveSession(newSession);
-            setSavedSessions(SessionManager.getSavedSessions());
-          }
-        } else {
-          // No user
-          initializedUserId.current = null;
-          setIsAdmin(false);
-          setIsSuperadmin(false);
-          setMfaEnabled(false);
-          setLoading(false);
-        }
+    // Initial Session Fetch
+    const init = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (mounted) {
+        await handleAuthStateChange("INITIAL_SESSION", session);
       }
+    };
 
-      // Initial Session Fetch
-      const init = async () => {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (mounted) {
-          await handleAuthStateChange("INITIAL_SESSION", session);
-        }
-      };
+    init();
 
-      init();
+    // Auth State Listener
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, newSession) => {
+      if (event === "INITIAL_SESSION") return; // Handled by init()
+      handleAuthStateChange(event, newSession);
+    });
 
-      // Auth State Listener
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((event, newSession) => {
-        if (event === "INITIAL_SESSION") return; // Handled by init()
-        handleAuthStateChange(event, newSession);
-      });
+    // ── Inactivity Timer ──────────────────────────────────────────────────
+    const activityEvents = ["mousedown", "mousemove", "keypress", "scroll", "touchstart"];
+    const resetTimer = () => {
+      setLastActivity(Date.now());
+    };
 
-      // ── Inactivity Timer ──────────────────────────────────────────────────
-      let inactivityTimer: NodeJS.Timeout;
-      const activityEvents = ["mousedown", "mousemove", "keypress", "scroll", "touchstart"];
+    activityEvents.forEach((e) => window.addEventListener(e, resetTimer));
+    resetTimer();
 
-      const resetTimer = () => {
-        setLastActivity(Date.now());
-        if (inactivityTimer) clearTimeout(inactivityTimer);
-      };
-
-      activityEvents.forEach((e) => window.addEventListener(e, resetTimer));
-      resetTimer();
-
-      return () => {
-        mounted = false;
-        subscription.unsubscribe();
-        clearTimeout(failsafeTimer);
-        activityEvents.forEach((e) => window.removeEventListener(e, resetTimer));
-        if (inactivityTimer) clearTimeout(inactivityTimer);
-      };
-    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+      clearTimeout(failsafeTimer);
+      activityEvents.forEach((e) => window.removeEventListener(e, resetTimer));
+    };
+  }, []);
 
   const switchAccount = async (targetSession: Session) => {
-
     const { error } = await supabase.auth.setSession(targetSession);
     if (error) {
       console.error("Failed to switch session:", error);

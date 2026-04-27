@@ -1,8 +1,16 @@
 import { useEffect, useState } from "react";
 
-import { Send, Clock, Search, Users, Filter, ChevronLeft, ChevronRight, MailCheck, MailX } from "lucide-react";
+import {
+  Send,
+  Clock,
+  Search,
+  Users,
+  ChevronLeft,
+  ChevronRight,
+  MailCheck,
+  MailX,
+} from "lucide-react";
 import { toast } from "sonner";
-
 
 import { ActionConfirmModal } from "@/app/components/ui/ActionConfirmModal";
 import { Badge } from "@/app/components/ui/badge";
@@ -22,11 +30,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/ta
 import { Textarea } from "@/app/components/ui/textarea";
 import { supabase } from "@/lib/supabase";
 
-
 export function AdminNewsletter() {
   const [loading, setLoading] = useState(false);
   const [newsletters, setNewsletters] = useState<any[]>([]);
-  
+
   // Subscribers State
   const [subscribers, setSubscribers] = useState<any[]>([]);
   const [subLoading, setSubLoading] = useState(false);
@@ -56,7 +63,6 @@ export function AdminNewsletter() {
     return () => clearTimeout(timer);
   }, [search]);
 
-
   async function fetchHistory() {
     try {
       const { data } = await supabase
@@ -72,9 +78,7 @@ export function AdminNewsletter() {
   async function fetchSubscribers() {
     setSubLoading(true);
     try {
-      let query = supabase
-        .from("newsletter_subscribers")
-        .select("*", { count: "exact" });
+      let query = supabase.from("newsletter_subscribers").select("*", { count: "exact" });
 
       if (search) {
         query = query.ilike("email", `%${search}%`);
@@ -107,7 +111,7 @@ export function AdminNewsletter() {
         .from("newsletter_subscribers")
         .update({ is_active: !currentStatus })
         .eq("id", id);
-      
+
       if (error) throw error;
       toast.success("Subscriber status updated");
       fetchSubscribers();
@@ -115,7 +119,6 @@ export function AdminNewsletter() {
       toast.error("Failed to update: " + err.message);
     }
   }
-
 
   async function handleSend() {
     if (!subject.trim() || !content.trim()) {
@@ -199,7 +202,6 @@ export function AdminNewsletter() {
       setSubject("");
       setContent("");
       fetchHistory(); // Refresh list
-
     } catch (error: any) {
       toast.error("Failed to send: " + error.message);
     } finally {
@@ -299,7 +301,9 @@ export function AdminNewsletter() {
                           <h4 className="font-semibold text-sm line-clamp-1">{n.subject}</h4>
                           <Badge
                             variant="outline"
-                            className={n.status === "sent" ? "text-emerald-600 border-emerald-200" : ""}
+                            className={
+                              n.status === "sent" ? "text-emerald-600 border-emerald-200" : ""
+                            }
                           >
                             {n.status}
                           </Badge>
@@ -327,7 +331,8 @@ export function AdminNewsletter() {
                 <div>
                   <CardTitle>Newsletter Subscribers</CardTitle>
                   <CardDescription>
-                    Total subscribers: <span className="font-bold text-slate-900">{totalCount}</span>
+                    Total subscribers:{" "}
+                    <span className="font-bold text-slate-900">{totalCount}</span>
                   </CardDescription>
                 </div>
                 <div className="flex items-center gap-2">

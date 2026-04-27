@@ -1,14 +1,25 @@
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Shield, Phone, KeyRound, CheckCircle2, ArrowRight, LogOut, Loader2, Eye, EyeOff } from "lucide-react";
 
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Shield,
+  Phone,
+  KeyRound,
+  CheckCircle2,
+  ArrowRight,
+  LogOut,
+  Loader2,
+  Eye,
+  EyeOff,
+} from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/lib/supabase";
-import { useAuth } from "@/app/context/AuthContext";
+
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { PasswordStrength } from "@/app/components/ui/PasswordStrength";
+import { useAuth } from "@/app/context/AuthContext";
+import { supabase } from "@/lib/supabase";
 import { validatePassword } from "@/lib/validation";
 
 interface SecurityOnboardingProps {
@@ -29,47 +40,60 @@ export function SecurityOnboarding({ onComplete }: SecurityOnboardingProps) {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const passFeedback = validatePassword(password);
 
-
-  const isGoogleUser = 
-    user?.app_metadata?.provider === "google" || 
+  const isGoogleUser =
+    user?.app_metadata?.provider === "google" ||
     (user?.app_metadata?.providers as string[] | undefined)?.includes("google");
 
-  useEffect(() => {
-    checkStatus();
-  }, [user]);
-
-  async function checkStatus() {
-    if (!user) return;
-    setChecking(true);
+  const completeOnboarding = async () => {
     try {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("phone, onboarding_completed, has_password")
-        .eq("id", user.id)
-        .maybeSingle();
+      await supabase.from("profiles").update({ onboarding_completed: true }).eq("id", user?.id);
 
-      const hasPhone = !!profile?.phone && profile.phone.trim().length > 3;
-      const needsPassword = isGoogleUser && !profile?.has_password;
-
-      if (profile?.onboarding_completed) {
+      setStep("success");
+      setTimeout(() => {
         onComplete();
-        return;
-      }
-
-      if (!hasPhone) {
-        setStep("phone");
-      } else if (needsPassword) {
-        setStep("password");
-      } else {
-        // Everything set but flag not updated
-        await completeOnboarding();
-      }
+      }, 2000);
     } catch (err) {
-      console.error("Status check failed:", err);
-    } finally {
-      setChecking(false);
+      console.error("Finalizing onboarding failed:", err);
+      onComplete(); // Failsafe
     }
-  }
+  };
+
+  useEffect(() => {
+    const checkStatus = async () => {
+      if (!user) return;
+      setChecking(true);
+      try {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("phone, onboarding_completed, has_password")
+          .eq("id", user.id)
+          .maybeSingle();
+
+        const hasPhone = !!profile?.phone && profile.phone.trim().length > 3;
+        const needsPassword = isGoogleUser && !profile?.has_password;
+
+        if (profile?.onboarding_completed) {
+          onComplete();
+          return;
+        }
+
+        if (!hasPhone) {
+          setStep("phone");
+        } else if (needsPassword) {
+          setStep("password");
+        } else {
+          // Everything set but flag not updated
+          await completeOnboarding();
+        }
+      } catch {
+        // Fail silent
+      } finally {
+        setChecking(false);
+      }
+    };
+
+    checkStatus();
+  }, [user, isGoogleUser, onComplete]);
 
   async function handlePhoneSubmit() {
     if (phone.length < 10) {
@@ -79,27 +103,24 @@ export function SecurityOnboarding({ onComplete }: SecurityOnboardingProps) {
 
     setLoading(true);
     try {
-      const { error } = await supabase
-        .from("profiles")
-        .update({ phone: phone })
-        .eq("id", user?.id);
+      const { error } = await supabase.from("profiles").update({ phone: phone }).eq("id", user?.id);
 
       if (error) throw error;
 
       await supabase.auth.updateUser({
         phone: phone,
-        data: { phone: phone }
+        data: { phone: phone },
       });
 
       toast.success("Phone number saved!");
-      
+
       if (isGoogleUser) {
         setStep("password");
       } else {
         await completeOnboarding();
       }
-    } catch (err: any) {
-      toast.error(err.message || "Failed to save phone number");
+    } catch {
+      toast.error("Failed to save phone number");
     } finally {
       setLoading(false);
     }
@@ -119,7 +140,7 @@ export function SecurityOnboarding({ onComplete }: SecurityOnboardingProps) {
     try {
       const { error } = await supabase.auth.updateUser({
         password: password,
-        data: { has_password: true }
+        data: { has_password: true },
       });
 
       if (error) throw error;
@@ -129,27 +150,10 @@ export function SecurityOnboarding({ onComplete }: SecurityOnboardingProps) {
 
       toast.success("Password created successfully!");
       await completeOnboarding();
-    } catch (err: any) {
-      toast.error(err.message || "Failed to set password");
+    } catch {
+      toast.error("Update failed. Please try again.");
     } finally {
       setLoading(false);
-    }
-  }
-
-  async function completeOnboarding() {
-    try {
-      await supabase
-        .from("profiles")
-        .update({ onboarding_completed: true })
-        .eq("id", user?.id);
-      
-      setStep("success");
-      setTimeout(() => {
-        onComplete();
-      }, 2000);
-    } catch (err) {
-      console.error("Finalizing onboarding failed:", err);
-      onComplete(); // Failsafe
     }
   }
 
@@ -157,7 +161,7 @@ export function SecurityOnboarding({ onComplete }: SecurityOnboardingProps) {
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 20, scale: 0.95 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         className="bg-white dark:bg-slate-900 w-full max-w-md rounded-[2.5rem] shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden"
@@ -165,7 +169,7 @@ export function SecurityOnboarding({ onComplete }: SecurityOnboardingProps) {
         <div className="p-8">
           <AnimatePresence mode="wait">
             {step === "intro" && (
-              <motion.div 
+              <motion.div
                 key="intro"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -177,19 +181,26 @@ export function SecurityOnboarding({ onComplete }: SecurityOnboardingProps) {
                 </div>
                 <h2 className="text-2xl font-bold dark:text-white">Secure Your Account</h2>
                 <p className="text-slate-500 dark:text-slate-400">
-                  Welcome to Mary's Thrift! To keep your funds safe, we need you to complete two quick security steps.
+                  Welcome to Mary's Thrift! To keep your funds safe, we need you to complete two
+                  quick security steps.
                 </p>
-                <Button onClick={() => setStep("phone")} className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 rounded-xl font-bold">
+                <Button
+                  onClick={() => setStep("phone")}
+                  className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 rounded-xl font-bold"
+                >
                   Start Setup <ArrowRight className="ml-2 w-4 h-4" />
                 </Button>
-                <button onClick={signOut} className="text-sm text-slate-400 hover:text-red-500 flex items-center justify-center gap-2 mx-auto mt-4">
+                <button
+                  onClick={signOut}
+                  className="text-sm text-slate-400 hover:text-red-500 flex items-center justify-center gap-2 mx-auto mt-4"
+                >
                   <LogOut className="w-4 h-4" /> Sign out for now
                 </button>
               </motion.div>
             )}
 
             {step === "phone" && (
-              <motion.div 
+              <motion.div
                 key="phone"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -202,29 +213,34 @@ export function SecurityOnboarding({ onComplete }: SecurityOnboardingProps) {
                   </div>
                   <h2 className="text-xl font-bold dark:text-white">Add Phone Number</h2>
                   <p className="text-sm text-slate-500 dark:text-slate-400">
-                    Step 1 of {isGoogleUser ? "2" : "1"}: Your phone number is required for account recovery and login.
+                    Step 1 of {isGoogleUser ? "2" : "1"}: Your phone number is required for account
+                    recovery and login.
                   </p>
                 </div>
 
                 <div className="space-y-2">
                   <Label className="text-xs font-bold uppercase text-slate-500">Phone Number</Label>
-                  <Input 
-                    type="tel" 
-                    placeholder="e.g. +234 800 000 0000" 
+                  <Input
+                    type="tel"
+                    placeholder="e.g. +234 800 000 0000"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     className="h-12 rounded-xl dark:bg-slate-800 dark:border-slate-700"
                   />
                 </div>
 
-                <Button onClick={handlePhoneSubmit} disabled={loading} className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 rounded-xl font-bold shadow-lg shadow-emerald-500/20">
+                <Button
+                  onClick={handlePhoneSubmit}
+                  disabled={loading}
+                  className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 rounded-xl font-bold shadow-lg shadow-emerald-500/20"
+                >
                   {loading ? <Loader2 className="animate-spin" /> : "Continue"}
                 </Button>
               </motion.div>
             )}
 
             {step === "password" && (
-              <motion.div 
+              <motion.div
                 key="password"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -237,17 +253,20 @@ export function SecurityOnboarding({ onComplete }: SecurityOnboardingProps) {
                   </div>
                   <h2 className="text-xl font-bold dark:text-white">Create a Password</h2>
                   <p className="text-sm text-slate-500 dark:text-slate-400">
-                    Step 2 of 2: Since you signed in with Google, creating a password allows you to login directly later.
+                    Step 2 of 2: Since you signed in with Google, creating a password allows you to
+                    login directly later.
                   </p>
                 </div>
 
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label className="text-xs font-bold uppercase text-slate-500">New Password</Label>
+                    <Label className="text-xs font-bold uppercase text-slate-500">
+                      New Password
+                    </Label>
                     <div className="relative">
-                      <Input 
-                        type={showPassword ? "text" : "password"} 
-                        placeholder="••••••••" 
+                      <Input
+                        type={showPassword ? "text" : "password"}
+                        placeholder="••••••••"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         className="h-12 rounded-xl dark:bg-slate-800 dark:border-slate-700 pr-10"
@@ -262,11 +281,13 @@ export function SecurityOnboarding({ onComplete }: SecurityOnboardingProps) {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-xs font-bold uppercase text-slate-500">Confirm Password</Label>
+                    <Label className="text-xs font-bold uppercase text-slate-500">
+                      Confirm Password
+                    </Label>
                     <div className="relative">
-                      <Input 
-                        type={showConfirmPassword ? "text" : "password"} 
-                        placeholder="••••••••" 
+                      <Input
+                        type={showConfirmPassword ? "text" : "password"}
+                        placeholder="••••••••"
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
                         className="h-12 rounded-xl dark:bg-slate-800 dark:border-slate-700 pr-10"
@@ -283,19 +304,18 @@ export function SecurityOnboarding({ onComplete }: SecurityOnboardingProps) {
                   <PasswordStrength feedback={passFeedback} passwordLength={password.length} />
                 </div>
 
-                <Button 
-                  onClick={handlePasswordSubmit} 
-                  disabled={loading || !passFeedback.isValid || password !== confirmPassword} 
+                <Button
+                  onClick={handlePasswordSubmit}
+                  disabled={loading || !passFeedback.isValid || password !== confirmPassword}
                   className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 rounded-xl font-bold shadow-lg shadow-emerald-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? <Loader2 className="animate-spin" /> : "Complete Setup"}
                 </Button>
-
               </motion.div>
             )}
 
             {step === "success" && (
-              <motion.div 
+              <motion.div
                 key="success"
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}

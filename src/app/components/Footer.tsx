@@ -67,7 +67,6 @@ export function Footer() {
   return (
     <footer className="bg-slate-950 text-slate-400">
       <div className="container mx-auto px-4 py-20">
-
         {/* ── Brand block — centered, full width ─────────────────────── */}
         <div className="flex flex-col items-center text-center mb-16 space-y-4">
           <div>
@@ -90,7 +89,6 @@ export function Footer() {
 
         {/* ── Four columns ───────────────────────────────────────────── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 mb-16">
-
           {/* Platform */}
           <div className="space-y-5">
             <h4 className="text-white font-bold uppercase tracking-widest text-[11px]">Platform</h4>
@@ -102,7 +100,10 @@ export function Footer() {
                 { label: "Contact", href: "#contact" },
               ].map((item) => (
                 <li key={item.label}>
-                  <a href={item.href} className="text-sm hover:text-emerald-400 transition-colors font-medium">
+                  <a
+                    href={item.href}
+                    className="text-sm hover:text-emerald-400 transition-colors font-medium"
+                  >
                     {item.label}
                   </a>
                 </li>
@@ -121,7 +122,10 @@ export function Footer() {
                 { name: "Security", href: "/security" },
               ].map((item) => (
                 <li key={item.name}>
-                  <a href={item.href} className="text-sm hover:text-emerald-400 transition-colors font-medium">
+                  <a
+                    href={item.href}
+                    className="text-sm hover:text-emerald-400 transition-colors font-medium"
+                  >
                     {item.name}
                   </a>
                 </li>
@@ -138,7 +142,9 @@ export function Footer() {
                   <Mail className="size-4 text-emerald-500" />
                 </div>
                 <div className="min-w-0">
-                  <div className="text-slate-500 text-[10px] font-black uppercase tracking-widest mb-0.5">Email</div>
+                  <div className="text-slate-500 text-[10px] font-black uppercase tracking-widest mb-0.5">
+                    Email
+                  </div>
                   <a
                     href="mailto:marysthriftservices@gmail.com"
                     className="text-sm hover:text-white transition-colors font-semibold text-slate-300 block truncate"
@@ -153,8 +159,13 @@ export function Footer() {
                   <Phone className="size-4 text-emerald-500" />
                 </div>
                 <div>
-                  <div className="text-slate-500 text-[10px] font-black uppercase tracking-widest mb-0.5">Phone</div>
-                  <a href="tel:+2349074049667" className="text-sm hover:text-white transition-colors font-semibold text-slate-300">
+                  <div className="text-slate-500 text-[10px] font-black uppercase tracking-widest mb-0.5">
+                    Phone
+                  </div>
+                  <a
+                    href="tel:+2349074049667"
+                    className="text-sm hover:text-white transition-colors font-semibold text-slate-300"
+                  >
                     09074049667
                   </a>
                 </div>
@@ -164,7 +175,9 @@ export function Footer() {
 
           {/* Stay Updated */}
           <div className="space-y-5">
-            <h4 className="text-white font-bold uppercase tracking-widest text-[11px]">Stay Updated</h4>
+            <h4 className="text-white font-bold uppercase tracking-widest text-[11px]">
+              Stay Updated
+            </h4>
             <p className="text-xs text-slate-500 font-medium leading-relaxed">
               Get updates on new plans, features, and community news.
             </p>
@@ -182,7 +195,11 @@ export function Footer() {
                 disabled={loading}
                 className="bg-emerald-600 hover:bg-emerald-700 rounded-xl h-10 px-3 shadow-lg shadow-emerald-500/20 shrink-0"
               >
-                {loading ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
+                {loading ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <Send className="size-4" />
+                )}
               </Button>
             </form>
             <div className="flex gap-3">
@@ -206,7 +223,6 @@ export function Footer() {
               </a>
             </div>
           </div>
-
         </div>
 
         {/* ── Bottom bar ──────────────────────────────────────────────── */}
@@ -227,10 +243,11 @@ export function Footer() {
           </a>
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="font-bold text-slate-500 uppercase tracking-widest">CAC Registered BN-8950808</span>
+            <span className="font-bold text-slate-500 uppercase tracking-widest">
+              CAC Registered BN-8950808
+            </span>
           </div>
         </div>
-
       </div>
     </footer>
   );

@@ -68,9 +68,8 @@ export function AdminSettings() {
     newsletter: {
       subject: "New Update from Mary's Thrift",
       body: "Hello,\n\nWe have some exciting news to share with you...",
-    }
+    },
   });
-
 
   // Announcement State
   const [announcements, setAnnouncements] = useState<any[]>([]);
@@ -145,7 +144,6 @@ export function AdminSettings() {
         if (templateSettings) {
           setTemplates({ ...templates, ...templateSettings });
         }
-
       }
     } catch {
       toast.error("Failed to load settings");
