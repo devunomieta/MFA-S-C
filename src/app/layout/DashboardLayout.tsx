@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 import {
   Menu,
@@ -55,6 +55,10 @@ export function DashboardLayout() {
   // Mandatory Security Onboarding
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [surveyTrigger, setSurveyTrigger] = useState<string | null>(null);
+
+  const handleOnboardingComplete = useCallback(() => {
+    setShowOnboarding(false);
+  }, []);
 
   const sidebarItems = [
     { icon: LayoutDashboard, label: "Overview", href: "/dashboard" },
@@ -155,7 +159,7 @@ export function DashboardLayout() {
   return (
     <div className="min-h-screen bg-gray-50 flex dark:bg-gray-900 transition-colors relative">
       {/* Mandatory Security Onboarding Wizard */}
-      {showOnboarding && <SecurityOnboarding onComplete={() => setShowOnboarding(false)} />}
+      {showOnboarding && <SecurityOnboarding onComplete={handleOnboardingComplete} />}
 
       {surveyTrigger && <SurveyPopup triggerEvent={surveyTrigger} />}
 
