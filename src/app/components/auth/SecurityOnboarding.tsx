@@ -116,7 +116,6 @@ export function SecurityOnboarding({ onComplete }: SecurityOnboardingProps) {
       if (dbError) throw dbError;
 
       const { error: authError } = await supabase.auth.updateUser({
-        phone: phone,
         data: { phone: phone },
       });
 
