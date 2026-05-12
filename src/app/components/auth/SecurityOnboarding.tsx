@@ -150,8 +150,9 @@ export function SecurityOnboarding({ onComplete }: SecurityOnboardingProps) {
 
       toast.success("Password created successfully!");
       await completeOnboarding();
-    } catch {
-      toast.error("Update failed. Please try again.");
+    } catch (err: any) {
+      console.error("Password update failed:", err);
+      toast.error(err.message || "Update failed. Please try again.");
     } finally {
       setLoading(false);
     }

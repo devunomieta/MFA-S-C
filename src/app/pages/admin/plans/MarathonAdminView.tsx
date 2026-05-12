@@ -56,21 +56,6 @@ export function MarathonAdminView({ plan }: MarathonAdminViewProps) {
     setLoading(false);
   }
 
-  const handleTriggerAutoSave = async () => {
-    setIsProcessing(true);
-    const { data, error } = await supabase.rpc("trigger_all_auto_saves");
-    setIsProcessing(false);
-    setIsConfirmOpen(false);
-
-    if (error) {
-      toast.error("Auto-Save failed: " + error.message);
-    } else {
-      toast.success(
-        `Auto-Save executed: ${data.processed} updated, ${data.arrears_created} arrears recorded.`,
-      );
-      fetchSubscribers();
-    }
-  };
 
   const formatCurrency = (val: number) =>
     new Intl.NumberFormat("en-US", { style: "currency", currency: "NGN" }).format(val);
@@ -96,25 +81,8 @@ export function MarathonAdminView({ plan }: MarathonAdminViewProps) {
           <h3 className="font-bold text-emerald-900">Marathon Target Savings Controls</h3>
           <p className="text-sm text-emerald-700">Manual triggers. (30 or 48 Weeks)</p>
         </div>
-        <Button
-          onClick={() => setIsConfirmOpen(true)}
-          className="bg-emerald-600 hover:bg-emerald-700 text-white"
-          disabled={isProcessing}
-        >
-          <Clock className="w-4 h-4 mr-2" /> Trigger Auto-Save
-        </Button>
       </div>
 
-      <ActionConfirmModal
-        isOpen={isConfirmOpen}
-        onOpenChange={setIsConfirmOpen}
-        onConfirm={handleTriggerAutoSave}
-        title="Trigger Global Auto-Save"
-        description={`This will attempt to auto-debit funds from the Wallet for ALL active users across ALL plan types who are behind schedule.\n\nThis simulates the recurring background job.`}
-        confirmText="Run Now"
-        variant="info"
-        isLoading={isProcessing}
-      />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>

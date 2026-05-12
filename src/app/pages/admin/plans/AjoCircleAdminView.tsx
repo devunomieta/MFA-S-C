@@ -135,27 +135,6 @@ export function AjoCircleAdminView() {
     setIsConfirmOpen(true);
   };
 
-  const triggerAutoSave = async () => {
-    setConfirmAction({
-      title: "Trigger Global Auto-Save",
-      desc: "This will attempt to auto-debit funds from users' General Wallets for ALL active plans (Daily, Weekly, Monthly) that are due. Continue?",
-      action: async () => {
-        setProcessing(true);
-        const { data, error } = await supabase.rpc("trigger_all_auto_saves");
-        if (error) {
-          toast.error(`Auto-Save failed: ${error.message}`);
-        } else {
-          toast.success(
-            `Auto-Save executed: ${data.processed} updated, ${data.arrears_created} arrears recorded.`,
-          );
-          fetchSubscribers();
-        }
-        setProcessing(false);
-        setIsConfirmOpen(false);
-      },
-    });
-    setIsConfirmOpen(true);
-  };
 
   const updateSeasonConfig = async () => {
     setProcessing(true);
@@ -239,9 +218,6 @@ export function AjoCircleAdminView() {
             </DialogContent>
           </Dialog>
 
-          <Button variant="outline" onClick={triggerAutoSave} disabled={processing}>
-            <Play className="w-4 h-4 mr-2" /> Trigger Auto-Save
-          </Button>
           <Button variant="destructive" onClick={triggerWeeklySettlement} disabled={processing}>
             <Calendar className="w-4 h-4 mr-2" /> Settle Week
           </Button>

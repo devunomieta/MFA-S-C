@@ -81,21 +81,6 @@ export function AnchorAdminView({ plan }: AnchorAdminViewProps) {
     setProcessingId(null);
   }
 
-  async function handleTriggerAutoSave() {
-    setIsProcessing(true);
-    const { data, error } = await supabase.rpc("trigger_all_auto_saves");
-    setIsProcessing(false);
-    setIsAutoSaveOpen(false);
-
-    if (error) {
-      toast.error("Auto-Save Job Failed: " + error.message);
-    } else {
-      toast.success(
-        `Auto-Save executed: ${data.processed} updated, ${data.arrears_created} arrears recorded.`,
-      );
-      fetchSubscribers();
-    }
-  }
 
   const formatCurrency = (val: number) =>
     new Intl.NumberFormat("en-US", { style: "currency", currency: "NGN" }).format(val);
@@ -121,26 +106,8 @@ export function AnchorAdminView({ plan }: AnchorAdminViewProps) {
           <h3 className="font-bold text-indigo-900">48-Weeks Saving Sprint Controls</h3>
           <p className="text-sm text-indigo-700">Manual triggers. (Duration: 48 Weeks)</p>
         </div>
-        <Button
-          onClick={() => setIsAutoSaveOpen(true)}
-          variant="default"
-          className="bg-indigo-600 hover:bg-indigo-700 text-white"
-          disabled={isProcessing}
-        >
-          <Play className="w-4 h-4 mr-2" /> Trigger Sunday Auto-Save
-        </Button>
       </div>
 
-      <ActionConfirmModal
-        isOpen={isAutoSaveOpen}
-        onOpenChange={setIsAutoSaveOpen}
-        onConfirm={handleTriggerAutoSave}
-        title="Trigger Global Auto-Save"
-        description={`Run AUTO-SAVE Logic for ALL PLAN TYPES (Daily, Weekly, Monthly)?\n\nThis simulates the recurring background job.\nIt will attempt to cover deficits from General Wallet and record arrears if funds are missing.`}
-        confirmText="Run Now"
-        variant="info"
-        isLoading={isProcessing}
-      />
 
       <ActionConfirmModal
         isOpen={isSettleOpen}

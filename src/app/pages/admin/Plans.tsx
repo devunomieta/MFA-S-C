@@ -135,7 +135,7 @@ export function AdminPlans() {
   const handleGlobalAutoSave = async () => {
     setConfirmAction({
       title: "Trigger Global Auto-Save",
-      desc: "This will run the auto-save job for ALL active users across ALL plans (Daily, Weekly, Monthly). This should normally happen automatically at 11:59PM or Sundays, but you can trigger it manually now.",
+      desc: "This will run the auto-save job for ALL active users across ALL plan types (Daily, Weekly, Monthly, etc.). This simulates the recurring background job that covers deficits from General Wallets and records arrears if funds are missing. Continue?",
       action: async () => {
         setIsAutoSaving(true);
         const { data, error } = await supabase.rpc("trigger_all_auto_saves");

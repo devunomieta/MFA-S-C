@@ -56,21 +56,6 @@ export function DailyDropAdminView({ plan }: DailyDropAdminViewProps) {
     setLoading(false);
   }
 
-  async function handleTriggerAutoSave() {
-    setIsProcessing(true);
-    const { data, error } = await supabase.rpc("trigger_all_auto_saves");
-    setIsProcessing(false);
-    setIsConfirmOpen(false);
-
-    if (error) {
-      toast.error("Auto-Drop Job Failed: " + error.message);
-    } else {
-      toast.success(
-        `Auto-Save executed: ${data.processed} updated, ${data.arrears_created} arrears recorded.`,
-      );
-      fetchSubscribers();
-    }
-  }
 
   const formatCurrency = (val: number) =>
     new Intl.NumberFormat("en-US", { style: "currency", currency: "NGN" }).format(val);
@@ -97,26 +82,8 @@ export function DailyDropAdminView({ plan }: DailyDropAdminViewProps) {
           <h3 className="font-bold text-cyan-900">Daily Savings Controls</h3>
           <p className="text-sm text-cyan-700">Daily Trigger (Run at 23:59)</p>
         </div>
-        <Button
-          onClick={() => setIsConfirmOpen(true)}
-          variant="default"
-          className="bg-cyan-600 hover:bg-cyan-700 text-white"
-          disabled={isProcessing}
-        >
-          <Play className="w-4 h-4 mr-2" /> Trigger Daily Auto-Drop
-        </Button>
       </div>
 
-      <ActionConfirmModal
-        isOpen={isConfirmOpen}
-        onOpenChange={setIsConfirmOpen}
-        onConfirm={handleTriggerAutoSave}
-        title="Trigger Global Auto-Save"
-        description={`Run AUTO-SAVE Logic for ALL PLAN TYPES (Daily, Weekly, Monthly)?\n\nThis simulates the recurring background job.\nIt will attempt to cover deficits from General Wallet and record arrears if funds are missing.`}
-        confirmText="Run Now"
-        variant="info"
-        isLoading={isProcessing}
-      />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
