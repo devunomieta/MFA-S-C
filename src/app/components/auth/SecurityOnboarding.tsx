@@ -46,15 +46,20 @@ export function SecurityOnboarding({ onComplete }: SecurityOnboardingProps) {
 
   const completeOnboarding = async () => {
     try {
-      await supabase.from("profiles").update({ onboarding_completed: true }).eq("id", user?.id);
+      const { error } = await supabase
+        .from("profiles")
+        .update({ onboarding_completed: true })
+        .eq("id", user?.id);
+
+      if (error) throw error;
 
       setStep("success");
       setTimeout(() => {
         onComplete();
       }, 2000);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Finalizing onboarding failed:", err);
-      onComplete(); // Failsafe
+      toast.error(err.message || "Failed to finalize onboarding. Please try again.");
     }
   };
 
@@ -103,14 +108,19 @@ export function SecurityOnboarding({ onComplete }: SecurityOnboardingProps) {
 
     setLoading(true);
     try {
-      const { error } = await supabase.from("profiles").update({ phone: phone }).eq("id", user?.id);
+      const { error: dbError } = await supabase
+        .from("profiles")
+        .update({ phone: phone })
+        .eq("id", user?.id);
 
-      if (error) throw error;
+      if (dbError) throw dbError;
 
-      await supabase.auth.updateUser({
+      const { error: authError } = await supabase.auth.updateUser({
         phone: phone,
         data: { phone: phone },
       });
+
+      if (authError) throw authError;
 
       toast.success("Phone number saved!");
 
@@ -119,8 +129,9 @@ export function SecurityOnboarding({ onComplete }: SecurityOnboardingProps) {
       } else {
         await completeOnboarding();
       }
-    } catch {
-      toast.error("Failed to save phone number");
+    } catch (err: any) {
+      console.error("Saving phone failed:", err);
+      toast.error(err.message || "Failed to save phone number");
     } finally {
       setLoading(false);
     }
@@ -146,7 +157,12 @@ export function SecurityOnboarding({ onComplete }: SecurityOnboardingProps) {
       if (error) throw error;
 
       // Update profile flag too
-      await supabase.from("profiles").update({ has_password: true }).eq("id", user?.id);
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .update({ has_password: true })
+        .eq("id", user?.id);
+
+      if (profileError) throw profileError;
 
       toast.success("Password created successfully!");
       await completeOnboarding();
@@ -332,6 +348,16 @@ export function SecurityOnboarding({ onComplete }: SecurityOnboardingProps) {
               </motion.div>
             )}
           </AnimatePresence>
+
+          {step !== "success" && step !== "intro" && (
+            <button
+              onClick={signOut}
+              disabled={loading}
+              className="text-sm text-slate-400 hover:text-red-500 flex items-center justify-center gap-2 mx-auto mt-6 transition-colors disabled:opacity-50"
+            >
+              <LogOut className="w-4 h-4" /> Sign out for now
+            </button>
+          )}
         </div>
       </motion.div>
     </div>
