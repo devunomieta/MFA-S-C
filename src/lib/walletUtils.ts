@@ -18,7 +18,9 @@ export interface Transaction {
     | "internal_transfer"
     | "penalty"
     | "credit"
-    | "debit";
+    | "debit"
+    | "auto_save"
+    | "arrear";
   status: "pending" | "completed" | "failed";
   amount: number;
   charge?: number;
@@ -78,15 +80,24 @@ export function calculateBalance(
     // --- TRANSFERS (Internal movements) ---
     if (curr.type === "transfer" || curr.type === "internal_transfer") {
       if (curr.status === "completed") {
-        // If we are looking at the General Wallet (filterPlanId is NULL)
-        // then any transfer with plan_id=NULL is a DEBIT from it.
         if (filterPlanId === null && !filterPlanType) {
           return acc - amt - chg;
-        }
-        // If we are looking at a specific Plan Wallet
-        // then any transfer with that plan_id is a CREDIT to it.
-        else {
+        } else {
           return acc + amt - chg;
+        }
+      }
+    }
+
+    // --- AUTO-SAVE (scheduled wallet→plan deductions) ---
+    // Wallet row has plan_id = NULL → outflow. Plan row has plan_id set → inflow.
+    if (curr.type === "auto_save") {
+      if (curr.status === "completed") {
+        if (filterPlanId === null && !filterPlanType) {
+          // This is the wallet-deduction row
+          return curr.plan_id === null ? acc - amt - chg : acc;
+        } else {
+          // This is the plan-credit row
+          return curr.plan_id !== null ? acc + amt - chg : acc;
         }
       }
     }
