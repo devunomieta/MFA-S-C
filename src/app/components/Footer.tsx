@@ -146,11 +146,11 @@ export function Footer() {
                     Email
                   </div>
                   <a
-                    href="mailto:marysthriftservices@gmail.com"
+                    href="mailto:marysthriftservice@gmail.com"
                     className="text-sm hover:text-white transition-colors font-semibold text-slate-300 block truncate"
-                    title="marysthriftservices@gmail.com"
+                    title="marysthriftservice@gmail.com"
                   >
-                    marysthriftservices@gmail.com
+                    marysthriftservice@gmail.com
                   </a>
                 </div>
               </li>

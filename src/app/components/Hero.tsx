@@ -60,8 +60,8 @@ export function Hero() {
               transition={{ delay: 0.2, duration: 0.8 }}
               className="text-base md:text-lg text-slate-600 dark:text-slate-400 font-medium max-w-2xl mx-auto leading-relaxed"
             >
-              A secure platform to save and reach your goals. Put money away daily or weekly, and
-              get your payout when it's your turn. Safe, automated, and built for you.
+              A secure platform to save and reach your goals. Put money away daily, weekly or monthly,
+              and get your payout when it's your turn. Safe, automated, and built for you.
             </motion.p>
           </div>
 

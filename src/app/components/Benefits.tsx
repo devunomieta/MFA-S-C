@@ -20,7 +20,7 @@ export function Benefits() {
             </h2>
             <p className="text-base md:text-lg text-slate-600 font-medium font-heading">
               We've taken everything you love about manual savings and added the speed and security
-              of modern digital finance. No interest, no over-promising—just pure discipline.
+              of modern digital finance. No interest, no over-promising, just pure discipline.
             </p>
           </motion.div>
         </div>
@@ -44,11 +44,11 @@ export function Benefits() {
                   accountability standards.
                 </p>
               </div>
-              <div className="flex gap-4">
-                <div className="px-4 py-2 bg-white/5 rounded-full text-[10px] font-black text-emerald-400 uppercase tracking-widest border border-white/10 backdrop-blur-sm">
+              <div className="flex flex-wrap gap-3 mt-6">
+                <div className="whitespace-nowrap px-4 py-2 bg-white/5 rounded-full text-[10px] font-black text-emerald-400 uppercase tracking-widest border border-white/10 backdrop-blur-sm">
                   PCIDSS Compliant
                 </div>
-                <div className="px-4 py-2 bg-white/5 rounded-full text-[10px] font-black text-emerald-400 uppercase tracking-widest border border-white/10 backdrop-blur-sm">
+                <div className="whitespace-nowrap px-4 py-2 bg-white/5 rounded-full text-[10px] font-black text-emerald-400 uppercase tracking-widest border border-white/10 backdrop-blur-sm">
                   CAC: BN-8950808
                 </div>
               </div>
@@ -69,7 +69,7 @@ export function Benefits() {
                 </div>
                 <h3 className="text-2xl font-bold text-emerald-950 tracking-tight">YOU-CENTRIC</h3>
                 <p className="text-emerald-800/70 text-sm font-medium leading-relaxed">
-                  You call the shots. Pick your plan, your amount, your frequency—and stick to it
+                  You call the shots. Pick your plan, your amount, your frequency and stick to it
                   with the support of a system built around your goals.
                 </p>
               </div>
@@ -100,11 +100,13 @@ export function Benefits() {
           >
             <div className="relative z-10 flex flex-col h-full justify-between">
               <div className="space-y-3">
-                <div className="text-4xl font-black text-emerald-600 tracking-tighter">Solid</div>
+                <div className="w-12 h-12 bg-emerald-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                  <Zap className="size-6 text-white" />
+                </div>
                 <h3 className="text-xl font-bold text-slate-900">System Assisted Discipline.</h3>
                 <p className="text-slate-500 text-sm font-medium">
                   Accountability without the pressure. Our system gently keeps you on track so you
-                  can focus on saving—not chasing due dates.
+                  can focus on saving, not chasing due dates.
                 </p>
               </div>
               <Button
@@ -129,15 +131,12 @@ export function Benefits() {
           >
             <div className="grid md:grid-cols-2 gap-10 items-center h-full">
               <div className="space-y-4">
-                <div className="w-12 h-12 bg-emerald-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
-                  <Zap className="size-6 text-white" />
-                </div>
-                <h3 className="text-2xl font-bold text-slate-950 tracking-tight">
+                <h3 className="text-xl font-bold text-slate-950 tracking-tight">
                   One-Time Setup. Automatic Savings.
                 </h3>
-                <p className="text-slate-600 font-medium">
+                <p className="text-slate-500 text-sm font-medium">
                   Set up your profile once, join any plan that matches your goals, and let the
-                  system handle the rest. No manual tracking, no forgotten payments—just smooth,
+                  system handle the rest. No manual tracking, no forgotten payments, just smooth,
                   automated progress.
                 </p>
                 <div className="flex gap-3 pt-2">

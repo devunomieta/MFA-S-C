@@ -17,7 +17,7 @@ const contactInfo = [
   {
     icon: Mail,
     title: "Email Us",
-    content: "marysthriftservices@gmail.com",
+    content: "marysthriftservice@gmail.com",
     description: "Response within 24 hours",
     color: "from-emerald-600 to-emerald-400",
   },
@@ -314,7 +314,7 @@ export function Contact() {
                   Need Assisted Management?
                 </h4>
                 <p className="text-emerald-50/80 text-lg font-medium leading-relaxed max-w-xl">
-                  Join our community of over 50,000 savers and get real-time assistance through our
+                  Join our community of over 2,000 savers and get real-time assistance through our
                   dedicated channels. We can help you manage your plans and savings manually.
                 </p>
               </div>

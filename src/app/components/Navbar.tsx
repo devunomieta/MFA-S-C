@@ -123,73 +123,75 @@ export function Navbar() {
 
   return (
     <>
-      <motion.header
-        style={{ top: navbarTop }}
-        className="fixed left-0 right-0 z-40 flex justify-center pointer-events-none transition-all duration-500"
+      <header
+        className={`fixed left-0 right-0 z-50 flex justify-center transition-all duration-500 pointer-events-none ${
+          scrolled ? "top-4 px-4 md:px-8" : "top-0 px-4"
+        }`}
       >
-        <motion.div
-          style={{ width: navbarWidth }}
-          className={`pointer-events-auto transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] ${
+        <div
+          className={`pointer-events-auto w-full flex items-center justify-between transition-all duration-500 ease-out relative ${
             scrolled
-              ? "bg-white/70 dark:bg-slate-900/70 backdrop-blur-2xl border border-slate-200/50 dark:border-slate-800/50 rounded-full shadow-[0_8px_40px_rgba(0,0,0,0.08)] px-3 py-1"
-              : "bg-transparent border-transparent pt-4"
+              ? "max-w-5xl bg-white/70 dark:bg-slate-900/80 backdrop-blur-3xl border border-white/50 dark:border-slate-700/50 rounded-[2rem] shadow-[0_8px_30px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.4)] py-2 px-3 md:px-5"
+              : "max-w-7xl bg-transparent py-4 md:py-6 px-2"
           }`}
         >
-          <div className={`container mx-auto px-2 relative flex items-center justify-between transition-all duration-500 ${scrolled ? "h-10 md:h-12" : "h-16 md:h-20"}`}>
-            {/* Logo Section */}
-            <div className="flex-1 flex justify-start z-10">
-              <Link
-                to="/"
-                className="flex items-center gap-2 group transition-all"
-                onClick={() => setIsOpen(false)}
-              >
-                {logoUrl ? (
-                  <BrandLogo src={logoUrl} alt={appName} size="sm" />
-                ) : (
-                  <>
-                    <div className="size-9 bg-emerald-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-600/30 group-hover:rotate-6 transition-transform">
-                      <ShieldCheck className="text-white size-5" />
-                    </div>
-                    <span className="text-lg md:text-xl font-black tracking-tighter text-slate-950 dark:text-white group-hover:opacity-80">
-                      {appName.includes(" ") ? (
-                        <>
-                          {appName.split(" ").slice(0, -1).join(" ")}
-                          <span className="text-emerald-600 ml-1">
-                            {appName.split(" ").slice(-1)}
-                          </span>
-                          <span className="text-emerald-600">.</span>
-                        </>
-                      ) : (
-                        <>
-                          {appName}
-                          <span className="text-emerald-600">.</span>
-                        </>
-                      )}
-                    </span>
-                  </>
-                )}
-              </Link>
-            </div>
+          {/* Logo Section */}
+          <div className="flex-1 flex justify-start z-20">
+            <Link
+              to="/"
+              className="flex items-center gap-2 group transition-all"
+              onClick={() => setIsOpen(false)}
+            >
+              {logoUrl ? (
+                <BrandLogo src={logoUrl} alt={appName} size="sm" />
+              ) : (
+                <>
+                  <div className="size-9 bg-emerald-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-600/30 group-hover:rotate-6 transition-transform">
+                    <ShieldCheck className="text-white size-5" />
+                  </div>
+                  <span className="text-lg md:text-xl font-black tracking-tighter text-slate-950 dark:text-white group-hover:opacity-80">
+                    {appName.includes(" ") ? (
+                      <>
+                        {appName.split(" ").slice(0, -1).join(" ")}
+                        <span className="text-emerald-600 ml-1">
+                          {appName.split(" ").slice(-1)}
+                        </span>
+                        <span className="text-emerald-600">.</span>
+                      </>
+                    ) : (
+                      <>
+                        {appName}
+                        <span className="text-emerald-600">.</span>
+                      </>
+                    )}
+                  </span>
+                </>
+              )}
+            </Link>
+          </div>
 
-            {/* Perfectly Centered Navigation Pill */}
-            <nav className="absolute left-1/2 -translate-x-1/2 hidden md:flex items-center bg-slate-100/50 dark:bg-slate-800/40 px-5 py-1.5 rounded-full border border-slate-200/30 dark:border-slate-700/30 backdrop-blur-md z-[100] pointer-events-auto">
-              {[
-                { name: "Plans", href: "/#plans" },
-                { name: "Features", href: "#features" },
-                { name: "How It Works", href: "#how-it-works" },
-                { name: "Contact", href: "#contact" },
-              ].map((link) => (
-                <a
-                  key={link.name}
-                  href={link.href}
-                  onClick={(e) => scrollToSection(e, link.href)}
-                  className="px-4 py-1 text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-all relative group whitespace-nowrap"
-                >
-                  {link.name}
-                  <span className="absolute bottom-[-2px] left-1/2 w-0 h-0.5 bg-emerald-600 group-hover:w-1/3 group-hover:left-1/3 transition-all rounded-full" />
-                </a>
-              ))}
-            </nav>
+          {/* Centered Navigation */}
+          <nav className="absolute left-1/2 -translate-x-1/2 hidden md:flex items-center gap-1 z-[100]">
+            {[
+              { name: "Plans", href: "/#plans" },
+              { name: "Features", href: "#features" },
+              { name: "How It Works", href: "#how-it-works" },
+              { name: "Contact", href: "#contact" },
+            ].map((link) => (
+              <a
+                key={link.name}
+                href={link.href}
+                onClick={(e) => scrollToSection(e, link.href)}
+                className={`px-4 py-2 text-sm font-bold rounded-full transition-all ${
+                  scrolled 
+                    ? "text-slate-700 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-white/60 dark:hover:bg-slate-800/60"
+                    : "text-slate-600 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-100/50 dark:hover:bg-slate-800/40"
+                }`}
+              >
+                {link.name}
+              </a>
+            ))}
+          </nav>
 
             {/* Right CTA Section */}
             <div className="flex-1 flex justify-end items-center gap-4 z-10">
@@ -213,8 +215,8 @@ export function Navbar() {
                 )}
               </button>
             </div>
-          </div>
-        </motion.div>
+        </div>
+
 
         {/* Mobile Navigation Overlay */}
         <AnimatePresence>
@@ -299,7 +301,7 @@ export function Navbar() {
             </motion.div>
           )}
         </AnimatePresence>
-      </motion.header>
+      </header>
 
       {/* Verification Modal */}
       <Dialog open={showVerifyModal} onOpenChange={setShowVerifyModal}>
