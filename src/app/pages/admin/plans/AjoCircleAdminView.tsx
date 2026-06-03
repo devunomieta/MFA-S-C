@@ -319,12 +319,17 @@ export function AjoCircleAdminView() {
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
-                          {sub.status === "pending_turn_approval" && meta.proposed_turns?.length > 0 ? (
-                            meta.proposed_turns.map((t: number) => (
-                              <Badge key={t} className="bg-amber-100 text-amber-800">
-                                Proposed: W{t}
-                              </Badge>
-                            ))
+                          {(sub.status === "pending_turn_approval" || sub.status === "appeal_pending") && meta.proposed_turns?.length > 0 ? (
+                            <div className="flex flex-col gap-1">
+                                {turns.length > 0 && <div className="text-[10px] text-gray-400">Current: {turns.map((t:any) => `W${t}`).join(', ')}</div>}
+                                <div className="flex gap-1">
+                                {meta.proposed_turns.map((t: number) => (
+                                  <Badge key={t} className={sub.status === "appeal_pending" ? "bg-purple-100 text-purple-800" : "bg-amber-100 text-amber-800"}>
+                                    {sub.status === "appeal_pending" ? "Appealed:" : "Proposed:"} W{t}
+                                  </Badge>
+                                ))}
+                                </div>
+                            </div>
                           ) : turns.length > 0 ? (
                             turns.map((t: number) => (
                               <Badge
@@ -358,9 +363,9 @@ export function AjoCircleAdminView() {
                         )}
                       </TableCell>
                       <TableCell>
-                        {sub.status === "pending_turn_approval" ? (
+                        {sub.status === "pending_turn_approval" || sub.status === "appeal_pending" ? (
                           <div className="flex gap-2">
-                            <Button size="sm" onClick={() => handleApproveTurn(sub.id, true)} disabled={processing}>Approve</Button>
+                            <Button size="sm" className={sub.status === "appeal_pending" ? "bg-purple-600 hover:bg-purple-700 text-white" : ""} onClick={() => handleApproveTurn(sub.id, true)} disabled={processing}>Approve</Button>
                             <Button size="sm" variant="destructive" onClick={() => handleApproveTurn(sub.id, false)} disabled={processing}>Re-assign</Button>
                           </div>
                         ) : (

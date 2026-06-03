@@ -1,5 +1,5 @@
 import { useState } from "react";
-
+import { toast } from "sonner";
 import { Timer, CheckCircle, AlertTriangle, Calendar, Lock, Plus, Trash2 } from "lucide-react";
 
 import { Badge } from "@/app/components/ui/badge";
@@ -14,6 +14,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/app/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/app/components/ui/alert-dialog";
 import { Plan, UserPlan } from "@/types";
 
 interface AjoPlanCardProps {
@@ -39,6 +49,9 @@ export function AjoPlanCard({
     { proposed_week: 1, amount: 10000 },
   ]);
   const [withdrawing, setWithdrawing] = useState(false);
+  const [isAppealing, setIsAppealing] = useState(false);
+  const [appealSubs, setAppealSubs] = useState<{ proposed_week: number; amount: number }[]>([]);
+  const [pendingAction, setPendingAction] = useState<"accept" | "appeal" | "reject" | null>(null);
 
   const amounts = plan.config?.amounts || [10000, 15000, 20000, 25000, 30000, 50000, 100000];
   const duration = plan.config?.duration_weeks || 10;
@@ -87,6 +100,7 @@ export function AjoPlanCard({
     const weekPaid = metadata.week_paid || false;
     const pickingTurns = metadata.picking_turns || [];
     const missedWeeks = metadata.missed_weeks || 0;
+    const slots = metadata.slots || [];
 
     const payoutHistory = (metadata as any).payout_history || [];
     const turnCount = pickingTurns.filter((t: any) => Number(t) === currentWeek).length;
@@ -94,7 +108,43 @@ export function AjoPlanCard({
     const isMyTurn = turnCount > withdrawnCount;
     const canWithdraw = isMyTurn;
 
+    const startAppeal = () => {
+      setAppealSubs(pickingTurns.map(() => {
+         let startWeek = 1;
+         while (pickingTurns.map(String).includes(startWeek.toString()) && startWeek <= duration) {
+             startWeek++;
+         }
+         return { proposed_week: startWeek > duration ? 1 : startWeek, amount: fixedAmount / pickingTurns.length };
+      }));
+      setIsAppealing(true);
+    };
+
+    const handleConfirmAction = async () => {
+      if (!user_plan || !pendingAction) return;
+      
+      try {
+        if (pendingAction === "accept") {
+          await supabase.from("user_plans").update({ status: "active" }).eq("id", user_plan.id);
+          toast.success("Successfully accepted turns.");
+        } else if (pendingAction === "reject") {
+          if (onLeave) await onLeave();
+          return; // onLeave handles its own flow
+        } else if (pendingAction === "appeal") {
+          const metadata = { ...user_plan.plan_metadata, proposed_turns: appealSubs.map(s => s.proposed_week) };
+          await supabase.from("user_plans").update({ status: "appeal_pending", plan_metadata: metadata }).eq("id", user_plan.id);
+          toast.success("Appeal submitted successfully.");
+        }
+        setTimeout(() => window.location.reload(), 1500);
+      } catch (err) {
+        toast.error("An error occurred. Please try again.");
+      } finally {
+        setPendingAction(null);
+        setIsAppealing(false);
+      }
+    };
+
     return (
+      <>
       <Card className="flex flex-col relative overflow-hidden bg-white dark:bg-gray-900 border-l-4 border-l-orange-500 shadow-sm hover:shadow-md transition-shadow">
         <CardHeader className="pb-2">
           <div className="flex justify-between items-start">
@@ -154,6 +204,29 @@ export function AjoPlanCard({
             </div>
           </div>
 
+          {pickingTurns.length > 0 && slots.length > 0 && (
+            <div className="space-y-3">
+              <h4 className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Approved Turn(s) Breakdown</h4>
+              {pickingTurns.map((turn: number, idx: number) => {
+                const slot = slots[idx] || slots[0];
+                const slotAmt = slot?.amount || (fixedAmount / pickingTurns.length);
+                const slotPayout = slotAmt * duration;
+                return (
+                  <div key={idx} className="flex justify-between items-center p-3 bg-emerald-50 dark:bg-emerald-900/10 rounded-lg border border-emerald-100 dark:border-emerald-800/30">
+                    <div>
+                      <div className="text-sm font-bold text-emerald-800 dark:text-emerald-400">Week {turn}</div>
+                      <div className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-500 uppercase tracking-wider mt-0.5">Contribution: ₦{formatCurrency(slotAmt)}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-0.5">Payout</div>
+                      <div className="text-sm font-black text-gray-900 dark:text-white tracking-tight">₦{formatCurrency(slotPayout)}</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
           {user_plan.status === "active" && (
             <div className="flex flex-col gap-2">
               {missedWeeks > 0 && (
@@ -206,22 +279,55 @@ export function AjoPlanCard({
 
         <CardFooter className="flex flex-col gap-2 pt-2">
           {user_plan.status === "turn_reassigned" && (
-            <div className="bg-blue-50 border border-blue-200 p-3 rounded-lg mb-4 space-y-2">
+            <div className="bg-blue-50 border border-blue-200 p-3 rounded-lg mb-4 space-y-3">
               <p className="text-xs text-blue-800 font-medium">
                 <AlertTriangle className="w-4 h-4 inline mr-1 text-blue-600" />
                 Admin has assigned you new turns: <strong>{pickingTurns.join(", ")}</strong>. Please review:
               </p>
-              <div className="flex gap-2">
-                <Button size="sm" className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white" onClick={async () => {
-                  await supabase.from("user_plans").update({ status: "active" }).eq("id", user_plan.id);
-                  window.location.reload();
-                }}>Accept</Button>
-                <Button size="sm" variant="outline" className="flex-1 border-blue-300 text-blue-700" onClick={async () => {
-                  await supabase.from("user_plans").update({ status: "appeal_pending" }).eq("id", user_plan.id);
-                  window.location.reload();
-                }}>Appeal</Button>
-                <Button size="sm" variant="destructive" className="flex-1" onClick={onLeave}>Reject</Button>
-              </div>
+              
+              {!isAppealing ? (
+                <div className="flex gap-2">
+                  <Button size="sm" className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => setPendingAction("accept")}>Accept</Button>
+                  <Button size="sm" variant="outline" className="flex-1 border-blue-300 text-blue-700" onClick={startAppeal}>Appeal</Button>
+                  <Button size="sm" variant="destructive" className="flex-1" onClick={() => setPendingAction("reject")}>Reject</Button>
+                </div>
+              ) : (
+                <div className="space-y-3 bg-white p-3 rounded-md border border-blue-100">
+                  <p className="text-xs font-bold text-gray-700">Select preferred turn(s):</p>
+                  {appealSubs.map((sub, idx) => (
+                    <div key={idx} className="flex gap-2 items-center">
+                      <span className="text-xs font-semibold text-gray-500 w-12">Slot {idx + 1}</span>
+                      <Select
+                        value={sub.proposed_week.toString()}
+                        onValueChange={(v) => {
+                          const newSubs = [...appealSubs];
+                          newSubs[idx].proposed_week = parseInt(v);
+                          setAppealSubs(newSubs);
+                        }}
+                      >
+                        <SelectTrigger className="h-8 text-xs bg-white">
+                          <SelectValue placeholder="Week" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Array.from({ length: duration }).map((_, i) => {
+                            const weekNum = i + 1;
+                            const isAssigned = pickingTurns.map(String).includes(weekNum.toString());
+                            return (
+                              <SelectItem key={weekNum} value={weekNum.toString()} disabled={isAssigned}>
+                                Week {weekNum} {isAssigned && "(Assigned)"}
+                              </SelectItem>
+                            );
+                          })}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  ))}
+                  <div className="flex gap-2 pt-2">
+                    <Button size="sm" className="flex-1 bg-blue-600 hover:bg-blue-700 text-white" onClick={() => setPendingAction("appeal")}>Submit Appeal</Button>
+                    <Button size="sm" variant="ghost" className="flex-1" onClick={() => setIsAppealing(false)}>Cancel</Button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
           
@@ -290,6 +396,33 @@ export function AjoPlanCard({
           )}
         </CardFooter>
       </Card>
+      
+      <AlertDialog open={!!pendingAction} onOpenChange={(open) => !open && setPendingAction(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {pendingAction === "accept" && "Accept Reassigned Turns?"}
+              {pendingAction === "reject" && "Reject and Leave Plan?"}
+              {pendingAction === "appeal" && "Submit Appeal?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingAction === "accept" && "Are you sure you want to accept the turns assigned by the Admin? Your plan will become fully active."}
+              {pendingAction === "reject" && "Are you sure you want to reject the reassigned turns? You will leave this plan."}
+              {pendingAction === "appeal" && "Are you sure you want to submit this appeal for your new preferred turns? The admin will review it."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className={pendingAction === "reject" ? "bg-red-600 hover:bg-red-700 text-white" : "bg-emerald-600 hover:bg-emerald-700 text-white"}
+              onClick={handleConfirmAction}
+            >
+              Confirm
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      </>
     );
   }
 

@@ -376,25 +376,41 @@ export function PlanDetailsPage() {
           <div className="space-y-8">
             {isJoined && !["pending_activation", "pending_turn_approval", "turn_reassigned", "appeal_pending"].includes(userPlan?.status || "") ? (
               <div className="space-y-8 animate-in fade-in zoom-in-95 duration-500">
-                <PlanHealthCard userPlan={userPlan} />
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Button
-                    onClick={() => setSelectedPlanForDeposit({ id: plan.id })}
-                    className="h-16 rounded-[2rem] bg-emerald-600 hover:bg-emerald-700 text-white font-black text-lg gap-3 shadow-xl shadow-emerald-500/20 transition-all active:scale-95"
-                  >
-                    <Plus className="size-6" />
-                    Drop Funds
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => navigate(`/dashboard/wallet?planId=${plan.id}`)}
-                    className="h-16 rounded-[2rem] border-2 border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-950 text-gray-900 dark:text-white font-black text-lg gap-3 hover:bg-gray-50 dark:hover:bg-gray-900 transition-all active:scale-95 shadow-sm"
-                  >
-                    <CreditCard className="size-6" />
-                    Withdrawal
-                  </Button>
-                </div>
+                {plan.type === "ajo_circle" ? (
+                  <AjoPlanCard
+                    plan={plan}
+                    user_plan={userPlan || undefined}
+                    onJoin={(_, subs) => handleJoinAjoPlan(plan.id, subs)}
+                    onDeposit={() => setSelectedPlanForDeposit({ id: plan.id })}
+                    onAdvanceDeposit={() =>
+                      setSelectedPlanForDeposit({ id: plan.id, isAdvance: true })
+                    }
+                    onWithdraw={() => {
+                      /* Withdraw handled in card */
+                    }}
+                  />
+                ) : (
+                  <>
+                    <PlanHealthCard userPlan={userPlan} />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <Button
+                        onClick={() => setSelectedPlanForDeposit({ id: plan.id })}
+                        className="h-16 rounded-[2rem] bg-emerald-600 hover:bg-emerald-700 text-white font-black text-lg gap-3 shadow-xl shadow-emerald-500/20 transition-all active:scale-95"
+                      >
+                        <Plus className="size-6" />
+                        Drop Funds
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => navigate(`/dashboard/wallet?planId=${plan.id}`)}
+                        className="h-16 rounded-[2rem] border-2 border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-950 text-gray-900 dark:text-white font-black text-lg gap-3 hover:bg-gray-50 dark:hover:bg-gray-900 transition-all active:scale-95 shadow-sm"
+                      >
+                        <CreditCard className="size-6" />
+                        Withdrawal
+                      </Button>
+                    </div>
+                  </>
+                )}
 
                 <div className="bg-white dark:bg-gray-950 rounded-[2.5rem] p-8 border border-gray-100 dark:border-gray-800 shadow-xl overflow-hidden">
                   <PlanActivityHistory
