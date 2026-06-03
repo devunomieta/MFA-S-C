@@ -373,59 +373,63 @@ export function DailyDropPlanCard({
                 )}
               </div>
 
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600 dark:text-gray-400 font-medium">
-                    Streak Progress
-                  </span>
-                  <span className="font-bold text-gray-900 dark:text-gray-200">
-                    {effectiveDaysPaid} / {selectedDuration === -1 ? "∞" : selectedDuration} Days
-                  </span>
-                </div>
-                <div className="h-2 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-cyan-500 rounded-full transition-all duration-500"
-                    style={{
-                      width: `${selectedDuration === -1 ? 100 : Math.min((effectiveDaysPaid / selectedDuration) * 100, 100)}%`,
-                    }}
-                  />
-                </div>
-                <div className="flex justify-between text-[10px] text-gray-400 font-medium">
-                  <span>
-                    {Math.round(
-                      selectedDuration === -1
-                        ? 100
-                        : Math.min((effectiveDaysPaid / selectedDuration) * 100, 100),
-                    )}
-                    % of Cycle
-                  </span>
-                  {effectiveDaysPaid > 0 && !isFinished && (
-                    <span>Advanced {effectiveDaysPaid} Days</span>
-                  )}
-                </div>
-              </div>
+              {userPlan?.status === "active" && (
+                <>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600 dark:text-gray-400 font-medium">
+                        Streak Progress
+                      </span>
+                      <span className="font-bold text-gray-900 dark:text-gray-200">
+                        {effectiveDaysPaid} / {selectedDuration === -1 ? "∞" : selectedDuration} Days
+                      </span>
+                    </div>
+                    <div className="h-2 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-cyan-500 rounded-full transition-all duration-500"
+                        style={{
+                          width: `${selectedDuration === -1 ? 100 : Math.min((effectiveDaysPaid / selectedDuration) * 100, 100)}%`,
+                        }}
+                      />
+                    </div>
+                    <div className="flex justify-between text-[10px] text-gray-400 font-medium">
+                      <span>
+                        {Math.round(
+                          selectedDuration === -1
+                            ? 100
+                            : Math.min((effectiveDaysPaid / selectedDuration) * 100, 100),
+                        )}
+                        % of Cycle
+                      </span>
+                      {effectiveDaysPaid > 0 && !isFinished && (
+                        <span>Advanced {effectiveDaysPaid} Days</span>
+                      )}
+                    </div>
+                  </div>
 
-              {/* Overall Progress (Visible if not continuous) */}
-              {selectedDuration !== -1 && (
-                <div className="space-y-2 pt-2 border-t border-gray-50 dark:border-gray-800">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600 dark:text-gray-400 font-medium">
-                      Overall Plan Progress
-                    </span>
-                    <span className="font-bold text-gray-900 dark:text-gray-200">
-                      {formatNaira(totalSaved)} / {formatNaira(totalTarget)}
-                    </span>
-                  </div>
-                  <div className="h-2 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-cyan-600 rounded-full transition-all duration-500"
-                      style={{ width: `${Math.min((totalSaved / totalTarget) * 100, 100)}%` }}
-                    />
-                  </div>
-                  <div className="text-[10px] text-gray-400 font-medium">
-                    {Math.round(Math.min((totalSaved / totalTarget) * 100, 100))}% of Total Target
-                  </div>
-                </div>
+                  {/* Overall Progress (Visible if not continuous) */}
+                  {selectedDuration !== -1 && (
+                    <div className="space-y-2 pt-2 border-t border-gray-50 dark:border-gray-800">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600 dark:text-gray-400 font-medium">
+                          Overall Plan Progress
+                        </span>
+                        <span className="font-bold text-gray-900 dark:text-gray-200">
+                          {formatNaira(totalSaved)} / {formatNaira(totalTarget)}
+                        </span>
+                      </div>
+                      <div className="h-2 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-cyan-600 rounded-full transition-all duration-500"
+                          style={{ width: `${Math.min((totalSaved / totalTarget) * 100, 100)}%` }}
+                        />
+                      </div>
+                      <div className="text-[10px] text-gray-400 font-medium">
+                        {Math.round(Math.min((totalSaved / totalTarget) * 100, 100))}% of Total Target
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
 
               <div className="grid grid-cols-2 gap-4">

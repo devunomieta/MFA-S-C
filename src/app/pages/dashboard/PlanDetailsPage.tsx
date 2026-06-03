@@ -269,11 +269,11 @@ export function PlanDetailsPage() {
       </div>
 
       <div
-        className={`grid grid-cols-1 ${!isJoined || userPlan?.status === "pending_activation" ? "lg:grid-cols-3" : ""} gap-8`}
+        className={`grid grid-cols-1 ${!isJoined || ["pending_activation", "pending_turn_approval", "turn_reassigned", "appeal_pending"].includes(userPlan?.status || "") ? "lg:grid-cols-3" : ""} gap-8`}
       >
         {/* Main Content Area */}
         <div
-          className={`${!isJoined || userPlan?.status === "pending_activation" ? "lg:col-span-2" : ""} space-y-8`}
+          className={`${!isJoined || ["pending_activation", "pending_turn_approval", "turn_reassigned", "appeal_pending"].includes(userPlan?.status || "") ? "lg:col-span-2" : ""} space-y-8`}
         >
           {/* Key Stats / Highlights */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -322,7 +322,7 @@ export function PlanDetailsPage() {
                       : `₦${new Intl.NumberFormat("en-US").format(plan.service_charge_fixed || plan.service_charge || 0)}${plan.service_charge_is_recurring ? ` / ${plan.service_charge_interval_days}d` : ""}`}
               </p>
             </div>
-            {isJoined && userPlan.status !== "pending_activation" && (
+            {isJoined && !["pending_activation", "pending_turn_approval", "turn_reassigned", "appeal_pending"].includes(userPlan?.status || "") && (
               <div className="bg-white dark:bg-gray-950 p-6 rounded-[2rem] border border-gray-100 dark:border-gray-800 shadow-sm space-y-2">
                 <div className="bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 size-10 rounded-2xl flex items-center justify-center mb-2">
                   <Coins className="size-5" />
@@ -374,7 +374,7 @@ export function PlanDetailsPage() {
 
           {/* Plan Activities / Joined View */}
           <div className="space-y-8">
-            {isJoined && userPlan.status !== "pending_activation" ? (
+            {isJoined && !["pending_activation", "pending_turn_approval", "turn_reassigned", "appeal_pending"].includes(userPlan?.status || "") ? (
               <div className="space-y-8 animate-in fade-in zoom-in-95 duration-500">
                 <PlanHealthCard userPlan={userPlan} />
 
@@ -538,7 +538,7 @@ export function PlanDetailsPage() {
         </div>
 
         {/* Sidebar / Info Area - Hidden for Active Plans */}
-        {(!isJoined || userPlan?.status === "pending_activation") && (
+        {(!isJoined || ["pending_activation", "pending_turn_approval", "turn_reassigned", "appeal_pending"].includes(userPlan?.status || "")) && (
           <div className="space-y-8">
             <div className="bg-[#0f172a] text-white p-8 rounded-[2.5rem] shadow-xl space-y-6 relative overflow-hidden group">
               <div className="absolute -top-10 -right-10 size-40 bg-emerald-500/10 rounded-full blur-3xl group-hover:bg-emerald-500/20 transition-all duration-700" />
