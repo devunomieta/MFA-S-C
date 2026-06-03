@@ -88,9 +88,6 @@ export function Contact() {
             subject: formData.subject,
             message: formData.message,
           },
-          headers: {
-            "x-webhook-secret": import.meta.env.VITE_FUNCTION_SECRET_TOKEN,
-          },
         });
 
         if (funcError) {

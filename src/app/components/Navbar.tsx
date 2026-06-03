@@ -131,11 +131,11 @@ export function Navbar() {
           style={{ width: navbarWidth }}
           className={`pointer-events-auto transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] ${
             scrolled
-              ? "bg-white/70 dark:bg-slate-900/70 backdrop-blur-2xl border border-slate-200/50 dark:border-slate-800/50 rounded-full shadow-[0_8px_40px_rgba(0,0,0,0.08)] px-2 py-2"
+              ? "bg-white/70 dark:bg-slate-900/70 backdrop-blur-2xl border border-slate-200/50 dark:border-slate-800/50 rounded-full shadow-[0_8px_40px_rgba(0,0,0,0.08)] px-1 py-1"
               : "bg-transparent border-transparent pt-4"
           }`}
         >
-          <div className="container mx-auto px-4 md:px-6 relative h-16 md:h-20 flex items-center justify-between">
+          <div className={`container mx-auto px-4 md:px-6 relative flex items-center justify-between transition-all duration-500 ${scrolled ? "h-12 md:h-14" : "h-16 md:h-20"}`}>
             {/* Logo Section */}
             <div className="flex-1 flex justify-start z-10">
               <Link
@@ -172,7 +172,7 @@ export function Navbar() {
             </div>
 
             {/* Perfectly Centered Navigation Pill */}
-            <nav className="absolute left-1/2 -translate-x-1/2 hidden md:flex items-center bg-slate-100/50 dark:bg-slate-800/40 px-5 py-1.5 rounded-full border border-slate-200/30 dark:border-slate-700/30 backdrop-blur-md">
+            <nav className="absolute left-1/2 -translate-x-1/2 hidden md:flex items-center bg-slate-100/50 dark:bg-slate-800/40 px-5 py-1.5 rounded-full border border-slate-200/30 dark:border-slate-700/30 backdrop-blur-md z-20">
               {[
                 { name: "Plans", href: "/#plans" },
                 { name: "Features", href: "#features" },

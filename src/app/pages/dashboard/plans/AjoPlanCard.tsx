@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Timer, CheckCircle, AlertTriangle, Calendar, Lock, Plus, Trash2 } from "lucide-react";
 
 import { Badge } from "@/app/components/ui/badge";
+import { supabase } from "@/lib/supabase";
 import { Button } from "@/app/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Progress } from "@/app/components/ui/progress";
@@ -18,7 +19,7 @@ import { Plan, UserPlan } from "@/types";
 interface AjoPlanCardProps {
   plan: Plan;
   user_plan?: UserPlan;
-  onJoin: (planId: string, subscriptions: { slot_index: number; amount: number }[]) => void;
+  onJoin: (planId: string, subscriptions: { proposed_week: number; amount: number }[]) => void;
   onDeposit: () => void;
   onAdvanceDeposit?: () => void;
   onWithdraw?: () => void;
@@ -34,8 +35,8 @@ export function AjoPlanCard({
   onWithdraw,
   onLeave,
 }: AjoPlanCardProps) {
-  const [subscriptions, setSubscriptions] = useState<{ slot_index: number; amount: number }[]>([
-    { slot_index: 0, amount: 10000 },
+  const [subscriptions, setSubscriptions] = useState<{ proposed_week: number; amount: number }[]>([
+    { proposed_week: 1, amount: 10000 },
   ]);
   const [withdrawing, setWithdrawing] = useState(false);
 
@@ -57,13 +58,13 @@ export function AjoPlanCard({
 
   const addSubscription = () => {
     if (subscriptions.length >= duration) return;
-    setSubscriptions([...subscriptions, { slot_index: subscriptions.length, amount: 10000 }]);
+    setSubscriptions([...subscriptions, { proposed_week: 1, amount: 10000 }]);
   };
 
   const removeSubscription = (index: number) => {
     if (subscriptions.length <= 1) return;
     setSubscriptions(
-      subscriptions.filter((_, i) => i !== index).map((s, i) => ({ ...s, slot_index: i })),
+      subscriptions.filter((_, i) => i !== index),
     );
   };
 
@@ -107,12 +108,12 @@ export function AjoPlanCard({
                 </Badge>
                 <Badge
                   className={
-                    user_plan.status === "pending_activation"
+                    user_plan.status === "pending_activation" || user_plan.status === "pending_turn_approval"
                       ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200"
                       : "bg-emerald-600 border-emerald-500 text-white"
                   }
                 >
-                  {user_plan.status === "pending_activation" ? "PENDING ACTIVATION" : "Active"}
+                  {user_plan.status === "pending_activation" ? "PENDING ACTIVATION" : user_plan.status === "pending_turn_approval" ? "PENDING APPROVAL" : user_plan.status === "turn_reassigned" ? "TURN REASSIGNED" : user_plan.status === "appeal_pending" ? "APPEAL PENDING" : "Active"}
                 </Badge>
               </div>
               <CardTitle className="text-xl font-bold text-gray-900 dark:text-gray-100">
@@ -198,6 +199,35 @@ export function AjoPlanCard({
         </CardContent>
 
         <CardFooter className="flex flex-col gap-2 pt-2">
+          {user_plan.status === "turn_reassigned" && (
+            <div className="bg-blue-50 border border-blue-200 p-3 rounded-lg mb-4 space-y-2">
+              <p className="text-xs text-blue-800 font-medium">
+                <AlertTriangle className="w-4 h-4 inline mr-1 text-blue-600" />
+                Admin has assigned you new turns: <strong>{pickingTurns.join(", ")}</strong>. Please review:
+              </p>
+              <div className="flex gap-2">
+                <Button size="sm" className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white" onClick={async () => {
+                  await supabase.from("user_plans").update({ status: "active" }).eq("id", user_plan.id);
+                  window.location.reload();
+                }}>Accept</Button>
+                <Button size="sm" variant="outline" className="flex-1 border-blue-300 text-blue-700" onClick={async () => {
+                  await supabase.from("user_plans").update({ status: "appeal_pending" }).eq("id", user_plan.id);
+                  window.location.reload();
+                }}>Appeal</Button>
+                <Button size="sm" variant="destructive" className="flex-1" onClick={onLeave}>Reject</Button>
+              </div>
+            </div>
+          )}
+          
+          {user_plan.status === "appeal_pending" && (
+            <div className="bg-purple-50 border border-purple-200 p-3 rounded-lg mb-4">
+              <p className="text-xs text-purple-800 font-medium flex items-center">
+                <Timer className="w-4 h-4 inline mr-2 animate-spin" />
+                Your appeal is pending admin review.
+              </p>
+            </div>
+          )}
+
           {turnCount > 0 ? (
             <Button
               className={`w-full font-semibold ${!canWithdraw ? "bg-emerald-50 text-emerald-700 border border-emerald-200 cursor-not-allowed" : "bg-emerald-600 hover:bg-emerald-700 text-white"}`}
@@ -208,7 +238,7 @@ export function AjoPlanCard({
                   setWithdrawing(false);
                 }
               }}
-              disabled={withdrawing || !canWithdraw}
+              disabled={withdrawing || !canWithdraw || user_plan.status !== "active"}
               variant={!canWithdraw ? "ghost" : "default"}
             >
               {withdrawing
@@ -227,14 +257,14 @@ export function AjoPlanCard({
             </Button>
           )}
 
-          {!weekPaid ? (
+          {(!weekPaid && user_plan.status === "active") ? (
             <Button
               className="w-full bg-gray-900 hover:bg-gray-800 text-white dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200 font-semibold"
               onClick={onDeposit}
             >
               Pay Weekly
             </Button>
-          ) : (
+          ) : (weekPaid && user_plan.status === "active") ? (
             <Button
               variant="secondary"
               className="w-full bg-orange-50 text-orange-700 hover:bg-orange-100 border border-orange-200 font-bold"
@@ -242,8 +272,8 @@ export function AjoPlanCard({
             >
               Pay in Advance
             </Button>
-          )}
-          {user_plan.status === "pending_activation" && onLeave && (
+          ) : null}
+          {(user_plan.status === "pending_activation" || user_plan.status === "pending_turn_approval") && onLeave && (
             <Button
               variant="ghost"
               className="w-full text-red-600 hover:text-red-700 hover:bg-red-50 text-xs font-semibold"
@@ -313,10 +343,22 @@ export function AjoPlanCard({
                 key={idx}
                 className="flex gap-2 p-2 rounded-lg bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800 animate-in fade-in slide-in-from-top-1 items-center"
               >
-                <div className="flex-1 min-w-[80px]">
-                  <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 h-9 rounded-md flex items-center px-3 text-xs font-bold text-emerald-600">
-                    Slot {idx + 1}
-                  </div>
+                <div className="flex-1 min-w-[100px]">
+                  <Select
+                    value={sub.proposed_week.toString()}
+                    onValueChange={(v) => updateSubscription(idx, "proposed_week", parseInt(v))}
+                  >
+                    <SelectTrigger className="h-9 text-xs">
+                      <SelectValue placeholder="Week" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: duration }).map((_, i) => (
+                        <SelectItem key={i + 1} value={(i + 1).toString()}>
+                          Week {i + 1}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="flex-[2] min-w-[120px]">
                   <Select
@@ -430,8 +472,7 @@ export function AjoPlanCard({
             <strong>₦{formatCurrency(getTotalWeeklyContribution())}</strong> every week. In return,
             you will receive <strong>₦{formatCurrency(getTotalPayout())}</strong> total.
             <span className="block mt-2 text-amber-600 font-bold bg-amber-50 dark:bg-amber-900/10 p-2 rounded border border-amber-100 dark:border-amber-800/50">
-              <Lock className="w-3 h-3 inline mr-1" /> Admin will assign your payout weeks (turns)
-              after joining.
+              <Lock className="w-3 h-3 inline mr-1" /> Admin will review your proposed turns after your first payment.
             </span>
           </p>
         </div>

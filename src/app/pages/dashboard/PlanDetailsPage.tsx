@@ -153,7 +153,7 @@ export function PlanDetailsPage() {
 
   const handleJoinAjoPlan = async (
     planId: string,
-    subscriptions: { slot_index: number; amount: number }[],
+    subscriptions: { proposed_week: number; amount: number }[],
   ) => {
     if (!user) return;
     try {
@@ -180,11 +180,13 @@ export function PlanDetailsPage() {
         plan_metadata: {
           slots: subscriptions,
           total_expected_per_cycle: totalAmount,
+          fixed_amount: totalAmount,
+          proposed_turns: subscriptions.map(s => s.proposed_week)
         },
       });
 
       if (error) throw error;
-      toast.success("Joined Ajo Plan! Make your first cycle payment to activate.");
+      toast.success("Joined Ajo Plan! Make your first cycle payment to submit for review.");
       fetchPlanDetails();
       setSelectedPlanForDeposit({ id: planId });
     } catch (err: any) {
@@ -320,52 +322,54 @@ export function PlanDetailsPage() {
                       : `₦${new Intl.NumberFormat("en-US").format(plan.service_charge_fixed || plan.service_charge || 0)}${plan.service_charge_is_recurring ? ` / ${plan.service_charge_interval_days}d` : ""}`}
               </p>
             </div>
-            <div className="bg-white dark:bg-gray-950 p-6 rounded-[2rem] border border-gray-100 dark:border-gray-800 shadow-sm space-y-2">
-              <div className="bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 size-10 rounded-2xl flex items-center justify-center mb-2">
-                <Coins className="size-5" />
-              </div>
-              <p className="text-[10px] font-black uppercase text-gray-400 tracking-wider">
-                Plan Progress
-              </p>
-              <div className="flex flex-col">
-                {(() => {
-                  if (!isJoined) return <p className="text-lg font-bold text-gray-400">---</p>;
-                  const meta = userPlan.plan_metadata || {};
-                  let current = 0;
-                  let total = 0;
-                  let unit = "Days";
+            {isJoined && userPlan.status !== "pending_activation" && (
+              <div className="bg-white dark:bg-gray-950 p-6 rounded-[2rem] border border-gray-100 dark:border-gray-800 shadow-sm space-y-2">
+                <div className="bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 size-10 rounded-2xl flex items-center justify-center mb-2">
+                  <Coins className="size-5" />
+                </div>
+                <p className="text-[10px] font-black uppercase text-gray-400 tracking-wider">
+                  Plan Progress
+                </p>
+                <div className="flex flex-col">
+                  {(() => {
+                    if (!isJoined) return <p className="text-lg font-bold text-gray-400">---</p>;
+                    const meta = userPlan.plan_metadata || {};
+                    let current = 0;
+                    let total = 0;
+                    let unit = "Days";
 
-                  if (plan.type === "daily_drop") {
-                    current = meta.total_days_paid || 0;
-                    total = meta.selected_duration || 31;
-                    unit = "Days";
-                  } else if (plan.type === "step_up") {
-                    current = meta.weeks_completed || 0;
-                    total = meta.selected_duration || 52;
-                    unit = "Weeks";
-                  } else if (plan.type === "monthly_bloom") {
-                    current = meta.months_completed || 0;
-                    total = meta.selected_duration || 12;
-                    unit = "Months";
-                  } else {
-                    current = meta.weeks_completed || 0;
-                    total = plan.duration_weeks || 0;
-                    unit = "Weeks";
-                  }
+                    if (plan.type === "daily_drop") {
+                      current = meta.total_days_paid || 0;
+                      total = meta.selected_duration || 31;
+                      unit = "Days";
+                    } else if (plan.type === "step_up") {
+                      current = meta.weeks_completed || 0;
+                      total = meta.selected_duration || 52;
+                      unit = "Weeks";
+                    } else if (plan.type === "monthly_bloom") {
+                      current = meta.months_completed || 0;
+                      total = meta.selected_duration || 12;
+                      unit = "Months";
+                    } else {
+                      current = meta.weeks_completed || 0;
+                      total = plan.duration_weeks || 0;
+                      unit = "Weeks";
+                    }
 
-                  if (total === -1)
-                    return <p className="text-lg font-bold text-emerald-500">Continuous</p>;
-                  return (
-                    <p className="text-lg font-bold text-emerald-600">
-                      {current}{" "}
-                      <span className="text-xs text-gray-400">
-                        / {total} {unit}
-                      </span>
-                    </p>
-                  );
-                })()}
+                    if (total === -1)
+                      return <p className="text-lg font-bold text-emerald-500">Continuous</p>;
+                    return (
+                      <p className="text-lg font-bold text-emerald-600">
+                        {current}{" "}
+                        <span className="text-xs text-gray-400">
+                          / {total} {unit}
+                        </span>
+                      </p>
+                    );
+                  })()}
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* Plan Activities / Joined View */}

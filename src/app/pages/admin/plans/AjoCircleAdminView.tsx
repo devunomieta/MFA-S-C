@@ -115,6 +115,48 @@ export function AjoCircleAdminView() {
     }
   };
 
+  const handleApproveTurn = async (userPlanId: string, accept: boolean) => {
+    setProcessing(true);
+    const subscriber = subscribers.find((s) => s.id === userPlanId);
+    if (!subscriber) {
+      setProcessing(false);
+      return;
+    }
+
+    if (accept) {
+      const proposed = subscriber.plan_metadata.proposed_turns || [];
+      const updatedMetadata = {
+        ...subscriber.plan_metadata,
+        picking_turns: proposed,
+      };
+
+      const { error } = await supabase
+        .from("user_plans")
+        .update({ status: "active", plan_metadata: updatedMetadata })
+        .eq("id", userPlanId);
+
+      if (error) {
+        toast.error("Failed to approve turn.");
+      } else {
+        toast.success("Turn approved and plan activated!");
+      }
+    } else {
+      // Re-assigning means they are now in 'turn_reassigned' status and Admin must use Assign Turn select box
+      const { error } = await supabase
+        .from("user_plans")
+        .update({ status: "turn_reassigned" })
+        .eq("id", userPlanId);
+
+      if (error) {
+        toast.error("Failed to mark for reassignment.");
+      } else {
+        toast.success("Marked for reassignment. Please assign a new turn.");
+      }
+    }
+    fetchSubscribers();
+    setProcessing(false);
+  };
+
   const triggerWeeklySettlement = async () => {
     setConfirmAction({
       title: "Settle Ajo Week",
@@ -277,7 +319,13 @@ export function AjoCircleAdminView() {
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
-                          {turns.length > 0 ? (
+                          {sub.status === "pending_turn_approval" && meta.proposed_turns?.length > 0 ? (
+                            meta.proposed_turns.map((t: number) => (
+                              <Badge key={t} className="bg-amber-100 text-amber-800">
+                                Proposed: W{t}
+                              </Badge>
+                            ))
+                          ) : turns.length > 0 ? (
                             turns.map((t: number) => (
                               <Badge
                                 key={t}
@@ -292,7 +340,13 @@ export function AjoCircleAdminView() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        {weekPaid ? (
+                        {sub.status === "pending_turn_approval" ? (
+                          <Badge className="bg-amber-500 text-white">Pending Approval</Badge>
+                        ) : sub.status === "turn_reassigned" ? (
+                          <Badge className="bg-blue-500 text-white">Turn Reassigned</Badge>
+                        ) : sub.status === "appeal_pending" ? (
+                          <Badge className="bg-purple-500 text-white">Appeal Pending</Badge>
+                        ) : weekPaid ? (
                           <Badge className="bg-emerald-100 text-emerald-800">Paid</Badge>
                         ) : (
                           <Badge variant="destructive">Due</Badge>
@@ -304,18 +358,25 @@ export function AjoCircleAdminView() {
                         )}
                       </TableCell>
                       <TableCell>
-                        <Select onValueChange={(val) => handleAssignTurn(sub.id, val)}>
-                          <SelectTrigger className="w-[140px]">
-                            <SelectValue placeholder="Assign Turn" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((w) => (
-                              <SelectItem key={w} value={w.toString()}>
-                                Week {w} {turns.includes(w) ? "(Remove)" : ""}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        {sub.status === "pending_turn_approval" ? (
+                          <div className="flex gap-2">
+                            <Button size="sm" onClick={() => handleApproveTurn(sub.id, true)} disabled={processing}>Approve</Button>
+                            <Button size="sm" variant="destructive" onClick={() => handleApproveTurn(sub.id, false)} disabled={processing}>Re-assign</Button>
+                          </div>
+                        ) : (
+                          <Select onValueChange={(val) => handleAssignTurn(sub.id, val)}>
+                            <SelectTrigger className="w-[140px]">
+                              <SelectValue placeholder="Assign Turn" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((w) => (
+                                <SelectItem key={w} value={w.toString()}>
+                                  Week {w} {turns.includes(w) ? "(Remove)" : ""}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
                       </TableCell>
                     </TableRow>
                   );
