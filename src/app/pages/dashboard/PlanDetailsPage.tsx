@@ -350,6 +350,10 @@ export function PlanDetailsPage() {
                       current = meta.months_completed || 0;
                       total = meta.selected_duration || 12;
                       unit = "Months";
+                    } else if (plan.type === "ajo_circle") {
+                      current = Math.floor((userPlan.current_balance || 0) / (meta.fixed_amount || 1));
+                      total = plan.duration_weeks || 10;
+                      unit = "Weeks";
                     } else {
                       current = meta.weeks_completed || 0;
                       total = plan.duration_weeks || 0;

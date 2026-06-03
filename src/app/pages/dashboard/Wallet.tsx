@@ -258,6 +258,10 @@ export function Wallet() {
     }
 
     const finalAmount = parseFloat(amount);
+    if (isNaN(finalAmount) || finalAmount <= 0) {
+      toast.error("Please enter a valid amount greater than 0");
+      return;
+    }
     if (finalAmount > totalWithdrawable) {
       toast.error("Insufficient withdrawable funds");
       return;
