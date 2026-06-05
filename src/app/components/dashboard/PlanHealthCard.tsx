@@ -17,7 +17,21 @@ interface PlanHealthCardProps {
 export function PlanHealthCard({ userPlan }: PlanHealthCardProps) {
   const metadata = (userPlan.plan_metadata || {}) as any;
   const fixedAmount = metadata.fixed_amount || userPlan.plan?.fixed_amount || 0;
+  const targetAmount = metadata.target_amount || metadata.fixed_amount || userPlan.plan?.fixed_amount || 0;
   const planType = userPlan.plan?.type;
+
+  let targetTitle = "Target Amount";
+  if (planType === "daily_drop") {
+    targetTitle = "Daily Target";
+  } else if (planType === "sprint" || planType === "step_up" || planType === "marathon") {
+    targetTitle = "Weekly Target";
+  } else if (planType === "monthly_bloom") {
+    targetTitle = "Monthly Target";
+  } else if (planType === "anchor") {
+    targetTitle = "Plan Target";
+  } else if (planType === "ajo_circle") {
+    targetTitle = "Weekly Contribution";
+  }
 
   // Arrears Calculation
   const calculateArrears = () => {
@@ -89,13 +103,13 @@ export function PlanHealthCard({ userPlan }: PlanHealthCardProps) {
           <Calendar className="size-12" />
         </div>
         <p className="text-[10px] font-black uppercase text-gray-400 tracking-wider mb-1">
-          Daily Target
+          {targetTitle}
         </p>
         <p className="text-2xl font-black text-gray-900 dark:text-white">
-          {formatCurrency(fixedAmount)}
+          {formatCurrency(targetAmount)}
         </p>
         <div className="mt-2 flex items-center gap-1.5 text-gray-400">
-          <span className="text-[10px] font-bold uppercase">Fixed Contribution</span>
+          <span className="text-[10px] font-bold uppercase">Target Amount</span>
         </div>
       </div>
 

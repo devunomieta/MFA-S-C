@@ -262,7 +262,14 @@ export function MarathonPlanCard({
 
         <CardFooter className="flex flex-col gap-3 pt-2">
           <div className="grid grid-cols-2 gap-3 w-full">
-            {!isCurrentWeekPaid || arrears > 0 ? (
+            {userPlan?.status === "pending_activation" ? (
+              <Button
+                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+                onClick={onDeposit}
+              >
+                Activate Plan
+              </Button>
+            ) : !isCurrentWeekPaid || arrears > 0 ? (
               <Button
                 className="w-full bg-gray-900 hover:bg-gray-800 text-white dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
                 onClick={onDeposit}

@@ -504,7 +504,14 @@ export function DailyDropPlanCard({
 
         <CardFooter className="flex flex-col gap-3 pt-2 pb-6">
           <div className="grid grid-cols-2 gap-3 w-full">
-            {diffDays < 1 ? (
+            {userPlan?.status === "pending_activation" ? (
+              <Button
+                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+                onClick={onDeposit}
+              >
+                Activate Plan
+              </Button>
+            ) : diffDays < 1 ? (
               <Button
                 className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-semibold"
                 onClick={onDeposit}

@@ -501,7 +501,14 @@ export function AjoPlanCard({
               </Button>
             )}
 
-            {!weekPaid && user_plan.status === "active" ? (
+            {user_plan.status === "pending_activation" ? (
+              <Button
+                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+                onClick={onDeposit}
+              >
+                Activate Plan
+              </Button>
+            ) : !weekPaid && user_plan.status === "active" ? (
               <Button
                 className="w-full bg-gray-900 hover:bg-gray-800 text-white dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200 font-semibold"
                 onClick={onDeposit}
