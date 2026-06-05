@@ -711,7 +711,7 @@ export function DailyDropPlanCard({
                   <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
                   <p className="text-xs text-amber-800 dark:text-amber-400 leading-relaxed">
                     <span className="font-bold uppercase tracking-tighter block mb-1">
-                      Monthly Service Fee
+                      Service Fee
                     </span>
                     {plan.service_charge_type === "percentage" &&
                     plan.service_charge_percentage === 100 ? (

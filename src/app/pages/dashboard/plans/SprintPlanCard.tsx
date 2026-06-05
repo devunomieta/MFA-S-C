@@ -31,6 +31,7 @@ export function SprintPlanCard({
   const weeksCompleted = metadata.weeks_completed || 0;
   const currentWeekTotal = metadata.current_week_total || 0;
   const arrears = metadata.arrears_amount || 0;
+  const missedWeeksDetails = metadata.missed_weeks_details || [];
   const duration = 30;
 
   const weeklyTarget = 3000;
@@ -75,9 +76,21 @@ export function SprintPlanCard({
 
         <CardContent className="space-y-6 flex-1 pt-4 overflow-y-auto max-h-[60vh] custom-scrollbar">
           {arrears > 0 && (
-            <div className="flex items-center gap-2 p-2 bg-red-50 text-red-700 rounded-md text-xs border border-red-100 font-medium">
-              <AlertTriangle className="w-3.5 h-3.5" />
-              <span>Arrears: {formatNaira(arrears)}</span>
+            <div className="flex flex-col gap-1 p-2 bg-red-50 text-red-700 rounded-md border border-red-100 shadow-sm">
+              <div className="flex items-center gap-2 text-xs font-bold">
+                <AlertTriangle className="w-3.5 h-3.5" />
+                <span>Arrears: {formatNaira(arrears)}</span>
+              </div>
+              {missedWeeksDetails.length > 0 && (
+                <div className="text-[10px] mt-1 space-y-0.5 border-t border-red-200/50 pt-1">
+                  {missedWeeksDetails.map((detail: any, i: number) => (
+                    <div key={i} className="flex justify-between font-medium opacity-90">
+                      <span>Week {detail.week} Missed</span>
+                      <span>{formatNaira(detail.amount)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 

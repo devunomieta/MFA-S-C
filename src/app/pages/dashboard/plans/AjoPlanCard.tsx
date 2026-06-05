@@ -52,6 +52,7 @@ export function AjoPlanCard({
   const [isAppealing, setIsAppealing] = useState(false);
   const [appealSubs, setAppealSubs] = useState<{ proposed_week: number; amount: number }[]>([]);
   const [pendingAction, setPendingAction] = useState<"accept" | "appeal" | "reject" | null>(null);
+  const [showArrearsPrompt, setShowArrearsPrompt] = useState(false);
 
   const amounts = plan.config?.amounts || [10000, 15000, 20000, 25000, 30000, 50000, 100000];
   const duration = plan.config?.duration_weeks || 10;
@@ -100,6 +101,8 @@ export function AjoPlanCard({
     const weekPaid = metadata.week_paid || false;
     const pickingTurns = metadata.picking_turns || [];
     const missedWeeks = metadata.missed_weeks || 0;
+    const arrears = metadata.arrears_amount || (missedWeeks * 500); // Approximate arrears if not explicit
+    const loan = metadata.loan_amount || 0;
     const slots = metadata.slots || [];
 
     const payoutHistory = (metadata as any).payout_history || [];
@@ -341,24 +344,70 @@ export function AjoPlanCard({
           )}
 
           {turnCount > 0 ? (
-            <Button
-              className={`w-full font-semibold ${!canWithdraw ? "bg-emerald-50 text-emerald-700 border border-emerald-200 cursor-not-allowed" : "bg-emerald-600 hover:bg-emerald-700 text-white"}`}
-              onClick={async () => {
-                if (onWithdraw && canWithdraw) {
-                  setWithdrawing(true);
-                  await onWithdraw();
-                  setWithdrawing(false);
-                }
-              }}
-              disabled={withdrawing || !canWithdraw || user_plan.status !== "active"}
-              variant={!canWithdraw ? "ghost" : "default"}
-            >
-              {withdrawing
-                ? "Processing..."
-                : !canWithdraw
-                  ? `Withdrawn ₦${formatCurrency(getPayoutForAmt(fixedAmount))}`
-                  : "Withdraw Payout"}
-            </Button>
+            isMyTurn ? (
+              (arrears > 0 || loan > 0) ? (
+                <>
+                  <Button
+                    className="w-full font-semibold bg-emerald-600 hover:bg-emerald-700 text-white"
+                    onClick={() => setShowArrearsPrompt(true)}
+                    disabled={withdrawing || user_plan.status !== "active"}
+                  >
+                    {withdrawing ? "Processing..." : "Settle Arrears & Withdraw"}
+                  </Button>
+                  
+                  <AlertDialog open={showArrearsPrompt} onOpenChange={setShowArrearsPrompt}>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Outstanding Balance Detected</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          You have an outstanding balance (Arrears/Loans) of ₦{formatCurrency(arrears + loan)}. 
+                          Do you want to automatically deduct this amount and settle the remaining payout to your wallet?
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <a href="https://wa.me/+2349074049667?text=Hello%20Admin,%20I%20have%20an%20issue%20with%20my%20Ajo%20payout%20and%20arrears." target="_blank" rel="noreferrer" className="w-full sm:w-auto">
+                          <Button variant="outline" className="w-full bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200">
+                            Contact Admin
+                          </Button>
+                        </a>
+                        <Button 
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                          onClick={async () => {
+                            setShowArrearsPrompt(false);
+                            if (onWithdraw) {
+                              setWithdrawing(true);
+                              await onWithdraw();
+                              setWithdrawing(false);
+                            }
+                          }}
+                        >
+                          Yes, Withdraw & Settle
+                        </Button>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </>
+              ) : (
+                <Button
+                  disabled
+                  variant="outline"
+                  className="w-full bg-emerald-50 text-emerald-700 border-emerald-200"
+                >
+                  <Timer className="w-4 h-4 mr-2 animate-spin" />
+                  Auto-Settling to Wallet...
+                </Button>
+              )
+            ) : (
+              <Button
+                disabled
+                variant="ghost"
+                className="w-full bg-emerald-50 text-emerald-700 border-emerald-200"
+              >
+                <CheckCircle className="w-4 h-4 mr-2 text-emerald-600" />
+                Withdrawn ₦{formatCurrency(getPayoutForAmt(fixedAmount))}
+              </Button>
+            )
           ) : (
             <Button
               className="w-full bg-gray-100 text-gray-400 border border-gray-200 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-500 cursor-not-allowed"

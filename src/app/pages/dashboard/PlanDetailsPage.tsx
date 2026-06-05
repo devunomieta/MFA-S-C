@@ -10,8 +10,10 @@ import {
   Zap,
   Shield,
   Info,
+  AlertTriangle,
+  Plus,
+  CreditCard,
 } from "lucide-react";
-import { Plus, CreditCard } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -416,6 +418,28 @@ export function PlanDetailsPage() {
                   </>
                 )}
 
+                {userPlan.plan_metadata?.missed_weeks_details && userPlan.plan_metadata.missed_weeks_details.length > 0 && (
+                  <div className="bg-red-50 dark:bg-red-900/10 rounded-[2.5rem] p-8 border border-red-100 dark:border-red-900/30 shadow-sm overflow-hidden mb-8">
+                    <h3 className="text-xl font-black text-red-900 dark:text-red-400 mb-4 flex items-center gap-2">
+                      <AlertTriangle className="size-6" /> Arrears Status
+                    </h3>
+                    <div className="space-y-4">
+                      {userPlan.plan_metadata.missed_weeks_details.map((detail: any, idx: number) => (
+                        <div key={idx} className="flex justify-between items-center p-4 bg-white dark:bg-gray-950 rounded-2xl border border-red-100 dark:border-red-900/50">
+                          <div>
+                            <p className="text-sm font-bold text-gray-900 dark:text-white">Week {detail.week} Missed Payment</p>
+                            <p className="text-xs text-gray-500">Auto-deduction pending or failed</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-lg font-black text-red-600">₦{detail.amount?.toLocaleString()}</p>
+                            <Badge variant="outline" className="text-red-600 border-red-200 mt-1 bg-red-50">Unpaid</Badge>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div className="bg-white dark:bg-gray-950 rounded-[2.5rem] p-8 border border-gray-100 dark:border-gray-800 shadow-xl overflow-hidden">
                   <PlanActivityHistory
                     userId={user?.id || ""}
@@ -430,11 +454,18 @@ export function PlanDetailsPage() {
                   <MarathonPlanCard
                     plan={plan}
                     userPlan={userPlan || undefined}
-                    onJoin={() => {
+                    onJoin={(duration) => {
+                      const now = new Date();
+                      const start = new Date(now.getFullYear(), 0, 15); // Approx 3rd week of Jan
+                      const diffTime = now.getTime() - start.getTime();
+                      const diffWeeks = Math.floor(diffTime / (1000 * 60 * 60 * 24 * 7));
+                      const startingWeek = Math.max(1, diffWeeks + 1);
+
                       handleJoinPlan(plan.id, {
-                        selected_duration: 48,
+                        selected_duration: duration,
                         fixed_amount: 3000,
                         total_weeks_paid: 0,
+                        starting_week: startingWeek,
                         last_payment_date: null,
                       });
                     }}

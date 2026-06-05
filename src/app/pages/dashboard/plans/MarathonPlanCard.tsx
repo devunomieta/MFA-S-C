@@ -25,7 +25,7 @@ import { Plan, UserPlan } from "@/types";
 interface MarathonPlanCardProps {
   plan: Plan;
   userPlan?: UserPlan; // If user has joined
-  onJoin: () => void;
+  onJoin: (duration: number) => void;
   onDeposit: () => void;
   onAdvanceDeposit?: () => void;
   onLeave?: () => void;
@@ -41,15 +41,19 @@ export function MarathonPlanCard({
 }: MarathonPlanCardProps) {
   const [extending, setExtending] = useState(false);
   const [showExtendDialog, setShowExtendDialog] = useState(false);
+  const [joinDuration, setJoinDuration] = useState("48");
   const isJoined = !!userPlan;
   const metadata = userPlan?.plan_metadata || {};
   const duration = metadata.selected_duration || plan.config?.durations?.[1] || 48; // Default max
   const weeksPaid = metadata.total_weeks_paid || 0;
+  const startingWeek = metadata.starting_week || 1;
+  const currentWeekDisplay = Math.min(startingWeek - 1 + weeksPaid, duration);
   const isCurrentWeekPaid = metadata.current_week_paid;
   const arrears = metadata.arrears_amount || 0;
-  const isFinished = weeksPaid >= duration;
+  const missedWeeksDetails = metadata.missed_weeks_details || [];
+  const isFinished = currentWeekDisplay >= duration;
 
-  const progress = Math.min((weeksPaid / duration) * 100, 100);
+  const progress = Math.min((currentWeekDisplay / duration) * 100, 100);
 
   const handleExtend = async () => {
     if (!userPlan) return;
@@ -108,9 +112,21 @@ export function MarathonPlanCard({
         <CardContent className="space-y-6 flex-1 pt-4 overflow-y-auto max-h-[60vh] custom-scrollbar">
           <div className="flex flex-col gap-2">
             {arrears > 0 && (
-              <div className="flex items-center gap-2 p-2 bg-red-50 text-red-700 rounded-md text-xs border border-red-100 font-medium animate-pulse">
-                <AlertTriangle className="w-3.5 h-3.5" />
-                <span>Arrears: {formatNaira(arrears)}</span>
+              <div className="flex flex-col gap-1 p-2 bg-red-50 text-red-700 rounded-md border border-red-100 shadow-sm">
+                <div className="flex items-center gap-2 text-xs font-bold">
+                  <AlertTriangle className="w-3.5 h-3.5" />
+                  <span>Arrears: {formatNaira(arrears)}</span>
+                </div>
+                {missedWeeksDetails.length > 0 && (
+                  <div className="text-[10px] mt-1 space-y-0.5 border-t border-red-200/50 pt-1">
+                    {missedWeeksDetails.map((detail: any, i: number) => (
+                      <div key={i} className="flex justify-between font-medium opacity-90">
+                        <span>Week {detail.week} Missed</span>
+                        <span>{formatNaira(detail.amount)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
@@ -137,7 +153,7 @@ export function MarathonPlanCard({
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600 dark:text-gray-400 font-medium">Goal Progress</span>
                 <span className="font-bold text-gray-900 dark:text-gray-200">
-                  {weeksPaid} / {duration} Weeks
+                  {currentWeekDisplay} / {duration} Weeks
                 </span>
               </div>
               <div className="h-2 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
@@ -148,7 +164,7 @@ export function MarathonPlanCard({
               </div>
               <div className="flex justify-between text-[10px] text-gray-400 font-medium">
                 <span>
-                  Week {weeksPaid} of {duration} Completed
+                  Week {currentWeekDisplay} of {duration} Completed
                 </span>
                 <span>{Math.round(progress)}% of Total Goal</span>
               </div>
@@ -315,8 +331,20 @@ export function MarathonPlanCard({
             <p className="text-lg font-bold text-gray-900 dark:text-white">₦3,000</p>
           </div>
           <div className="text-right">
-            <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Duration</p>
-            <p className="text-lg font-bold text-gray-900 dark:text-white">30 or 48 Weeks</p>
+            <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider mb-1">Duration</p>
+            <div className="relative">
+              <select 
+                value={joinDuration} 
+                onChange={(e) => setJoinDuration(e.target.value)}
+                className="w-32 bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded-lg text-sm font-bold text-gray-900 dark:text-white px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 appearance-none"
+              >
+                <option value="30">30 Weeks</option>
+                <option value="48">48 Weeks</option>
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -328,7 +356,7 @@ export function MarathonPlanCard({
             <ul className="space-y-1.5 mb-4">
               <li className="flex items-center gap-2 text-xs text-emerald-700 dark:text-emerald-400">
                 <div className="w-1 h-1 rounded-full bg-emerald-500" />
-                Starts 3rd week of January annually
+                Starts counting continuously from the week you join
               </li>
               <li className="flex items-center gap-2 text-xs text-emerald-700 dark:text-emerald-400">
                 <div className="w-1 h-1 rounded-full bg-emerald-500" />
@@ -396,7 +424,7 @@ export function MarathonPlanCard({
       <CardFooter className="pt-2">
         <Button
           className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-12 rounded-2xl shadow-lg shadow-emerald-500/20 transition-all duration-300 hover:-translate-y-0.5"
-          onClick={onJoin}
+          onClick={() => onJoin(parseInt(joinDuration))}
         >
           Start Marathon
         </Button>
