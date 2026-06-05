@@ -381,7 +381,8 @@ export function DailyDropPlanCard({
                         Streak Progress
                       </span>
                       <span className="font-bold text-gray-900 dark:text-gray-200">
-                        {effectiveDaysPaid} / {selectedDuration === -1 ? "∞" : selectedDuration} Days
+                        {effectiveDaysPaid} / {selectedDuration === -1 ? "∞" : selectedDuration}{" "}
+                        Days
                       </span>
                     </div>
                     <div className="h-2 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
@@ -425,7 +426,8 @@ export function DailyDropPlanCard({
                         />
                       </div>
                       <div className="text-[10px] text-gray-400 font-medium">
-                        {Math.round(Math.min((totalSaved / totalTarget) * 100, 100))}% of Total Target
+                        {Math.round(Math.min((totalSaved / totalTarget) * 100, 100))}% of Total
+                        Target
                       </div>
                     </div>
                   )}

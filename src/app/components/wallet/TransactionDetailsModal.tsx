@@ -179,7 +179,7 @@ export function TransactionDetailsModal({
                       e.currentTarget.style.display = "none";
                       e.currentTarget.parentElement?.classList.add("flex-col", "p-4");
                       const fallback = document.createElement("div");
-                      fallback.innerHTML = `<p class="text-xs text-gray-500 mb-2">Image preview unavailable.</p><a href="${transaction.receipt_url}" target="_blank" class="text-xs text-blue-600 underline break-all">${transaction.receipt_url}</a>`;
+                      fallback.innerHTML = `<p class="text-xs text-gray-500 mb-2">Image preview unavailable.</p><a href="${transaction.receipt_url}" target="_blank" rel="noopener noreferrer" class="text-xs text-blue-600 underline break-all">${transaction.receipt_url}</a>`;
                       e.currentTarget.parentElement?.appendChild(fallback);
                     }}
                   />

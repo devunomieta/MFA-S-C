@@ -183,7 +183,7 @@ export function PlanDetailsPage() {
           slots: subscriptions,
           total_expected_per_cycle: totalAmount,
           fixed_amount: totalAmount,
-          proposed_turns: subscriptions.map(s => s.proposed_week)
+          proposed_turns: subscriptions.map((s) => s.proposed_week),
         },
       });
 
@@ -324,63 +324,77 @@ export function PlanDetailsPage() {
                       : `₦${new Intl.NumberFormat("en-US").format(plan.service_charge_fixed || plan.service_charge || 0)}${plan.service_charge_is_recurring ? ` / ${plan.service_charge_interval_days}d` : ""}`}
               </p>
             </div>
-            {isJoined && !["pending_activation", "pending_turn_approval", "turn_reassigned", "appeal_pending"].includes(userPlan?.status || "") && (
-              <div className="bg-white dark:bg-gray-950 p-6 rounded-[2rem] border border-gray-100 dark:border-gray-800 shadow-sm space-y-2">
-                <div className="bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 size-10 rounded-2xl flex items-center justify-center mb-2">
-                  <Coins className="size-5" />
-                </div>
-                <p className="text-[10px] font-black uppercase text-gray-400 tracking-wider">
-                  Plan Progress
-                </p>
-                <div className="flex flex-col">
-                  {(() => {
-                    if (!isJoined) return <p className="text-lg font-bold text-gray-400">---</p>;
-                    const meta = userPlan.plan_metadata || {};
-                    let current = 0;
-                    let total = 0;
-                    let unit = "Days";
+            {isJoined &&
+              ![
+                "pending_activation",
+                "pending_turn_approval",
+                "turn_reassigned",
+                "appeal_pending",
+              ].includes(userPlan?.status || "") && (
+                <div className="bg-white dark:bg-gray-950 p-6 rounded-[2rem] border border-gray-100 dark:border-gray-800 shadow-sm space-y-2">
+                  <div className="bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 size-10 rounded-2xl flex items-center justify-center mb-2">
+                    <Coins className="size-5" />
+                  </div>
+                  <p className="text-[10px] font-black uppercase text-gray-400 tracking-wider">
+                    Plan Progress
+                  </p>
+                  <div className="flex flex-col">
+                    {(() => {
+                      if (!isJoined) return <p className="text-lg font-bold text-gray-400">---</p>;
+                      const meta = userPlan.plan_metadata || {};
+                      let current = 0;
+                      let total = 0;
+                      let unit = "Days";
 
-                    if (plan.type === "daily_drop") {
-                      current = meta.total_days_paid || 0;
-                      total = meta.selected_duration || 31;
-                      unit = "Days";
-                    } else if (plan.type === "step_up") {
-                      current = meta.weeks_completed || 0;
-                      total = meta.selected_duration || 52;
-                      unit = "Weeks";
-                    } else if (plan.type === "monthly_bloom") {
-                      current = meta.months_completed || 0;
-                      total = meta.selected_duration || 12;
-                      unit = "Months";
-                    } else if (plan.type === "ajo_circle") {
-                      current = Math.floor((userPlan.current_balance || 0) / (meta.fixed_amount || 1));
-                      total = plan.duration_weeks || 10;
-                      unit = "Weeks";
-                    } else {
-                      current = meta.weeks_completed || 0;
-                      total = plan.duration_weeks || 0;
-                      unit = "Weeks";
-                    }
+                      if (plan.type === "daily_drop") {
+                        current = meta.total_days_paid || 0;
+                        total = meta.selected_duration || 31;
+                        unit = "Days";
+                      } else if (plan.type === "step_up") {
+                        current = meta.weeks_completed || 0;
+                        total = meta.selected_duration || 52;
+                        unit = "Weeks";
+                      } else if (plan.type === "monthly_bloom") {
+                        current = meta.months_completed || 0;
+                        total = meta.selected_duration || 12;
+                        unit = "Months";
+                      } else if (plan.type === "ajo_circle") {
+                        current = Math.floor(
+                          (userPlan.current_balance || 0) / (meta.fixed_amount || 1),
+                        );
+                        total = plan.duration_weeks || 10;
+                        unit = "Weeks";
+                      } else {
+                        current = meta.weeks_completed || 0;
+                        total = plan.duration_weeks || 0;
+                        unit = "Weeks";
+                      }
 
-                    if (total === -1)
-                      return <p className="text-lg font-bold text-emerald-500">Continuous</p>;
-                    return (
-                      <p className="text-lg font-bold text-emerald-600">
-                        {current}{" "}
-                        <span className="text-xs text-gray-400">
-                          / {total} {unit}
-                        </span>
-                      </p>
-                    );
-                  })()}
+                      if (total === -1)
+                        return <p className="text-lg font-bold text-emerald-500">Continuous</p>;
+                      return (
+                        <p className="text-lg font-bold text-emerald-600">
+                          {current}{" "}
+                          <span className="text-xs text-gray-400">
+                            / {total} {unit}
+                          </span>
+                        </p>
+                      );
+                    })()}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
           </div>
 
           {/* Plan Activities / Joined View */}
           <div className="space-y-8">
-            {isJoined && !["pending_activation", "pending_turn_approval", "turn_reassigned", "appeal_pending"].includes(userPlan?.status || "") ? (
+            {isJoined &&
+            ![
+              "pending_activation",
+              "pending_turn_approval",
+              "turn_reassigned",
+              "appeal_pending",
+            ].includes(userPlan?.status || "") ? (
               <div className="space-y-8 animate-in fade-in zoom-in-95 duration-500">
                 {plan.type === "ajo_circle" ? (
                   <AjoPlanCard
@@ -418,27 +432,44 @@ export function PlanDetailsPage() {
                   </>
                 )}
 
-                {userPlan.plan_metadata?.missed_weeks_details && userPlan.plan_metadata.missed_weeks_details.length > 0 && (
-                  <div className="bg-red-50 dark:bg-red-900/10 rounded-[2.5rem] p-8 border border-red-100 dark:border-red-900/30 shadow-sm overflow-hidden mb-8">
-                    <h3 className="text-xl font-black text-red-900 dark:text-red-400 mb-4 flex items-center gap-2">
-                      <AlertTriangle className="size-6" /> Arrears Status
-                    </h3>
-                    <div className="space-y-4">
-                      {userPlan.plan_metadata.missed_weeks_details.map((detail: any, idx: number) => (
-                        <div key={idx} className="flex justify-between items-center p-4 bg-white dark:bg-gray-950 rounded-2xl border border-red-100 dark:border-red-900/50">
-                          <div>
-                            <p className="text-sm font-bold text-gray-900 dark:text-white">Week {detail.week} Missed Payment</p>
-                            <p className="text-xs text-gray-500">Auto-deduction pending or failed</p>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-lg font-black text-red-600">₦{detail.amount?.toLocaleString()}</p>
-                            <Badge variant="outline" className="text-red-600 border-red-200 mt-1 bg-red-50">Unpaid</Badge>
-                          </div>
-                        </div>
-                      ))}
+                {userPlan.plan_metadata?.missed_weeks_details &&
+                  userPlan.plan_metadata.missed_weeks_details.length > 0 && (
+                    <div className="bg-red-50 dark:bg-red-900/10 rounded-[2.5rem] p-8 border border-red-100 dark:border-red-900/30 shadow-sm overflow-hidden mb-8">
+                      <h3 className="text-xl font-black text-red-900 dark:text-red-400 mb-4 flex items-center gap-2">
+                        <AlertTriangle className="size-6" /> Arrears Status
+                      </h3>
+                      <div className="space-y-4">
+                        {userPlan.plan_metadata.missed_weeks_details.map(
+                          (detail: any, idx: number) => (
+                            <div
+                              key={idx}
+                              className="flex justify-between items-center p-4 bg-white dark:bg-gray-950 rounded-2xl border border-red-100 dark:border-red-900/50"
+                            >
+                              <div>
+                                <p className="text-sm font-bold text-gray-900 dark:text-white">
+                                  Week {detail.week} Missed Payment
+                                </p>
+                                <p className="text-xs text-gray-500">
+                                  Auto-deduction pending or failed
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-lg font-black text-red-600">
+                                  ₦{detail.amount?.toLocaleString()}
+                                </p>
+                                <Badge
+                                  variant="outline"
+                                  className="text-red-600 border-red-200 mt-1 bg-red-50"
+                                >
+                                  Unpaid
+                                </Badge>
+                              </div>
+                            </div>
+                          ),
+                        )}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
                 <div className="bg-white dark:bg-gray-950 rounded-[2.5rem] p-8 border border-gray-100 dark:border-gray-800 shadow-xl overflow-hidden">
                   <PlanActivityHistory
@@ -589,7 +620,13 @@ export function PlanDetailsPage() {
         </div>
 
         {/* Sidebar / Info Area - Hidden for Active Plans */}
-        {(!isJoined || ["pending_activation", "pending_turn_approval", "turn_reassigned", "appeal_pending"].includes(userPlan?.status || "")) && (
+        {(!isJoined ||
+          [
+            "pending_activation",
+            "pending_turn_approval",
+            "turn_reassigned",
+            "appeal_pending",
+          ].includes(userPlan?.status || "")) && (
           <div className="space-y-8">
             <div className="bg-[#0f172a] text-white p-8 rounded-[2.5rem] shadow-xl space-y-6 relative overflow-hidden group">
               <div className="absolute -top-10 -right-10 size-40 bg-emerald-500/10 rounded-full blur-3xl group-hover:bg-emerald-500/20 transition-all duration-700" />

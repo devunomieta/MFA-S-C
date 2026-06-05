@@ -53,13 +53,12 @@ export function Navbar() {
         setAppName(data.value.app_name);
       }
       if (data?.value?.favicon_url) {
-        let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
+        const link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
         if (link) link.href = data.value.favicon_url;
       }
     };
     fetchBranding();
   }, []);
-
 
   const handleDashboardAction = () => {
     setIsOpen(false);
@@ -183,7 +182,7 @@ export function Navbar() {
                 href={link.href}
                 onClick={(e) => scrollToSection(e, link.href)}
                 className={`px-4 py-2 text-sm font-bold rounded-full transition-all ${
-                  scrolled 
+                  scrolled
                     ? "text-slate-700 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-white/60 dark:hover:bg-slate-800/60"
                     : "text-slate-600 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-100/50 dark:hover:bg-slate-800/40"
                 }`}
@@ -193,30 +192,29 @@ export function Navbar() {
             ))}
           </nav>
 
-            {/* Right CTA Section */}
-            <div className="flex-1 flex justify-end items-center gap-4 z-10">
-              <Button
-                className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-full px-6 md:px-8 font-bold shadow-lg shadow-emerald-600/20 active:scale-95 transition-all hidden sm:flex text-xs md:text-sm"
-                onClick={handleDashboardAction}
-              >
-                Dashboard
-              </Button>
+          {/* Right CTA Section */}
+          <div className="flex-1 flex justify-end items-center gap-4 z-10">
+            <Button
+              className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-full px-6 md:px-8 font-bold shadow-lg shadow-emerald-600/20 active:scale-95 transition-all hidden sm:flex text-xs md:text-sm"
+              onClick={handleDashboardAction}
+            >
+              Dashboard
+            </Button>
 
-              {/* Mobile Toggle Button */}
-              <button
-                onClick={() => setIsOpen(!isOpen)}
-                className="md:hidden size-10 flex items-center justify-center rounded-full bg-emerald-600 border border-emerald-500 shadow-lg shadow-emerald-600/20 active:scale-90 transition-all relative z-[120]"
-                aria-label="Toggle Menu"
-              >
-                {isOpen ? (
-                  <X className="size-5 text-white" />
-                ) : (
-                  <Menu className="size-5 text-white" />
-                )}
-              </button>
-            </div>
+            {/* Mobile Toggle Button */}
+            <button
+              onClick={() => setIsOpen(!isOpen)}
+              className="md:hidden size-10 flex items-center justify-center rounded-full bg-emerald-600 border border-emerald-500 shadow-lg shadow-emerald-600/20 active:scale-90 transition-all relative z-[120]"
+              aria-label="Toggle Menu"
+            >
+              {isOpen ? (
+                <X className="size-5 text-white" />
+              ) : (
+                <Menu className="size-5 text-white" />
+              )}
+            </button>
+          </div>
         </div>
-
 
         {/* Mobile Navigation Overlay */}
         <AnimatePresence>

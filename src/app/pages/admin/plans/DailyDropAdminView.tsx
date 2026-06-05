@@ -56,7 +56,6 @@ export function DailyDropAdminView({ plan }: DailyDropAdminViewProps) {
     setLoading(false);
   }
 
-
   const formatCurrency = (val: number) =>
     new Intl.NumberFormat("en-US", { style: "currency", currency: "NGN" }).format(val);
 
@@ -83,7 +82,6 @@ export function DailyDropAdminView({ plan }: DailyDropAdminViewProps) {
           <p className="text-sm text-cyan-700">Daily Trigger (Run at 23:59)</p>
         </div>
       </div>
-
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>

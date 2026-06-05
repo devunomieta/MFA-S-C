@@ -81,7 +81,6 @@ export function AnchorAdminView({ plan }: AnchorAdminViewProps) {
     setProcessingId(null);
   }
 
-
   const formatCurrency = (val: number) =>
     new Intl.NumberFormat("en-US", { style: "currency", currency: "NGN" }).format(val);
 
@@ -107,7 +106,6 @@ export function AnchorAdminView({ plan }: AnchorAdminViewProps) {
           <p className="text-sm text-indigo-700">Manual triggers. (Duration: 48 Weeks)</p>
         </div>
       </div>
-
 
       <ActionConfirmModal
         isOpen={isSettleOpen}

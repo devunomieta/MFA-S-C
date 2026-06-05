@@ -81,7 +81,6 @@ export function SprintAdminView({ plan }: SprintAdminViewProps) {
     setProcessingId(null);
   }
 
-
   const formatCurrency = (val: number) =>
     new Intl.NumberFormat("en-US", { style: "currency", currency: "NGN" }).format(val);
 
@@ -107,7 +106,6 @@ export function SprintAdminView({ plan }: SprintAdminViewProps) {
           <p className="text-sm text-blue-700">Manual triggers for recurring jobs.</p>
         </div>
       </div>
-
 
       <ActionConfirmModal
         isOpen={isSettleOpen}

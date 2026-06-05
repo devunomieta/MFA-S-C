@@ -331,10 +331,12 @@ export function MarathonPlanCard({
             <p className="text-lg font-bold text-gray-900 dark:text-white">₦3,000</p>
           </div>
           <div className="text-right">
-            <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider mb-1">Duration</p>
+            <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider mb-1">
+              Duration
+            </p>
             <div className="relative">
-              <select 
-                value={joinDuration} 
+              <select
+                value={joinDuration}
                 onChange={(e) => setJoinDuration(e.target.value)}
                 className="w-32 bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded-lg text-sm font-bold text-gray-900 dark:text-white px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 appearance-none"
               >
@@ -342,7 +344,14 @@ export function MarathonPlanCard({
                 <option value="48">48 Weeks</option>
               </select>
               <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M19 9l-7 7-7-7"
+                  ></path>
+                </svg>
               </div>
             </div>
           </div>

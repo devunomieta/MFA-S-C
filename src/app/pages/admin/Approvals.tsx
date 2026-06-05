@@ -447,7 +447,7 @@ export function AdminApprovals() {
                     <div className="mt-4 flex justify-end">
                       <a
                         href="https://supabase.com/dashboard/project/_/auth/users"
-                        target="_blank"
+                        target="_blank" rel="noopener noreferrer"
                         rel="noreferrer"
                         className="text-xs text-blue-600 flex items-center gap-1 hover:underline"
                       >

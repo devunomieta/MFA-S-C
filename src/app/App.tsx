@@ -16,7 +16,6 @@ import { NotificationProvider } from "@/app/context/NotificationContext";
 import { ThemeProvider } from "@/app/context/ThemeContext";
 import { supabase } from "@/lib/supabase";
 
-
 // Lazy Loaded Pages
 const Landing = lazy(() => import("@/app/pages/Landing").then((m) => ({ default: m.Landing })));
 const Login = lazy(() => import("@/app/pages/auth/Login").then((m) => ({ default: m.Login })));
@@ -182,7 +181,6 @@ function AppRoutes() {
     };
     applyBranding();
   }, []);
-
 
   return (
     <ThemeProvider

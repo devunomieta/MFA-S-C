@@ -148,7 +148,7 @@ export function AnchorPlanCard({
               </Button>
             )}
             <Button variant="outline" asChild className="w-full">
-              <a href={plan.whatsapp_link} target="_blank">
+              <a href={plan.whatsapp_link} target="_blank" rel="noopener noreferrer">
                 Group Chat
               </a>
             </Button>

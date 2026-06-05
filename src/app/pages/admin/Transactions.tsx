@@ -435,7 +435,7 @@ export function AdminTransactions() {
                         <div className="text-center mt-2">
                           <a
                             href={tx.receipt_url}
-                            target="_blank"
+                            target="_blank" rel="noopener noreferrer"
                             className="text-blue-600 underline text-sm flex items-center justify-center gap-1"
                           >
                             Open Original <ExternalLink className="w-3 h-3" />

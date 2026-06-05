@@ -988,7 +988,7 @@ export function AdminPlans() {
                 className="border-emerald-200 text-emerald-700 hover:bg-emerald-100"
                 asChild
               >
-                <a href={marathonPlan.whatsapp_link} target="_blank">
+                <a href={marathonPlan.whatsapp_link} target="_blank" rel="noopener noreferrer">
                   WhatsApp Group
                 </a>
               </Button>
@@ -1013,7 +1013,7 @@ export function AdminPlans() {
                 className="border-blue-200 text-blue-700 hover:bg-blue-100"
                 asChild
               >
-                <a href={sprintPlan.whatsapp_link} target="_blank">
+                <a href={sprintPlan.whatsapp_link} target="_blank" rel="noopener noreferrer">
                   WhatsApp Group
                 </a>
               </Button>
@@ -1038,7 +1038,7 @@ export function AdminPlans() {
                 className="border-indigo-200 text-indigo-700 hover:bg-indigo-100"
                 asChild
               >
-                <a href={anchorPlan.whatsapp_link} target="_blank">
+                <a href={anchorPlan.whatsapp_link} target="_blank" rel="noopener noreferrer">
                   WhatsApp Group
                 </a>
               </Button>
@@ -1059,7 +1059,7 @@ export function AdminPlans() {
                 className="border-cyan-200 text-cyan-700 hover:bg-cyan-100"
                 asChild
               >
-                <a href={dailyDropPlan.whatsapp_link} target="_blank">
+                <a href={dailyDropPlan.whatsapp_link} target="_blank" rel="noopener noreferrer">
                   WhatsApp Group
                 </a>
               </Button>
@@ -1082,7 +1082,7 @@ export function AdminPlans() {
                 className="border-purple-200 text-purple-700 hover:bg-purple-100"
                 asChild
               >
-                <a href={stepUpPlan.whatsapp_link} target="_blank">
+                <a href={stepUpPlan.whatsapp_link} target="_blank" rel="noopener noreferrer">
                   WhatsApp Group
                 </a>
               </Button>
@@ -1106,7 +1106,7 @@ export function AdminPlans() {
                   className="border-pink-200 text-pink-700 hover:bg-pink-100"
                   asChild
                 >
-                  <a href={monthlyBloomPlan.whatsapp_link} target="_blank">
+                  <a href={monthlyBloomPlan.whatsapp_link} target="_blank" rel="noopener noreferrer">
                     WhatsApp Group
                   </a>
                 </Button>

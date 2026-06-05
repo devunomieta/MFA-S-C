@@ -1,19 +1,8 @@
 import { useState } from "react";
-import { toast } from "sonner";
-import { Timer, CheckCircle, AlertTriangle, Calendar, Lock, Plus, Trash2 } from "lucide-react";
 
-import { Badge } from "@/app/components/ui/badge";
-import { supabase } from "@/lib/supabase";
-import { Button } from "@/app/components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/app/components/ui/card";
-import { Progress } from "@/app/components/ui/progress";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/app/components/ui/select";
+import { Timer, CheckCircle, AlertTriangle, Calendar, Lock, Plus, Trash2 } from "lucide-react";
+import { toast } from "sonner";
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,6 +13,18 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/app/components/ui/alert-dialog";
+import { Badge } from "@/app/components/ui/badge";
+import { Button } from "@/app/components/ui/button";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/app/components/ui/card";
+import { Progress } from "@/app/components/ui/progress";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/app/components/ui/select";
+import { supabase } from "@/lib/supabase";
 import { Plan, UserPlan } from "@/types";
 
 interface AjoPlanCardProps {
@@ -77,9 +78,7 @@ export function AjoPlanCard({
 
   const removeSubscription = (index: number) => {
     if (subscriptions.length <= 1) return;
-    setSubscriptions(
-      subscriptions.filter((_, i) => i !== index),
-    );
+    setSubscriptions(subscriptions.filter((_, i) => i !== index));
   };
 
   const updateSubscription = (index: number, field: "amount", value: number) => {
@@ -101,7 +100,7 @@ export function AjoPlanCard({
     const weekPaid = metadata.week_paid || false;
     const pickingTurns = metadata.picking_turns || [];
     const missedWeeks = metadata.missed_weeks || 0;
-    const arrears = metadata.arrears_amount || (missedWeeks * 500); // Approximate arrears if not explicit
+    const arrears = metadata.arrears_amount || missedWeeks * 500; // Approximate arrears if not explicit
     const loan = metadata.loan_amount || 0;
     const slots = metadata.slots || [];
 
@@ -109,22 +108,27 @@ export function AjoPlanCard({
     const turnCount = pickingTurns.filter((t: any) => Number(t) === currentWeek).length;
     const withdrawnCount = payoutHistory.filter((h: any) => Number(h) === currentWeek).length;
     const isMyTurn = turnCount > withdrawnCount;
-    const canWithdraw = isMyTurn;
+    
 
     const startAppeal = () => {
-      setAppealSubs(pickingTurns.map(() => {
-         let startWeek = 1;
-         while (pickingTurns.map(String).includes(startWeek.toString()) && startWeek <= duration) {
-             startWeek++;
-         }
-         return { proposed_week: startWeek > duration ? 1 : startWeek, amount: fixedAmount / pickingTurns.length };
-      }));
+      setAppealSubs(
+        pickingTurns.map(() => {
+          let startWeek = 1;
+          while (pickingTurns.map(String).includes(startWeek.toString()) && startWeek <= duration) {
+            startWeek++;
+          }
+          return {
+            proposed_week: startWeek > duration ? 1 : startWeek,
+            amount: fixedAmount / pickingTurns.length,
+          };
+        }),
+      );
       setIsAppealing(true);
     };
 
     const handleConfirmAction = async () => {
       if (!user_plan || !pendingAction) return;
-      
+
       try {
         if (pendingAction === "accept") {
           await supabase.from("user_plans").update({ status: "active" }).eq("id", user_plan.id);
@@ -133,12 +137,18 @@ export function AjoPlanCard({
           if (onLeave) await onLeave();
           return; // onLeave handles its own flow
         } else if (pendingAction === "appeal") {
-          const metadata = { ...user_plan.plan_metadata, proposed_turns: appealSubs.map(s => s.proposed_week) };
-          await supabase.from("user_plans").update({ status: "appeal_pending", plan_metadata: metadata }).eq("id", user_plan.id);
+          const metadata = {
+            ...user_plan.plan_metadata,
+            proposed_turns: appealSubs.map((s) => s.proposed_week),
+          };
+          await supabase
+            .from("user_plans")
+            .update({ status: "appeal_pending", plan_metadata: metadata })
+            .eq("id", user_plan.id);
           toast.success("Appeal submitted successfully.");
         }
         setTimeout(() => window.location.reload(), 1500);
-      } catch (err) {
+      } catch {
         toast.error("An error occurred. Please try again.");
       } finally {
         setPendingAction(null);
@@ -148,329 +158,414 @@ export function AjoPlanCard({
 
     return (
       <>
-      <Card className="flex flex-col relative overflow-hidden bg-white dark:bg-gray-900 border-l-4 border-l-orange-500 shadow-sm hover:shadow-md transition-shadow">
-        <CardHeader className="pb-2">
-          <div className="flex justify-between items-start">
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <Badge
-                  variant="outline"
-                  className="text-emerald-700 border-emerald-200 bg-emerald-50"
-                >
+        <Card className="flex flex-col relative overflow-hidden bg-white dark:bg-gray-900 border-l-4 border-l-orange-500 shadow-sm hover:shadow-md transition-shadow">
+          <CardHeader className="pb-2">
+            <div className="flex justify-between items-start">
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <Badge
+                    variant="outline"
+                    className="text-emerald-700 border-emerald-200 bg-emerald-50"
+                  >
+                    {plan.name}
+                  </Badge>
+                  <Badge
+                    className={
+                      user_plan.status === "pending_activation" ||
+                      user_plan.status === "pending_turn_approval"
+                        ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200"
+                        : "bg-emerald-600 border-emerald-500 text-white"
+                    }
+                  >
+                    {user_plan.status === "pending_activation"
+                      ? "PENDING ACTIVATION"
+                      : user_plan.status === "pending_turn_approval"
+                        ? "PENDING APPROVAL"
+                        : user_plan.status === "turn_reassigned"
+                          ? "TURN REASSIGNED"
+                          : user_plan.status === "appeal_pending"
+                            ? "APPEAL PENDING"
+                            : "Active"}
+                  </Badge>
+                </div>
+                <CardTitle className="text-xl font-bold text-gray-900 dark:text-gray-100">
                   {plan.name}
-                </Badge>
-                <Badge
-                  className={
-                    user_plan.status === "pending_activation" || user_plan.status === "pending_turn_approval"
-                      ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200"
-                      : "bg-emerald-600 border-emerald-500 text-white"
-                  }
-                >
-                  {user_plan.status === "pending_activation" ? "PENDING ACTIVATION" : user_plan.status === "pending_turn_approval" ? "PENDING APPROVAL" : user_plan.status === "turn_reassigned" ? "TURN REASSIGNED" : user_plan.status === "appeal_pending" ? "APPEAL PENDING" : "Active"}
-                </Badge>
+                </CardTitle>
               </div>
-              <CardTitle className="text-xl font-bold text-gray-900 dark:text-gray-100">
-                {plan.name}
-              </CardTitle>
-            </div>
-            <div className="text-right">
-              <div className="text-xs text-gray-500 uppercase font-bold tracking-wider">
-                Total Payout
-              </div>
-              <div className="text-xl font-bold text-gray-900 dark:text-white">
-                ₦{formatCurrency(getPayoutForAmt(fixedAmount))}
+              <div className="text-right">
+                <div className="text-xs text-gray-500 uppercase font-bold tracking-wider">
+                  Total Payout
+                </div>
+                <div className="text-xl font-bold text-gray-900 dark:text-white">
+                  ₦{formatCurrency(getPayoutForAmt(fixedAmount))}
+                </div>
               </div>
             </div>
-          </div>
-        </CardHeader>
+          </CardHeader>
 
-        <CardContent className="space-y-6 flex-1 pt-4 overflow-y-auto max-h-[60vh] custom-scrollbar">
-          <div className="grid grid-cols-2 gap-3">
-            {user_plan.status === "active" && (
+          <CardContent className="space-y-6 flex-1 pt-4 overflow-y-auto max-h-[60vh] custom-scrollbar">
+            <div className="grid grid-cols-2 gap-3">
+              {user_plan.status === "active" && (
+                <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-800">
+                  <div className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-1 flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5" /> Current Week
+                  </div>
+                  <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                    {currentWeek}{" "}
+                    <span className="text-sm text-gray-400 font-normal">/ {duration}</span>
+                  </div>
+                </div>
+              )}
               <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-800">
                 <div className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-1 flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5" /> Current Week
+                  <Timer className="w-3.5 h-3.5" /> My Turn(s)
                 </div>
-                <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                  {currentWeek}{" "}
-                  <span className="text-sm text-gray-400 font-normal">/ {duration}</span>
+                <div className="text-lg font-bold text-orange-600 dark:text-orange-400">
+                  {pickingTurns.length > 0 ? `Week ${pickingTurns.join(", ")}` : "Pending"}
+                </div>
+              </div>
+            </div>
+
+            {pickingTurns.length > 0 && slots.length > 0 && (
+              <div className="space-y-3">
+                <h4 className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">
+                  Approved Turn(s) Breakdown
+                </h4>
+                {pickingTurns.map((turn: number, idx: number) => {
+                  const slot = slots[idx] || slots[0];
+                  const slotAmt = slot?.amount || fixedAmount / pickingTurns.length;
+                  const slotPayout = slotAmt * duration;
+                  return (
+                    <div
+                      key={idx}
+                      className="flex justify-between items-center p-3 bg-emerald-50 dark:bg-emerald-900/10 rounded-lg border border-emerald-100 dark:border-emerald-800/30"
+                    >
+                      <div>
+                        <div className="text-sm font-bold text-emerald-800 dark:text-emerald-400">
+                          Week {turn}
+                        </div>
+                        <div className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-500 uppercase tracking-wider mt-0.5">
+                          Contribution: ₦{formatCurrency(slotAmt)}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-0.5">
+                          Payout
+                        </div>
+                        <div className="text-sm font-black text-gray-900 dark:text-white tracking-tight">
+                          ₦{formatCurrency(slotPayout)}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {user_plan.status === "active" && (
+              <div className="flex flex-col gap-2">
+                {missedWeeks > 0 && (
+                  <div className="flex items-center gap-2 p-2 bg-red-50 text-red-700 rounded-md text-xs border border-red-100 font-medium animate-pulse">
+                    <AlertTriangle className="w-3.5 h-3.5" /> {missedWeeks} Missed (₦
+                    {formatCurrency(missedWeeks * 500)} Penalty)
+                  </div>
+                )}
+
+                <div
+                  className={`flex items-center gap-2 p-2 rounded-md text-xs border font-bold ${
+                    weekPaid
+                      ? "bg-emerald-50 text-emerald-700 border-emerald-100"
+                      : "bg-amber-50 text-amber-700 border-amber-100 shadow-sm"
+                  }`}
+                >
+                  {weekPaid ? (
+                    <CheckCircle className="w-3.5 h-3.5" />
+                  ) : (
+                    <Timer className="w-3.5 h-3.5 animate-pulse" />
+                  )}
+                  <span>{weekPaid ? "Weekly Contribution Paid" : "Weekly Contribution Due"}</span>
                 </div>
               </div>
             )}
-            <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-800">
-              <div className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-1 flex items-center gap-1.5">
-                <Timer className="w-3.5 h-3.5" /> My Turn(s)
-              </div>
-              <div className="text-lg font-bold text-orange-600 dark:text-orange-400">
-                {pickingTurns.length > 0 ? `Week ${pickingTurns.join(", ")}` : "Pending"}
-              </div>
-            </div>
-          </div>
 
-          {pickingTurns.length > 0 && slots.length > 0 && (
-            <div className="space-y-3">
-              <h4 className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Approved Turn(s) Breakdown</h4>
-              {pickingTurns.map((turn: number, idx: number) => {
-                const slot = slots[idx] || slots[0];
-                const slotAmt = slot?.amount || (fixedAmount / pickingTurns.length);
-                const slotPayout = slotAmt * duration;
-                return (
-                  <div key={idx} className="flex justify-between items-center p-3 bg-emerald-50 dark:bg-emerald-900/10 rounded-lg border border-emerald-100 dark:border-emerald-800/30">
-                    <div>
-                      <div className="text-sm font-bold text-emerald-800 dark:text-emerald-400">Week {turn}</div>
-                      <div className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-500 uppercase tracking-wider mt-0.5">Contribution: ₦{formatCurrency(slotAmt)}</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-0.5">Payout</div>
-                      <div className="text-sm font-black text-gray-900 dark:text-white tracking-tight">₦{formatCurrency(slotPayout)}</div>
-                    </div>
+            {user_plan.status === "active" && (
+              <div className="space-y-4 pt-2 border-t border-gray-50 dark:border-gray-800">
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600 dark:text-gray-400 font-medium">
+                      Payout Progress
+                    </span>
+                    <span className="font-bold text-gray-900 dark:text-gray-200">
+                      Week {currentWeek} / {duration}
+                    </span>
                   </div>
-                );
-              })}
-            </div>
-          )}
-
-          {user_plan.status === "active" && (
-            <div className="flex flex-col gap-2">
-              {missedWeeks > 0 && (
-                <div className="flex items-center gap-2 p-2 bg-red-50 text-red-700 rounded-md text-xs border border-red-100 font-medium animate-pulse">
-                  <AlertTriangle className="w-3.5 h-3.5" /> {missedWeeks} Missed (₦
-                  {formatCurrency(missedWeeks * 500)} Penalty)
+                  <Progress
+                    value={(currentWeek / duration) * 100}
+                    className="h-2 bg-gray-100 dark:bg-gray-800 rounded-full"
+                  />
+                  <div className="flex justify-between text-[10px] text-gray-400 font-medium">
+                    <span>{Math.round((currentWeek / duration) * 100)}% through Season</span>
+                    <span>₦{formatCurrency(getPayoutForAmt(fixedAmount))} Total Payout</span>
+                  </div>
                 </div>
-              )}
+              </div>
+            )}
+          </CardContent>
 
-              <div
-                className={`flex items-center gap-2 p-2 rounded-md text-xs border font-bold ${
-                  weekPaid
-                    ? "bg-emerald-50 text-emerald-700 border-emerald-100"
-                    : "bg-amber-50 text-amber-700 border-amber-100 shadow-sm"
-                }`}
-              >
-                {weekPaid ? (
-                  <CheckCircle className="w-3.5 h-3.5" />
+          <CardFooter className="flex flex-col gap-2 pt-2">
+            {user_plan.status === "turn_reassigned" && (
+              <div className="bg-blue-50 border border-blue-200 p-3 rounded-lg mb-4 space-y-3">
+                <p className="text-xs text-blue-800 font-medium">
+                  <AlertTriangle className="w-4 h-4 inline mr-1 text-blue-600" />
+                  Admin has assigned you new turns: <strong>{pickingTurns.join(", ")}</strong>.
+                  Please review:
+                </p>
+
+                {!isAppealing ? (
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white"
+                      onClick={() => setPendingAction("accept")}
+                    >
+                      Accept
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="flex-1 border-blue-300 text-blue-700"
+                      onClick={startAppeal}
+                    >
+                      Appeal
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      className="flex-1"
+                      onClick={() => setPendingAction("reject")}
+                    >
+                      Reject
+                    </Button>
+                  </div>
                 ) : (
-                  <Timer className="w-3.5 h-3.5 animate-pulse" />
-                )}
-                <span>{weekPaid ? "Weekly Contribution Paid" : "Weekly Contribution Due"}</span>
-              </div>
-            </div>
-          )}
-
-          {user_plan.status === "active" && (
-            <div className="space-y-4 pt-2 border-t border-gray-50 dark:border-gray-800">
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600 dark:text-gray-400 font-medium">
-                    Payout Progress
-                  </span>
-                  <span className="font-bold text-gray-900 dark:text-gray-200">
-                    Week {currentWeek} / {duration}
-                  </span>
-                </div>
-                <Progress
-                  value={(currentWeek / duration) * 100}
-                  className="h-2 bg-gray-100 dark:bg-gray-800 rounded-full"
-                />
-                <div className="flex justify-between text-[10px] text-gray-400 font-medium">
-                  <span>{Math.round((currentWeek / duration) * 100)}% through Season</span>
-                  <span>₦{formatCurrency(getPayoutForAmt(fixedAmount))} Total Payout</span>
-                </div>
-              </div>
-            </div>
-          )}
-        </CardContent>
-
-        <CardFooter className="flex flex-col gap-2 pt-2">
-          {user_plan.status === "turn_reassigned" && (
-            <div className="bg-blue-50 border border-blue-200 p-3 rounded-lg mb-4 space-y-3">
-              <p className="text-xs text-blue-800 font-medium">
-                <AlertTriangle className="w-4 h-4 inline mr-1 text-blue-600" />
-                Admin has assigned you new turns: <strong>{pickingTurns.join(", ")}</strong>. Please review:
-              </p>
-              
-              {!isAppealing ? (
-                <div className="flex gap-2">
-                  <Button size="sm" className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => setPendingAction("accept")}>Accept</Button>
-                  <Button size="sm" variant="outline" className="flex-1 border-blue-300 text-blue-700" onClick={startAppeal}>Appeal</Button>
-                  <Button size="sm" variant="destructive" className="flex-1" onClick={() => setPendingAction("reject")}>Reject</Button>
-                </div>
-              ) : (
-                <div className="space-y-3 bg-white p-3 rounded-md border border-blue-100">
-                  <p className="text-xs font-bold text-gray-700">Select preferred turn(s):</p>
-                  {appealSubs.map((sub, idx) => (
-                    <div key={idx} className="flex gap-2 items-center">
-                      <span className="text-xs font-semibold text-gray-500 w-12">Slot {idx + 1}</span>
-                      <Select
-                        value={sub.proposed_week.toString()}
-                        onValueChange={(v) => {
-                          const newSubs = [...appealSubs];
-                          newSubs[idx].proposed_week = parseInt(v);
-                          setAppealSubs(newSubs);
-                        }}
-                      >
-                        <SelectTrigger className="h-8 text-xs bg-white">
-                          <SelectValue placeholder="Week" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {Array.from({ length: duration }).map((_, i) => {
-                            const weekNum = i + 1;
-                            const isAssigned = pickingTurns.map(String).includes(weekNum.toString());
-                            return (
-                              <SelectItem key={weekNum} value={weekNum.toString()} disabled={isAssigned}>
-                                Week {weekNum} {isAssigned && "(Assigned)"}
-                              </SelectItem>
-                            );
-                          })}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  ))}
-                  <div className="flex gap-2 pt-2">
-                    <Button size="sm" className="flex-1 bg-blue-600 hover:bg-blue-700 text-white" onClick={() => setPendingAction("appeal")}>Submit Appeal</Button>
-                    <Button size="sm" variant="ghost" className="flex-1" onClick={() => setIsAppealing(false)}>Cancel</Button>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-          
-          {user_plan.status === "appeal_pending" && (
-            <div className="bg-purple-50 border border-purple-200 p-3 rounded-lg mb-4">
-              <p className="text-xs text-purple-800 font-medium flex items-center">
-                <Timer className="w-4 h-4 inline mr-2 animate-spin" />
-                Your appeal is pending admin review.
-              </p>
-            </div>
-          )}
-
-          {turnCount > 0 ? (
-            isMyTurn ? (
-              (arrears > 0 || loan > 0) ? (
-                <>
-                  <Button
-                    className="w-full font-semibold bg-emerald-600 hover:bg-emerald-700 text-white"
-                    onClick={() => setShowArrearsPrompt(true)}
-                    disabled={withdrawing || user_plan.status !== "active"}
-                  >
-                    {withdrawing ? "Processing..." : "Settle Arrears & Withdraw"}
-                  </Button>
-                  
-                  <AlertDialog open={showArrearsPrompt} onOpenChange={setShowArrearsPrompt}>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Outstanding Balance Detected</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          You have an outstanding balance (Arrears/Loans) of ₦{formatCurrency(arrears + loan)}. 
-                          Do you want to automatically deduct this amount and settle the remaining payout to your wallet?
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <a href="https://wa.me/+2349074049667?text=Hello%20Admin,%20I%20have%20an%20issue%20with%20my%20Ajo%20payout%20and%20arrears." target="_blank" rel="noreferrer" className="w-full sm:w-auto">
-                          <Button variant="outline" className="w-full bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200">
-                            Contact Admin
-                          </Button>
-                        </a>
-                        <Button 
-                          className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                          onClick={async () => {
-                            setShowArrearsPrompt(false);
-                            if (onWithdraw) {
-                              setWithdrawing(true);
-                              await onWithdraw();
-                              setWithdrawing(false);
-                            }
+                  <div className="space-y-3 bg-white p-3 rounded-md border border-blue-100">
+                    <p className="text-xs font-bold text-gray-700">Select preferred turn(s):</p>
+                    {appealSubs.map((sub, idx) => (
+                      <div key={idx} className="flex gap-2 items-center">
+                        <span className="text-xs font-semibold text-gray-500 w-12">
+                          Slot {idx + 1}
+                        </span>
+                        <Select
+                          value={sub.proposed_week.toString()}
+                          onValueChange={(v) => {
+                            const newSubs = [...appealSubs];
+                            newSubs[idx].proposed_week = parseInt(v);
+                            setAppealSubs(newSubs);
                           }}
                         >
-                          Yes, Withdraw & Settle
-                        </Button>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </>
+                          <SelectTrigger className="h-8 text-xs bg-white">
+                            <SelectValue placeholder="Week" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Array.from({ length: duration }).map((_, i) => {
+                              const weekNum = i + 1;
+                              const isAssigned = pickingTurns
+                                .map(String)
+                                .includes(weekNum.toString());
+                              return (
+                                <SelectItem
+                                  key={weekNum}
+                                  value={weekNum.toString()}
+                                  disabled={isAssigned}
+                                >
+                                  Week {weekNum} {isAssigned && "(Assigned)"}
+                                </SelectItem>
+                              );
+                            })}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    ))}
+                    <div className="flex gap-2 pt-2">
+                      <Button
+                        size="sm"
+                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                        onClick={() => setPendingAction("appeal")}
+                      >
+                        Submit Appeal
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="flex-1"
+                        onClick={() => setIsAppealing(false)}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {user_plan.status === "appeal_pending" && (
+              <div className="bg-purple-50 border border-purple-200 p-3 rounded-lg mb-4">
+                <p className="text-xs text-purple-800 font-medium flex items-center">
+                  <Timer className="w-4 h-4 inline mr-2 animate-spin" />
+                  Your appeal is pending admin review.
+                </p>
+              </div>
+            )}
+
+            {turnCount > 0 ? (
+              isMyTurn ? (
+                arrears > 0 || loan > 0 ? (
+                  <>
+                    <Button
+                      className="w-full font-semibold bg-emerald-600 hover:bg-emerald-700 text-white"
+                      onClick={() => setShowArrearsPrompt(true)}
+                      disabled={withdrawing || user_plan.status !== "active"}
+                    >
+                      {withdrawing ? "Processing..." : "Settle Arrears & Withdraw"}
+                    </Button>
+
+                    <AlertDialog open={showArrearsPrompt} onOpenChange={setShowArrearsPrompt}>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Outstanding Balance Detected</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            You have an outstanding balance (Arrears/Loans) of ₦
+                            {formatCurrency(arrears + loan)}. Do you want to automatically deduct
+                            this amount and settle the remaining payout to your wallet?
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <a
+                            href="https://wa.me/+2349074049667?text=Hello%20Admin,%20I%20have%20an%20issue%20with%20my%20Ajo%20payout%20and%20arrears."
+                            target="_blank" rel="noopener noreferrer"
+                            rel="noreferrer"
+                            className="w-full sm:w-auto"
+                          >
+                            <Button
+                              variant="outline"
+                              className="w-full bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200"
+                            >
+                              Contact Admin
+                            </Button>
+                          </a>
+                          <Button
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                            onClick={async () => {
+                              setShowArrearsPrompt(false);
+                              if (onWithdraw) {
+                                setWithdrawing(true);
+                                await onWithdraw();
+                                setWithdrawing(false);
+                              }
+                            }}
+                          >
+                            Yes, Withdraw & Settle
+                          </Button>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </>
+                ) : (
+                  <Button
+                    disabled
+                    variant="outline"
+                    className="w-full bg-emerald-50 text-emerald-700 border-emerald-200"
+                  >
+                    <Timer className="w-4 h-4 mr-2 animate-spin" />
+                    Auto-Settling to Wallet...
+                  </Button>
+                )
               ) : (
                 <Button
                   disabled
-                  variant="outline"
+                  variant="ghost"
                   className="w-full bg-emerald-50 text-emerald-700 border-emerald-200"
                 >
-                  <Timer className="w-4 h-4 mr-2 animate-spin" />
-                  Auto-Settling to Wallet...
+                  <CheckCircle className="w-4 h-4 mr-2 text-emerald-600" />
+                  Withdrawn ₦{formatCurrency(getPayoutForAmt(fixedAmount))}
                 </Button>
               )
             ) : (
               <Button
-                disabled
+                className="w-full bg-gray-100 text-gray-400 border border-gray-200 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-500 cursor-not-allowed"
                 variant="ghost"
-                className="w-full bg-emerald-50 text-emerald-700 border-emerald-200"
+                disabled
               >
-                <CheckCircle className="w-4 h-4 mr-2 text-emerald-600" />
-                Withdrawn ₦{formatCurrency(getPayoutForAmt(fixedAmount))}
+                <Lock className="w-3.5 h-3.5 mr-2" /> Payout Locked
               </Button>
-            )
-          ) : (
-            <Button
-              className="w-full bg-gray-100 text-gray-400 border border-gray-200 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-500 cursor-not-allowed"
-              variant="ghost"
-              disabled
-            >
-              <Lock className="w-3.5 h-3.5 mr-2" /> Payout Locked
-            </Button>
-          )}
+            )}
 
-          {(!weekPaid && user_plan.status === "active") ? (
-            <Button
-              className="w-full bg-gray-900 hover:bg-gray-800 text-white dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200 font-semibold"
-              onClick={onDeposit}
-            >
-              Pay Weekly
-            </Button>
-          ) : (weekPaid && user_plan.status === "active") ? (
-            <Button
-              variant="secondary"
-              className="w-full bg-orange-50 text-orange-700 hover:bg-orange-100 border border-orange-200 font-bold"
-              onClick={onAdvanceDeposit}
-            >
-              Pay in Advance
-            </Button>
-          ) : null}
-          {(user_plan.status === "pending_activation" || user_plan.status === "pending_turn_approval") && onLeave && (
-            <Button
-              variant="ghost"
-              className="w-full text-red-600 hover:text-red-700 hover:bg-red-50 text-xs font-semibold"
-              onClick={onLeave}
-            >
-              Leave Plan
-            </Button>
-          )}
-        </CardFooter>
-      </Card>
-      
-      <AlertDialog open={!!pendingAction} onOpenChange={(open) => !open && setPendingAction(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {pendingAction === "accept" && "Accept Reassigned Turns?"}
-              {pendingAction === "reject" && "Reject and Leave Plan?"}
-              {pendingAction === "appeal" && "Submit Appeal?"}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {pendingAction === "accept" && "Are you sure you want to accept the turns assigned by the Admin? Your plan will become fully active."}
-              {pendingAction === "reject" && "Are you sure you want to reject the reassigned turns? You will leave this plan."}
-              {pendingAction === "appeal" && "Are you sure you want to submit this appeal for your new preferred turns? The admin will review it."}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              className={pendingAction === "reject" ? "bg-red-600 hover:bg-red-700 text-white" : "bg-emerald-600 hover:bg-emerald-700 text-white"}
-              onClick={handleConfirmAction}
-            >
-              Confirm
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+            {!weekPaid && user_plan.status === "active" ? (
+              <Button
+                className="w-full bg-gray-900 hover:bg-gray-800 text-white dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200 font-semibold"
+                onClick={onDeposit}
+              >
+                Pay Weekly
+              </Button>
+            ) : weekPaid && user_plan.status === "active" ? (
+              <Button
+                variant="secondary"
+                className="w-full bg-orange-50 text-orange-700 hover:bg-orange-100 border border-orange-200 font-bold"
+                onClick={onAdvanceDeposit}
+              >
+                Pay in Advance
+              </Button>
+            ) : null}
+            {(user_plan.status === "pending_activation" ||
+              user_plan.status === "pending_turn_approval") &&
+              onLeave && (
+                <Button
+                  variant="ghost"
+                  className="w-full text-red-600 hover:text-red-700 hover:bg-red-50 text-xs font-semibold"
+                  onClick={onLeave}
+                >
+                  Leave Plan
+                </Button>
+              )}
+          </CardFooter>
+        </Card>
+
+        <AlertDialog
+          open={!!pendingAction}
+          onOpenChange={(open) => !open && setPendingAction(null)}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                {pendingAction === "accept" && "Accept Reassigned Turns?"}
+                {pendingAction === "reject" && "Reject and Leave Plan?"}
+                {pendingAction === "appeal" && "Submit Appeal?"}
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                {pendingAction === "accept" &&
+                  "Are you sure you want to accept the turns assigned by the Admin? Your plan will become fully active."}
+                {pendingAction === "reject" &&
+                  "Are you sure you want to reject the reassigned turns? You will leave this plan."}
+                {pendingAction === "appeal" &&
+                  "Are you sure you want to submit this appeal for your new preferred turns? The admin will review it."}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                className={
+                  pendingAction === "reject"
+                    ? "bg-red-600 hover:bg-red-700 text-white"
+                    : "bg-emerald-600 hover:bg-emerald-700 text-white"
+                }
+                onClick={handleConfirmAction}
+              >
+                Confirm
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </>
     );
   }
@@ -660,7 +755,8 @@ export function AjoPlanCard({
             <strong>₦{formatCurrency(getTotalWeeklyContribution())}</strong> every week. In return,
             you will receive <strong>₦{formatCurrency(getTotalPayout())}</strong> total.
             <span className="block mt-2 text-amber-600 font-bold bg-amber-50 dark:bg-amber-900/10 p-2 rounded border border-amber-100 dark:border-amber-800/50">
-              <Lock className="w-3 h-3 inline mr-1" /> Admin will review your proposed turns after your first payment.
+              <Lock className="w-3 h-3 inline mr-1" /> Admin will review your proposed turns after
+              your first payment.
             </span>
           </p>
         </div>

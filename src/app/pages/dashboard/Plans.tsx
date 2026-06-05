@@ -247,7 +247,15 @@ export function Plans() {
     )
     .sort((a, b) => {
       // Prioritize Active > Pending > Matured (Descending Weight)
-      const statusWeight = { active: 6, turn_reassigned: 5, appeal_pending: 4, pending_turn_approval: 3, pending_activation: 2, matured: 1, completed: 0 };
+      const statusWeight = {
+        active: 6,
+        turn_reassigned: 5,
+        appeal_pending: 4,
+        pending_turn_approval: 3,
+        pending_activation: 2,
+        matured: 1,
+        completed: 0,
+      };
       const weightA = statusWeight[a.status as keyof typeof statusWeight] || 0;
       const weightB = statusWeight[b.status as keyof typeof statusWeight] || 0;
 

@@ -35,26 +35,23 @@ export function MarathonAdminView({ plan }: MarathonAdminViewProps) {
   const [subscribers, setSubscribers] = useState<UserPlanWithProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
-
   useEffect(() => {
+    async function fetchSubscribers() {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("user_plans")
+        .select("*, profiles(full_name, email)")
+        .eq("plan_id", plan.id)
+        .order("created_at", { ascending: false });
+
+      if (!error && data) {
+        setSubscribers(data as any);
+      }
+      setLoading(false);
+    }
+
     fetchSubscribers();
   }, [plan.id]);
-
-  async function fetchSubscribers() {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from("user_plans")
-      .select("*, profiles(full_name, email)")
-      .eq("plan_id", plan.id)
-      .order("created_at", { ascending: false });
-
-    if (!error && data) {
-      setSubscribers(data as any);
-    }
-    setLoading(false);
-  }
 
 
   const formatCurrency = (val: number) =>
@@ -82,7 +79,6 @@ export function MarathonAdminView({ plan }: MarathonAdminViewProps) {
           <p className="text-sm text-emerald-700">Manual triggers. (30 or 48 Weeks)</p>
         </div>
       </div>
-
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>

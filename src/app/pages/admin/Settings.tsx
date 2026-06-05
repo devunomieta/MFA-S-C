@@ -221,7 +221,6 @@ export function AdminSettings() {
   }
 
   async function saveSettings(key: string, value: any) {
-
     try {
       const { error } = await supabase
         .from("app_settings")
@@ -509,14 +508,17 @@ export function AdminSettings() {
               <div className="flex justify-end pt-4 border-t">
                 <Button
                   onClick={() =>
-                    saveSettings("general", { ...general, logo_url: logoUrl, favicon_url: faviconUrl })
+                    saveSettings("general", {
+                      ...general,
+                      logo_url: logoUrl,
+                      favicon_url: faviconUrl,
+                    })
                   }
                   className="bg-emerald-600 hover:bg-emerald-700"
                 >
                   <Save className="w-4 h-4 mr-2" /> Save Branding
                 </Button>
               </div>
-
             </CardContent>
           </Card>
         </TabsContent>

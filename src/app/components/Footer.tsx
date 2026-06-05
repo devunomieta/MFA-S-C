@@ -205,8 +205,7 @@ export function Footer() {
             <div className="flex gap-3">
               <a
                 href="https://instagram.com/marysthriftservices"
-                target="_blank"
-                rel="noopener noreferrer"
+                target="_blank" rel="noopener noreferrer"
                 aria-label="Instagram"
                 className="w-9 h-9 rounded-xl bg-slate-900 flex items-center justify-center border border-slate-800 hover:border-emerald-500/50 hover:text-white transition-all"
               >
@@ -214,8 +213,7 @@ export function Footer() {
               </a>
               <a
                 href="https://tiktok.com/@marysthriftservices"
-                target="_blank"
-                rel="noopener noreferrer"
+                target="_blank" rel="noopener noreferrer"
                 aria-label="TikTok"
                 className="w-9 h-9 rounded-xl bg-slate-900 flex items-center justify-center border border-slate-800 hover:border-emerald-500/50 hover:text-white transition-all"
               >
@@ -232,8 +230,7 @@ export function Footer() {
           </p>
           <a
             href="https://devunomieta.xyz"
-            target="_blank"
-            rel="noopener noreferrer"
+            target="_blank" rel="noopener noreferrer"
             className="font-medium text-slate-600 hover:text-slate-400 transition-colors tracking-wide order-last sm:order-none"
           >
             Developed by{" "}

@@ -16,8 +16,7 @@ export function WhatsAppFloating() {
     >
       <a
         href={whatsappUrl}
-        target="_blank"
-        rel="noopener noreferrer"
+        target="_blank" rel="noopener noreferrer"
         className="flex items-center justify-center w-14 h-14 bg-[#25D366] text-white rounded-full shadow-2xl hover:bg-[#128C7E] transition-colors relative group"
         aria-label="Contact on WhatsApp"
       >

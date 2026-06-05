@@ -73,7 +73,6 @@ export function StepUpAdminView({ plan }: StepUpAdminViewProps) {
     }
   }
 
-
   const formatCurrency = (val: number) =>
     new Intl.NumberFormat("en-US", { style: "currency", currency: "NGN" }).format(val);
 
@@ -121,7 +120,6 @@ export function StepUpAdminView({ plan }: StepUpAdminViewProps) {
         variant="destructive"
         isLoading={isProcessing}
       />
-
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>

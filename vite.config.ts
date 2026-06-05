@@ -1,3 +1,4 @@
+/// <reference types="vitest" />
 import path from "path";
 
 import tailwindcss from "@tailwindcss/vite";
@@ -42,6 +43,11 @@ export default defineConfig({
       // Alias @ to the src directory
       "@": path.resolve(__dirname, "./src"),
     },
+  },
+  test: {
+    globals: true,
+    environment: "jsdom",
+    setupFiles: "./src/setupTests.ts",
   },
   build: {
     rollupOptions: {
