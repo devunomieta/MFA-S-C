@@ -18,6 +18,14 @@ export function VerifyOTP() {
   const [otp, setOtp] = useState("");
   const [resending, setResending] = useState(false);
   const [email, setEmail] = useState("");
+  const [cooldown, setCooldown] = useState(0);
+
+  useEffect(() => {
+    if (cooldown > 0) {
+      const timer = setTimeout(() => setCooldown(cooldown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [cooldown]);
 
   useEffect(() => {
     const state = location.state as { email?: string };
@@ -73,7 +81,7 @@ export function VerifyOTP() {
   };
 
   const handleResend = async () => {
-    if (!email) return;
+    if (!email || cooldown > 0) return;
     setResending(true);
     try {
       const { error } = await supabase.auth.resend({
@@ -82,6 +90,7 @@ export function VerifyOTP() {
       });
       if (error) throw error;
       toast.success("New code sent to your email");
+      setCooldown(60);
     } catch (error: any) {
       toast.error(error.message || "Failed to resend code");
     } finally {
@@ -124,6 +133,12 @@ export function VerifyOTP() {
             title="Verify Account"
             subtitle={`We've sent a 6-digit security code to ${email || "your email"}`}
           />
+
+          <div className="mb-6 p-4 bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200/50 dark:border-emerald-800/30 rounded-2xl text-center">
+            <p className="text-xs text-emerald-800 dark:text-emerald-300 font-medium leading-relaxed">
+              🔑 Retrieve the <strong>6-digit OTP code</strong> from your email inbox to complete signup, or simply click the <strong>confirmation link</strong> inside the email to verify automatically.
+            </p>
+          </div>
 
           <div className="flex flex-col items-center space-y-8">
             <div className="space-y-4 w-full flex flex-col items-center">
@@ -188,7 +203,7 @@ export function VerifyOTP() {
             <div className="text-center">
               <button
                 onClick={handleResend}
-                disabled={resending}
+                disabled={resending || cooldown > 0}
                 className="inline-flex items-center gap-2 text-sm font-bold text-emerald-600 hover:text-emerald-500 transition-colors disabled:opacity-50"
               >
                 {resending ? (
@@ -196,7 +211,7 @@ export function VerifyOTP() {
                 ) : (
                   <RefreshCw className="size-4" />
                 )}
-                Resend Code
+                {cooldown > 0 ? `Resend Code (${cooldown}s)` : "Resend Code"}
               </button>
             </div>
           </div>

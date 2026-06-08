@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 import { Check, X, Eye, ShieldCheck, Banknote, Mail, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
+import { notificationDispatcher } from "@/lib/notificationDispatcher";
 
 import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
@@ -76,16 +77,25 @@ export function AdminApprovals() {
   }
 
   // --- KYC ACTIONS ---
-  async function handleKycAction(userId: string, action: "verified" | "rejected") {
+  async function handleKycAction(req: any, action: "verified" | "rejected") {
     const { error } = await supabase
       .from("profiles")
       .update({ gov_id_status: action })
-      .eq("id", userId);
+      .eq("id", req.id);
 
     if (error) {
       toast.error("Failed to update KYC status");
     } else {
       toast.success(`KYC ${action === "verified" ? "Approved" : "Rejected"}`);
+      
+      await notificationDispatcher.sendAlert({
+        userId: req.id,
+        email: req.email,
+        type: "profile",
+        title: `KYC Verification ${action === "verified" ? "Approved" : "Rejected"}`,
+        message: `Your identity verification (KYC) request has been ${action === "verified" ? "approved successfully" : "rejected by the administrator"}.`
+      });
+
       fetchKycRequests();
     }
   }
@@ -114,6 +124,15 @@ export function AdminApprovals() {
       if (updateError) throw updateError;
 
       toast.success(`Bank Request ${action === "approved" ? "Approved" : "Rejected"}`);
+      
+      await notificationDispatcher.sendAlert({
+        userId: request.user_id,
+        email: request.profile?.email,
+        type: "profile",
+        title: `Bank Change Request ${action === "approved" ? "Approved" : "Rejected"}`,
+        message: `Your request to add bank account ${request.bank_name} (${request.account_number}) has been ${action === "approved" ? "approved and linked successfully" : "rejected"}.`
+      });
+
       fetchBankRequests();
     } catch (error: any) {
       console.error(error);
@@ -140,6 +159,15 @@ export function AdminApprovals() {
       toast.success(
         `Request ${action === "approved" ? "Approved" : "Rejected"}. ${action === "approved" ? "Please manually update the email in Supabase Auth Dashboard." : ""}`,
       );
+
+      await notificationDispatcher.sendAlert({
+        userId: request.user_id,
+        email: request.profile?.email,
+        type: "profile",
+        title: `Email Change Request ${action === "approved" ? "Approved" : "Rejected"}`,
+        message: `Your request to change your email address to ${request.new_email} has been ${action === "approved" ? "approved" : "rejected by the administrator"}.`
+      });
+
       fetchEmailRequests();
 
       // Log Activity
@@ -269,13 +297,13 @@ export function AdminApprovals() {
                       <Button
                         variant="outline"
                         className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
-                        onClick={() => handleKycAction(req.id, "rejected")}
+                        onClick={() => handleKycAction(req, "rejected")}
                       >
                         <X className="w-4 h-4 mr-2" /> Reject
                       </Button>
                       <Button
                         className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                        onClick={() => handleKycAction(req.id, "verified")}
+                        onClick={() => handleKycAction(req, "verified")}
                       >
                         <Check className="w-4 h-4 mr-2" /> Approve
                       </Button>
@@ -448,7 +476,6 @@ export function AdminApprovals() {
                       <a
                         href="https://supabase.com/dashboard/project/_/auth/users"
                         target="_blank" rel="noopener noreferrer"
-                        rel="noreferrer"
                         className="text-xs text-blue-600 flex items-center gap-1 hover:underline"
                       >
                         <ExternalLink className="w-3 h-3" />

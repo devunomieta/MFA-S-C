@@ -24,6 +24,7 @@ import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
 import { Dialog } from "@/app/components/ui/dialog";
 import { useAuth } from "@/app/context/AuthContext";
+import { notificationDispatcher } from "@/lib/notificationDispatcher";
 import { unslugify, slugify } from "@/lib/slug";
 import { supabase } from "@/lib/supabase";
 import { Plan, UserPlan } from "@/types";
@@ -146,6 +147,17 @@ export function PlanDetailsPage() {
 
       if (error) throw error;
       toast.success("Successfully joined the plan! Make your first deposit to activate.");
+
+      if (user.email && plan) {
+        await notificationDispatcher.sendAlert({
+          userId: user.id,
+          email: user.email,
+          type: "plan",
+          title: `Welcome to the ${plan.name} Plan!`,
+          message: `You have successfully joined the "${plan.name}" savings plan. Make your first deposit/contribution to activate and start saving.`,
+        });
+      }
+
       fetchPlanDetails();
       setSelectedPlanForDeposit({ id: planId });
     } catch (err: any) {
@@ -189,6 +201,17 @@ export function PlanDetailsPage() {
 
       if (error) throw error;
       toast.success("Joined Ajo Plan! Make your first cycle payment to submit for review.");
+
+      if (user.email && plan) {
+        await notificationDispatcher.sendAlert({
+          userId: user.id,
+          email: user.email,
+          type: "plan",
+          title: `Welcome to the ${plan.name} Plan!`,
+          message: `You have successfully joined the "${plan.name}" Ajo plan. Make your first cycle payment to activate and submit for review.`,
+        });
+      }
+
       fetchPlanDetails();
       setSelectedPlanForDeposit({ id: planId });
     } catch (err: any) {

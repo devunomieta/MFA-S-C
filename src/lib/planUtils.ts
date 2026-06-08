@@ -1,4 +1,5 @@
 import { SupabaseClient } from "@supabase/supabase-js";
+import { notificationDispatcher } from "./notificationDispatcher";
 
 export interface PlanMaturityStatus {
   isMatured: boolean;
@@ -52,7 +53,7 @@ export function calculateMaturity(
 export async function checkAndProcessMaturity(supabase: SupabaseClient, userPlans: any[]) {
   const maturedPlans = userPlans.filter((up) => {
     if (up.status !== "active") return false;
-    const status = calculateMaturity(up.start_date, up.plan.config?.duration_weeks || 1);
+    const status = calculateMaturity(up.start_date, up.plan?.config?.duration_weeks || 1);
     if (!status) {
       // Handle null return from calculateMaturity
       return false;
@@ -65,6 +66,32 @@ export async function checkAndProcessMaturity(supabase: SupabaseClient, userPlan
     const { error } = await supabase.from("user_plans").update({ status: "matured" }).in("id", ids);
 
     if (error) return false;
+
+    // Send notifications for matured plans
+    try {
+      const userId = maturedPlans[0].user_id;
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("email")
+        .eq("id", userId)
+        .single();
+        
+      if (profile?.email) {
+        for (const up of maturedPlans) {
+          const planName = up.plan?.name || up.plans?.name || "Savings Plan";
+          await notificationDispatcher.sendAlert({
+            userId,
+            email: profile.email,
+            type: "plan",
+            title: `Plan Maturity Alert: ${planName}`,
+            message: `Your savings plan "${planName}" has matured! The balance of $${Number(up.current_balance).toLocaleString()} is now ready for withdrawal or roll-over.`
+          });
+        }
+      }
+    } catch (notifError) {
+      console.error("Maturity notification error:", notifError);
+    }
+
     return true; // Indicates updates were made
   }
   return false;

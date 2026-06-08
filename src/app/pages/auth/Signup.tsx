@@ -26,7 +26,6 @@ export function Signup() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    phone: "",
     password: "",
     confirmPassword: "",
     website: "", // Honeypot
@@ -74,7 +73,6 @@ export function Signup() {
           captchaToken: captchaToken.response,
           data: {
             full_name: formData.name,
-            phone: formData.phone,
           },
         },
       });
@@ -83,35 +81,14 @@ export function Signup() {
 
       if (error) throw error;
 
-      if (data.session || data.user) {
-        const user = data.user!;
-        logActivity({
-          userId: user.id,
-          action: "USER_JOIN",
-          details: { display_name: formData.name.split(" ")[0], full_name: formData.name },
-          isPublic: true,
-        });
-
-        toast.success("Welcome to the community!");
-
-        if (joinPlanId) {
-          navigate(`/dashboard/plans?join=${joinPlanId}`);
-        } else {
-          let isAdmin = false;
-          try {
-            const { data: isRpcAdmin } = await supabase.rpc("is_admin_check", {
-              p_email: user.email,
-            });
-            if (isRpcAdmin) isAdmin = true;
-          } catch (adminError) {
-            console.warn("Signup admin check failed:", adminError);
-          }
-          navigate(isAdmin ? "/admin" : "/dashboard");
+      toast.info(
+        "Verification code sent! Please retrieve the 6-digit OTP from your email to complete signup or click the confirmation link.",
+        {
+          duration: 15000,
         }
-      } else {
-        toast.success("Check your email to verify your account!");
-        navigate("/login");
-      }
+      );
+
+      navigate("/verify-otp", { state: { email: formData.email } });
     } catch (error: any) {
       console.error("Signup Error:", error);
       captchaRef.current?.resetCaptcha();
@@ -195,6 +172,9 @@ export function Signup() {
               </span>
               <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
             </div>
+            <p className="text-[11px] text-center text-slate-500 font-medium leading-normal -mt-2">
+              Note: You will be asked to add your phone number during onboarding. It is recommended to use your WhatsApp-enabled number.
+            </p>
           </div>
 
           <form className="space-y-6" onSubmit={handleSubmit}>
@@ -241,27 +221,7 @@ export function Signup() {
                   />
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label
-                  htmlFor="phone"
-                  className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1"
-                >
-                  Phone Number
-                </Label>
-                <div className="relative">
-                  <Phone className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-slate-400" />
-                  <Input
-                    id="phone"
-                    name="phone"
-                    type="tel"
-                    required
-                    className="h-14 pl-12 rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-base text-slate-900 dark:text-white"
-                    placeholder="+234..."
-                    value={formData.phone}
-                    onChange={handleChange}
-                  />
-                </div>
-              </div>
+
               {/* Honeypot */}
               <div className="hidden" aria-hidden="true">
                 <Input

@@ -30,6 +30,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/ta
 import { TransactionDetailsModal } from "@/app/components/wallet/TransactionDetailsModal";
 import { useAuth } from "@/app/context/AuthContext";
 import { checkAndProcessMaturity } from "@/lib/planUtils";
+import { notificationDispatcher } from "@/lib/notificationDispatcher";
 import { supabase } from "@/lib/supabase";
 import { formatNaira, formatCurrency } from "@/lib/utils";
 import { calculateBalance } from "@/lib/walletUtils";
@@ -343,8 +344,29 @@ export function Wallet() {
       if (data?.success) {
         if (target === "bank") {
           toast.info("Withdrawal request submitted for Admin Approval.");
+
+          if (user?.email) {
+            await notificationDispatcher.sendAlert({
+              userId: user.id,
+              email: user.email,
+              type: "transaction",
+              title: "Withdrawal Request Submitted",
+              message: `Your request to withdraw ₦${formatCurrency(finalAmount)} to your bank account has been submitted and is pending admin approval.`,
+            });
+          }
         } else {
           toast.success("Transaction processed successfully!");
+
+          if (user?.email) {
+            const planName = target === "wallet" ? "General Wallet" : "Savings Plan";
+            await notificationDispatcher.sendAlert({
+              userId: user.id,
+              email: user.email,
+              type: "transaction",
+              title: "Funds Transferred Successfully",
+              message: `You have successfully transferred ₦${formatCurrency(finalAmount)} from your matured plans to your ${planName}.`,
+            });
+          }
         }
       }
     } catch (error: any) {
@@ -452,6 +474,17 @@ export function Wallet() {
     toast.success(
       `Loan Repayment Processed! ${amountToUser > 0 ? `₦${amountToUser} withdrawn.` : ""}`,
     );
+
+    // Trigger notification for loan payment from matured plans
+    if (user?.email) {
+      await notificationDispatcher.sendAlert({
+        userId: user.id,
+        email: user.email,
+        type: "loan",
+        title: "Loan Payment Processed",
+        message: `An auto-allocation of ₦${formatCurrency(amountToLoan)} from your matured plan has been successfully applied to your loan (${activeLoan.loan_number}). Remaining loan debt is ₦${formatCurrency(newLoanBalance)}.`,
+      });
+    }
 
     setOpen(false);
     setAmount("");

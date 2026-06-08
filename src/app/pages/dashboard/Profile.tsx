@@ -52,6 +52,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/ta
 import { useAuth } from "@/app/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { validateFile, validatePassword } from "@/lib/validation";
+import { notificationDispatcher } from "@/lib/notificationDispatcher";
 
 export function Profile() {
   const { user } = useAuth();
@@ -236,6 +237,13 @@ export function Profile() {
         console.error(error);
       } else {
         toast.success("Bank account request submitted for approval");
+        await notificationDispatcher.sendAlert({
+          userId: user?.id || "",
+          email: profile.email,
+          type: "profile",
+          title: "Bank Change Request Submitted",
+          message: `Your request to add bank account ${newBank.bank_name} (${newBank.account_number}) has been submitted for admin approval.`
+        });
         setNewBank({ bank_name: "", account_number: "", account_name: "" });
         fetchBankRequests();
       }
@@ -253,6 +261,13 @@ export function Profile() {
         console.error(error);
       } else {
         toast.success("Bank account added successfully");
+        await notificationDispatcher.sendAlert({
+          userId: user?.id || "",
+          email: profile.email,
+          type: "profile",
+          title: "Bank Account Added",
+          message: `A new bank account ${newBank.bank_name} (${newBank.account_number}) has been successfully linked to your profile.`
+        });
         setNewBank({ bank_name: "", account_number: "", account_name: "" });
         fetchBankAccounts();
 
@@ -317,6 +332,14 @@ export function Profile() {
       fetchBankAccounts();
       cancelEditing();
 
+      await notificationDispatcher.sendAlert({
+        userId: user?.id || "",
+        email: profile.email,
+        type: "profile",
+        title: "Bank Account Details Updated",
+        message: `Your linked bank account details for ${editBankData.bank_name} (${editBankData.account_number}) have been successfully updated.`
+      });
+
       // Log Activity
       supabase.from("activity_logs").insert({
         user_id: user?.id,
@@ -339,7 +362,19 @@ export function Profile() {
       toast.error("Failed to remove bank account");
     } else {
       toast.success("Bank account removed");
+
+      const deletedBank = bankAccounts.find((acc) => acc.id === bankToDelete);
+      const bankNameInfo = deletedBank ? `${deletedBank.bank_name} (${deletedBank.account_number})` : "A bank account";
+
       setBankAccounts(bankAccounts.filter((acc) => acc.id !== bankToDelete));
+
+      await notificationDispatcher.sendAlert({
+        userId: user?.id || "",
+        email: profile.email,
+        type: "profile",
+        title: "Bank Account Removed",
+        message: `${bankNameInfo} has been successfully removed from your profile.`
+      });
 
       // Log Activity
       supabase.from("activity_logs").insert({
@@ -391,7 +426,15 @@ export function Profile() {
       });
 
       setOriginalName(profile.full_name);
+      
       if (nameChanged) {
+        await notificationDispatcher.sendAlert({
+          userId: user?.id || "",
+          email: profile.email,
+          type: "profile",
+          title: "Profile Name Changed",
+          message: `Your name on Mary's Thrift has been successfully updated from "${originalName}" to "${profile.full_name}".`
+        });
         fetchNameHistory();
         supabase.from("activity_logs").insert({
           user_id: user?.id,
@@ -399,6 +442,16 @@ export function Profile() {
           details: { old: originalName, new: profile.full_name },
         });
       } else {
+        const phoneChanged = profile.phone !== (user?.phone || user?.user_metadata?.phone || "");
+        if (phoneChanged) {
+          await notificationDispatcher.sendAlert({
+            userId: user?.id || "",
+            email: profile.email,
+            type: "profile",
+            title: "Phone Number Updated",
+            message: `Your phone number on Mary's Thrift has been successfully updated to ${profile.phone}.`
+          });
+        }
         supabase.from("activity_logs").insert({
           user_id: user?.id,
           action: "PROFILE_UPDATE",
@@ -488,6 +541,14 @@ export function Profile() {
       setNewEmail("");
       setEmailPassword("");
 
+      await notificationDispatcher.sendAlert({
+        userId: user?.id || "",
+        email: profile.email,
+        type: "profile",
+        title: "Email Change Initiated",
+        message: `A request to change your email address to ${newEmail} has been initiated. Check both your old and new email addresses to confirm.`
+      });
+
       // Log Activity
       supabase.from("activity_logs").insert({
         user_id: user?.id,
@@ -568,6 +629,14 @@ export function Profile() {
       setManualEmail("");
       setLivePhoto(null);
 
+      await notificationDispatcher.sendAlert({
+        userId: user?.id || "",
+        email: profile.email,
+        type: "profile",
+        title: "Manual Email Change Request Submitted",
+        message: `Your manual request to change your account email address to ${manualEmail} has been submitted for admin approval.`
+      });
+
       // Log Activity
       supabase.from("activity_logs").insert({
         user_id: user?.id,
@@ -632,6 +701,14 @@ export function Profile() {
       setCodeRequested(false);
       setShowPasswordForm(false);
       setUpdatingPassword(false);
+
+      await notificationDispatcher.sendAlert({
+        userId: user?.id || "",
+        email: profile.email,
+        type: "profile",
+        title: "Account Password Changed",
+        message: "Your account password has been successfully updated. If you did not make this change, please contact support immediately."
+      });
     }
   }
 
@@ -740,6 +817,13 @@ export function Profile() {
       if (updateError) throw updateError;
 
       toast.success("ID Uploaded! Verification pending.");
+      await notificationDispatcher.sendAlert({
+        userId: user?.id || "",
+        email: profile.email,
+        type: "profile",
+        title: "KYC ID Document Uploaded",
+        message: "Your KYC identity document has been uploaded successfully and is currently pending review by administrators."
+      });
       setPreviewUrl(null);
 
       // Log Activity

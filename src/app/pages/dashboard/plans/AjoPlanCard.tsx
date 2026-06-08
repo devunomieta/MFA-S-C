@@ -444,7 +444,6 @@ export function AjoPlanCard({
                           <a
                             href="https://wa.me/+2349074049667?text=Hello%20Admin,%20I%20have%20an%20issue%20with%20my%20Ajo%20payout%20and%20arrears."
                             target="_blank" rel="noopener noreferrer"
-                            rel="noreferrer"
                             className="w-full sm:w-auto"
                           >
                             <Button

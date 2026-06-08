@@ -19,6 +19,7 @@ import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { PasswordStrength } from "@/app/components/ui/PasswordStrength";
 import { useAuth } from "@/app/context/AuthContext";
+import { notificationDispatcher } from "@/lib/notificationDispatcher";
 import { supabase } from "@/lib/supabase";
 import { validatePassword } from "@/lib/validation";
 
@@ -52,6 +53,17 @@ export function SecurityOnboarding({ onComplete }: SecurityOnboardingProps) {
         .eq("id", user?.id);
 
       if (error) throw error;
+
+      // Send Welcome Message
+      if (user?.id && user?.email) {
+        await notificationDispatcher.sendAlert({
+          userId: user.id,
+          email: user.email,
+          type: "profile",
+          title: "Welcome to Mary's Thrift Services!",
+          message: "Thank you for securing your account and completing your onboarding. We are thrilled to have you here! You can now start depositing funds, joining plans, and borrowing loans. Welcome aboard!",
+        });
+      }
 
       setStep("success");
       setTimeout(() => {
@@ -243,6 +255,9 @@ export function SecurityOnboarding({ onComplete }: SecurityOnboardingProps) {
                     onChange={(e) => setPhone(e.target.value)}
                     className="h-12 rounded-xl dark:bg-slate-800 dark:border-slate-700"
                   />
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 italic leading-normal">
+                    💡 <strong>Recommendation:</strong> Use a WhatsApp-enabled number to receive deposit, withdrawal, approval, and plan alerts directly on WhatsApp.
+                  </p>
                 </div>
 
                 <Button

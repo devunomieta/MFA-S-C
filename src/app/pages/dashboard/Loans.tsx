@@ -34,6 +34,7 @@ import {
   TableRow,
 } from "@/app/components/ui/table";
 import { useAuth } from "@/app/context/AuthContext";
+import { notificationDispatcher } from "@/lib/notificationDispatcher";
 import { supabase } from "@/lib/supabase";
 import { calculateBalance } from "@/lib/walletUtils";
 
@@ -286,6 +287,18 @@ export function Loans() {
       } else {
         toast.success("Loan requested successfully!");
       }
+
+      // Trigger notification for loan request
+      if (user.email) {
+        await notificationDispatcher.sendAlert({
+          userId: user.id,
+          email: user.email,
+          type: "loan",
+          title: "Loan Application Submitted",
+          message: `Your application for a loan of ₦${formatCurrency(loanAmount)} has been submitted successfully. It is currently under review by administrators.`,
+        });
+      }
+
       setOpen(false);
       setAmount("");
       fetchLoans();
@@ -330,6 +343,18 @@ export function Loans() {
     toast.success(
       `Repayment submitted! Payment of ₦${formatCurrency(amountToRepay)} is being processed.`,
     );
+
+    // Trigger notification for loan repayment
+    if (user?.email) {
+      await notificationDispatcher.sendAlert({
+        userId: user.id,
+        email: user.email,
+        type: "loan",
+        title: "Loan Repayment Received",
+        message: `Your repayment of ₦${formatCurrency(amountToRepay)} for loan number ${selectedLoan.loan_number || "Loan"} has been successfully processed.`,
+      });
+    }
+
     setRepayOpen(false);
     setRepayAmount("");
     setSelectedLoan(null);

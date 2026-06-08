@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from "@/app/components/ui/select";
 import { supabase } from "@/lib/supabase";
+import { notificationDispatcher } from "@/lib/notificationDispatcher";
 
 export function AdminLoans() {
   const [loans, setLoans] = useState<any[]>([]);
@@ -49,6 +50,18 @@ export function AdminLoans() {
       toast.error(`Failed to ${action} loan`);
     } else {
       toast.success(`Loan ${action}ed successfully`);
+      
+      const loan = loans.find((l) => l.id === loanId);
+      if (loan) {
+        await notificationDispatcher.sendAlert({
+          userId: loan.user_id,
+          email: loan.profile?.email,
+          type: "loan",
+          title: `Loan Application ${action === "approve" ? "Approved" : "Rejected"}`,
+          message: `Your application for loan number ${loan.loan_number} of ₦${Number(loan.amount).toLocaleString()} has been ${action === "approve" ? "approved and disbursed to your wallet" : "rejected"}.`
+        });
+      }
+
       fetchLoans(); // Refresh
 
       // If approved, strictly speaking we should probably disburse funds via transaction?

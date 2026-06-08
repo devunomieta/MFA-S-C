@@ -29,3 +29,6 @@ __tests__/
 src/setupTests.ts
 vitest.config.ts
 src/test-utils.tsx
+
+# Supabase CLI local cache
+supabase/.temp/

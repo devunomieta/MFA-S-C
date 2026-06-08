@@ -20,6 +20,7 @@ import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
 import { supabase } from "@/lib/supabase";
+import { notificationDispatcher } from "@/lib/notificationDispatcher";
 
 import { AdminTransactionDetails } from "./AdminTransactionDetails";
 
@@ -190,6 +191,15 @@ export function AdminTransactions() {
       if (statusError) throw statusError;
 
       toast.success(`Transaction ${action}ed`);
+      
+      await notificationDispatcher.sendAlert({
+        userId: tx.user_id,
+        email: tx.profile?.email,
+        type: "transaction",
+        title: `Transaction ${action === "confirm" ? "Approved" : "Rejected"}`,
+        message: `Your ${tx.type} of ₦${Number(tx.amount).toLocaleString()} for ${tx.plan?.name || "General Wallet"} has been ${action === "confirm" ? "approved and completed" : "rejected"}.`
+      });
+
       fetchTransactions();
     } catch (err: any) {
       toast.error(`Failed to ${action}: ${err.message}`);
@@ -220,7 +230,15 @@ export function AdminTransactions() {
           .eq("id", selectedDeposit.id);
 
         if (error) throw error;
-        toast.success(`Deposit redirected ($${finalAmount}) to General Wallet`);
+        toast.success(`Deposit redirected (₦${finalAmount}) to General Wallet`);
+
+        await notificationDispatcher.sendAlert({
+          userId: selectedDeposit.user_id,
+          email: selectedDeposit.profile?.email,
+          type: "transaction",
+          title: "Deposit Redirected to Wallet",
+          message: `Your deposit of ₦${Number(selectedDeposit.amount).toLocaleString()} was redirected to your General Wallet as ₦${Number(finalAmount).toLocaleString()}. Reason: ${rejectReason || "Admin Action"}.`
+        });
       } else {
         // Standard Reject
         const { error } = await supabase
@@ -235,6 +253,14 @@ export function AdminTransactions() {
 
         if (error) throw error;
         toast.success("Deposit rejected");
+
+        await notificationDispatcher.sendAlert({
+          userId: selectedDeposit.user_id,
+          email: selectedDeposit.profile?.email,
+          type: "transaction",
+          title: "Deposit Rejected",
+          message: `Your deposit of ₦${Number(selectedDeposit.amount).toLocaleString()} has been rejected. Reason: ${rejectReason || "Unspecified"}.`
+        });
       }
 
       setRejectDialogOpen(false);

@@ -15,6 +15,7 @@ import { Label } from "@/app/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
 import { useAuth } from "@/app/context/AuthContext";
 import { logActivity } from "@/lib/activity";
+import { notificationDispatcher } from "@/lib/notificationDispatcher";
 import { supabase } from "@/lib/supabase";
 import { validateFile } from "@/lib/validation";
 import { calculateBalance } from "@/lib/walletUtils";
@@ -270,7 +271,7 @@ export function DepositModal({
     if (receiptFile) {
       try {
         const fileExt = receiptFile.name.split(".").pop();
-        const fileName = `${user.id}-${receiptFile.size}-${receiptFile.name.length}.${fileExt}`;
+        const fileName = `${user.id}-${receiptFile.size}-${Date.now()}.${fileExt}`;
 
         const { error: uploadError } = await supabase.storage
           .from("receipts")
@@ -317,6 +318,18 @@ export function DepositModal({
             display_name: user.user_metadata?.full_name?.split(" ")[0] || "A user",
           },
         });
+
+        // Trigger pending deposit alert
+        if (user.email) {
+          await notificationDispatcher.sendAlert({
+            userId: user.id,
+            email: user.email,
+            type: "transaction",
+            title: "Deposit Received (Pending Approval)",
+            message: `Your deposit of ₦${formatCurrency(finalAmount)} has been received and is currently pending review. An administrator will verify and approve your deposit made via direct transfer shortly.`,
+          });
+        }
+
         finishSuccess("Deposit submitted for Admin Approval.");
       }
     } else {
@@ -381,6 +394,19 @@ export function DepositModal({
               display_name: user.user_metadata?.full_name?.split(" ")[0] || "A user",
             },
           });
+
+          // Trigger notification for adding funds to plan
+          if (user.email) {
+            const planName = selectedPlanObj?.plan?.name || selectedPlanObj?.name || "Savings Plan";
+            await notificationDispatcher.sendAlert({
+              userId: user.id,
+              email: user.email,
+              type: "plan",
+              title: `Funds Added to Plan: ${planName}`,
+              message: `You have successfully transferred ₦${formatCurrency(finalAmount)} from your wallet to your "${planName}" savings plan.`,
+            });
+          }
+
           finishSuccess(msg);
         }
         setUploading(false);
@@ -427,6 +453,19 @@ export function DepositModal({
               display_name: user.user_metadata?.full_name?.split(" ")[0] || "A user",
             },
           });
+
+          // Trigger notification for adding funds to plan
+          if (user.email) {
+            const planName = selectedPlanObj?.name || "Savings Plan";
+            await notificationDispatcher.sendAlert({
+              userId: user.id,
+              email: user.email,
+              type: "plan",
+              title: `Funds Added to Plan: ${planName}`,
+              message: `You have successfully transferred ₦${formatCurrency(finalAmount)} from your wallet to your "${planName}" savings plan.`,
+            });
+          }
+
           finishSuccess("Transfer successful!");
         }
       }
