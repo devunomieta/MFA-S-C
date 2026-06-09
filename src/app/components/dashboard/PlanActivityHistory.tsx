@@ -14,22 +14,33 @@ interface PlanActivityHistoryProps {
 export function PlanActivityHistory({ userId, planId, userPlanId }: PlanActivityHistoryProps) {
   const [activities, setActivities] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const ITEMS_PER_PAGE = 10;
 
-  async function fetchHistory() {
-    setLoading(true);
+  async function fetchHistory(pageNum = 1) {
+    if (pageNum === 1) setLoading(true);
     try {
-      // Currently filtering by user_id and plan_id (generic)
-      // Ideally should filter by user_plan_id if schema allowed it.
       const { data, error } = await supabase
         .from("transactions")
         .select("*")
         .eq("user_id", userId)
         .eq("plan_id", planId)
+        .neq("type", "system_credit")
         .order("created_at", { ascending: false })
-        .limit(20);
+        .range((pageNum - 1) * ITEMS_PER_PAGE, pageNum * ITEMS_PER_PAGE - 1);
 
       if (error) throw error;
-      setActivities(data || []);
+      
+      const filteredData = (data || []).filter(tx => tx.type !== "system_credit" && tx.type !== "System_Credit" && tx.description !== "System_Credit");
+      
+      if (pageNum === 1) {
+        setActivities(filteredData);
+      } else {
+        setActivities(prev => [...prev, ...filteredData]);
+      }
+      
+      setHasMore((data?.length || 0) === ITEMS_PER_PAGE);
     } catch (err) {
       console.error("Error fetching plan history:", err);
     } finally {
@@ -38,7 +49,8 @@ export function PlanActivityHistory({ userId, planId, userPlanId }: PlanActivity
   }
 
   useEffect(() => {
-    Promise.resolve().then(() => fetchHistory());
+    setPage(1);
+    Promise.resolve().then(() => fetchHistory(1));
   }, [userId, planId, userPlanId]);
 
   const formatCurrency = (val: number) =>
@@ -134,6 +146,23 @@ export function PlanActivityHistory({ userId, planId, userPlanId }: PlanActivity
               </div>
             </div>
           ))
+        )}
+        
+        {hasMore && !loading && activities.length > 0 && (
+          <div className="flex justify-center pt-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const nextPage = page + 1;
+                setPage(nextPage);
+                fetchHistory(nextPage);
+              }}
+              className="rounded-xl font-bold"
+            >
+              Load More
+            </Button>
+          </div>
         )}
       </div>
     </div>

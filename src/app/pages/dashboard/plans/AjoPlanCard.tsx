@@ -26,6 +26,7 @@ import {
 } from "@/app/components/ui/select";
 import { supabase } from "@/lib/supabase";
 import { Plan, UserPlan } from "@/types";
+import { getEstimatedMaturityDate } from "@/lib/planUtils";
 
 interface AjoPlanCardProps {
   plan: Plan;
@@ -58,6 +59,13 @@ export function AjoPlanCard({
   const amounts = plan.config?.amounts || [10000, 15000, 20000, 25000, 30000, 50000, 100000];
   const duration = plan.config?.duration_weeks || 10;
 
+  let estMaturity = getEstimatedMaturityDate(user_plan, duration * 7);
+  if (!user_plan && plan.config?.season_start_date) {
+    const d = new Date(plan.config.season_start_date);
+    d.setDate(d.getDate() + duration * 7);
+    estMaturity = d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+  }
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("en-US", {
       style: "decimal",
@@ -81,7 +89,7 @@ export function AjoPlanCard({
     setSubscriptions(subscriptions.filter((_, i) => i !== index));
   };
 
-  const updateSubscription = (index: number, field: "amount", value: number) => {
+  const updateSubscription = (index: number, field: "amount" | "proposed_week", value: number) => {
     const newSubs = [...subscriptions];
     newSubs[index] = { ...newSubs[index], [field]: value };
     setSubscriptions(newSubs);
@@ -203,7 +211,7 @@ export function AjoPlanCard({
             </div>
           </CardHeader>
 
-          <CardContent className="space-y-6 flex-1 pt-4 overflow-y-auto max-h-[60vh] custom-scrollbar">
+          <CardContent className="space-y-6 flex-1 pt-4">
             <div className="grid grid-cols-2 gap-3">
               {user_plan.status === "active" && (
                 <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-800">
@@ -307,6 +315,11 @@ export function AjoPlanCard({
                     <span>{Math.round((currentWeek / duration) * 100)}% through Season</span>
                     <span>₦{formatCurrency(getPayoutForAmt(fixedAmount))} Total Payout</span>
                   </div>
+                  {estMaturity && (
+                    <div className="text-[10px] text-emerald-600 font-bold mt-1 text-right">
+                      Est. Maturity: {estMaturity}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -520,7 +533,7 @@ export function AjoPlanCard({
                 className="w-full bg-orange-50 text-orange-700 hover:bg-orange-100 border border-orange-200 font-bold"
                 onClick={onAdvanceDeposit}
               >
-                Pay in Advance
+                Save More for the Week
               </Button>
             ) : null}
             {(user_plan.status === "pending_activation" ||
@@ -604,12 +617,17 @@ export function AjoPlanCard({
                   day: "numeric",
                 })}
               </span>
+              {estMaturity && (
+                <span className="text-[10px] font-bold text-emerald-600 block mt-1">
+                  Est. Maturity: {estMaturity}
+                </span>
+              )}
             </div>
           )}
         </div>
       </CardHeader>
 
-      <CardContent className="flex-1 space-y-4 pt-2 overflow-y-auto max-h-[60vh] custom-scrollbar">
+      <CardContent className="flex-1 space-y-4 pt-2">
         <div className="space-y-3">
           <div className="flex justify-between items-center">
             <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
@@ -620,7 +638,7 @@ export function AjoPlanCard({
               size="sm"
               className="h-7 text-[10px] font-bold uppercase gap-1 text-emerald-600 border-emerald-200"
               onClick={addSubscription}
-              disabled={subscriptions.length >= duration}
+              disabled={subscriptions.length >= 3}
             >
               <Plus className="w-3 h-3" /> Add Turn
             </Button>

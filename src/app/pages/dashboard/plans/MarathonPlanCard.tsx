@@ -4,23 +4,14 @@ import { Trophy, Calendar, AlertTriangle, CheckCircle, ArrowRight, Loader2 } fro
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/app/components/ui/alert-dialog";
+
 import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { supabase } from "@/lib/supabase";
 import { formatNaira } from "@/lib/utils";
 import { Plan, UserPlan } from "@/types";
+import { getEstimatedMaturityDate } from "@/lib/planUtils";
 
 interface MarathonPlanCardProps {
   plan: Plan;
@@ -39,44 +30,30 @@ export function MarathonPlanCard({
   onAdvanceDeposit,
   onLeave,
 }: MarathonPlanCardProps) {
-  const [extending, setExtending] = useState(false);
-  const [showExtendDialog, setShowExtendDialog] = useState(false);
+
   const [joinDuration, setJoinDuration] = useState("48");
   const isJoined = !!userPlan;
   const metadata = userPlan?.plan_metadata || {};
   const duration = metadata.selected_duration || plan.config?.durations?.[1] || 48; // Default max
   const weeksPaid = metadata.total_weeks_paid || 0;
-  const startingWeek = metadata.starting_week || 1;
-  const currentWeekDisplay = Math.min(startingWeek - 1 + weeksPaid, duration);
+  const getWeekNumber = (d: Date) => {
+    d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7));
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+    return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1)/7);
+  };
+  const currentWeekOfYear = getWeekNumber(new Date());
+  const currentWeekDisplay = Math.min(currentWeekOfYear, duration);
+
   const isCurrentWeekPaid = metadata.current_week_paid;
   const arrears = metadata.arrears_amount || 0;
   const missedWeeksDetails = metadata.missed_weeks_details || [];
-  const isFinished = currentWeekDisplay >= duration;
+  const isFinished = currentWeekDisplay >= duration || currentWeekOfYear >= 50;
 
   const progress = Math.min((currentWeekDisplay / duration) * 100, 100);
+  const estMaturity = getEstimatedMaturityDate(userPlan, parseInt(joinDuration) * 7);
 
-  const handleExtend = async () => {
-    if (!userPlan) return;
-
-    setExtending(true);
-    const newMeta = { ...metadata, selected_duration: 48 };
-
-    const { error } = await supabase
-      .from("user_plans")
-      .update({ plan_metadata: newMeta })
-      .eq("id", userPlan.id);
-
-    if (error) {
-      toast.error("Failed to extend plan");
-    } else {
-      toast.success("Plan extended to 48 weeks! Keep going!");
-      // Ideally we should trigger a refresh here, but the parent uses realtime subscription so it might auto-update.
-      // If not, a page reload or passing a refresh callback would be needed.
-      // For now, prompt user.
-      window.location.reload();
-    }
-    setExtending(false);
-  };
+  // Extension feature removed as per 50th week constraint
 
   // Active State (Joined) - Minimalist
   if (isJoined) {
@@ -162,11 +139,11 @@ export function MarathonPlanCard({
                   style={{ width: `${progress}%` }}
                 />
               </div>
-              <div className="flex justify-between text-[10px] text-gray-400 font-medium">
+              <div className="flex justify-between text-[10px] text-gray-400 font-medium mt-1">
                 <span>
                   Week {currentWeekDisplay} of {duration} Completed
                 </span>
-                <span>{Math.round(progress)}% of Total Goal</span>
+                <span>{estMaturity ? `Est. Maturity: ${estMaturity}` : `${Math.round(progress)}% of Total Goal`}</span>
               </div>
             </div>
           </div>
@@ -212,52 +189,8 @@ export function MarathonPlanCard({
             </div>
           </div>
 
-          {/* Extension Option */}
-          {duration === 30 && (
-            <AlertDialog open={showExtendDialog} onOpenChange={setShowExtendDialog}>
-              <AlertDialogTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                  disabled={extending}
-                >
-                  {extending ? (
-                    <Loader2 className="w-3 h-3 animate-spin mr-1" />
-                  ) : (
-                    <ArrowRight className="w-3 h-3 mr-1" />
-                  )}
-                  Extend to 48 Weeks
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Extend Marathon Challenge?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Are you sure you want to extend your challenge to 48 weeks? This will increase
-                    your total savings target and the duration of your commitment.
-                    <div className="mt-2 p-3 bg-blue-50 text-blue-700 text-xs rounded-md border border-blue-100 font-medium italic">
-                      "A longer marathon builds greater financial discipline."
-                    </div>
-                    <p className="mt-2 text-red-600 font-bold">This action cannot be reversed.</p>
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel disabled={extending}>Maybe Later</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={(e: React.MouseEvent) => {
-                      e.preventDefault();
-                      handleExtend();
-                    }}
-                    disabled={extending}
-                    className="bg-blue-600 hover:bg-blue-700"
-                  >
-                    {extending ? "Extending..." : "Yes, Extend Challenge"}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          )}
+          {/* Extension Option Removed */}
+
         </CardContent>
 
         <CardFooter className="flex flex-col gap-3 pt-2">
@@ -283,7 +216,7 @@ export function MarathonPlanCard({
                   className="w-full bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 font-bold"
                   onClick={onAdvanceDeposit}
                 >
-                  Pay in Advance
+                  Save More for the Week
                 </Button>
               )
             )}
@@ -361,6 +294,11 @@ export function MarathonPlanCard({
                 </svg>
               </div>
             </div>
+            {estMaturity && (
+              <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold mt-1">
+                Est. Maturity: {estMaturity}
+              </p>
+            )}
           </div>
         </div>
 

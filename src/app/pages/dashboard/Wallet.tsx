@@ -103,7 +103,7 @@ export function Wallet() {
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 20;
+  const itemsPerPage = 10;
 
   // URL Params for filtering
   const [searchParams] = useSearchParams();
@@ -186,16 +186,24 @@ export function Wallet() {
   }
 
   const filteredTransactions = useMemo(() => {
+    let result = transactions;
     if (selectedPlanFilter === "all") {
-      return transactions;
+      const activePlanIds = userPlans.filter(p => p.status === "active").map(p => p.plan.id);
+      result = transactions.filter((tx) => 
+        !tx.plan_id || 
+        tx.plan?.type === "withdrawable_wallet" || 
+        activePlanIds.includes(tx.plan_id)
+      );
     } else if (selectedPlanFilter === "general") {
-      return transactions.filter((tx) => !tx.plan_id);
+      result = transactions.filter((tx) => !tx.plan_id);
     } else if (selectedPlanFilter === "withdrawable") {
-      return transactions.filter((tx) => tx.plan?.type === "withdrawable_wallet");
+      result = transactions.filter((tx) => tx.plan?.type === "withdrawable_wallet");
     } else {
-      return transactions.filter((tx) => tx.plan_id === selectedPlanFilter);
+      result = transactions.filter((tx) => tx.plan_id === selectedPlanFilter);
     }
-  }, [selectedPlanFilter, transactions]);
+    
+    return result.filter(tx => tx.type !== "system_credit" && tx.type !== "System_Credit" && tx.description !== "System_Credit");
+  }, [selectedPlanFilter, transactions, userPlans]);
 
   async function fetchPlansData() {
     const { data: plansData } = await supabase.from("plans").select("*").eq("is_active", true);
@@ -531,6 +539,9 @@ export function Wallet() {
               <Input
                 id="bank_amount"
                 type="number"
+                onKeyDown={(e) => {
+                  if (["-", "+", ".", "e", "E"].includes(e.key)) e.preventDefault();
+                }}
                 placeholder="0.00"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
@@ -592,6 +603,9 @@ export function Wallet() {
               <Input
                 id="wallet_amount"
                 type="number"
+                onKeyDown={(e) => {
+                  if (["-", "+", ".", "e", "E"].includes(e.key)) e.preventDefault();
+                }}
                 placeholder="0.00"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
@@ -762,6 +776,9 @@ export function Wallet() {
                     <Input
                       id="plan_amount"
                       type="number"
+                      onKeyDown={(e) => {
+                        if (["-", "+", ".", "e", "E"].includes(e.key)) e.preventDefault();
+                      }}
                       placeholder="0.00"
                       value={amount}
                       onChange={(e) => setAmount(e.target.value)}

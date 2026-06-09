@@ -29,6 +29,7 @@ import {
 import { supabase } from "@/lib/supabase";
 import { formatNaira } from "@/lib/utils";
 import { Plan, UserPlan } from "@/types";
+import { getEstimatedMaturityDate } from "@/lib/planUtils";
 
 interface DailyDropPlanCardProps {
   plan: Plan;
@@ -76,6 +77,8 @@ export function DailyDropPlanCard({
   const isFinished =
     userPlan?.status === "completed" ||
     (selectedDuration !== -1 && effectiveDaysPaid >= selectedDuration);
+
+  const estMaturity = getEstimatedMaturityDate(userPlan, selectedDuration);
 
   const getNextDue = () => {
     const startDateStr = userPlan?.start_date || metadata.start_date || userPlan?.created_at;
@@ -306,6 +309,9 @@ export function DailyDropPlanCard({
                     </Label>
                     <Input
                       type="number"
+                      onKeyDown={(e) => {
+                        if (["-", "+", ".", "e", "E"].includes(e.key)) e.preventDefault();
+                      }}
                       value={joinAmount}
                       onChange={(e) => setJoinAmount(e.target.value)}
                       className="h-8 text-sm"
@@ -477,6 +483,9 @@ export function DailyDropPlanCard({
                   <div className="flex gap-2">
                     <Input
                       type="number"
+                      onKeyDown={(e) => {
+                        if (["-", "+", ".", "e", "E"].includes(e.key)) e.preventDefault();
+                      }}
                       value={newDailyAmount}
                       onChange={(e) => setNewDailyAmount(e.target.value)}
                       className="h-8 text-sm bg-white dark:bg-gray-800"
@@ -526,7 +535,7 @@ export function DailyDropPlanCard({
                   className="w-full bg-cyan-50 text-cyan-700 hover:bg-cyan-100 border border-cyan-200 font-bold"
                   onClick={onAdvanceDeposit}
                 >
-                  Pay in Advance
+                  Save More for the Day
                 </Button>
               )
             )}
@@ -583,6 +592,9 @@ export function DailyDropPlanCard({
             </Label>
             <Input
               type="number"
+              onKeyDown={(e) => {
+                if (["-", "+", ".", "e", "E"].includes(e.key)) e.preventDefault();
+              }}
               className="bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 h-9 font-semibold text-sm focus-visible:ring-cyan-500"
               value={joinAmount}
               onChange={(e) => setJoinAmount(e.target.value)}
@@ -605,6 +617,11 @@ export function DailyDropPlanCard({
                 <SelectItem value="-1">No End Date (Continuous)</SelectItem>
               </SelectContent>
             </Select>
+            {estMaturity && joinDuration !== "-1" && (
+              <p className="text-[10px] text-cyan-600 dark:text-cyan-400 font-bold mt-1">
+                Est. Maturity: {estMaturity}
+              </p>
+            )}
           </div>
         </div>
 

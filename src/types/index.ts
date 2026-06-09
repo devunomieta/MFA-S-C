@@ -31,6 +31,7 @@ export interface Plan {
   subscriber_count?: number;
   is_approved?: boolean;
   approved_at?: string;
+  status?: string; // For compatibility with some tests
 }
 
 export interface MarathonConfig {
@@ -50,7 +51,7 @@ export interface UserPlan {
   plan_id: string;
   plan: Plan;
   current_balance: number;
-  status: "pending_activation" | "active" | "completed" | "cancelled" | "matured";
+  status: "pending_activation" | "active" | "completed" | "cancelled" | "matured" | "pending_turn_approval" | "turn_reassigned" | "appeal_pending";
   start_date: string;
   created_at: string;
   updated_at?: string;
@@ -65,6 +66,8 @@ export interface UserPlan {
     last_payment_date?: string;
     last_fee_date?: string;
     start_date?: string;
+    starting_week?: number;
+    missed_weeks_details?: any[];
 
     // Sprint specific
     weeks_completed?: number;
@@ -90,5 +93,8 @@ export interface UserPlan {
     current_week?: number;
     week_paid?: boolean;
     missed_weeks?: number;
+    loan_amount?: number;
+    slots?: any[];
+    payout_history?: number[];
   };
 }

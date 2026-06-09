@@ -18,6 +18,7 @@ import {
 } from "@/app/components/ui/select";
 import { formatNaira } from "@/lib/utils";
 import { Plan, UserPlan } from "@/types";
+import { getEstimatedMaturityDate } from "@/lib/planUtils";
 
 import { SprintJoinModal } from "./SprintJoinModal";
 
@@ -60,6 +61,8 @@ export function MonthlyBloomPlanCard({
   const totalSaved = userPlan?.current_balance || 0;
   const overallProgressPercent = Math.min((totalSaved / totalTarget) * 100, 100);
   const excessAmount = Math.max(0, totalSaved - totalTarget);
+
+  const estMaturity = getEstimatedMaturityDate(userPlan, parseInt(duration) * 30);
 
   const handleJoin = () => {
     const amount = parseFloat(targetAmount);
@@ -136,15 +139,7 @@ export function MonthlyBloomPlanCard({
               </div>
             )}
 
-            {monthsCompleted > 0 && !isTargetMet && (
-              <div className="flex items-center gap-2 p-2 bg-blue-50 text-blue-700 rounded-md text-[10px] border border-blue-100 font-bold">
-                <RefreshCw className="w-3 h-3 text-blue-500" />
-                <span>
-                  Advance Payment: {monthsCompleted} {monthsCompleted === 1 ? "Month" : "Months"}{" "}
-                  Covered
-                </span>
-              </div>
-            )}
+            {/* Advance Payment logic removed */}
           </div>
 
           {/* Monthly Progress */}
@@ -189,11 +184,11 @@ export function MonthlyBloomPlanCard({
                 style={{ width: `${overallProgressPercent}%` }}
               />
             </div>
-            <div className="flex justify-between text-[10px] text-gray-400 font-medium">
+            <div className="flex justify-between text-[10px] text-gray-400 font-medium mt-1">
               <span>
                 Month {monthsCompleted} of {selectedDuration} Completed
               </span>
-              <span>{Math.round(overallProgressPercent)}% Total</span>
+              <span>{estMaturity ? `Est. Maturity: ${estMaturity}` : `${Math.round(overallProgressPercent)}% Total`}</span>
             </div>
           </div>
         </CardContent>
@@ -221,7 +216,7 @@ export function MonthlyBloomPlanCard({
                   className="w-full bg-pink-50 text-pink-700 hover:bg-pink-100 border border-pink-200 font-bold"
                   onClick={onAdvanceDeposit}
                 >
-                  Pay in Advance
+                  Save More for the Month
                 </Button>
               )
             )}
@@ -337,6 +332,9 @@ export function MonthlyBloomPlanCard({
                 </Label>
                 <Input
                   type="number"
+                  onKeyDown={(e) => {
+                    if (["-", "+", ".", "e", "E"].includes(e.key)) e.preventDefault();
+                  }}
                   className="bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 h-9 font-semibold text-sm focus-visible:ring-slate-500"
                   value={targetAmount}
                   onChange={(e) => {
@@ -355,9 +353,16 @@ export function MonthlyBloomPlanCard({
 
             <div className="flex justify-between items-center text-xs text-slate-700 bg-slate-50 p-2 rounded border border-slate-100">
               <span className="font-semibold">Est. Total Savings:</span>
-              <span className="font-bold text-sm bg-white px-2 py-0.5 rounded border border-slate-200 shadow-sm">
-                {formatNaira(parseInt(targetAmount || "0") * parseInt(duration))}
-              </span>
+              <div className="text-right">
+                <span className="font-bold text-sm bg-white px-2 py-0.5 rounded border border-slate-200 shadow-sm block w-fit ml-auto">
+                  {formatNaira(parseInt(targetAmount || "0") * parseInt(duration))}
+                </span>
+                {estMaturity && (
+                  <span className="text-[10px] font-bold text-emerald-600 block mt-1">
+                    Est. Maturity: {estMaturity}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
 
@@ -375,46 +380,9 @@ export function MonthlyBloomPlanCard({
                   <div className="w-1 h-1 rounded-full bg-pink-500" />
                   Lock Duration: 4 to 12 Months
                 </li>
-                <li className="flex flex-col gap-2 text-xs text-pink-700 dark:text-pink-400">
-                  <div className="flex items-center gap-2">
-                    <div className="w-1 h-1 rounded-full bg-pink-500" />
-                    Monthly Service Charge:{" "}
-                    {plan.service_charge_type === "percentage"
-                      ? `${plan.service_charge_percentage}%`
-                      : plan.service_charge_type === "fixed"
-                        ? `₦${(plan.service_charge_fixed || plan.service_charge || 0).toLocaleString()}`
-                        : "See table below"}
-                  </div>
-
-                  {plan.service_charge_type === "tiered" &&
-                    plan.service_charge_tiers &&
-                    plan.service_charge_tiers.length > 0 && (
-                      <div className="rounded border border-pink-100 dark:border-pink-800 overflow-hidden mt-1 mx-2">
-                        <table className="w-full text-[10px] text-left">
-                          <thead className="bg-pink-100/50 dark:bg-pink-900/40 font-bold text-pink-800 dark:text-pink-400">
-                            <tr>
-                              <th className="px-2 py-1">Monthly Target</th>
-                              <th className="px-2 py-1 text-right">Charge</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-pink-50 dark:divide-pink-800 text-pink-700 dark:text-pink-400">
-                            {plan.service_charge_tiers.map((tier: any, idx: number) => (
-                              <tr key={idx}>
-                                <td className="px-2 py-1">
-                                  {formatNaira(tier.min)} -{" "}
-                                  {tier.max > 0 && tier.max < 9999999
-                                    ? formatNaira(tier.max)
-                                    : "Above"}
-                                </td>
-                                <td className="px-2 py-1 text-right font-bold">
-                                  {formatNaira(tier.fee)}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
+                <li className="flex items-center gap-2 text-xs text-pink-700 dark:text-pink-400">
+                  <div className="w-1 h-1 rounded-full bg-pink-500" />
+                  Monthly Service Charge: ₦2,000
                 </li>
                 <li className="flex items-center gap-2 text-xs text-pink-700 dark:text-pink-400">
                   <div className="w-1 h-1 rounded-full bg-pink-500" />
@@ -460,9 +428,8 @@ export function MonthlyBloomPlanCard({
         customTerms={[
           `Duration: ${duration} Months`,
           `Monthly Target: ${formatNaira(parseInt(targetAmount))}`,
-          `Service Charge: ${plan.service_charge_type === "fixed" ? formatNaira(plan.service_charge_fixed || plan.service_charge || 0) : "Calculated based on target"}`,
+          `Service Charge: ₦2,000/Month`,
           "Withdrawal: Locked until maturity",
-          "Aesthetics: Premium Growth",
         ]}
       />
     </>

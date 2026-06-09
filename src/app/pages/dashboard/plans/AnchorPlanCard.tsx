@@ -8,6 +8,8 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/app/comp
 import { formatNaira } from "@/lib/utils";
 import { UserPlan, Plan } from "@/types";
 
+import { getEstimatedMaturityDate } from "@/lib/planUtils";
+
 import { SprintJoinModal } from "./SprintJoinModal"; // Re-use Sprint Modal as logic is identical, maybe rename later
 
 interface AnchorPlanCardProps {
@@ -41,6 +43,8 @@ export function AnchorPlanCard({
   const weeklyTarget = 3000;
   const progressPercent = Math.min((currentWeekTotal / weeklyTarget) * 100, 100);
   const totalProgress = (weeksCompleted / totalDuration) * 100;
+
+  const estMaturity = getEstimatedMaturityDate(userPlan, totalDuration * 7);
 
   const handleJoinSuccess = () => {
     onJoin();
@@ -83,12 +87,14 @@ export function AnchorPlanCard({
         </CardHeader>
 
         <CardContent className="space-y-6 flex-1 pt-4 overflow-y-auto max-h-[60vh] custom-scrollbar">
-          {arrears > 0 && (
-            <div className="flex items-center gap-2 p-2 bg-red-50 text-red-700 rounded-md text-xs border border-red-100 font-medium">
-              <AlertOctagon className="w-3.5 h-3.5" />
-              <span>Penalties: {formatNaira(arrears)}</span>
-            </div>
-          )}
+          <div className={`flex items-center gap-2 p-2 rounded-md text-xs border font-medium ${arrears > 0 ? "bg-red-50 text-red-700 border-red-100" : "bg-emerald-50 text-emerald-700 border-emerald-100"}`}>
+            <AlertOctagon className="w-3.5 h-3.5" />
+            <span>
+              {arrears > 0 
+                ? `${arrears / 500} Missed Week(s) to be paid (Arrears: ${formatNaira(arrears)})` 
+                : `0 Missed Weeks (Cleared: ₦0.00)`}
+            </span>
+          </div>
 
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
@@ -103,6 +109,11 @@ export function AnchorPlanCard({
                 style={{ width: `${totalProgress}%` }}
               />
             </div>
+            {estMaturity && (
+              <div className="text-[10px] text-emerald-600 font-bold mt-1 text-right">
+                Est. Maturity: {estMaturity}
+              </div>
+            )}
           </div>
 
           <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-800 space-y-2">
@@ -151,7 +162,7 @@ export function AnchorPlanCard({
                 className="w-full bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 font-bold"
                 onClick={() => onAdvanceDeposit && onAdvanceDeposit(plan.id)}
               >
-                Pay in Advance
+                Save More for the Week
               </Button>
             )}
             <Button variant="outline" asChild className="w-full">
@@ -211,6 +222,11 @@ export function AnchorPlanCard({
                 Duration
               </p>
               <p className="text-lg font-bold text-gray-900 dark:text-white">48 Weeks</p>
+              {estMaturity && (
+                <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold mt-1">
+                  Est. Maturity: {estMaturity}
+                </p>
+              )}
             </div>
           </div>
 
@@ -307,7 +323,7 @@ export function AnchorPlanCard({
         customTitle="Confirm Anchor Commitment"
         customTerms={[
           "Duration: 48 Weeks (Strict)",
-          "Weekly Target: ₦3,000",
+          "Minimum Amount: ₦3,000",
           "Status Check: Sunday 11:59PM",
           "Penalty: ₦500 per missed week",
           "Withdrawal: Locked until completion (No Breakage)",

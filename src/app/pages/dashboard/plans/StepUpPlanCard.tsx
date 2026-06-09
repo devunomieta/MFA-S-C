@@ -16,6 +16,7 @@ import {
 } from "@/app/components/ui/select";
 import { formatNaira } from "@/lib/utils";
 import { Plan, UserPlan } from "@/types";
+import { getEstimatedMaturityDate } from "@/lib/planUtils";
 
 interface StepUpPlanCardProps {
   plan: Plan;
@@ -69,6 +70,8 @@ export function StepUpPlanCard({
   const totalSaved = userPlan?.current_balance || 0;
   const totalTarget = fixedAmount * totalDuration;
   const excessAmount = Math.max(0, totalSaved - totalTarget);
+
+  const estMaturity = getEstimatedMaturityDate(userPlan, parseInt(selectedDuration) * 7);
 
   // Active State (Joined) - Minimalist
   if (isJoined) {
@@ -181,6 +184,11 @@ export function StepUpPlanCard({
                     style={{ width: `${progress}%` }}
                   />
                 </div>
+                {estMaturity && (
+                  <div className="text-[10px] text-emerald-600 font-bold mt-1 text-right">
+                    Est. Maturity: {estMaturity}
+                  </div>
+                )}
               </div>
 
               <div className="p-4 bg-gray-50/50 dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-800">
@@ -244,7 +252,7 @@ export function StepUpPlanCard({
                   className="w-full bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 font-bold"
                   onClick={onAdvanceDeposit}
                 >
-                  Pay in Advance
+                  Save More for the Week
                 </Button>
               )
             )}
@@ -329,6 +337,13 @@ export function StepUpPlanCard({
               </Select>
             </div>
           </div>
+          {estMaturity && (
+            <div className="text-right">
+              <span className="text-[10px] font-bold text-emerald-600 block mt-1">
+                Est. Maturity: {estMaturity}
+              </span>
+            </div>
+          )}
 
           <div className="p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-100 dark:border-purple-800">
             <h4 className="text-[10px] font-bold text-purple-800 dark:text-purple-400 uppercase tracking-wider mb-2">

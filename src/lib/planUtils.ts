@@ -8,23 +8,33 @@ export interface PlanMaturityStatus {
   daysRemaining: number;
 }
 
-export function calculateMaturity(
-  startDateStrParam: string | null | undefined,
-  durationWeeks: number,
-): PlanMaturityStatus | null {
-  const startDateStr = startDateStrParam; // Renamed parameter to avoid conflict with new const
-  if (!startDateStr) return null; // Safety fallback
+export function calculateMaturityForPlan(userPlan: any): PlanMaturityStatus | null {
+  const startDateStr = userPlan.start_date;
+  if (!startDateStr) return null;
 
   const startDate = new Date(startDateStr);
-  const durationDays = durationWeeks * 7;
+  const meta = userPlan.plan_metadata || {};
+  const plan = userPlan.plan || userPlan.plans || {};
+  let durationDays = 0;
 
-  // Maturity is Duration + 1 Day
+  if (plan.type === "daily_drop") {
+    durationDays = meta.selected_duration || 31;
+  } else if (plan.type === "monthly_bloom") {
+    durationDays = (meta.selected_duration || 12) * 30; // Approx 30 days
+  } else if (plan.type === "step_up" || plan.type === "marathon") {
+    durationDays = (meta.selected_duration || plan.duration_weeks || 52) * 7;
+  } else if (plan.type === "ajo_circle") {
+    durationDays = (plan.duration_weeks || 10) * 7;
+  } else if (plan.type === "anchor") {
+    durationDays = 48 * 7;
+  } else {
+    durationDays = (plan.duration_weeks || plan.config?.duration_weeks || 1) * 7;
+  }
+
   const maturityDate = new Date(startDate);
   maturityDate.setDate(maturityDate.getDate() + durationDays + 1);
 
   const now = new Date();
-
-  // Reset times to midnight for accurate day comparison
   const nowmidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const maturityMidnight = new Date(
     maturityDate.getFullYear(),
@@ -46,6 +56,18 @@ export function calculateMaturity(
   };
 }
 
+export function getEstimatedMaturityDate(userPlan?: any, defaultDurationDays?: number): string | null {
+  if (userPlan) {
+    const status = calculateMaturityForPlan(userPlan);
+    if (!status || !status.maturityDate) return null;
+    return status.maturityDate.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+  } else if (defaultDurationDays) {
+    const date = new Date(Date.now() + defaultDurationDays * 24 * 60 * 60 * 1000);
+    return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+  }
+  return null;
+}
+
 /**
  * Checks and updates status for plans that have matured but are still marked as 'active'.
  * This should be called on dashboard load.
@@ -53,11 +75,8 @@ export function calculateMaturity(
 export async function checkAndProcessMaturity(supabase: SupabaseClient, userPlans: any[]) {
   const maturedPlans = userPlans.filter((up) => {
     if (up.status !== "active") return false;
-    const status = calculateMaturity(up.start_date, up.plan?.config?.duration_weeks || 1);
-    if (!status) {
-      // Handle null return from calculateMaturity
-      return false;
-    }
+    const status = calculateMaturityForPlan(up);
+    if (!status) return false;
     return status.isMatured;
   });
 
@@ -66,6 +85,10 @@ export async function checkAndProcessMaturity(supabase: SupabaseClient, userPlan
     const { error } = await supabase.from("user_plans").update({ status: "matured" }).in("id", ids);
 
     if (error) return false;
+    
+    // Auto settle matured plans
+    const userId = maturedPlans[0].user_id;
+    await supabase.rpc("auto_settle_matured_plans", { p_user_id: userId });
 
     // Send notifications for matured plans
     try {

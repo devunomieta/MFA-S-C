@@ -480,6 +480,9 @@ export function Loans() {
         <Input
           id="amount"
           type="number"
+          onKeyDown={(e) => {
+            if (["-", "+", ".", "e", "E"].includes(e.key)) e.preventDefault();
+          }}
           placeholder="0.00"
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
@@ -643,6 +646,9 @@ export function Loans() {
                       <Input
                         id="repayAmount"
                         type="number"
+                        onKeyDown={(e) => {
+                          if (["-", "+", ".", "e", "E"].includes(e.key)) e.preventDefault();
+                        }}
                         value={repayAmount}
                         onChange={(e) => setRepayAmount(e.target.value)}
                         className="dark:bg-gray-800 dark:border-gray-700 dark:text-white"

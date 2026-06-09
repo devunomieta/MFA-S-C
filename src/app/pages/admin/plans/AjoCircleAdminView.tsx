@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 
-import { Loader2, Calendar, Play, Settings } from "lucide-react";
+import { Loader2, Calendar, Settings } from "lucide-react";
 import { toast } from "sonner";
 
 import { ActionConfirmModal } from "@/app/components/ui/ActionConfirmModal";
@@ -89,8 +89,8 @@ export function AjoCircleAdminView() {
     if (currentTurns.includes(week)) {
       currentTurns = currentTurns.filter((t: number) => t !== week);
     } else {
-      if (currentTurns.length >= 2) {
-        toast.error("Max 2 picking turns allowed per user.");
+      if (currentTurns.length >= 3) {
+        toast.error("Max 3 picking turns allowed per user.");
         return;
       }
       currentTurns.push(week);

@@ -6,6 +6,7 @@ import { Button } from "@/app/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { formatNaira } from "@/lib/utils";
 import { Plan, UserPlan } from "@/types";
+import { getEstimatedMaturityDate } from "@/lib/planUtils";
 
 interface SprintPlanCardProps {
   plan: Plan;
@@ -37,6 +38,8 @@ export function SprintPlanCard({
   const weeklyTarget = 3000;
   const progress = Math.min((weeksCompleted / duration) * 100, 100);
   const weekProgress = Math.min((currentWeekTotal / weeklyTarget) * 100, 100);
+
+  const estMaturity = getEstimatedMaturityDate(userPlan, duration * 7);
 
   // Active State (Joined) - Minimalist
   if (isJoined) {
@@ -106,6 +109,11 @@ export function SprintPlanCard({
             <div className="h-2 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
               <div className="h-full bg-blue-500 rounded-full" style={{ width: `${progress}%` }} />
             </div>
+            {estMaturity && (
+              <div className="text-[10px] text-emerald-600 font-bold mt-1 text-right">
+                Est. Maturity: {estMaturity}
+              </div>
+            )}
           </div>
 
           <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-800 space-y-2">
@@ -153,7 +161,7 @@ export function SprintPlanCard({
                 className="w-full bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 font-bold"
                 onClick={onAdvanceDeposit}
               >
-                Pay in Advance
+                Save More for the Week
               </Button>
             )}
             <Button variant="outline" asChild className="w-full">
@@ -209,6 +217,11 @@ export function SprintPlanCard({
           <div className="text-right">
             <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Duration</p>
             <p className="text-lg font-bold text-gray-900 dark:text-white">30 Weeks</p>
+            {estMaturity && (
+              <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold mt-1">
+                Est. Maturity: {estMaturity}
+              </p>
+            )}
           </div>
         </div>
 

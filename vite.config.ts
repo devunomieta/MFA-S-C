@@ -16,9 +16,9 @@ export default defineConfig({
       registerType: "autoUpdate",
       includeAssets: ["favicon.ico", "apple-touch-icon.png", "masked-icon.svg"],
       manifest: {
-        name: "AjoSave",
-        short_name: "AjoSave",
-        description: "Modern Group Savings Platform",
+        name: "Mary's Thrift Finance",
+        short_name: "Mary's Thrift",
+        description: "Secure Thrift & Loan Management",
         theme_color: "#ffffff",
         icons: [
           {

@@ -28,6 +28,7 @@ export function Overview() {
   const [withdrawableBalance, setWithdrawableBalance] = useState(0);
   const [activePlansCount, setActivePlansCount] = useState(0);
   const [outstandingLoans, setOutstandingLoans] = useState(0);
+  const [totalSavedAmount, setTotalSavedAmount] = useState(0);
 
   // Lists
   const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
@@ -44,8 +45,7 @@ export function Overview() {
         .select("*, plan:plans(type, name)")
         .eq("user_id", user?.id)
         .eq("status", "completed")
-        .order("created_at", { ascending: false })
-        .limit(10);
+        .order("created_at", { ascending: false });
 
       if (txData) {
         // Calculate General Balance (No plan_id)
@@ -56,7 +56,7 @@ export function Overview() {
         const wBal = calculateBalance(txData as any, null, "withdrawable_wallet");
         setWithdrawableBalance(wBal);
 
-        setRecentTransactions(txData);
+        setRecentTransactions(txData.slice(0, 10));
       }
 
       // 2. Fetch User Plans
@@ -70,6 +70,8 @@ export function Overview() {
         setUserPlans(plans);
         // Calculate Total Plans Balance
         setActivePlansCount(plans.length);
+        const totalSaved = plans.reduce((acc, plan) => acc + (plan.current_balance || 0), 0);
+        setTotalSavedAmount(totalSaved);
       }
 
       // 3. Fetch Loans
@@ -274,7 +276,7 @@ export function Overview() {
       {/* Central Balance Card - Minimalist & Simple Design */}
       <Card className="overflow-hidden border shadow-sm dark:bg-slate-900/20">
         <CardContent className="p-0 !pb-0 relative z-10">
-          <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x dark:divide-white/5">
+          <div className="grid grid-cols-1 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x dark:divide-white/5">
             {/* General Wallet */}
             <div className="p-6 space-y-3 hover:bg-gray-50/50 dark:hover:bg-white/[0.02] transition-all duration-200">
               <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold uppercase tracking-wider">
@@ -332,6 +334,25 @@ export function Overview() {
                 </p>
               </div>
             </div>
+
+            {/* Total Saved Amount */}
+            <div className="p-6 space-y-3 hover:bg-gray-50/50 dark:hover:bg-white/[0.02] transition-all duration-200">
+              <div className="flex items-center gap-2 text-purple-600 dark:text-purple-400 text-[10px] font-bold uppercase tracking-wider">
+                <div className="p-1.5 bg-purple-100 dark:bg-purple-500/10 rounded-md">
+                  <PiggyBank className="size-4" />
+                </div>
+                Total Saved Amount
+              </div>
+              <div className="space-y-1">
+                <div className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">
+                  ₦{formatCurrency(totalSavedAmount)}
+                </div>
+                <p className="text-[10px] text-gray-500 font-medium">
+                  Across {activePlansCount} active plans
+                </p>
+              </div>
+            </div>
+
           </div>
         </CardContent>
       </Card>
