@@ -28,7 +28,6 @@ export function MonthlyBloomAdminView() {
   const [plans, setPlans] = useState<any[]>([]);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [isSettleOpen, setIsSettleOpen] = useState(false);
-  const [isAutoSaveOpen, setIsAutoSaveOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
   const fetchPlans = async () => {

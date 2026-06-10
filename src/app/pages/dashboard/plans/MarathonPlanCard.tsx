@@ -30,23 +30,46 @@ export function MarathonPlanCard({
   const [joinDuration, setJoinDuration] = useState("48");
   const isJoined = !!userPlan;
   const metadata = userPlan?.plan_metadata || {};
-  const duration = metadata.selected_duration || plan.config?.durations?.[1] || 48; // Default max
+
   const getWeekNumber = (d: Date) => {
     d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
     d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
     const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
     return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
   };
+
   const currentWeekOfYear = getWeekNumber(new Date());
-  const currentWeekDisplay = Math.min(currentWeekOfYear, duration);
+  const startDateStr = userPlan?.start_date || metadata.start_date || userPlan?.created_at;
+  const startDate = startDateStr ? new Date(startDateStr) : new Date();
+  const joinWeek = getWeekNumber(startDate);
+  const selectedDuration = metadata.selected_duration || 48;
+  const targetWeeks = Math.max(1, Math.min(selectedDuration, 50 - joinWeek));
+  const maturityWeek = joinWeek + targetWeeks;
+
+  const weeksSaved = Math.min(targetWeeks, Math.max(0, currentWeekOfYear - joinWeek));
+  const weeksRemaining = Math.max(0, maturityWeek - currentWeekOfYear);
+  const isFinished = weeksRemaining === 0 || currentWeekOfYear >= 50;
+  const progress = targetWeeks > 0 ? Math.min((weeksSaved / targetWeeks) * 100, 100) : 0;
+
+  const estMaturity = (() => {
+    if (isJoined) {
+      return getEstimatedMaturityDate(userPlan);
+    } else {
+      const now = new Date();
+      const currentWeek = getWeekNumber(now);
+      const effectiveWeeks = Math.max(1, Math.min(parseInt(joinDuration), 50 - currentWeek));
+      const date = new Date(now.getTime() + effectiveWeeks * 7 * 24 * 60 * 60 * 1000);
+      return date.toLocaleDateString(undefined, {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      });
+    }
+  })();
 
   const isCurrentWeekPaid = metadata.current_week_paid;
   const arrears = metadata.arrears_amount || 0;
   const missedWeeksDetails = metadata.missed_weeks_details || [];
-  const isFinished = currentWeekDisplay >= duration || currentWeekOfYear >= 50;
-
-  const progress = Math.min((currentWeekDisplay / duration) * 100, 100);
-  const estMaturity = getEstimatedMaturityDate(userPlan, parseInt(joinDuration) * 7);
 
   // Extension feature removed as per 50th week constraint
 
@@ -125,7 +148,7 @@ export function MarathonPlanCard({
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600 dark:text-gray-400 font-medium">Goal Progress</span>
                 <span className="font-bold text-gray-900 dark:text-gray-200">
-                  {currentWeekDisplay} / {duration} Weeks
+                  {weeksSaved} / {targetWeeks} Weeks
                 </span>
               </div>
               <div className="h-2 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
@@ -136,13 +159,9 @@ export function MarathonPlanCard({
               </div>
               <div className="flex justify-between text-[10px] text-gray-400 font-medium mt-1">
                 <span>
-                  Week {currentWeekDisplay} of {duration} Completed
+                  {weeksRemaining} Week{weeksRemaining === 1 ? "" : "s"} Remaining
                 </span>
-                <span>
-                  {estMaturity
-                    ? `Est. Maturity: ${estMaturity}`
-                    : `${Math.round(progress)}% of Total Goal`}
-                </span>
+                <span>{estMaturity ? `Est. Maturity: ${estMaturity}` : ""}</span>
               </div>
             </div>
           </div>

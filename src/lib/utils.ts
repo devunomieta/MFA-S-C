@@ -23,3 +23,10 @@ export const formatCurrency = (amount: number) => {
     maximumFractionDigits: 2,
   }).format(amount);
 };
+
+export function formatStatusOrType(val: string | undefined | null): string {
+  if (!val) return "";
+  if (val.toLowerCase() === "service_charge") return "System Charge";
+
+  return val.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
+}

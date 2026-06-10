@@ -20,6 +20,9 @@ export default defineConfig({
         short_name: "Mary's Thrift",
         description: "Secure Thrift & Loan Management",
         theme_color: "#ffffff",
+        launch_handler: {
+          client_mode: "navigate-existing",
+        },
         icons: [
           {
             src: "pwa-192x192.png",

@@ -1,6 +1,8 @@
 import { format } from "date-fns";
 import { motion } from "motion/react";
 
+import { formatStatusOrType } from "@/lib/utils";
+
 interface PlanCardProps {
   name: string;
   balance: number;
@@ -22,6 +24,7 @@ export function PlanCard({
   total,
   onClick,
   type = "plan",
+  status,
 }: PlanCardProps) {
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -90,7 +93,7 @@ export function PlanCard({
                           : "bg-white/10 border-white/20 text-white/80"
                   }`}
                 >
-                  {status.replace("_", " ")}
+                  {formatStatusOrType(status)}
                 </span>
               )}
             </div>

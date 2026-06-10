@@ -28,7 +28,7 @@ interface StepUpPlanCardProps {
 }
 
 const DURATIONS = [10, 15, 20];
-const AMOUNTS = [5000, 10000, 15000, 20000, 25000, 30000, 40000, 50000];
+const AMOUNTS = [5000, 10000, 15000, 20000, 25000, 30000, 40000, 50000, 100000];
 
 export function StepUpPlanCard({
   plan,

@@ -132,8 +132,7 @@ const PlanCardGrid = ({
                       Min. Savings
                     </span>
                     <span className="text-emerald-700 dark:text-emerald-400 font-black">
-                      ₦{new Intl.NumberFormat("en-US").format(plan.min_amount)} /{" "}
-                      {plan.contribution_type}
+                      ₦{new Intl.NumberFormat("en-US").format(plan.min_amount)}
                     </span>
                   </div>
 

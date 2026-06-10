@@ -35,7 +35,6 @@ export function StepUpAdminView({ plan }: StepUpAdminViewProps) {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [isSettleOpen, setIsSettleOpen] = useState(false);
-  const [isAutoSaveOpen, setIsAutoSaveOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {

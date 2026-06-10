@@ -36,7 +36,6 @@ export function SprintAdminView({ plan }: SprintAdminViewProps) {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [processingId, setProcessingId] = useState<string | null>(null);
-  const [isAutoSaveOpen, setIsAutoSaveOpen] = useState(false);
   const [isSettleOpen, setIsSettleOpen] = useState(false);
   const [selectedUserPlanId, setSelectedUserPlanId] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);

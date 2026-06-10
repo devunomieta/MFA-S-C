@@ -9,6 +9,13 @@ export interface PlanMaturityStatus {
   daysRemaining: number;
 }
 
+function getWeekNumber(d: Date): number {
+  d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+}
+
 export function calculateMaturityForPlan(userPlan: any): PlanMaturityStatus | null {
   const startDateStr = userPlan.start_date;
   if (!startDateStr) return null;
@@ -22,8 +29,13 @@ export function calculateMaturityForPlan(userPlan: any): PlanMaturityStatus | nu
     durationDays = meta.selected_duration || 31;
   } else if (plan.type === "monthly_bloom") {
     durationDays = (meta.selected_duration || 12) * 30; // Approx 30 days
-  } else if (plan.type === "step_up" || plan.type === "marathon") {
+  } else if (plan.type === "step_up") {
     durationDays = (meta.selected_duration || plan.duration_weeks || 52) * 7;
+  } else if (plan.type === "marathon") {
+    const joinWeek = getWeekNumber(startDate);
+    const selectedDur = meta.selected_duration || plan.duration_weeks || 48;
+    const effectiveWeeks = Math.max(1, Math.min(selectedDur, 50 - joinWeek));
+    durationDays = effectiveWeeks * 7;
   } else if (plan.type === "ajo_circle") {
     durationDays = (plan.duration_weeks || 10) * 7;
   } else if (plan.type === "anchor") {

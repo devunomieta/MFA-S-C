@@ -210,9 +210,6 @@ export function Pricing() {
                             <span className="text-3xl font-black text-slate-950">
                               ₦{plan.min_amount.toLocaleString()}
                             </span>
-                            <span className="text-xs font-bold text-slate-400">
-                              / {plan.contribution_type}
-                            </span>
                           </div>
                           <div className="mt-1 inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-lg w-fit">
                             <div className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />

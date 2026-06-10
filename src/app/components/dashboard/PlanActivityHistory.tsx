@@ -54,8 +54,10 @@ export function PlanActivityHistory({ userId, planId, userPlanId }: PlanActivity
   }
 
   useEffect(() => {
-    setPage(1);
-    Promise.resolve().then(() => fetchHistory(1));
+    Promise.resolve().then(() => {
+      setPage(1);
+      fetchHistory(1);
+    });
   }, [userId, planId, userPlanId]);
 
   const formatCurrency = (val: number) =>

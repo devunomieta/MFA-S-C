@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 
-import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X, Home, Layout, Zap, Smartphone, Mail, ShieldCheck } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -35,20 +35,20 @@ export function Navbar() {
     null,
   );
 
+  const closeVerifyModal = () => {
+    setShowVerifyModal(false);
+    setWebsite("");
+    setSecurityData(null);
+    setVerifyPassword("");
+  };
+
   useEffect(() => {
     if (showVerifyModal) {
       fetchHoneypotData().then((data) => {
         if (data) setSecurityData(data);
       });
-    } else {
-      setWebsite("");
-      setSecurityData(null);
     }
   }, [showVerifyModal]);
-
-  const { scrollY } = useScroll();
-  const navbarWidth = useTransform(scrollY, [0, 100], ["100%", "92%"]);
-  const navbarTop = useTransform(scrollY, [0, 100], ["0px", "20px"]);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -99,8 +99,7 @@ export function Navbar() {
 
     if (website) {
       console.warn("Dashboard Access Honeypot triggered");
-      setShowVerifyModal(false);
-      setVerifyPassword("");
+      closeVerifyModal();
       navigate("/dashboard");
       return;
     }
@@ -126,8 +125,7 @@ export function Navbar() {
 
       if (error) throw error;
 
-      setShowVerifyModal(false);
-      setVerifyPassword("");
+      closeVerifyModal();
       navigate(isAdmin ? "/admin" : "/dashboard");
     } catch (error: any) {
       console.error("Dashboard Access Verification Error:", error);
@@ -339,7 +337,13 @@ export function Navbar() {
       </header>
 
       {/* Verification Modal */}
-      <Dialog open={showVerifyModal} onOpenChange={setShowVerifyModal}>
+      <Dialog
+        open={showVerifyModal}
+        onOpenChange={(open) => {
+          if (!open) closeVerifyModal();
+          else setShowVerifyModal(open);
+        }}
+      >
         <DialogContent className="sm:max-w-md rounded-[2rem] z-[200]">
           <DialogHeader>
             <DialogTitle className="text-lg md:text-2xl font-black tracking-tight">
@@ -366,7 +370,7 @@ export function Navbar() {
                 type="button"
                 variant="outline"
                 className="flex-1 h-12 md:h-14 rounded-xl md:rounded-2xl font-bold border-2 text-xs md:text-sm"
-                onClick={() => setShowVerifyModal(false)}
+                onClick={closeVerifyModal}
                 disabled={verifying}
               >
                 Cancel

@@ -12,7 +12,6 @@ import {
   Info,
   AlertTriangle,
   Plus,
-  CreditCard,
 } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -216,6 +215,25 @@ export function PlanDetailsPage() {
       setSelectedPlanForDeposit({ id: planId });
     } catch (err: any) {
       toast.error(err.message || "Failed to join plan");
+    }
+  };
+
+  const handleLeavePlan = async (userPlanId: string) => {
+    if (
+      !window.confirm(
+        "Are you sure you want to leave this plan? Any pending request will be deleted.",
+      )
+    ) {
+      return;
+    }
+    try {
+      const { error } = await supabase.from("user_plans").delete().eq("id", userPlanId);
+
+      if (error) throw error;
+      toast.success("Successfully left the plan");
+      fetchPlanDetails();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to leave plan");
     }
   };
 
@@ -431,6 +449,7 @@ export function PlanDetailsPage() {
                     onWithdraw={() => {
                       /* Withdraw handled in card */
                     }}
+                    onLeave={() => handleLeavePlan(userPlan.id)}
                   />
                 ) : (
                   <>
@@ -488,6 +507,7 @@ export function PlanDetailsPage() {
 
                 <div className="bg-white dark:bg-gray-950 rounded-[2.5rem] p-8 border border-gray-100 dark:border-gray-800 shadow-xl overflow-hidden">
                   <PlanActivityHistory
+                    key={userPlan.id}
                     userId={user?.id || ""}
                     planId={plan.id}
                     userPlanId={userPlan.id}
@@ -519,6 +539,7 @@ export function PlanDetailsPage() {
                     onAdvanceDeposit={() =>
                       setSelectedPlanForDeposit({ id: plan.id, isAdvance: true })
                     }
+                    onLeave={userPlan ? () => handleLeavePlan(userPlan.id) : undefined}
                   />
                 )}
                 {plan.type === "sprint" && (
@@ -538,6 +559,7 @@ export function PlanDetailsPage() {
                     onAdvanceDeposit={() =>
                       setSelectedPlanForDeposit({ id: plan.id, isAdvance: true })
                     }
+                    onLeave={userPlan ? () => handleLeavePlan(userPlan.id) : undefined}
                   />
                 )}
                 {plan.type === "anchor" && (
@@ -556,6 +578,7 @@ export function PlanDetailsPage() {
                     onAdvanceDeposit={() =>
                       setSelectedPlanForDeposit({ id: plan.id, isAdvance: true })
                     }
+                    onLeave={userPlan ? () => handleLeavePlan(userPlan.id) : undefined}
                   />
                 )}
                 {plan.type === "daily_drop" && (
@@ -575,6 +598,7 @@ export function PlanDetailsPage() {
                     onAdvanceDeposit={() =>
                       setSelectedPlanForDeposit({ id: plan.id, isAdvance: true })
                     }
+                    onLeave={userPlan ? () => handleLeavePlan(userPlan.id) : undefined}
                   />
                 )}
                 {plan.type === "step_up" && (
@@ -594,6 +618,7 @@ export function PlanDetailsPage() {
                     onAdvanceDeposit={() =>
                       setSelectedPlanForDeposit({ id: plan.id, isAdvance: true })
                     }
+                    onLeave={userPlan ? () => handleLeavePlan(userPlan.id) : undefined}
                   />
                 )}
                 {plan.type === "monthly_bloom" && (
@@ -613,6 +638,7 @@ export function PlanDetailsPage() {
                     onAdvanceDeposit={() =>
                       setSelectedPlanForDeposit({ id: plan.id, isAdvance: true })
                     }
+                    onLeave={userPlan ? () => handleLeavePlan(userPlan.id) : undefined}
                   />
                 )}
                 {plan.type === "ajo_circle" && (
@@ -627,6 +653,7 @@ export function PlanDetailsPage() {
                     onWithdraw={() => {
                       /* Withdraw handled in card */
                     }}
+                    onLeave={userPlan ? () => handleLeavePlan(userPlan.id) : undefined}
                   />
                 )}
               </div>

@@ -245,6 +245,24 @@ export function DepositModal({
       );
       return;
     }
+
+    if (activeTab === "wallet" && (planType === "step_up" || planType === "ajo_circle")) {
+      if (!isAdvanceMode) {
+        if (finalAmount !== mandatedAmount) {
+          toast.error(`Deposit must be exactly ₦${formatCurrency(mandatedAmount)}`);
+          return;
+        }
+      } else {
+        if (mandatedAmount <= 0) {
+          toast.error("Invalid plan amount settings.");
+          return;
+        }
+        if (finalAmount % mandatedAmount !== 0) {
+          toast.error(`Deposit must be an integer multiple of ₦${formatCurrency(mandatedAmount)}`);
+          return;
+        }
+      }
+    }
     if (method === "external" && !receiptFile) {
       toast.error("Please upload payment receipt");
       return;
@@ -271,6 +289,7 @@ export function DepositModal({
     if (receiptFile) {
       try {
         const fileExt = receiptFile.name.split(".").pop();
+        // eslint-disable-next-line react-hooks/purity
         const fileName = `${user.id}-${receiptFile.size}-${Date.now()}.${fileExt}`;
 
         const { error: uploadError } = await supabase.storage
@@ -404,6 +423,7 @@ export function DepositModal({
               type: "plan",
               title: `Funds Added to Plan: ${planName}`,
               message: `You have successfully transferred ₦${formatCurrency(finalAmount)} from your wallet to your "${planName}" savings plan.`,
+              planId: selectedPlanObj?.id || selectedPlanId,
             });
           }
 
@@ -463,6 +483,7 @@ export function DepositModal({
               type: "plan",
               title: `Funds Added to Plan: ${planName}`,
               message: `You have successfully transferred ₦${formatCurrency(finalAmount)} from your wallet to your "${planName}" savings plan.`,
+              planId: selectedPlanId,
             });
           }
 
@@ -599,7 +620,7 @@ export function DepositModal({
 
   // Logic for determining if the input should be disabled
   const isInputLocked = () => {
-    return false; // Requirement: Don't lock amount input fields for all plans
+    return planType === "step_up";
   };
 
   const getPeriodsCovered = () => {
@@ -619,6 +640,11 @@ export function DepositModal({
       const fixedAmt = meta.fixed_amount || selectedPlanObj.plan?.fixed_amount || 0;
       return fixedAmt > 0 ? Math.floor(amt / fixedAmt) : 0;
     }
+    if (planType === "step_up" || planType === "ajo_circle") {
+      const meta = selectedPlanObj.plan_metadata || {};
+      const fixedAmt = meta.fixed_amount || selectedPlanObj.plan?.fixed_amount || 0;
+      return fixedAmt > 0 ? Math.floor(amt / fixedAmt) : 0;
+    }
     return 0;
   };
 
@@ -631,11 +657,19 @@ export function DepositModal({
         : "Week";
 
   const remainingToGoal = (() => {
-    if (planType === "daily_drop" && selectedPlanObj) {
-      const meta = selectedPlanObj.plan_metadata || {};
+    if (!selectedPlanObj) return Infinity;
+    const meta = selectedPlanObj.plan_metadata || {};
+    const fixedAmt = meta.fixed_amount || selectedPlanObj.plan?.fixed_amount || 0;
+
+    if (planType === "daily_drop") {
       const duration = meta.selected_duration || 31;
-      const fixedAmt = meta.fixed_amount || selectedPlanObj.plan?.fixed_amount || 0;
       if (duration === -1) return Infinity;
+      const target = fixedAmt * duration;
+      const current = selectedPlanObj.current_balance || 0;
+      return Math.max(0, target - current);
+    }
+    if (planType === "step_up") {
+      const duration = meta.selected_duration || 10;
       const target = fixedAmt * duration;
       const current = selectedPlanObj.current_balance || 0;
       return Math.max(0, target - current);
@@ -644,7 +678,7 @@ export function DepositModal({
   })();
 
   const isExcess = Boolean(
-    planType === "daily_drop" &&
+    (planType === "daily_drop" || planType === "step_up") &&
     amount &&
     parseFloat(amount) > remainingToGoal &&
     remainingToGoal !== Infinity,
@@ -1134,6 +1168,7 @@ export function DepositModal({
                       placeholder="0.00"
                       value={amountPerUnit}
                       onChange={(e) => setAmountPerUnit(e.target.value)}
+                      disabled={planType === "step_up"}
                       className="dark:bg-gray-800 dark:border-gray-700 dark:text-white"
                     />
                   </div>
@@ -1235,7 +1270,7 @@ export function DepositModal({
                       </p>
                       <p className="text-[10px] text-amber-600 dark:text-amber-500 leading-tight">
                         {isInclusiveFee
-                          ? `Your ₦${formatCurrency(Number(amount) || 0)} payment will be deducted as a service charge.`
+                          ? `Your ₦${formatCurrency(mandatedAmount)} payment will be deducted as a service charge.`
                           : `₦${formatCurrency(fee)} service charge + ₦${formatCurrency(Number(amount) || 0)} contribution will be deducted from your wallet.`}
                       </p>
                     </div>

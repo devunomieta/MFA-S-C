@@ -78,7 +78,10 @@ export function DailyDropPlanCard({
     userPlan?.status === "completed" ||
     (selectedDuration !== -1 && effectiveDaysPaid >= selectedDuration);
 
-  const estMaturity = getEstimatedMaturityDate(userPlan, selectedDuration);
+  const estMaturity = getEstimatedMaturityDate(
+    userPlan,
+    isJoined ? selectedDuration : parseInt(joinDuration),
+  );
 
   const getNextDue = () => {
     const startDateStr = userPlan?.start_date || metadata.start_date || userPlan?.created_at;
@@ -334,7 +337,8 @@ export function DailyDropPlanCard({
                         <SelectItem value="31">31 Days</SelectItem>
                         <SelectItem value="62">62 Days</SelectItem>
                         <SelectItem value="93">93 Days</SelectItem>
-                        <SelectItem value="-1">Continuous</SelectItem>
+                        <SelectItem value="186">186 Days (6 Months)</SelectItem>
+                        <SelectItem value="372">372 Days (12 Months)</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -614,7 +618,8 @@ export function DailyDropPlanCard({
                 <SelectItem value="31">31 Days (1 Month)</SelectItem>
                 <SelectItem value="62">62 Days (2 Months)</SelectItem>
                 <SelectItem value="93">93 Days (3 Months)</SelectItem>
-                <SelectItem value="-1">No End Date (Continuous)</SelectItem>
+                <SelectItem value="186">186 Days (6 Months)</SelectItem>
+                <SelectItem value="372">372 Days (12 Months)</SelectItem>
               </SelectContent>
             </Select>
             {estMaturity && joinDuration !== "-1" && (
@@ -639,11 +644,14 @@ export function DailyDropPlanCard({
                 <div className="flex items-center gap-2">
                   <div className="w-1 h-1 rounded-full bg-cyan-500" />
                   Service Fee:{" "}
-                  {plan.service_charge_type === "percentage"
-                    ? `${plan.service_charge_percentage}% of your daily drop`
-                    : plan.service_charge_type === "fixed"
-                      ? `₦${(plan.service_charge_fixed || plan.service_charge || 0).toLocaleString()}`
-                      : "See table below"}
+                  {plan.service_charge_type === "percentage" &&
+                  plan.service_charge_percentage === 100
+                    ? "Your First Daily Drop Payment"
+                    : plan.service_charge_type === "percentage"
+                      ? `${plan.service_charge_percentage}% of your daily drop`
+                      : plan.service_charge_type === "fixed"
+                        ? `₦${(plan.service_charge_fixed || plan.service_charge || 0).toLocaleString()}`
+                        : "See table below"}
                 </div>
                 {plan.service_charge_type === "tiered" &&
                   plan.service_charge_tiers &&

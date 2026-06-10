@@ -107,8 +107,13 @@ const Security = lazy(() =>
 
 function LoadingFallback() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-white">
-      <Loader2 className="w-10 h-10 animate-spin text-emerald-600" />
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-white/70 dark:bg-slate-950/70 backdrop-blur-md transition-all">
+      <div className="flex flex-col items-center gap-3">
+        <Loader2 className="w-12 h-12 animate-spin text-emerald-600" />
+        <p className="text-sm font-bold text-gray-500 dark:text-gray-400">
+          Loading Mary's Thrift...
+        </p>
+      </div>
     </div>
   );
 }
@@ -176,11 +181,65 @@ function AppRoutes() {
             document.getElementsByTagName("head")[0].appendChild(link);
           }
           link.href = favicon_url;
+
+          let appleLink = document.querySelector("link[rel='apple-touch-icon']") as HTMLLinkElement;
+          if (!appleLink) {
+            appleLink = document.createElement("link");
+            appleLink.rel = "apple-touch-icon";
+            document.getElementsByTagName("head")[0].appendChild(appleLink);
+          }
+          appleLink.href = favicon_url;
+        }
+
+        // Dynamically update the PWA manifest to use the app settings app_name and favicon_url
+        try {
+          const manifest = {
+            name: app_name || "Mary's Thrift Finance",
+            short_name: app_name ? app_name.split(" ")[0] : "Mary's Thrift",
+            description: "Secure Thrift & Loan Management",
+            theme_color: "#ffffff",
+            background_color: "#ffffff",
+            display: "standalone",
+            start_url: "/",
+            launch_handler: {
+              client_mode: "navigate-existing",
+            },
+            icons: [
+              {
+                src: favicon_url || "/pwa-192x192.png",
+                sizes: "192x192",
+                type: "image/png",
+              },
+              {
+                src: favicon_url || "/pwa-512x512.png",
+                sizes: "512x512",
+                type: "image/png",
+              },
+            ],
+          };
+
+          const stringManifest = JSON.stringify(manifest);
+          const blob = new Blob([stringManifest], { type: "application/json" });
+          const manifestURL = URL.createObjectURL(blob);
+
+          let link = document.querySelector('link[rel="manifest"]') as HTMLLinkElement;
+          if (!link) {
+            link = document.createElement("link");
+            link.rel = "manifest";
+            document.head.appendChild(link);
+          }
+          link.href = manifestURL;
+        } catch (err) {
+          console.error("Error dynamically updating PWA manifest:", err);
         }
       }
     };
     applyBranding();
   }, []);
+
+  if (loading) {
+    return <LoadingFallback />;
+  }
 
   return (
     <ThemeProvider

@@ -75,6 +75,32 @@ export function AjoCircleAdminView() {
     Promise.resolve().then(() => fetchSubscribers());
   }, []);
 
+  const syncMetadataForTurns = (meta: any, newTurns: number[]) => {
+    let newSlots = [...(meta.slots || [])];
+    if (newTurns.length < newSlots.length) {
+      newSlots = newSlots.slice(0, newTurns.length);
+    } else {
+      const defaultAmt = newSlots[0]?.amount || 3000;
+      while (newSlots.length < newTurns.length) {
+        newSlots.push({ proposed_week: newTurns[newSlots.length], amount: defaultAmt });
+      }
+    }
+    newSlots = newSlots.map((slot, index) => ({
+      ...slot,
+      proposed_week: newTurns[index],
+    }));
+
+    const totalAmt = newSlots.reduce((acc, s) => acc + s.amount, 0);
+
+    return {
+      ...meta,
+      picking_turns: newTurns,
+      slots: newSlots,
+      fixed_amount: totalAmt,
+      total_expected_per_cycle: totalAmt,
+    };
+  };
+
   const handleAssignTurn = async (userPlanId: string, turn: string) => {
     if (!turn) return;
     const week = parseInt(turn);
@@ -97,10 +123,7 @@ export function AjoCircleAdminView() {
       currentTurns.sort((a: number, b: number) => a - b);
     }
 
-    const updatedMetadata = {
-      ...subscriber.plan_metadata,
-      picking_turns: currentTurns,
-    };
+    const updatedMetadata = syncMetadataForTurns(subscriber.plan_metadata, currentTurns);
 
     const { error } = await supabase
       .from("user_plans")
@@ -125,10 +148,7 @@ export function AjoCircleAdminView() {
 
     if (accept) {
       const proposed = subscriber.plan_metadata.proposed_turns || [];
-      const updatedMetadata = {
-        ...subscriber.plan_metadata,
-        picking_turns: proposed,
-      };
+      const updatedMetadata = syncMetadataForTurns(subscriber.plan_metadata, proposed);
 
       const { error } = await supabase
         .from("user_plans")

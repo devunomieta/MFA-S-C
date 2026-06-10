@@ -5,7 +5,9 @@ import { toast } from "sonner";
 
 import { BrandLogo } from "@/app/components/ui/BrandLogo";
 import { Button } from "@/app/components/ui/button";
+import { HoneypotField } from "@/app/components/ui/HoneypotField";
 import { Input } from "@/app/components/ui/input";
+import { fetchHoneypotData, verifyHoneypot } from "@/lib/security";
 import { supabase } from "@/lib/supabase";
 
 const TikTokIcon = ({ className }: { className?: string }) => (
@@ -13,9 +15,6 @@ const TikTokIcon = ({ className }: { className?: string }) => (
     <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.17-2.89-.6-4.13-1.47V18.5c0 1.94-.73 3.89-2.2 5.1-1.41 1.13-3.26 1.63-5.06 1.34-1.72-.25-3.32-1.2-4.32-2.61-1.26-1.74-1.52-4.14-.65-6.07.72-1.63 2.15-2.97 3.88-3.5 1.09-.32 2.27-.3 3.39-.01v4.13c-.93-.24-1.99-.21-2.9.15-.99.37-1.84 1.19-2.11 2.2-.28 1.05.02 2.23.75 3.03.62.72 1.58 1.13 2.5 1.13 1.06 0 2.1-.55 2.65-1.45.45-.71.49-1.58.49-2.39V.02z" />
   </svg>
 );
-
-import { fetchHoneypotData, verifyHoneypot } from "@/lib/security";
-import { HoneypotField } from "@/app/components/ui/HoneypotField";
 
 export function Footer() {
   const [logoUrl, setLogoUrl] = useState<string | null>(null);

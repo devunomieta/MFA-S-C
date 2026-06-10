@@ -1,11 +1,8 @@
 import { useEffect, useState } from "react";
 
-import { Search, Play, Calendar } from "lucide-react";
-import { toast } from "sonner";
+import { Search, Calendar } from "lucide-react";
 
-import { ActionConfirmModal } from "@/app/components/ui/ActionConfirmModal";
 import { Badge } from "@/app/components/ui/badge";
-import { Button } from "@/app/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Input } from "@/app/components/ui/input";
 import {
@@ -35,12 +32,6 @@ export function DailyDropAdminView({ plan }: DailyDropAdminViewProps) {
   const [subscribers, setSubscribers] = useState<UserPlanWithProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
-
-  useEffect(() => {
-    fetchSubscribers();
-  }, [plan.id]);
 
   async function fetchSubscribers() {
     setLoading(true);
@@ -55,6 +46,10 @@ export function DailyDropAdminView({ plan }: DailyDropAdminViewProps) {
     }
     setLoading(false);
   }
+
+  useEffect(() => {
+    Promise.resolve().then(() => fetchSubscribers());
+  }, [plan.id]);
 
   const formatCurrency = (val: number) =>
     new Intl.NumberFormat("en-US", { style: "currency", currency: "NGN" }).format(val);

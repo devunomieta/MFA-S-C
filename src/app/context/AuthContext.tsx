@@ -15,6 +15,7 @@ interface AuthContextType {
   savedSessions: SavedSession[];
   switchAccount: (session: Session) => Promise<void>;
   addAccount: () => void;
+  removeSavedAccount: (userId: string) => void;
   lastActivity: number;
   refreshSession: () => Promise<void>;
   mfaEnabled: boolean;
@@ -30,6 +31,7 @@ const AuthContext = createContext<AuthContextType>({
   savedSessions: [],
   switchAccount: async () => {},
   addAccount: () => {},
+  removeSavedAccount: () => {},
   lastActivity: Date.now(),
   refreshSession: async () => {},
   mfaEnabled: false,
@@ -245,6 +247,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     window.location.href = "/login";
   };
 
+  const removeSavedAccount = (userId: string) => {
+    SessionManager.removeSession(userId);
+    setSavedSessions(SessionManager.getSavedSessions());
+    if (user?.id === userId) {
+      supabase.auth.signOut().then(() => {
+        window.location.href = "/login";
+      });
+    }
+  };
+
   const refreshSession = async () => {
     const { data, error } = await supabase.auth.refreshSession();
     if (error) {
@@ -268,6 +280,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         savedSessions,
         switchAccount,
         addAccount,
+        removeSavedAccount,
         lastActivity,
         refreshSession,
         mfaEnabled,
