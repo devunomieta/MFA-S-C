@@ -1,13 +1,13 @@
-import { useState, useRef } from "react";
+import { useState, useEffect } from "react";
 
-import HCaptcha from "@hcaptcha/react-hcaptcha";
 import { motion } from "framer-motion";
 import { ArrowLeft, Mail, Send, Home } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 import { AuthHeader } from "@/app/components/auth/AuthHeader";
 import { Button } from "@/app/components/ui/button";
+import { HoneypotField } from "@/app/components/ui/HoneypotField";
 import { Input } from "@/app/components/ui/input";
 import {
   InputOTP,
@@ -16,43 +16,62 @@ import {
   InputOTPSlot,
 } from "@/app/components/ui/input-otp";
 import { Label } from "@/app/components/ui/label";
+import { fetchHoneypotData, verifyHoneypot } from "@/lib/security";
 import { supabase } from "@/lib/supabase";
 
-const HCAPTCHA_SITE_KEY = "2aac9114-5cba-4dbe-97a0-ad1ac7f80daa";
-
 export function ForgotPassword() {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [otpCode, setOtpCode] = useState("");
   const [verifying, setVerifying] = useState(false);
-  const captchaRef = useRef<HCaptcha>(null);
+  const [website, setWebsite] = useState("");
+  const [securityData, setSecurityData] = useState<{ timestamp: string; signature: string } | null>(
+    null,
+  );
+
+  useEffect(() => {
+    fetchHoneypotData().then((data) => {
+      if (data) setSecurityData(data);
+    });
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (website) {
+      console.warn("Honeypot triggered");
+      toast.success("Password reset link sent to your email");
+      setSubmitted(true);
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const captchaToken = await captchaRef.current?.execute({ async: true });
-      if (!captchaToken?.response) {
-        toast.error("Please complete the security check.");
+      // Validate Honeypot and HMAC timestamp
+      const isVerified = await verifyHoneypot(
+        securityData?.timestamp,
+        securityData?.signature,
+        website,
+      );
+
+      if (!isVerified) {
         setLoading(false);
         return;
       }
 
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/update-password`,
-        captchaToken: captchaToken.response,
       });
 
-      captchaRef.current?.resetCaptcha();
       if (error) throw error;
 
       setSubmitted(true);
       toast.success("Password reset link sent to your email");
     } catch (error: any) {
       console.error("Reset Password Error:", error);
-      captchaRef.current?.resetCaptcha();
       toast.error(error.message || "Failed to send reset link");
     } finally {
       setLoading(false);
@@ -73,8 +92,7 @@ export function ForgotPassword() {
 
       if (error) throw error;
       toast.success("Identity verified! Please set your new password.");
-      // The session is now set, we can navigate to update-password
-      // Note: verifyOtp sets the session automatically in the client
+      navigate("/update-password");
     } catch (error: any) {
       console.error("OTP Verification Error:", error);
       toast.error(error.message || "Invalid or expired code");
@@ -212,14 +230,8 @@ export function ForgotPassword() {
                 </div>
               </div>
 
-              {/* hCaptcha — invisible, executes on submit */}
-              <HCaptcha
-                ref={captchaRef}
-                sitekey={HCAPTCHA_SITE_KEY}
-                size="invisible"
-                onError={() => toast.error("Captcha error. Please try again.")}
-                onExpire={() => captchaRef.current?.resetCaptcha()}
-              />
+              {/* Honeypot field */}
+              <HoneypotField value={website} onChange={(e) => setWebsite(e.target.value)} />
 
               <Button
                 type="submit"

@@ -1,22 +1,20 @@
-import { useState, useRef } from "react";
+import { useState, useEffect } from "react";
 
-import HCaptcha from "@hcaptcha/react-hcaptcha";
 import { motion } from "framer-motion";
-import { Mail, Lock, User, CheckCircle2, Phone, Home } from "lucide-react";
+import { Mail, Lock, User, CheckCircle2, Home } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 
 import { AuthHeader } from "@/app/components/auth/AuthHeader";
 import { Button } from "@/app/components/ui/button";
+import { HoneypotField } from "@/app/components/ui/HoneypotField";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { PasswordInput } from "@/app/components/ui/PasswordInput";
 import { PasswordStrength } from "@/app/components/ui/PasswordStrength";
-import { logActivity } from "@/lib/activity";
+import { fetchHoneypotData, verifyHoneypot } from "@/lib/security";
 import { supabase } from "@/lib/supabase";
 import { validatePassword } from "@/lib/validation";
-
-const HCAPTCHA_SITE_KEY = "2aac9114-5cba-4dbe-97a0-ad1ac7f80daa";
 
 export function Signup() {
   const navigate = useNavigate();
@@ -30,8 +28,16 @@ export function Signup() {
     confirmPassword: "",
     website: "", // Honeypot
   });
-  const captchaRef = useRef<HCaptcha>(null);
+  const [securityData, setSecurityData] = useState<{ timestamp: string; signature: string } | null>(
+    null,
+  );
   const passFeedback = validatePassword(formData.password);
+
+  useEffect(() => {
+    fetchHoneypotData().then((data) => {
+      if (data) setSecurityData(data);
+    });
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -58,26 +64,27 @@ export function Signup() {
     setLoading(true);
 
     try {
-      // Execute captcha challenge
-      const captchaToken = await captchaRef.current?.execute({ async: true });
-      if (!captchaToken?.response) {
-        toast.error("Please complete the security check.");
+      // Validate Honeypot and HMAC timestamp
+      const isVerified = await verifyHoneypot(
+        securityData?.timestamp,
+        securityData?.signature,
+        formData.website,
+      );
+
+      if (!isVerified) {
         setLoading(false);
         return;
       }
 
-      const { data, error } = await supabase.auth.signUp({
+      const { error } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
         options: {
-          captchaToken: captchaToken.response,
           data: {
             full_name: formData.name,
           },
         },
       });
-
-      captchaRef.current?.resetCaptcha();
 
       if (error) throw error;
 
@@ -85,13 +92,12 @@ export function Signup() {
         "Verification code sent! Please retrieve the 6-digit OTP from your email to complete signup or click the confirmation link.",
         {
           duration: 15000,
-        }
+        },
       );
 
       navigate("/verify-otp", { state: { email: formData.email } });
     } catch (error: any) {
       console.error("Signup Error:", error);
-      captchaRef.current?.resetCaptcha();
       toast.error(error.message || "Failed to create account");
     } finally {
       setLoading(false);
@@ -173,7 +179,8 @@ export function Signup() {
               <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
             </div>
             <p className="text-[11px] text-center text-slate-500 font-medium leading-normal -mt-2">
-              Note: You will be asked to add your phone number during onboarding. It is recommended to use your WhatsApp-enabled number.
+              Note: You will be asked to add your phone number during onboarding. It is recommended
+              to use your WhatsApp-enabled number.
             </p>
           </div>
 
@@ -222,17 +229,8 @@ export function Signup() {
                 </div>
               </div>
 
-              {/* Honeypot */}
-              <div className="hidden" aria-hidden="true">
-                <Input
-                  type="text"
-                  name="website"
-                  value={formData.website}
-                  onChange={handleChange}
-                  tabIndex={-1}
-                  autoComplete="off"
-                />
-              </div>
+              {/* Honeypot field */}
+              <HoneypotField value={formData.website} onChange={handleChange} />
             </div>
 
             <div className="space-y-6">
@@ -282,7 +280,7 @@ export function Signup() {
               </div>
             </div>
 
-            <div className="flex items-center ml-1">
+            <div className="flex items-center ml-1 mb-4">
               <input
                 id="terms"
                 name="terms"
@@ -301,19 +299,10 @@ export function Signup() {
               </label>
             </div>
 
-            {/* hCaptcha — invisible, triggered on submit */}
-            <HCaptcha
-              ref={captchaRef}
-              sitekey={HCAPTCHA_SITE_KEY}
-              size="invisible"
-              onError={() => toast.error("Captcha error. Please try again.")}
-              onExpire={() => captchaRef.current?.resetCaptcha()}
-            />
-
             <Button
               type="submit"
-              className="w-full h-14 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-lg font-bold shadow-xl shadow-emerald-600/20 active:scale-[0.98] transition-all"
               disabled={loading}
+              className="w-full h-14 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-base transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <motion.div

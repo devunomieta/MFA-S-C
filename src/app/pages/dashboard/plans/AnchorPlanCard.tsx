@@ -5,10 +5,9 @@ import { CheckCircle, AlertOctagon, TrendingUp } from "lucide-react";
 import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/app/components/ui/card";
+import { getEstimatedMaturityDate } from "@/lib/planUtils";
 import { formatNaira } from "@/lib/utils";
 import { UserPlan, Plan } from "@/types";
-
-import { getEstimatedMaturityDate } from "@/lib/planUtils";
 
 import { SprintJoinModal } from "./SprintJoinModal"; // Re-use Sprint Modal as logic is identical, maybe rename later
 
@@ -86,12 +85,14 @@ export function AnchorPlanCard({
           </div>
         </CardHeader>
 
-        <CardContent className="space-y-6 flex-1 pt-4 overflow-y-auto max-h-[60vh] custom-scrollbar">
-          <div className={`flex items-center gap-2 p-2 rounded-md text-xs border font-medium ${arrears > 0 ? "bg-red-50 text-red-700 border-red-100" : "bg-emerald-50 text-emerald-700 border-emerald-100"}`}>
+        <CardContent className="space-y-6 flex-1 pt-4">
+          <div
+            className={`flex items-center gap-2 p-2 rounded-md text-xs border font-medium ${arrears > 0 ? "bg-red-50 text-red-700 border-red-100" : "bg-emerald-50 text-emerald-700 border-emerald-100"}`}
+          >
             <AlertOctagon className="w-3.5 h-3.5" />
             <span>
-              {arrears > 0 
-                ? `${arrears / 500} Missed Week(s) to be paid (Arrears: ${formatNaira(arrears)})` 
+              {arrears > 0
+                ? `${arrears / 500} Missed Week(s) to be paid (Arrears: ${formatNaira(arrears)})`
                 : `0 Missed Weeks (Cleared: ₦0.00)`}
             </span>
           </div>
@@ -209,7 +210,7 @@ export function AnchorPlanCard({
           </p>
         </CardHeader>
 
-        <CardContent className="flex-1 space-y-6 pt-2 overflow-y-auto max-h-[60vh] custom-scrollbar">
+        <CardContent className="flex-1 space-y-6 pt-2">
           <div className="flex justify-between items-end border-b border-gray-100 dark:border-gray-800 pb-4">
             <div>
               <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">

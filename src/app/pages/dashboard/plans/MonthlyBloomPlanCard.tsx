@@ -16,9 +16,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/app/components/ui/select";
+import { getEstimatedMaturityDate } from "@/lib/planUtils";
 import { formatNaira } from "@/lib/utils";
 import { Plan, UserPlan } from "@/types";
-import { getEstimatedMaturityDate } from "@/lib/planUtils";
 
 import { SprintJoinModal } from "./SprintJoinModal";
 
@@ -113,7 +113,7 @@ export function MonthlyBloomPlanCard({
           </div>
         </CardHeader>
 
-        <CardContent className="space-y-6 flex-1 pt-4 overflow-y-auto max-h-[60vh] custom-scrollbar">
+        <CardContent className="space-y-6 flex-1 pt-4">
           <div className="flex flex-col gap-2">
             {arrears > 0 ? (
               <div className="bg-red-50 p-2 rounded border border-red-100 flex items-center gap-2 text-xs text-red-700 font-medium animate-pulse">
@@ -188,7 +188,11 @@ export function MonthlyBloomPlanCard({
               <span>
                 Month {monthsCompleted} of {selectedDuration} Completed
               </span>
-              <span>{estMaturity ? `Est. Maturity: ${estMaturity}` : `${Math.round(overallProgressPercent)}% Total`}</span>
+              <span>
+                {estMaturity
+                  ? `Est. Maturity: ${estMaturity}`
+                  : `${Math.round(overallProgressPercent)}% Total`}
+              </span>
             </div>
           </div>
         </CardContent>
@@ -305,7 +309,7 @@ export function MonthlyBloomPlanCard({
           </p>
         </CardHeader>
 
-        <CardContent className="flex-1 space-y-6 pt-2 overflow-y-auto max-h-[60vh] custom-scrollbar">
+        <CardContent className="flex-1 space-y-6 pt-2">
           {/* Input Section - Minimalist UI */}
           <div className="space-y-4 pt-2">
             <div className="grid grid-cols-2 gap-3">

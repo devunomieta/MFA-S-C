@@ -53,7 +53,6 @@ export function MarathonAdminView({ plan }: MarathonAdminViewProps) {
     fetchSubscribers();
   }, [plan.id]);
 
-
   const formatCurrency = (val: number) =>
     new Intl.NumberFormat("en-US", { style: "currency", currency: "NGN" }).format(val);
 

@@ -17,7 +17,8 @@ interface PlanHealthCardProps {
 export function PlanHealthCard({ userPlan }: PlanHealthCardProps) {
   const metadata = (userPlan.plan_metadata || {}) as any;
   const fixedAmount = metadata.fixed_amount || userPlan.plan?.fixed_amount || 0;
-  const targetAmount = metadata.target_amount || metadata.fixed_amount || userPlan.plan?.fixed_amount || 0;
+  const targetAmount =
+    metadata.target_amount || metadata.fixed_amount || userPlan.plan?.fixed_amount || 0;
   const planType = userPlan.plan?.type;
 
   let targetTitle = "Target Amount";

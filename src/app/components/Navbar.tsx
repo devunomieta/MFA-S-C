@@ -14,8 +14,10 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/app/components/ui/dialog";
+import { HoneypotField } from "@/app/components/ui/HoneypotField";
 import { PasswordInput } from "@/app/components/ui/PasswordInput";
 import { useAuth } from "@/app/context/AuthContext";
+import { fetchHoneypotData, verifyHoneypot } from "@/lib/security";
 import { supabase } from "@/lib/supabase";
 
 export function Navbar() {
@@ -28,6 +30,21 @@ export function Navbar() {
   const [verifyPassword, setVerifyPassword] = useState("");
   const [verifying, setVerifying] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [website, setWebsite] = useState("");
+  const [securityData, setSecurityData] = useState<{ timestamp: string; signature: string } | null>(
+    null,
+  );
+
+  useEffect(() => {
+    if (showVerifyModal) {
+      fetchHoneypotData().then((data) => {
+        if (data) setSecurityData(data);
+      });
+    } else {
+      setWebsite("");
+      setSecurityData(null);
+    }
+  }, [showVerifyModal]);
 
   const { scrollY } = useScroll();
   const navbarWidth = useTransform(scrollY, [0, 100], ["100%", "92%"]);
@@ -80,8 +97,28 @@ export function Navbar() {
     e.preventDefault();
     if (!user?.email) return;
 
+    if (website) {
+      console.warn("Dashboard Access Honeypot triggered");
+      setShowVerifyModal(false);
+      setVerifyPassword("");
+      navigate("/dashboard");
+      return;
+    }
+
     setVerifying(true);
     try {
+      // Validate Honeypot and HMAC timestamp
+      const isVerified = await verifyHoneypot(
+        securityData?.timestamp,
+        securityData?.signature,
+        website,
+      );
+
+      if (!isVerified) {
+        setVerifying(false);
+        return;
+      }
+
       const { error } = await supabase.auth.signInWithPassword({
         email: user.email,
         password: verifyPassword,
@@ -322,6 +359,7 @@ export function Navbar() {
                 autoFocus
                 className="h-12 md:h-14 rounded-xl md:rounded-2xl border-slate-200 dark:border-slate-800 text-xs md:text-sm"
               />
+              <HoneypotField value={website} onChange={(e) => setWebsite(e.target.value)} />
             </div>
             <div className="flex gap-3">
               <Button

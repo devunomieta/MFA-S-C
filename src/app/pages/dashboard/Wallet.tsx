@@ -29,8 +29,8 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
 import { TransactionDetailsModal } from "@/app/components/wallet/TransactionDetailsModal";
 import { useAuth } from "@/app/context/AuthContext";
-import { checkAndProcessMaturity } from "@/lib/planUtils";
 import { notificationDispatcher } from "@/lib/notificationDispatcher";
+import { checkAndProcessMaturity } from "@/lib/planUtils";
 import { supabase } from "@/lib/supabase";
 import { formatNaira, formatCurrency } from "@/lib/utils";
 import { calculateBalance } from "@/lib/walletUtils";
@@ -188,11 +188,12 @@ export function Wallet() {
   const filteredTransactions = useMemo(() => {
     let result = transactions;
     if (selectedPlanFilter === "all") {
-      const activePlanIds = userPlans.filter(p => p.status === "active").map(p => p.plan.id);
-      result = transactions.filter((tx) => 
-        !tx.plan_id || 
-        tx.plan?.type === "withdrawable_wallet" || 
-        activePlanIds.includes(tx.plan_id)
+      const activePlanIds = userPlans.filter((p) => p.status === "active").map((p) => p.plan.id);
+      result = transactions.filter(
+        (tx) =>
+          !tx.plan_id ||
+          tx.plan?.type === "withdrawable_wallet" ||
+          activePlanIds.includes(tx.plan_id),
       );
     } else if (selectedPlanFilter === "general") {
       result = transactions.filter((tx) => !tx.plan_id);
@@ -201,8 +202,13 @@ export function Wallet() {
     } else {
       result = transactions.filter((tx) => tx.plan_id === selectedPlanFilter);
     }
-    
-    return result.filter(tx => tx.type !== "system_credit" && tx.type !== "System_Credit" && tx.description !== "System_Credit");
+
+    return result.filter(
+      (tx) =>
+        tx.type !== "system_credit" &&
+        tx.type !== "System_Credit" &&
+        tx.description !== "System_Credit",
+    );
   }, [selectedPlanFilter, transactions, userPlans]);
 
   async function fetchPlansData() {

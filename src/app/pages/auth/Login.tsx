@@ -1,6 +1,5 @@
-import { useState, useRef } from "react";
+import { useState, useEffect } from "react";
 
-import HCaptcha from "@hcaptcha/react-hcaptcha";
 import { motion } from "framer-motion";
 import { ArrowRight, Mail, Lock, UserPlus, Home } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
@@ -8,21 +7,29 @@ import { toast } from "sonner";
 
 import { AuthHeader } from "@/app/components/auth/AuthHeader";
 import { Button } from "@/app/components/ui/button";
+import { HoneypotField } from "@/app/components/ui/HoneypotField";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { PasswordInput } from "@/app/components/ui/PasswordInput";
 import { logActivity } from "@/lib/activity";
+import { fetchHoneypotData, verifyHoneypot } from "@/lib/security";
 import { supabase } from "@/lib/supabase";
-
-const HCAPTCHA_SITE_KEY = "2aac9114-5cba-4dbe-97a0-ad1ac7f80daa";
 
 export function Login() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const joinPlanId = searchParams.get("join");
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({ email: "", password: "" });
-  const captchaRef = useRef<HCaptcha>(null);
+  const [formData, setFormData] = useState({ email: "", password: "", website: "" });
+  const [securityData, setSecurityData] = useState<{ timestamp: string; signature: string } | null>(
+    null,
+  );
+
+  useEffect(() => {
+    fetchHoneypotData().then((data) => {
+      if (data) setSecurityData(data);
+    });
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -30,13 +37,25 @@ export function Login() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (formData.website) {
+      console.warn("Honeypot triggered");
+      toast.success("Welcome back!");
+      navigate("/dashboard");
+      return;
+    }
+
     setLoading(true);
 
     try {
-      // Execute captcha challenge and get token
-      const captchaToken = await captchaRef.current?.execute({ async: true });
-      if (!captchaToken?.response) {
-        toast.error("Please complete the security check.");
+      // Validate Honeypot and HMAC timestamp
+      const isVerified = await verifyHoneypot(
+        securityData?.timestamp,
+        securityData?.signature,
+        formData.website,
+      );
+
+      if (!isVerified) {
         setLoading(false);
         return;
       }
@@ -47,11 +66,7 @@ export function Login() {
       const { data, error } = await supabase.auth.signInWithPassword({
         ...(isEmail ? { email: identifier } : { phone: identifier }),
         password: formData.password,
-        options: { captchaToken: captchaToken.response },
       });
-
-      // Always reset captcha after use
-      captchaRef.current?.resetCaptcha();
 
       if (error) throw error;
 
@@ -88,7 +103,6 @@ export function Login() {
       }
     } catch (error: any) {
       console.error("Login Error:", error);
-      captchaRef.current?.resetCaptcha();
       logActivity({
         action: "AUTH_FAILURE",
         details: { identifier: formData.email, error: error.message },
@@ -225,6 +239,9 @@ export function Login() {
                   />
                 </div>
               </div>
+
+              {/* Honeypot field */}
+              <HoneypotField value={formData.website} onChange={handleChange} />
             </div>
 
             <div className="flex items-center ml-1">
@@ -241,15 +258,6 @@ export function Login() {
                 Stay signed in for 30 days
               </label>
             </div>
-
-            {/* hCaptcha — invisible mode, executes programmatically on submit */}
-            <HCaptcha
-              ref={captchaRef}
-              sitekey={HCAPTCHA_SITE_KEY}
-              size="invisible"
-              onError={() => toast.error("Captcha error. Please try again.")}
-              onExpire={() => captchaRef.current?.resetCaptcha()}
-            />
 
             <Button
               type="submit"

@@ -7,8 +7,10 @@ import { toast } from "sonner";
 
 import { AuthHeader } from "@/app/components/auth/AuthHeader";
 import { Button } from "@/app/components/ui/button";
+import { HoneypotField } from "@/app/components/ui/HoneypotField";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/app/components/ui/input-otp";
 import { Label } from "@/app/components/ui/label";
+import { fetchHoneypotData, verifyHoneypot } from "@/lib/security";
 import { supabase } from "@/lib/supabase";
 
 export function VerifyOTP() {
@@ -19,6 +21,10 @@ export function VerifyOTP() {
   const [resending, setResending] = useState(false);
   const [email, setEmail] = useState("");
   const [cooldown, setCooldown] = useState(0);
+  const [website, setWebsite] = useState("");
+  const [securityData, setSecurityData] = useState<{ timestamp: string; signature: string } | null>(
+    null,
+  );
 
   useEffect(() => {
     if (cooldown > 0) {
@@ -26,6 +32,12 @@ export function VerifyOTP() {
       return () => clearTimeout(timer);
     }
   }, [cooldown]);
+
+  useEffect(() => {
+    fetchHoneypotData().then((data) => {
+      if (data) setSecurityData(data);
+    });
+  }, []);
 
   useEffect(() => {
     const state = location.state as { email?: string };
@@ -41,6 +53,14 @@ export function VerifyOTP() {
 
   const handleVerify = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
+
+    if (website) {
+      console.warn("Honeypot triggered");
+      toast.success("Verification successful!");
+      navigate("/dashboard");
+      return;
+    }
+
     if (otp.length !== 6) {
       toast.error("Please enter the full 6-digit code");
       return;
@@ -48,6 +68,18 @@ export function VerifyOTP() {
 
     setLoading(true);
     try {
+      // Validate Honeypot and HMAC timestamp
+      const isVerified = await verifyHoneypot(
+        securityData?.timestamp,
+        securityData?.signature,
+        website,
+      );
+
+      if (!isVerified) {
+        setLoading(false);
+        return;
+      }
+
       const { error } = await supabase.auth.verifyOtp({
         email,
         token: otp,
@@ -136,7 +168,9 @@ export function VerifyOTP() {
 
           <div className="mb-6 p-4 bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200/50 dark:border-emerald-800/30 rounded-2xl text-center">
             <p className="text-xs text-emerald-800 dark:text-emerald-300 font-medium leading-relaxed">
-              🔑 Retrieve the <strong>6-digit OTP code</strong> from your email inbox to complete signup, or simply click the <strong>confirmation link</strong> inside the email to verify automatically.
+              🔑 Retrieve the <strong>6-digit OTP code</strong> from your email inbox to complete
+              signup, or simply click the <strong>confirmation link</strong> inside the email to
+              verify automatically.
             </p>
           </div>
 
@@ -179,6 +213,9 @@ export function VerifyOTP() {
                 </InputOTPGroup>
               </InputOTP>
             </div>
+
+            {/* Honeypot field */}
+            <HoneypotField value={website} onChange={(e) => setWebsite(e.target.value)} />
 
             <Button
               onClick={() => handleVerify()}

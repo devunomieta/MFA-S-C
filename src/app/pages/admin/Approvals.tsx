@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 
 import { Check, X, Eye, ShieldCheck, Banknote, Mail, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
-import { notificationDispatcher } from "@/lib/notificationDispatcher";
 
 import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
@@ -24,6 +23,7 @@ import {
 import { Label } from "@/app/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
 import { useAuth } from "@/app/context/AuthContext";
+import { notificationDispatcher } from "@/lib/notificationDispatcher";
 import { supabase } from "@/lib/supabase";
 
 export function AdminApprovals() {
@@ -87,13 +87,13 @@ export function AdminApprovals() {
       toast.error("Failed to update KYC status");
     } else {
       toast.success(`KYC ${action === "verified" ? "Approved" : "Rejected"}`);
-      
+
       await notificationDispatcher.sendAlert({
         userId: req.id,
         email: req.email,
         type: "profile",
         title: `KYC Verification ${action === "verified" ? "Approved" : "Rejected"}`,
-        message: `Your identity verification (KYC) request has been ${action === "verified" ? "approved successfully" : "rejected by the administrator"}.`
+        message: `Your identity verification (KYC) request has been ${action === "verified" ? "approved successfully" : "rejected by the administrator"}.`,
       });
 
       fetchKycRequests();
@@ -124,13 +124,13 @@ export function AdminApprovals() {
       if (updateError) throw updateError;
 
       toast.success(`Bank Request ${action === "approved" ? "Approved" : "Rejected"}`);
-      
+
       await notificationDispatcher.sendAlert({
         userId: request.user_id,
         email: request.profile?.email,
         type: "profile",
         title: `Bank Change Request ${action === "approved" ? "Approved" : "Rejected"}`,
-        message: `Your request to add bank account ${request.bank_name} (${request.account_number}) has been ${action === "approved" ? "approved and linked successfully" : "rejected"}.`
+        message: `Your request to add bank account ${request.bank_name} (${request.account_number}) has been ${action === "approved" ? "approved and linked successfully" : "rejected"}.`,
       });
 
       fetchBankRequests();
@@ -165,7 +165,7 @@ export function AdminApprovals() {
         email: request.profile?.email,
         type: "profile",
         title: `Email Change Request ${action === "approved" ? "Approved" : "Rejected"}`,
-        message: `Your request to change your email address to ${request.new_email} has been ${action === "approved" ? "approved" : "rejected by the administrator"}.`
+        message: `Your request to change your email address to ${request.new_email} has been ${action === "approved" ? "approved" : "rejected by the administrator"}.`,
       });
 
       fetchEmailRequests();
@@ -475,7 +475,8 @@ export function AdminApprovals() {
                     <div className="mt-4 flex justify-end">
                       <a
                         href="https://supabase.com/dashboard/project/_/auth/users"
-                        target="_blank" rel="noopener noreferrer"
+                        target="_blank"
+                        rel="noopener noreferrer"
                         className="text-xs text-blue-600 flex items-center gap-1 hover:underline"
                       >
                         <ExternalLink className="w-3 h-3" />

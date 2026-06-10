@@ -684,7 +684,14 @@ export function DepositModal({
     const userPlan = selectedPlanObj;
 
     // Deferred fee plans (fees collected at the end of the period via cron)
-    const deferredFeePlans = ["anchor", "sprint", "marathon", "ajo_circle", "monthly_bloom", "step_up"];
+    const deferredFeePlans = [
+      "anchor",
+      "sprint",
+      "marathon",
+      "ajo_circle",
+      "monthly_bloom",
+      "step_up",
+    ];
     if (deferredFeePlans.includes(plan.type)) {
       return 0;
     }
@@ -705,7 +712,7 @@ export function DepositModal({
       if (daysSinceLastFee < 30) return 0;
     }
 
-    const amt = mandatedAmount > 0 ? mandatedAmount : (Number(amount) || 0);
+    const amt = mandatedAmount > 0 ? mandatedAmount : Number(amount) || 0;
 
     if (plan.service_charge_type === "percentage") {
       return (amt * (plan.service_charge_percentage || 0)) / 100;
@@ -856,11 +863,13 @@ export function DepositModal({
                     Minimum contribution is ₦{formatCurrency(mandatedAmount)}
                   </p>
                 )}
-              {["anchor", "sprint", "marathon", "step_up", "monthly_bloom"].includes(planType) && !isAdvanceMode && (
-                <p className="text-[10px] text-indigo-600 font-bold bg-indigo-50 dark:bg-indigo-900/20 p-2 rounded border border-indigo-100 dark:border-indigo-800 flex items-center gap-2">
-                  💡 <span>You can deposit more than the minimum to reach your target faster!</span>
-                </p>
-              )}
+              {["anchor", "sprint", "marathon", "step_up", "monthly_bloom"].includes(planType) &&
+                !isAdvanceMode && (
+                  <p className="text-[10px] text-indigo-600 font-bold bg-indigo-50 dark:bg-indigo-900/20 p-2 rounded border border-indigo-100 dark:border-indigo-800 flex items-center gap-2">
+                    💡{" "}
+                    <span>You can deposit more than the minimum to reach your target faster!</span>
+                  </p>
+                )}
               {(isInputLocked() || mandatedAmount > 0 || fee > 0) && (
                 <div className="mt-2 rounded-lg bg-gray-50 dark:bg-gray-800 p-3 border border-gray-100 dark:border-gray-700 space-y-2">
                   {(isInputLocked() || mandatedAmount > 0) && (
@@ -1155,11 +1164,12 @@ export function DepositModal({
                 className={`dark:bg-gray-800 dark:border-gray-700 dark:text-white disabled:opacity-70 disabled:cursor-not-allowed ${!isInputLocked() && !isAdvanceMode && amount && parseFloat(amount) < mandatedAmount ? "border-red-500 focus-visible:ring-red-500" : ""}`}
               />
             )}
-            {["anchor", "sprint", "marathon", "step_up", "monthly_bloom"].includes(planType) && !isAdvanceMode && (
-              <p className="text-[10px] text-indigo-600 font-bold bg-indigo-50 dark:bg-indigo-900/20 p-2 rounded border border-indigo-100 dark:border-indigo-800 flex items-center gap-2">
-                💡 <span>You can deposit more than the minimum to reach your target faster!</span>
-              </p>
-            )}
+            {["anchor", "sprint", "marathon", "step_up", "monthly_bloom"].includes(planType) &&
+              !isAdvanceMode && (
+                <p className="text-[10px] text-indigo-600 font-bold bg-indigo-50 dark:bg-indigo-900/20 p-2 rounded border border-indigo-100 dark:border-indigo-800 flex items-center gap-2">
+                  💡 <span>You can deposit more than the minimum to reach your target faster!</span>
+                </p>
+              )}
 
             {isAdvanceMode && (Number(amount) || 0) > 0 && (
               <p className="text-[10px] text-emerald-500 font-bold uppercase tracking-wider">

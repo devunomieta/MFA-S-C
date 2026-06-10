@@ -1,17 +1,14 @@
 import { useState } from "react";
 
-import { Trophy, Calendar, AlertTriangle, CheckCircle, ArrowRight, Loader2 } from "lucide-react";
+import { Trophy, Calendar, AlertTriangle, CheckCircle, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { toast } from "sonner";
-
 
 import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/app/components/ui/card";
-import { supabase } from "@/lib/supabase";
+import { getEstimatedMaturityDate } from "@/lib/planUtils";
 import { formatNaira } from "@/lib/utils";
 import { Plan, UserPlan } from "@/types";
-import { getEstimatedMaturityDate } from "@/lib/planUtils";
 
 interface MarathonPlanCardProps {
   plan: Plan;
@@ -30,17 +27,15 @@ export function MarathonPlanCard({
   onAdvanceDeposit,
   onLeave,
 }: MarathonPlanCardProps) {
-
   const [joinDuration, setJoinDuration] = useState("48");
   const isJoined = !!userPlan;
   const metadata = userPlan?.plan_metadata || {};
   const duration = metadata.selected_duration || plan.config?.durations?.[1] || 48; // Default max
-  const weeksPaid = metadata.total_weeks_paid || 0;
   const getWeekNumber = (d: Date) => {
     d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-    d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7));
-    const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
-    return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1)/7);
+    d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
   };
   const currentWeekOfYear = getWeekNumber(new Date());
   const currentWeekDisplay = Math.min(currentWeekOfYear, duration);
@@ -86,7 +81,7 @@ export function MarathonPlanCard({
           </div>
         </CardHeader>
 
-        <CardContent className="space-y-6 flex-1 pt-4 overflow-y-auto max-h-[60vh] custom-scrollbar">
+        <CardContent className="space-y-6 flex-1 pt-4">
           <div className="flex flex-col gap-2">
             {arrears > 0 && (
               <div className="flex flex-col gap-1 p-2 bg-red-50 text-red-700 rounded-md border border-red-100 shadow-sm">
@@ -143,7 +138,11 @@ export function MarathonPlanCard({
                 <span>
                   Week {currentWeekDisplay} of {duration} Completed
                 </span>
-                <span>{estMaturity ? `Est. Maturity: ${estMaturity}` : `${Math.round(progress)}% of Total Goal`}</span>
+                <span>
+                  {estMaturity
+                    ? `Est. Maturity: ${estMaturity}`
+                    : `${Math.round(progress)}% of Total Goal`}
+                </span>
               </div>
             </div>
           </div>
@@ -190,7 +189,6 @@ export function MarathonPlanCard({
           </div>
 
           {/* Extension Option Removed */}
-
         </CardContent>
 
         <CardFooter className="flex flex-col gap-3 pt-2">
@@ -262,7 +260,7 @@ export function MarathonPlanCard({
         </p>
       </CardHeader>
 
-      <CardContent className="flex-1 space-y-6 pt-2 overflow-y-auto max-h-[60vh] custom-scrollbar">
+      <CardContent className="flex-1 space-y-6 pt-2">
         <div className="flex justify-between items-end border-b border-gray-100 dark:border-gray-800 pb-4">
           <div>
             <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">

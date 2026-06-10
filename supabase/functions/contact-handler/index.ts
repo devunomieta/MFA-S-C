@@ -8,6 +8,28 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, prefer, x-webhook-secret",
 };
 
+const HMAC_SECRET = Deno.env.get("HMAC_SECRET") || "marys_thrift_finance_default_hmac_secret_key_2026";
+
+async function getHMACSignature(text: string, secret: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const keyData = encoder.encode(secret);
+  const cryptoKey = await crypto.subtle.importKey(
+    "raw",
+    keyData,
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+  const signature = await crypto.subtle.sign(
+    "HMAC",
+    cryptoKey,
+    encoder.encode(text)
+  );
+  return Array.from(new Uint8Array(signature))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
@@ -26,10 +48,40 @@ serve(async (req) => {
       });
     }
 
-    const { name, email, subject, message } = await req.json();
+    const { name, email, subject, message, honeypot, timestamp, signature } = await req.json();
 
     if (!email || !message) {
       throw new Error("Email and message are required");
+    }
+
+    // 1. Honeypot check: silently succeed for bots to waste their resources
+    if (honeypot) {
+      console.warn("Honeypot triggered in contact-handler:", { honeypot });
+      return new Response(
+        JSON.stringify({ success: true, message: "Your message has been received." }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200,
+        }
+      );
+    }
+
+    // 2. HMAC-signed timestamp validation
+    if (!timestamp || !signature) {
+      throw new Error("Security verification failed (missing tokens).");
+    }
+
+    const expectedSig = await getHMACSignature(timestamp.toString(), HMAC_SECRET);
+    if (signature !== expectedSig) {
+      throw new Error("Security verification failed (signature mismatch).");
+    }
+
+    const diffMs = Date.now() - parseInt(timestamp, 10);
+    if (diffMs < 1500) {
+      throw new Error("Submission failed (too fast).");
+    }
+    if (diffMs > 15 * 60 * 1000) {
+      throw new Error("Security check expired. Please refresh the page and try again.");
     }
 
     const forwardTo = Deno.env.get("FORWARD_TO_EMAIL") || "marysthriftservice@gmail.com";

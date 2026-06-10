@@ -14,10 +14,17 @@ const TikTokIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
+import { fetchHoneypotData, verifyHoneypot } from "@/lib/security";
+import { HoneypotField } from "@/app/components/ui/HoneypotField";
+
 export function Footer() {
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
+  const [website, setWebsite] = useState("");
+  const [securityData, setSecurityData] = useState<{ timestamp: string; signature: string } | null>(
+    null,
+  );
 
   useEffect(() => {
     const fetchBranding = async () => {
@@ -29,13 +36,37 @@ export function Footer() {
       if (data?.value?.logo_url) setLogoUrl(data.value.logo_url);
     };
     fetchBranding();
+
+    fetchHoneypotData().then((data) => {
+      if (data) setSecurityData(data);
+    });
   }, []);
 
   const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim()) return;
+
+    if (website) {
+      console.warn("Newsletter Honeypot triggered");
+      toast.success("Welcome! You've successfully subscribed to our updates.");
+      setEmail("");
+      return;
+    }
+
     setLoading(true);
     try {
+      // Validate Honeypot and HMAC timestamp
+      const isVerified = await verifyHoneypot(
+        securityData?.timestamp,
+        securityData?.signature,
+        website,
+      );
+
+      if (!isVerified) {
+        setLoading(false);
+        return;
+      }
+
       const { data: existing } = await supabase
         .from("newsletter_subscribers")
         .select("id")
@@ -190,6 +221,7 @@ export function Footer() {
                 onChange={(e) => setEmail(e.target.value)}
                 className="bg-slate-900 border-slate-800 rounded-xl focus:ring-emerald-500 text-white h-10 flex-1 min-w-0 text-sm"
               />
+              <HoneypotField value={website} onChange={(e) => setWebsite(e.target.value)} />
               <Button
                 type="submit"
                 disabled={loading}
@@ -205,7 +237,8 @@ export function Footer() {
             <div className="flex gap-3">
               <a
                 href="https://instagram.com/marysthriftservices"
-                target="_blank" rel="noopener noreferrer"
+                target="_blank"
+                rel="noopener noreferrer"
                 aria-label="Instagram"
                 className="w-9 h-9 rounded-xl bg-slate-900 flex items-center justify-center border border-slate-800 hover:border-emerald-500/50 hover:text-white transition-all"
               >
@@ -213,7 +246,8 @@ export function Footer() {
               </a>
               <a
                 href="https://tiktok.com/@marysthriftservices"
-                target="_blank" rel="noopener noreferrer"
+                target="_blank"
+                rel="noopener noreferrer"
                 aria-label="TikTok"
                 className="w-9 h-9 rounded-xl bg-slate-900 flex items-center justify-center border border-slate-800 hover:border-emerald-500/50 hover:text-white transition-all"
               >
@@ -230,7 +264,8 @@ export function Footer() {
           </p>
           <a
             href="https://devunomieta.xyz"
-            target="_blank" rel="noopener noreferrer"
+            target="_blank"
+            rel="noopener noreferrer"
             className="font-medium text-slate-600 hover:text-slate-400 transition-colors tracking-wide order-last sm:order-none"
           >
             Developed by{" "}

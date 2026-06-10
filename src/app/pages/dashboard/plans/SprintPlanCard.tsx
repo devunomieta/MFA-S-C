@@ -4,9 +4,9 @@ import { Link } from "react-router-dom";
 import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/app/components/ui/card";
+import { getEstimatedMaturityDate } from "@/lib/planUtils";
 import { formatNaira } from "@/lib/utils";
 import { Plan, UserPlan } from "@/types";
-import { getEstimatedMaturityDate } from "@/lib/planUtils";
 
 interface SprintPlanCardProps {
   plan: Plan;
@@ -77,7 +77,7 @@ export function SprintPlanCard({
           </div>
         </CardHeader>
 
-        <CardContent className="space-y-6 flex-1 pt-4 overflow-y-auto max-h-[60vh] custom-scrollbar">
+        <CardContent className="space-y-6 flex-1 pt-4">
           {arrears > 0 && (
             <div className="flex flex-col gap-1 p-2 bg-red-50 text-red-700 rounded-md border border-red-100 shadow-sm">
               <div className="flex items-center gap-2 text-xs font-bold">
@@ -99,9 +99,7 @@ export function SprintPlanCard({
 
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
-              <span className="text-gray-600 dark:text-gray-400 font-medium">
-                Challenge Progress
-              </span>
+              <span className="text-gray-600 dark:text-gray-400 font-medium">Savings Progress</span>
               <span className="font-bold text-gray-900 dark:text-gray-200">
                 {weeksCompleted} / {duration} Weeks
               </span>
@@ -201,16 +199,16 @@ export function SprintPlanCard({
           </div>
         </div>
         <p className="text-sm text-gray-500 dark:text-gray-400 font-medium leading-relaxed mt-1 line-clamp-2">
-          A fast-paced, rolling savings plan designed to help you crush your short-to-medium-term
-          financial targets.
+          A 30 weeks savings plan designed to help you reach your short-to-medium-term financial
+          goals.
         </p>
       </CardHeader>
 
-      <CardContent className="flex-1 space-y-6 pt-2 overflow-y-auto max-h-[60vh] custom-scrollbar">
+      <CardContent className="flex-1 space-y-6 pt-2">
         <div className="flex justify-between items-end border-b border-gray-100 dark:border-gray-800 pb-4">
           <div>
             <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">
-              Weekly Min
+              Minimum Weekly Savings
             </p>
             <p className="text-lg font-bold text-gray-900 dark:text-white">₦3,000</p>
           </div>
@@ -233,7 +231,7 @@ export function SprintPlanCard({
             <ul className="space-y-1.5 mb-4">
               <li className="flex items-center gap-2 text-xs text-blue-700 dark:text-blue-400">
                 <div className="w-1 h-1 rounded-full bg-blue-500" />
-                30-week rolling savings cycle
+                30-weeks savings cycle
               </li>
               <li className="flex items-center gap-2 text-xs text-blue-700 dark:text-blue-400">
                 <div className="w-1 h-1 rounded-full bg-blue-500" />
@@ -241,11 +239,11 @@ export function SprintPlanCard({
               </li>
               <li className="flex items-center gap-2 text-xs text-blue-700 dark:text-blue-400">
                 <div className="w-1 h-1 rounded-full bg-blue-500" />
-                Penalty for missed weeks: ₦500
+                Penalty for missed weeks: ₦500 per week
               </li>
               <li className="flex items-center gap-2 text-xs text-blue-700 dark:text-blue-400">
                 <div className="w-1 h-1 rounded-full bg-blue-500" />
-                Withdrawal only after total completion
+                Withdrawal only after full completion of 30 weeks
               </li>
             </ul>
 
@@ -253,7 +251,7 @@ export function SprintPlanCard({
               <table className="w-full text-[10px] text-left">
                 <thead className="bg-blue-100/50 dark:bg-blue-900/40 font-bold text-blue-800 dark:text-blue-400">
                   <tr>
-                    <th className="px-2 py-1">Weekly Amount</th>
+                    <th className="px-2 py-1">Amount</th>
                     <th className="px-2 py-1 text-right">Service Charge</th>
                   </tr>
                 </thead>

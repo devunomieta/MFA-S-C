@@ -24,9 +24,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/app/components/ui/select";
+import { getEstimatedMaturityDate } from "@/lib/planUtils";
 import { supabase } from "@/lib/supabase";
 import { Plan, UserPlan } from "@/types";
-import { getEstimatedMaturityDate } from "@/lib/planUtils";
 
 interface AjoPlanCardProps {
   plan: Plan;
@@ -63,7 +63,11 @@ export function AjoPlanCard({
   if (!user_plan && plan.config?.season_start_date) {
     const d = new Date(plan.config.season_start_date);
     d.setDate(d.getDate() + duration * 7);
-    estMaturity = d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+    estMaturity = d.toLocaleDateString(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
   }
 
   const formatCurrency = (value: number) => {
@@ -116,7 +120,6 @@ export function AjoPlanCard({
     const turnCount = pickingTurns.filter((t: any) => Number(t) === currentWeek).length;
     const withdrawnCount = payoutHistory.filter((h: any) => Number(h) === currentWeek).length;
     const isMyTurn = turnCount > withdrawnCount;
-    
 
     const startAppeal = () => {
       setAppealSubs(
@@ -456,7 +459,8 @@ export function AjoPlanCard({
                           <AlertDialogCancel>Cancel</AlertDialogCancel>
                           <a
                             href="https://wa.me/+2349074049667?text=Hello%20Admin,%20I%20have%20an%20issue%20with%20my%20Ajo%20payout%20and%20arrears."
-                            target="_blank" rel="noopener noreferrer"
+                            target="_blank"
+                            rel="noopener noreferrer"
                             className="w-full sm:w-auto"
                           >
                             <Button

@@ -1,4 +1,5 @@
 import { SupabaseClient } from "@supabase/supabase-js";
+
 import { notificationDispatcher } from "./notificationDispatcher";
 
 export interface PlanMaturityStatus {
@@ -56,14 +57,21 @@ export function calculateMaturityForPlan(userPlan: any): PlanMaturityStatus | nu
   };
 }
 
-export function getEstimatedMaturityDate(userPlan?: any, defaultDurationDays?: number): string | null {
+export function getEstimatedMaturityDate(
+  userPlan?: any,
+  defaultDurationDays?: number,
+): string | null {
   if (userPlan) {
     const status = calculateMaturityForPlan(userPlan);
     if (!status || !status.maturityDate) return null;
-    return status.maturityDate.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+    return status.maturityDate.toLocaleDateString(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
   } else if (defaultDurationDays) {
     const date = new Date(Date.now() + defaultDurationDays * 24 * 60 * 60 * 1000);
-    return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+    return date.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
   }
   return null;
 }
@@ -85,7 +93,7 @@ export async function checkAndProcessMaturity(supabase: SupabaseClient, userPlan
     const { error } = await supabase.from("user_plans").update({ status: "matured" }).in("id", ids);
 
     if (error) return false;
-    
+
     // Auto settle matured plans
     const userId = maturedPlans[0].user_id;
     await supabase.rpc("auto_settle_matured_plans", { p_user_id: userId });
@@ -98,7 +106,7 @@ export async function checkAndProcessMaturity(supabase: SupabaseClient, userPlan
         .select("email")
         .eq("id", userId)
         .single();
-        
+
       if (profile?.email) {
         for (const up of maturedPlans) {
           const planName = up.plan?.name || up.plans?.name || "Savings Plan";
@@ -107,7 +115,7 @@ export async function checkAndProcessMaturity(supabase: SupabaseClient, userPlan
             email: profile.email,
             type: "plan",
             title: `Plan Maturity Alert: ${planName}`,
-            message: `Your savings plan "${planName}" has matured! The balance of $${Number(up.current_balance).toLocaleString()} is now ready for withdrawal or roll-over.`
+            message: `Your savings plan "${planName}" has matured! The balance of $${Number(up.current_balance).toLocaleString()} is now ready for withdrawal or roll-over.`,
           });
         }
       }

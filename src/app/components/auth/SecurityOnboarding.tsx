@@ -61,7 +61,8 @@ export function SecurityOnboarding({ onComplete }: SecurityOnboardingProps) {
           email: user.email,
           type: "profile",
           title: "Welcome to Mary's Thrift Services!",
-          message: "Thank you for securing your account and completing your onboarding. We are thrilled to have you here! You can now start depositing funds, joining plans, and borrowing loans. Welcome aboard!",
+          message:
+            "Thank you for securing your account and completing your onboarding. We are thrilled to have you here! You can now start depositing funds, joining plans, and borrowing loans. Welcome aboard!",
         });
       }
 
@@ -256,7 +257,8 @@ export function SecurityOnboarding({ onComplete }: SecurityOnboardingProps) {
                     className="h-12 rounded-xl dark:bg-slate-800 dark:border-slate-700"
                   />
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 italic leading-normal">
-                    💡 <strong>Recommendation:</strong> Use a WhatsApp-enabled number to receive deposit, withdrawal, approval, and plan alerts directly on WhatsApp.
+                    💡 <strong>Recommendation:</strong> Use a WhatsApp-enabled number to receive
+                    deposit, withdrawal, approval, and plan alerts directly on WhatsApp.
                   </p>
                 </div>
 

@@ -26,10 +26,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/app/components/ui/select";
+import { getEstimatedMaturityDate } from "@/lib/planUtils";
 import { supabase } from "@/lib/supabase";
 import { formatNaira } from "@/lib/utils";
 import { Plan, UserPlan } from "@/types";
-import { getEstimatedMaturityDate } from "@/lib/planUtils";
 
 interface DailyDropPlanCardProps {
   plan: Plan;
@@ -260,7 +260,7 @@ export function DailyDropPlanCard({
           </div>
         </CardHeader>
 
-        <CardContent className="space-y-6 flex-1 pt-4 overflow-y-auto max-h-[60vh] custom-scrollbar">
+        <CardContent className="space-y-6 flex-1 pt-4">
           {isFinished ? (
             <div className="space-y-6">
               <div className="text-center py-6 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl border border-emerald-100 dark:border-emerald-800">
@@ -535,7 +535,7 @@ export function DailyDropPlanCard({
                   className="w-full bg-cyan-50 text-cyan-700 hover:bg-cyan-100 border border-cyan-200 font-bold"
                   onClick={onAdvanceDeposit}
                 >
-                  Save More for the Day
+                  Save for more days ahead!
                 </Button>
               )
             )}
@@ -583,7 +583,7 @@ export function DailyDropPlanCard({
         </p>
       </CardHeader>
 
-      <CardContent className="flex-1 space-y-6 pt-2 overflow-y-auto max-h-[60vh] custom-scrollbar">
+      <CardContent className="flex-1 space-y-6 pt-2">
         {/* Input Section - Minimalist UI */}
         <div className="space-y-4 pt-2">
           <div className="space-y-1.5">

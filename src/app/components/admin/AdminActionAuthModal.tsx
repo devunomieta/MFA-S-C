@@ -12,7 +12,9 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/app/components/ui/dialog";
+import { HoneypotField } from "@/app/components/ui/HoneypotField";
 import { Input } from "@/app/components/ui/input";
+import { fetchHoneypotData, verifyHoneypot } from "@/lib/security";
 import { supabase } from "@/lib/supabase";
 
 interface AdminActionAuthModalProps {
@@ -34,14 +36,23 @@ export function AdminActionAuthModal({
 }: AdminActionAuthModalProps) {
   const [pin, setPin] = useState("");
   const [isVerifying, setIsVerifying] = useState(false);
+  const [website, setWebsite] = useState("");
+  const [securityData, setSecurityData] = useState<{ timestamp: string; signature: string } | null>(
+    null,
+  );
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (isOpen) {
-      // Use microtask to avoid cascading render lint error
       Promise.resolve().then(() => {
         setPin("");
+        setWebsite("");
+        setSecurityData(null);
         inputRef.current?.focus();
+      });
+
+      fetchHoneypotData().then((data) => {
+        if (data) setSecurityData(data);
       });
     }
   }, [isOpen]);
@@ -50,8 +61,28 @@ export function AdminActionAuthModal({
     if (e) e.preventDefault();
     if (!pin) return;
 
+    if (website) {
+      console.warn("Admin Auth Honeypot triggered");
+      toast.success("Identity verified successfully");
+      onAuthenticated();
+      onOpenChange(false);
+      return;
+    }
+
     setIsVerifying(true);
     try {
+      // Validate Honeypot and HMAC timestamp
+      const isVerified = await verifyHoneypot(
+        securityData?.timestamp,
+        securityData?.signature,
+        website,
+      );
+
+      if (!isVerified) {
+        setIsVerifying(false);
+        return;
+      }
+
       const { data: isValid, error } = await supabase.rpc("verify_admin_pin", {
         p_pin: pin,
       });
@@ -100,6 +131,9 @@ export function AdminActionAuthModal({
               />
             </div>
           </div>
+
+          {/* Honeypot field */}
+          <HoneypotField value={website} onChange={(e) => setWebsite(e.target.value)} />
 
           <div className="bg-slate-50 rounded-lg p-3 flex gap-3 border border-slate-100 italic">
             <ShieldAlert className="size-5 text-amber-600 shrink-0 mt-0.5" />

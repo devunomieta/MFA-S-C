@@ -1106,7 +1106,11 @@ export function AdminPlans() {
                   className="border-pink-200 text-pink-700 hover:bg-pink-100"
                   asChild
                 >
-                  <a href={monthlyBloomPlan.whatsapp_link} target="_blank" rel="noopener noreferrer">
+                  <a
+                    href={monthlyBloomPlan.whatsapp_link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
                     WhatsApp Group
                   </a>
                 </Button>

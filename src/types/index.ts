@@ -51,7 +51,15 @@ export interface UserPlan {
   plan_id: string;
   plan: Plan;
   current_balance: number;
-  status: "pending_activation" | "active" | "completed" | "cancelled" | "matured" | "pending_turn_approval" | "turn_reassigned" | "appeal_pending";
+  status:
+    | "pending_activation"
+    | "active"
+    | "completed"
+    | "cancelled"
+    | "matured"
+    | "pending_turn_approval"
+    | "turn_reassigned"
+    | "appeal_pending";
   start_date: string;
   created_at: string;
   updated_at?: string;

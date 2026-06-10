@@ -31,15 +31,20 @@ export function PlanActivityHistory({ userId, planId, userPlanId }: PlanActivity
         .range((pageNum - 1) * ITEMS_PER_PAGE, pageNum * ITEMS_PER_PAGE - 1);
 
       if (error) throw error;
-      
-      const filteredData = (data || []).filter(tx => tx.type !== "system_credit" && tx.type !== "System_Credit" && tx.description !== "System_Credit");
-      
+
+      const filteredData = (data || []).filter(
+        (tx) =>
+          tx.type !== "system_credit" &&
+          tx.type !== "System_Credit" &&
+          tx.description !== "System_Credit",
+      );
+
       if (pageNum === 1) {
         setActivities(filteredData);
       } else {
-        setActivities(prev => [...prev, ...filteredData]);
+        setActivities((prev) => [...prev, ...filteredData]);
       }
-      
+
       setHasMore((data?.length || 0) === ITEMS_PER_PAGE);
     } catch (err) {
       console.error("Error fetching plan history:", err);
@@ -147,7 +152,7 @@ export function PlanActivityHistory({ userId, planId, userPlanId }: PlanActivity
             </div>
           ))
         )}
-        
+
         {hasMore && !loading && activities.length > 0 && (
           <div className="flex justify-center pt-4">
             <Button

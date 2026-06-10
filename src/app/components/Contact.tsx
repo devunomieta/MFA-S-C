@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 import { motion, AnimatePresence } from "framer-motion";
 import { Mail, Phone, MessageSquare, Send, CheckCircle2 } from "lucide-react";
@@ -6,9 +6,11 @@ import { toast } from "sonner";
 
 import { Button } from "@/app/components/ui/button";
 import { Card, CardContent } from "@/app/components/ui/card";
+import { HoneypotField } from "@/app/components/ui/HoneypotField";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { Textarea } from "@/app/components/ui/textarea";
+import { fetchHoneypotData } from "@/lib/security";
 import { supabase } from "@/lib/supabase";
 
 import { PlanRecommender } from "./PlanRecommender";
@@ -49,6 +51,15 @@ export function Contact() {
     message: "",
     website: "", // Honeypot
   });
+  const [securityData, setSecurityData] = useState<{ timestamp: string; signature: string } | null>(
+    null,
+  );
+
+  useEffect(() => {
+    fetchHoneypotData().then((data) => {
+      if (data) setSecurityData(data);
+    });
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({
@@ -59,6 +70,7 @@ export function Contact() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (formData.website) {
       console.warn("Contact Honeypot triggered");
       setSubmitted(true);
@@ -79,7 +91,7 @@ export function Contact() {
 
       if (dbError) throw dbError;
 
-      // 2. Secondary Action: Trigger Email Notification (May be blocked by Adblockers)
+      // 2. Secondary Action: Trigger Email Notification with Security Tokens
       try {
         const { error: funcError } = await supabase.functions.invoke("contact-handler", {
           body: {
@@ -87,6 +99,9 @@ export function Contact() {
             email: formData.email,
             subject: formData.subject,
             message: formData.message,
+            honeypot: formData.website,
+            timestamp: securityData.timestamp,
+            signature: securityData.signature,
           },
         });
 
@@ -97,7 +112,6 @@ export function Contact() {
           );
         }
       } catch {
-        // This is where "Network Error" (Adblockers) usually happens
         console.warn("Edge Function blocked by browser/network, message saved to DB fallback.");
       }
 
@@ -265,16 +279,7 @@ export function Contact() {
                       </div>
 
                       {/* Honeypot field - Hidden from users */}
-                      <div className="hidden" aria-hidden="true">
-                        <Input
-                          type="text"
-                          name="website"
-                          value={formData.website}
-                          onChange={handleChange}
-                          tabIndex={-1}
-                          autoComplete="off"
-                        />
-                      </div>
+                      <HoneypotField value={formData.website} onChange={handleChange} />
 
                       <Button
                         type="submit"

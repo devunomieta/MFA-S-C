@@ -200,7 +200,8 @@ export function AdminTransactionDetails({
                     <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                       <a
                         href={transaction.receipt_url}
-                        target="_blank" rel="noopener noreferrer"
+                        target="_blank"
+                        rel="noopener noreferrer"
                         className="bg-white text-slate-900 px-4 py-2 rounded-full font-medium text-sm hover:bg-slate-100"
                       >
                         View Full Size

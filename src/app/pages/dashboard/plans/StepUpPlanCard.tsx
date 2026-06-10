@@ -14,9 +14,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/app/components/ui/select";
+import { getEstimatedMaturityDate } from "@/lib/planUtils";
 import { formatNaira } from "@/lib/utils";
 import { Plan, UserPlan } from "@/types";
-import { getEstimatedMaturityDate } from "@/lib/planUtils";
 
 interface StepUpPlanCardProps {
   plan: Plan;
@@ -113,7 +113,7 @@ export function StepUpPlanCard({
           </div>
         </CardHeader>
 
-        <CardContent className="space-y-6 flex-1 pt-4 overflow-y-auto max-h-[60vh] custom-scrollbar">
+        <CardContent className="space-y-6 flex-1 pt-4">
           {isCompleted ? (
             <div className="text-center py-6 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl border border-emerald-100 dark:border-emerald-800">
               <CheckCircle className="w-10 h-10 text-emerald-500 mx-auto mb-3" />
@@ -298,7 +298,7 @@ export function StepUpPlanCard({
         </p>
       </CardHeader>
 
-      <CardContent className="flex-1 space-y-6 pt-2 overflow-y-auto max-h-[60vh] custom-scrollbar">
+      <CardContent className="flex-1 space-y-6 pt-2">
         {/* Input Section - Minimalist UI */}
         <div className="space-y-4 pt-2">
           <div className="grid grid-cols-2 gap-3">

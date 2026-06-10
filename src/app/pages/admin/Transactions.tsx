@@ -19,8 +19,8 @@ import {
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
-import { supabase } from "@/lib/supabase";
 import { notificationDispatcher } from "@/lib/notificationDispatcher";
+import { supabase } from "@/lib/supabase";
 
 import { AdminTransactionDetails } from "./AdminTransactionDetails";
 
@@ -191,13 +191,13 @@ export function AdminTransactions() {
       if (statusError) throw statusError;
 
       toast.success(`Transaction ${action}ed`);
-      
+
       await notificationDispatcher.sendAlert({
         userId: tx.user_id,
         email: tx.profile?.email,
         type: "transaction",
         title: `Transaction ${action === "confirm" ? "Approved" : "Rejected"}`,
-        message: `Your ${tx.type} of ₦${Number(tx.amount).toLocaleString()} for ${tx.plan?.name || "General Wallet"} has been ${action === "confirm" ? "approved and completed" : "rejected"}.`
+        message: `Your ${tx.type} of ₦${Number(tx.amount).toLocaleString()} for ${tx.plan?.name || "General Wallet"} has been ${action === "confirm" ? "approved and completed" : "rejected"}.`,
       });
 
       fetchTransactions();
@@ -237,7 +237,7 @@ export function AdminTransactions() {
           email: selectedDeposit.profile?.email,
           type: "transaction",
           title: "Deposit Redirected to Wallet",
-          message: `Your deposit of ₦${Number(selectedDeposit.amount).toLocaleString()} was redirected to your General Wallet as ₦${Number(finalAmount).toLocaleString()}. Reason: ${rejectReason || "Admin Action"}.`
+          message: `Your deposit of ₦${Number(selectedDeposit.amount).toLocaleString()} was redirected to your General Wallet as ₦${Number(finalAmount).toLocaleString()}. Reason: ${rejectReason || "Admin Action"}.`,
         });
       } else {
         // Standard Reject
@@ -259,7 +259,7 @@ export function AdminTransactions() {
           email: selectedDeposit.profile?.email,
           type: "transaction",
           title: "Deposit Rejected",
-          message: `Your deposit of ₦${Number(selectedDeposit.amount).toLocaleString()} has been rejected. Reason: ${rejectReason || "Unspecified"}.`
+          message: `Your deposit of ₦${Number(selectedDeposit.amount).toLocaleString()} has been rejected. Reason: ${rejectReason || "Unspecified"}.`,
         });
       }
 
@@ -461,7 +461,8 @@ export function AdminTransactions() {
                         <div className="text-center mt-2">
                           <a
                             href={tx.receipt_url}
-                            target="_blank" rel="noopener noreferrer"
+                            target="_blank"
+                            rel="noopener noreferrer"
                             className="text-blue-600 underline text-sm flex items-center justify-center gap-1"
                           >
                             Open Original <ExternalLink className="w-3 h-3" />

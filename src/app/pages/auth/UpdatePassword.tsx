@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 import { motion } from "framer-motion";
 import { Lock, CheckCircle2, Home } from "lucide-react";
@@ -7,9 +7,11 @@ import { toast } from "sonner";
 
 import { AuthHeader } from "@/app/components/auth/AuthHeader";
 import { Button } from "@/app/components/ui/button";
+import { HoneypotField } from "@/app/components/ui/HoneypotField";
 import { Label } from "@/app/components/ui/label";
 import { PasswordInput } from "@/app/components/ui/PasswordInput";
 import { PasswordStrength } from "@/app/components/ui/PasswordStrength";
+import { fetchHoneypotData, verifyHoneypot } from "@/lib/security";
 import { supabase } from "@/lib/supabase";
 import { validatePassword } from "@/lib/validation";
 
@@ -19,9 +21,19 @@ export function UpdatePassword() {
   const [formData, setFormData] = useState({
     password: "",
     confirmPassword: "",
+    website: "", // Honeypot
   });
+  const [securityData, setSecurityData] = useState<{ timestamp: string; signature: string } | null>(
+    null,
+  );
 
   const passFeedback = validatePassword(formData.password);
+
+  useEffect(() => {
+    fetchHoneypotData().then((data) => {
+      if (data) setSecurityData(data);
+    });
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -29,6 +41,13 @@ export function UpdatePassword() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (formData.website) {
+      console.warn("Honeypot triggered");
+      toast.success("Password updated successfully!");
+      navigate("/login");
+      return;
+    }
 
     if (formData.password !== formData.confirmPassword) {
       toast.error("Passwords do not match");
@@ -38,6 +57,18 @@ export function UpdatePassword() {
     setLoading(true);
 
     try {
+      // Validate Honeypot and HMAC timestamp
+      const isVerified = await verifyHoneypot(
+        securityData?.timestamp,
+        securityData?.signature,
+        formData.website,
+      );
+
+      if (!isVerified) {
+        setLoading(false);
+        return;
+      }
+
       const { error } = await supabase.auth.updateUser({
         password: formData.password,
       });
@@ -49,12 +80,12 @@ export function UpdatePassword() {
       // Sign out to clear any partial sessions and ensure user logs in fresh
       await supabase.auth.signOut();
 
-      // Redirect to login page as requested
+      // Redirect to login page
       navigate("/login");
     } catch (error: any) {
       console.error("Update Password Error:", error);
       toast.error(error.message || "Failed to update password");
-      setLoading(false); // Explicitly clear loading on error
+      setLoading(false);
     }
   };
 
@@ -133,6 +164,9 @@ export function UpdatePassword() {
               </div>
 
               <PasswordStrength feedback={passFeedback} passwordLength={formData.password.length} />
+
+              {/* Honeypot field */}
+              <HoneypotField value={formData.website} onChange={handleChange} />
             </div>
 
             <Button
