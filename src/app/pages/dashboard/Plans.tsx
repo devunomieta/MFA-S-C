@@ -12,6 +12,7 @@ import { checkAndProcessMaturity } from "@/lib/planUtils";
 import { slugify } from "@/lib/slug";
 import { supabase } from "@/lib/supabase";
 import { Plan, UserPlan } from "@/types";
+import { PlanRecommender } from "@/app/components/PlanRecommender";
 
 const PlanCardGrid = ({
   items,
@@ -118,11 +119,13 @@ const PlanCardGrid = ({
                       Duration
                     </span>
                     <span className="text-gray-700 dark:text-gray-200 font-bold">
-                      {plan.duration_weeks
-                        ? `${plan.duration_weeks} Weeks`
-                        : plan.duration_months
-                          ? `${plan.duration_months} Months`
-                          : "Flexible"}
+                      {plan.type === "marathon"
+                        ? "30 or 48 Weeks"
+                        : plan.duration_weeks
+                          ? `${plan.duration_weeks} Weeks`
+                          : plan.duration_months
+                            ? `${plan.duration_months} Months`
+                            : "Flexible"}
                     </span>
                   </div>
 
@@ -172,8 +175,24 @@ export function Plans() {
   const [availablePlans, setAvailablePlans] = useState<Plan[]>([]);
   const [myPlans, setMyPlans] = useState<UserPlan[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const joinId = searchParams.get("join");
+  const [activeTab, setActiveTab] = useState("available");
+
+  useEffect(() => {
+    const tabParam = searchParams.get("tab");
+    if (tabParam === "compare" || tabParam === "my-plans" || tabParam === "available") {
+      setActiveTab(tabParam);
+    }
+  }, [searchParams]);
+
+  const handleTabChange = (val: string) => {
+    setActiveTab(val);
+    setSearchParams((prev) => {
+      prev.set("tab", val);
+      return prev;
+    });
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -284,7 +303,7 @@ export function Plans() {
         </p>
       </div>
 
-      <Tabs defaultValue="available" className="w-full">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
         <TabsList className="bg-gray-100/50 dark:bg-gray-800/50 p-1.5 rounded-2xl w-fit flex h-auto gap-1 mb-6 border border-gray-200/50 dark:border-gray-700/50 backdrop-blur-sm">
           <TabsTrigger
             value="available"
@@ -303,6 +322,12 @@ export function Plans() {
               </Badge>
             )}
           </TabsTrigger>
+          <TabsTrigger
+            value="compare"
+            className="px-8 py-3 rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-gray-900 data-[state=active]:text-emerald-600 data-[state=active]:shadow-lg font-black transition-all text-gray-400 tracking-tight text-sm"
+          >
+            Compare Plans
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="available" className="pt-8">
@@ -317,6 +342,10 @@ export function Plans() {
 
         <TabsContent value="my-plans" className="pt-8">
           <PlanCardGrid items={activePlansList} type="active" myPlans={myPlans} />
+        </TabsContent>
+
+        <TabsContent value="compare" className="pt-8">
+          <PlanRecommender inline defaultTab="compare" />
         </TabsContent>
       </Tabs>
     </div>

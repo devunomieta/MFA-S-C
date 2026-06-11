@@ -39,7 +39,15 @@ export function MarathonPlanCard({
   };
 
   const selectedDuration = metadata.selected_duration || 48;
-  const targetWeeks = selectedDuration;
+  const targetWeeks = (() => {
+    if (isJoined && userPlan?.start_date) {
+      const startDate = new Date(userPlan.start_date);
+      const joinWeek = getWeekNumber(startDate);
+      const maxAllowedWeeks = Math.max(1, 50 - joinWeek);
+      return Math.min(selectedDuration, maxAllowedWeeks);
+    }
+    return selectedDuration;
+  })();
   const weeksSaved = metadata.total_weeks_paid || 0;
   const weeksRemaining = Math.max(0, targetWeeks - weeksSaved);
   const isFinished = weeksRemaining === 0;

@@ -159,6 +159,9 @@ export function Overview() {
           <Button variant="outline" size="sm" asChild className="dark:text-white border-2">
             <Link to="/dashboard/wallet">Top Up</Link>
           </Button>
+          <Button variant="outline" size="sm" asChild className="dark:text-white border-2">
+            <Link to="/dashboard/plans?tab=compare">Compare Plans</Link>
+          </Button>
           <Button
             size="sm"
             className="bg-emerald-600 hover:bg-emerald-700 text-white border-2 border-emerald-500"

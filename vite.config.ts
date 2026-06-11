@@ -20,6 +20,10 @@ export default defineConfig({
         short_name: "Mary's Thrift",
         description: "Secure Thrift & Loan Management",
         theme_color: "#ffffff",
+        display: "standalone",
+        start_url: "/",
+        scope: "/",
+        id: "/",
         launch_handler: {
           client_mode: "focus-existing",
         },
@@ -41,6 +45,9 @@ export default defineConfig({
       },
     }),
   ],
+  server: {
+    host: true,
+  },
   resolve: {
     alias: {
       // Alias @ to the src directory

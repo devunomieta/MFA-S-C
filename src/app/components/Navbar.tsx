@@ -177,7 +177,7 @@ export function Navbar() {
               onClick={() => setIsOpen(false)}
             >
               {logoUrl ? (
-                <BrandLogo src={logoUrl} alt={appName} size="sm" />
+                <BrandLogo src={logoUrl} alt={appName} size="sm" transparent={true} />
               ) : (
                 <>
                   <div className="size-9 bg-emerald-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-600/30 group-hover:rotate-6 transition-transform">
@@ -259,12 +259,12 @@ export function Navbar() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="fixed inset-4 z-[110] md:hidden bg-white/98 dark:bg-slate-950/98 backdrop-blur-3xl rounded-[2.5rem] border border-slate-200/50 dark:border-slate-800/50 shadow-2xl flex flex-col p-8 overflow-hidden pointer-events-auto"
+              className="fixed inset-0 z-[110] md:hidden bg-white/98 dark:bg-slate-950/98 backdrop-blur-3xl rounded-none shadow-2xl flex flex-col p-8 overflow-hidden pointer-events-auto"
             >
               <div className="flex justify-between items-center mb-10">
                 <Link to="/" onClick={() => setIsOpen(false)} className="flex items-center gap-2">
                   {logoUrl ? (
-                    <BrandLogo src={logoUrl} alt={appName} size="sm" />
+                    <BrandLogo src={logoUrl} alt={appName} size="sm" transparent={true} />
                   ) : (
                     <>
                       <div className="size-8 bg-emerald-600 rounded-lg flex items-center justify-center">
@@ -294,7 +294,7 @@ export function Navbar() {
                 </button>
               </div>
 
-              <div className="flex flex-col gap-4 overflow-y-auto pb-8">
+              <div className="flex flex-col gap-4 overflow-y-auto scrollbar-none pb-8">
                 {[
                   { name: "Home", href: "/", icon: <Home className="size-6" /> },
                   { name: "Plans", href: "/#plans", icon: <Layout className="size-6" /> },

@@ -3,7 +3,11 @@ import { ArrowRight, Sparkles, ShieldCheck, Users, TrendingUp, CheckCircle2 } fr
 
 import { Button } from "@/app/components/ui/button";
 
-export function Hero() {
+export interface HeroProps {
+  onExplorePlans?: (tab?: "quiz" | "compare") => void;
+}
+
+export function Hero({ onExplorePlans }: HeroProps) {
   return (
     <section className="relative min-h-[90vh] flex items-center pt-28 pb-16 overflow-hidden bg-white dark:bg-slate-950">
       {/* Subtle Premium Background */}
@@ -34,10 +38,10 @@ export function Hero() {
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="inline-flex items-center gap-2 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 px-4 py-1.5 rounded-full shadow-sm"
+            className="inline-flex items-center gap-2 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 px-4 py-1.5 rounded-full shadow-sm max-w-full"
           >
-            <CheckCircle2 className="size-4 text-emerald-600" />
-            <span className="text-[10px] md:text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">
+            <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
+            <span className="text-[9px] min-[360px]:text-[10px] md:text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide whitespace-nowrap">
               Join 2,000+ Disciplined Savers today
             </span>
           </motion.div>
@@ -85,7 +89,7 @@ export function Hero() {
             <Button
               size="lg"
               variant="outline"
-              className="h-14 md:h-16 px-8 md:px-10 rounded-xl md:rounded-2xl text-base md:text-lg font-bold border-2 bg-white dark:bg-slate-950 hover:bg-slate-50 dark:hover:bg-slate-900 hover:text-white active:scale-95 text-slate-600 dark:text-slate-400 transition-all w-full sm:w-auto"
+              className="h-14 md:h-16 px-8 md:px-10 rounded-xl md:rounded-2xl text-base md:text-lg font-bold border-2 bg-white dark:bg-slate-950 hover:bg-slate-50 dark:hover:bg-slate-900 hover:text-slate-950 dark:hover:text-white active:scale-95 text-slate-600 dark:text-slate-400 transition-all w-full sm:w-auto"
               onClick={() =>
                 document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" })
               }
@@ -93,6 +97,30 @@ export function Hero() {
               How it Works
             </Button>
           </motion.div>
+
+          {onExplorePlans && (
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.4, duration: 0.8 }}
+              className="text-xs md:text-sm text-slate-500 font-medium"
+            >
+              Not sure which strategy is for you? Use our {" "}
+              <button
+                onClick={() => onExplorePlans("quiz")}
+                className="text-emerald-600 hover:text-emerald-700 hover:underline font-bold bg-transparent border-none p-0 cursor-pointer"
+              >
+                plan recommender
+              </button>{" "}
+              or{" "}
+              <button
+                onClick={() => onExplorePlans("compare")}
+                className="text-emerald-600 hover:text-emerald-700 hover:underline font-bold bg-transparent border-none p-0 cursor-pointer"
+              >
+                compare plans
+              </button>
+            </motion.p>
+          )}
 
           {/* Social Proof & Features */}
           <motion.div

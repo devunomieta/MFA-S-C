@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 import { Timer, CheckCircle, AlertTriangle, Calendar, Lock, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "@/app/context/AuthContext";
+import { KYCModal } from "@/app/components/ui/KYCModal";
 
 import {
   AlertDialog,
@@ -56,6 +58,78 @@ export function AjoPlanCard({
 
   const [showJoinConfirm, setShowJoinConfirm] = useState(false);
   const [rulesAccepted, setRulesAccepted] = useState(false);
+
+  const { user } = useAuth();
+  const [profile, setProfile] = useState<any>(null);
+  const [kycModalOpen, setKycModalOpen] = useState(false);
+  const [kycModalMode, setKycModalMode] = useState<"full" | "confirm">("full");
+  const [settling, setSettling] = useState(false);
+
+  const fetchProfile = async () => {
+    if (!user) return;
+    const { data } = await supabase.from("profiles").select("*").eq("id", user.id).single();
+    if (data) setProfile(data);
+  };
+
+  useEffect(() => {
+    if (user && user_plan) {
+      fetchProfile();
+    }
+  }, [user, user_plan]);
+
+  const handleClaimPayout = () => {
+    if (profile?.gov_id_status !== "verified") {
+      setKycModalMode("full");
+      setKycModalOpen(true);
+      toast.info("Please submit your KYC details to claim your payout.");
+    } else {
+      setKycModalMode("confirm");
+      setKycModalOpen(true);
+    }
+  };
+
+  const handleKycSuccess = async () => {
+    if (!user || !user_plan) return;
+    setSettling(true);
+    try {
+      const { data: updatedProfile, error: profileError } = await supabase
+        .from("profiles")
+        .select("kyc_latitude, kyc_longitude")
+        .eq("id", user.id)
+        .single();
+      
+      if (profileError || !updatedProfile) {
+        throw new Error("Failed to retrieve location coordinates. Please try again.");
+      }
+
+      const lat = updatedProfile.kyc_latitude ? Number(updatedProfile.kyc_latitude) : null;
+      const lng = updatedProfile.kyc_longitude ? Number(updatedProfile.kyc_longitude) : null;
+
+      if (lat === null || lng === null) {
+        throw new Error("GPS coordinates not found. Please capture location.");
+      }
+
+      const metadata = user_plan.plan_metadata || {};
+      const currentWeek = metadata.current_week || 1;
+
+      const { error: rpcError } = await supabase.rpc("settle_user_ajo_payout", {
+        p_user_plan_id: user_plan.id,
+        p_week: currentWeek,
+        p_lat: lat,
+        p_lng: lng
+      });
+
+      if (rpcError) throw rpcError;
+
+      toast.success("Turn payout settled successfully!");
+      setTimeout(() => window.location.reload(), 1500);
+    } catch (err: any) {
+      console.error("Payout settlement failed:", err);
+      toast.error(err.message || "Failed to settle turn payout.");
+    } finally {
+      setSettling(false);
+    }
+  };
 
   const getCountdownString = (startDateStr: string) => {
     const start = new Date(startDateStr);
@@ -375,68 +449,13 @@ export function AjoPlanCard({
 
             {turnCount > 0 ? (
               isMyTurn ? (
-                arrears > 0 || loan > 0 ? (
-                  <>
-                    <Button
-                      className="w-full font-semibold bg-emerald-600 hover:bg-emerald-700 text-white"
-                      onClick={() => setShowArrearsPrompt(true)}
-                      disabled={withdrawing || user_plan.status !== "active"}
-                    >
-                      {withdrawing ? "Processing..." : "Settle Arrears & Withdraw"}
-                    </Button>
-
-                    <AlertDialog open={showArrearsPrompt} onOpenChange={setShowArrearsPrompt}>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Outstanding Balance Detected</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            You have an outstanding balance (Arrears/Loans) of ₦
-                            {formatCurrency(arrears + loan)}. Do you want to automatically deduct
-                            this amount and settle the remaining payout to your wallet?
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <a
-                            href="https://wa.me/+2349074049667?text=Hello%20Admin,%20I%20have%20an%20issue%20with%20my%20Ajo%20payout%20and%20arrears."
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="w-full sm:w-auto"
-                          >
-                            <Button
-                              variant="outline"
-                              className="w-full bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200"
-                            >
-                              Contact Admin
-                            </Button>
-                          </a>
-                          <Button
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                            onClick={async () => {
-                              setShowArrearsPrompt(false);
-                              if (onWithdraw) {
-                                setWithdrawing(true);
-                                await onWithdraw();
-                                setWithdrawing(false);
-                              }
-                            }}
-                          >
-                            Yes, Withdraw & Settle
-                          </Button>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </>
-                ) : (
-                  <Button
-                    disabled
-                    variant="outline"
-                    className="w-full bg-emerald-50 text-emerald-700 border-emerald-200"
-                  >
-                    <Timer className="w-4 h-4 mr-2 animate-spin" />
-                    Auto-Settling to Wallet...
-                  </Button>
-                )
+                <Button
+                  className="w-full font-semibold bg-emerald-600 hover:bg-emerald-700 text-white animate-pulse"
+                  onClick={handleClaimPayout}
+                  disabled={settling || user_plan.status !== "active"}
+                >
+                  {settling ? "Settling..." : arrears > 0 || loan > 0 ? "Settle Arrears & Claim Payout" : "Settle & Claim Turn Payout"}
+                </Button>
               ) : (
                 <Button
                   disabled
@@ -526,6 +545,13 @@ export function AjoPlanCard({
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        <KYCModal
+          isOpen={kycModalOpen}
+          onOpenChange={setKycModalOpen}
+          onSuccess={handleKycSuccess}
+          mode={kycModalMode}
+        />
       </>
     );
   }

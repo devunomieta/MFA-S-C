@@ -16,6 +16,17 @@ function getWeekNumber(d: Date): number {
   return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
 }
 
+function addCalendarMonths(startDate: Date, months: number): Date {
+  const targetDate = new Date(startDate);
+  const expectedMonth = (targetDate.getMonth() + months) % 12;
+  targetDate.setMonth(targetDate.getMonth() + months);
+  // Rollover protection: If day overflowed (e.g., Jan 31 + 1 month became Mar 3), set to last day of target month (e.g., Feb 28/29)
+  if (targetDate.getMonth() !== expectedMonth) {
+    targetDate.setDate(0);
+  }
+  return targetDate;
+}
+
 export function calculateMaturityForPlan(userPlan: any): PlanMaturityStatus | null {
   const startDateStr = userPlan.start_date;
   if (!startDateStr) return null;
@@ -24,11 +35,12 @@ export function calculateMaturityForPlan(userPlan: any): PlanMaturityStatus | nu
   const meta = userPlan.plan_metadata || {};
   const plan = userPlan.plan || userPlan.plans || {};
   let durationDays = 0;
+  let isMonthlyBloom = false;
 
   if (plan.type === "daily_drop") {
     durationDays = meta.selected_duration || 31;
   } else if (plan.type === "monthly_bloom") {
-    durationDays = (meta.selected_duration || 12) * 30; // Approx 30 days
+    isMonthlyBloom = true;
   } else if (plan.type === "step_up") {
     durationDays = (meta.selected_duration || plan.duration_weeks || 52) * 7;
   } else if (plan.type === "marathon") {
@@ -45,7 +57,14 @@ export function calculateMaturityForPlan(userPlan: any): PlanMaturityStatus | nu
   }
 
   const maturityDate = new Date(startDate);
-  maturityDate.setDate(maturityDate.getDate() + durationDays + 1);
+  if (isMonthlyBloom) {
+    const months = meta.selected_duration || 12;
+    const targetMaturity = addCalendarMonths(startDate, months);
+    maturityDate.setTime(targetMaturity.getTime());
+    maturityDate.setDate(maturityDate.getDate() + 1);
+  } else {
+    maturityDate.setDate(maturityDate.getDate() + durationDays + 1);
+  }
 
   const now = new Date();
   const nowmidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());

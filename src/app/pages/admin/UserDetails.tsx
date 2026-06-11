@@ -242,11 +242,11 @@ export function AdminUserDetails() {
       </Card>
 
       <Tabs defaultValue="plans" className="w-full">
-        <TabsList className="grid w-full grid-cols-4 lg:w-[500px]">
+        <TabsList className="grid w-full grid-cols-6 lg:w-[700px]">
           <TabsTrigger value="plans">Plans</TabsTrigger>
           <TabsTrigger value="loans">Loans</TabsTrigger>
           <TabsTrigger value="transactions">History</TabsTrigger>
-          <TabsTrigger value="transactions">History</TabsTrigger>
+          <TabsTrigger value="kyc">KYC</TabsTrigger>
           <TabsTrigger value="banks">Bank Accounts</TabsTrigger>
           <TabsTrigger value="activity">User Activity</TabsTrigger>
         </TabsList>
@@ -348,6 +348,135 @@ export function AdminUserDetails() {
               </table>
             </div>
           )}
+        </TabsContent>
+
+        <TabsContent value="kyc" className="space-y-4 mt-4">
+          <h3 className="font-semibold text-lg flex items-center gap-2">
+            <ShieldCheck className="w-5 h-5 text-emerald-600" /> KYC Verification Details
+          </h3>
+          <Card>
+            <CardContent className="p-6 space-y-6">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <span className="text-xs text-gray-400 block font-bold uppercase tracking-wider">Verification Status</span>
+                  <Badge
+                    variant={
+                      profile.gov_id_status === "verified"
+                        ? "default"
+                        : profile.gov_id_status === "pending"
+                          ? "secondary"
+                          : "outline"
+                    }
+                    className={
+                      profile.gov_id_status === "verified"
+                        ? "bg-emerald-100 text-emerald-800"
+                        : profile.gov_id_status === "pending"
+                          ? "bg-yellow-100 text-yellow-800"
+                          : "border-gray-200 text-gray-500"
+                    }
+                  >
+                    {profile.gov_id_status}
+                  </Badge>
+                </div>
+                <div>
+                  <span className="text-xs text-gray-400 block font-bold uppercase tracking-wider">KYC Edit Status</span>
+                  {profile.kyc_edit_allowed ? (
+                    <Badge className="bg-emerald-500">Edit Privileges Active (Allowed)</Badge>
+                  ) : (
+                    <Badge variant="outline">Locked (Cannot Edit)</Badge>
+                  )}
+                </div>
+                <div>
+                  <span className="text-xs text-gray-400 block font-bold uppercase tracking-wider">BVN (Bank Verification Number)</span>
+                  <span className="text-sm font-medium font-mono">{profile.bvn || "Not provided"}</span>
+                </div>
+                <div>
+                  <span className="text-xs text-gray-400 block font-bold uppercase tracking-wider">NIN (National Identity Number)</span>
+                  <span className="text-sm font-medium font-mono">{profile.nin || "Not provided"}</span>
+                </div>
+                <div>
+                  <span className="text-xs text-gray-400 block font-bold uppercase tracking-wider">Country of Residence</span>
+                  <span className="text-sm font-medium">{profile.kyc_country || "Not provided"}</span>
+                </div>
+                <div>
+                  <span className="text-xs text-gray-400 block font-bold uppercase tracking-wider">State of Residence</span>
+                  <span className="text-sm font-medium">{profile.kyc_state || "Not provided"}</span>
+                </div>
+                <div className="md:col-span-2">
+                  <span className="text-xs text-gray-400 block font-bold uppercase tracking-wider">Street Address</span>
+                  <span className="text-sm font-medium">{profile.kyc_street || "Not provided"}</span>
+                </div>
+                <div className="md:col-span-2">
+                  <span className="text-xs text-gray-400 block font-bold uppercase tracking-wider">Closest Landmark</span>
+                  <span className="text-sm font-medium">{profile.kyc_landmark || "Not provided"}</span>
+                </div>
+                <div className="md:col-span-2">
+                  <span className="text-xs text-gray-400 block font-bold uppercase tracking-wider">GPS Live Coordinates</span>
+                  {profile.kyc_latitude !== null && profile.kyc_longitude !== null ? (
+                    <a
+                      href={`https://www.google.com/maps?q=${profile.kyc_latitude},${profile.kyc_longitude}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm font-bold text-emerald-600 hover:underline flex items-center gap-1"
+                    >
+                      📍 {Number(profile.kyc_latitude).toFixed(6)}, {Number(profile.kyc_longitude).toFixed(6)} (Open Google Maps)
+                    </a>
+                  ) : (
+                    <span className="text-sm text-slate-500">Not captured</span>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t pt-4">
+                {profile.gov_id_url && (
+                  <div>
+                    <span className="text-xs text-gray-400 block font-bold uppercase tracking-wider mb-2">NIN Document</span>
+                    <div className="p-4 bg-slate-50 rounded-xl flex items-center justify-center max-w-md border border-slate-100 h-64">
+                      <img
+                        src={profile.gov_id_url}
+                        alt="NIN Document"
+                        className="max-h-full rounded shadow-md object-contain"
+                      />
+                    </div>
+                  </div>
+                )}
+                {profile.utility_bill_url && (
+                  <div>
+                    <span className="text-xs text-gray-400 block font-bold uppercase tracking-wider mb-2">Utility Bill / Signage</span>
+                    <div className="p-4 bg-slate-50 rounded-xl flex items-center justify-center max-w-md border border-slate-100 h-64">
+                      <img
+                        src={profile.utility_bill_url}
+                        alt="Utility Bill or Signage"
+                        className="max-h-full rounded shadow-md object-contain"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="border-t pt-4 flex gap-3">
+                <Button
+                  variant={profile.kyc_edit_allowed ? "outline" : "default"}
+                  className={!profile.kyc_edit_allowed ? "bg-emerald-600 hover:bg-emerald-700 text-white" : ""}
+                  onClick={async () => {
+                    const nextVal = !profile.kyc_edit_allowed;
+                    const { error } = await supabase
+                      .from("profiles")
+                      .update({ kyc_edit_allowed: nextVal })
+                      .eq("id", profile.id);
+                    if (error) {
+                      toast.error("Failed to update KYC edit flag.");
+                    } else {
+                      toast.success(nextVal ? "KYC edit privileges enabled." : "KYC edit privileges disabled.");
+                      setProfile({ ...profile, kyc_edit_allowed: nextVal });
+                    }
+                  }}
+                >
+                  {profile.kyc_edit_allowed ? "Block KYC Editing" : "Allow KYC Edit"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="banks" className="space-y-4 mt-4">

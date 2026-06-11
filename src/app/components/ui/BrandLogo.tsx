@@ -8,6 +8,7 @@ interface BrandLogoProps {
   size?: "sm" | "md" | "lg" | "xl";
   className?: string;
   containerClassName?: string;
+  transparent?: boolean;
 }
 
 export function BrandLogo({
@@ -16,6 +17,7 @@ export function BrandLogo({
   size = "md",
   className,
   containerClassName,
+  transparent = false,
 }: BrandLogoProps) {
   if (!src) return null;
 
@@ -30,7 +32,9 @@ export function BrandLogo({
   return (
     <div
       className={cn(
-        "bg-white rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.2),0_15px_25px_-5px_rgba(0,0,0,0.1)] border border-slate-100 p-0 flex items-center justify-center transition-all duration-300 hover:shadow-[0_40px_70px_-12px_rgba(0,0,0,0.25)] hover:scale-[1.12] active:scale-[0.9] group/logo overflow-hidden h-auto",
+        transparent
+          ? "bg-transparent border-none shadow-none p-0 flex items-center justify-center transition-all duration-300 hover:scale-[1.05] active:scale-[0.95] group/logo overflow-hidden h-auto"
+          : "bg-white rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.2),0_15px_25px_-5px_rgba(0,0,0,0.1)] border border-slate-100 p-0 flex items-center justify-center transition-all duration-300 hover:shadow-[0_40px_70px_-12px_rgba(0,0,0,0.25)] hover:scale-[1.12] active:scale-[0.9] group/logo overflow-hidden h-auto",
         widths[size],
         containerClassName,
       )}

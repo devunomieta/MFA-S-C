@@ -16,7 +16,7 @@ import {
   Eye,
   Camera,
 } from "lucide-react";
-import { User, KeyRound, UserCheck, Landmark, Shield, Mail, Phone } from "lucide-react";
+import { User, KeyRound, UserCheck, Landmark, Shield, Mail, Phone, MapPin, Navigation } from "lucide-react";
 import { toast } from "sonner";
 
 import { ActionConfirmModal } from "@/app/components/ui/ActionConfirmModal";
@@ -54,6 +54,48 @@ import { notificationDispatcher } from "@/lib/notificationDispatcher";
 import { supabase } from "@/lib/supabase";
 import { validateFile, validatePassword } from "@/lib/validation";
 
+const reverseGeocode = async (latitude: number, longitude: number) => {
+  try {
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&accept-language=en`,
+      {
+        headers: {
+          "User-Agent": "MarysThriftFinance/1.0"
+        }
+      }
+    );
+    if (response.ok) {
+      const data = await response.json();
+      return data.display_name || `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+    }
+  } catch (err) {
+    console.error("Reverse geocoding error:", err);
+  }
+  return `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+};
+
+const verifyAddressMatch = (typedStreet: string, typedState: string, geocodedAddressStr: string) => {
+  const normalizedGeocode = geocodedAddressStr.toLowerCase();
+  
+  let stateMatch = normalizedGeocode.includes(typedState.toLowerCase());
+  // Abuja/FCT equivalence
+  if (typedState.toLowerCase() === "abuja" || typedState.toLowerCase() === "federal capital territory") {
+    if (normalizedGeocode.includes("abuja") || normalizedGeocode.includes("federal capital territory") || normalizedGeocode.includes("fct")) {
+      stateMatch = true;
+    }
+  }
+  
+  const streetWords = typedStreet
+    .toLowerCase()
+    .replace(/[^\w\s]/g, "")
+    .split(/\s+/)
+    .filter(word => word.length > 2 && !["street", "road", "lane", "avenue", "drive", "way", "close", "crescent"].includes(word));
+
+  const streetMatch = streetWords.length === 0 || streetWords.some(word => normalizedGeocode.includes(word));
+  
+  return stateMatch && streetMatch;
+};
+
 export function Profile() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
@@ -66,7 +108,32 @@ export function Profile() {
     avatar_url: "",
     gov_id_status: "not_uploaded",
     gov_id_url: "",
+    utility_bill_url: "",
+    bvn: "",
+    nin: "",
+    kyc_country: "Nigeria",
+    kyc_state: "Lagos",
+    kyc_street: "",
+    kyc_landmark: "",
+    kyc_latitude: null as number | null,
+    kyc_longitude: null as number | null,
+    kyc_edit_allowed: false,
   });
+
+  const [hasActiveDebt, setHasActiveDebt] = useState(false);
+  const [isEditingKyc, setIsEditingKyc] = useState(false);
+  const kycLocked = hasActiveDebt && !profile.kyc_edit_allowed;
+  const [geocodedAddress, setGeocodedAddress] = useState("");
+
+  useEffect(() => {
+    if (profile.kyc_latitude && profile.kyc_longitude) {
+      reverseGeocode(profile.kyc_latitude, profile.kyc_longitude).then((address) => {
+        setGeocodedAddress(address);
+      });
+    } else {
+      setGeocodedAddress("");
+    }
+  }, [profile.kyc_latitude, profile.kyc_longitude]);
 
   // Keep track of original name to detect changes
   const [originalName, setOriginalName] = useState("");
@@ -96,7 +163,9 @@ export function Profile() {
   const [uploadingId, setUploadingId] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [utilityBillPreview, setUtilityBillPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const utilityBillInputRef = useRef<HTMLInputElement>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
   // Password State
@@ -138,8 +207,33 @@ export function Profile() {
       fetchBankAccounts();
       fetchNameHistory();
       fetchBankRequests();
+      checkActiveDebts();
     }
   }, [user]);
+
+  async function checkActiveDebts() {
+    if (!user?.id) return;
+    try {
+      const { data: loans } = await supabase
+        .from("loans")
+        .select("id")
+        .eq("user_id", user.id)
+        .in("status", ["pending", "approved", "active", "defaulted"]);
+
+      const { data: plans } = await supabase
+        .from("user_plans")
+        .select("id, plan:plans(type)")
+        .eq("user_id", user.id)
+        .in("status", ["active", "pending_activation", "pending_turn_approval", "turn_reassigned"]);
+
+      const hasActiveAjo = plans?.some((p: any) => p.plan?.type === "ajo_circle") || false;
+      const hasActiveLoan = loans && loans.length > 0;
+
+      setHasActiveDebt(!!(hasActiveLoan || hasActiveAjo));
+    } catch (err) {
+      console.error("Error checking active debts:", err);
+    }
+  }
 
   async function fetchProfile() {
     const { data } = await supabase.from("profiles").select("*").eq("id", user?.id).single();
@@ -152,6 +246,16 @@ export function Profile() {
         avatar_url: data.avatar_url || "",
         gov_id_status: data.gov_id_status || "not_uploaded",
         gov_id_url: data.gov_id_url || "",
+        utility_bill_url: data.utility_bill_url || "",
+        bvn: data.bvn || "",
+        nin: data.nin || "",
+        kyc_country: data.kyc_country || "Nigeria",
+        kyc_state: data.kyc_state || "Lagos",
+        kyc_street: data.kyc_street || "",
+        kyc_landmark: data.kyc_landmark || "",
+        kyc_latitude: data.kyc_latitude ? Number(data.kyc_latitude) : null,
+        kyc_longitude: data.kyc_longitude ? Number(data.kyc_longitude) : null,
+        kyc_edit_allowed: data.kyc_edit_allowed || false,
       });
       setOriginalName(data.full_name || "");
     } else {
@@ -164,6 +268,16 @@ export function Profile() {
         avatar_url: "",
         gov_id_status: "not_uploaded",
         gov_id_url: "",
+        utility_bill_url: "",
+        bvn: "",
+        nin: "",
+        kyc_country: "Nigeria",
+        kyc_state: "Lagos",
+        kyc_street: "",
+        kyc_landmark: "",
+        kyc_latitude: null,
+        kyc_longitude: null,
+        kyc_edit_allowed: false,
       });
       setOriginalName(metaName);
     }
@@ -787,60 +901,216 @@ export function Profile() {
     }
   };
 
-  async function handleUploadId() {
-    if (!previewUrl || !fileInputRef.current?.files?.[0]) {
-      fileInputRef.current?.click();
+  const [gpsLoading, setGpsLoading] = useState(false);
+
+  const handleGPSCapture = () => {
+    if (!navigator.geolocation) {
+      toast.error("Geolocation is not supported by your browser");
       return;
     }
 
-    const file = fileInputRef.current.files[0];
+    if (window.location.protocol !== "https:" && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1") {
+      toast.warning("Warning: Mobile browsers block geolocation prompts on insecure HTTP connections. Please test via HTTPS or localhost to trigger the prompt.");
+    }
+
+    setGpsLoading(true);
+
+    const successCallback = async (position: GeolocationPosition) => {
+      const accuracy = position.coords.accuracy;
+      if (accuracy > 200) {
+        setGpsLoading(false);
+        toast.error(`Capture failed: Location accuracy is too low (${accuracy.toFixed(1)} meters). We detected an approximate IP-based location. Please ensure your device's Wi-Fi is turned ON (to allow Wi-Fi triangulation) or use a mobile device with location services enabled to get under 200 meters precision.`);
+        return;
+      }
+
+      const lat = position.coords.latitude;
+      const lng = position.coords.longitude;
+      setProfile((prev) => ({
+        ...prev,
+        kyc_latitude: lat,
+        kyc_longitude: lng,
+      }));
+      
+      toast.info("Retrieving physical address from GPS...");
+      const address = await reverseGeocode(lat, lng);
+      setGeocodedAddress(address);
+      setGpsLoading(false);
+      toast.success("Location captured successfully!");
+
+      if (profile.kyc_street.trim()) {
+        const isMatch = verifyAddressMatch(profile.kyc_street, profile.kyc_state, address);
+        if (!isMatch) {
+          toast.warning("Warning: Captured location address does not match your entered street address and state. Please check your address inputs or ensure you are present at the location.");
+        } else {
+          toast.success("GPS Location matches your entered address!");
+        }
+      }
+    };
+
+    const errorCallback = (error: GeolocationPositionError) => {
+      console.error("GPS Error:", error);
+      if (error.code === 1) {
+        setGpsLoading(false);
+        toast.error("Location permission denied. Please allow location access in your device and browser settings.");
+        return;
+      }
+
+      toast.info("High accuracy GPS search timed out or is unavailable. Retrying with standard accuracy...");
+      navigator.geolocation.getCurrentPosition(
+        successCallback,
+        (err) => {
+          setGpsLoading(false);
+          if (err.code === 1) {
+            toast.error("Location permission denied. Please allow location access in your device and browser settings.");
+          } else {
+            toast.error(`Failed to capture location: ${err.message || "Unknown error"}. Check device location settings.`);
+          }
+        },
+        { enableHighAccuracy: false, timeout: 15000, maximumAge: 60000 }
+      );
+    };
+
+    navigator.geolocation.getCurrentPosition(
+      successCallback,
+      errorCallback,
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+    );
+  };
+
+  const handleUtilityBillSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+
+      const validation = validateFile(file, {
+        maxSizeMB: 5,
+        allowedTypes: ["image/jpeg", "image/png", "application/pdf"],
+      });
+
+      if (!validation.isValid) {
+        toast.error(validation.error);
+        return;
+      }
+
+      const objectUrl = URL.createObjectURL(file);
+      setUtilityBillPreview(objectUrl);
+    }
+  };
+
+  async function handleKycSubmit() {
+    if (!user) return;
+
+    if (!/^\d{11}$/.test(profile.bvn)) {
+      toast.error("BVN must be exactly 11 digits (numbers only)");
+      return;
+    }
+    if (!/^\d{11}$/.test(profile.nin)) {
+      toast.error("NIN must be exactly 11 digits (numbers only)");
+      return;
+    }
+    if (!profile.kyc_street.trim() || !profile.kyc_landmark.trim()) {
+      toast.error("Please fill in both the street address and closest landmark");
+      return;
+    }
+    if (profile.kyc_latitude === null || profile.kyc_longitude === null) {
+      toast.error("Please capture your live location");
+      return;
+    }
+
+    const isMatch = verifyAddressMatch(profile.kyc_street, profile.kyc_state, geocodedAddress);
+    if (!isMatch) {
+      toast.error("Verification failed: Your physical GPS location does not match your entered address. Please ensure you are physically present at your typed address to submit KYC.");
+      return;
+    }
+
+    let finalGovIdUrl = profile.gov_id_url;
+    if (fileInputRef.current?.files?.[0]) {
+      const file = fileInputRef.current.files[0];
+      setUploadingId(true);
+      try {
+        const fileExt = file.name.split(".").pop();
+        const fileName = `${user.id}-nin-${Date.now()}.${fileExt}`;
+        const filePath = `kyc/${fileName}`;
+        const { error: uploadError } = await supabase.storage.from("kyc").upload(filePath, file);
+        if (uploadError) throw uploadError;
+        const { data: { publicUrl } } = supabase.storage.from("kyc").getPublicUrl(filePath);
+        finalGovIdUrl = publicUrl;
+      } catch (err: any) {
+        toast.error("NIN slip upload failed");
+        setUploadingId(false);
+        return;
+      }
+    } else if (!profile.gov_id_url) {
+      toast.error("Please select and upload your NIN Slip document image");
+      return;
+    }
+
+    let finalUtilityBillUrl = profile.utility_bill_url;
+    if (utilityBillInputRef.current?.files?.[0]) {
+      const file = utilityBillInputRef.current.files[0];
+      setUploadingId(true);
+      try {
+        const fileExt = file.name.split(".").pop();
+        const fileName = `${user.id}-utility-${Date.now()}.${fileExt}`;
+        const filePath = `kyc/${fileName}`;
+        const { error: uploadError } = await supabase.storage.from("kyc").upload(filePath, file);
+        if (uploadError) throw uploadError;
+        const { data: { publicUrl } } = supabase.storage.from("kyc").getPublicUrl(filePath);
+        finalUtilityBillUrl = publicUrl;
+      } catch (err: any) {
+        toast.error("Utility bill upload failed");
+        setUploadingId(false);
+        return;
+      }
+    } else if (!profile.utility_bill_url) {
+      toast.error("Please select and upload your Utility Bill or Business Signage image");
+      return;
+    }
+
     setUploadingId(true);
-
     try {
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${user?.id}-${Math.random()}.${fileExt}`;
-      const filePath = `kyc/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage.from("kyc").upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from("kyc").getPublicUrl(filePath);
-
-      const { error: updateError } = await supabase
+      const { error } = await supabase
         .from("profiles")
         .update({
+          bvn: profile.bvn,
+          nin: profile.nin,
+          gov_id_url: finalGovIdUrl,
+          utility_bill_url: finalUtilityBillUrl,
           gov_id_status: "pending",
-          gov_id_url: publicUrl,
+          kyc_country: profile.kyc_country,
+          kyc_state: profile.kyc_state,
+          kyc_street: profile.kyc_street,
+          kyc_landmark: profile.kyc_landmark,
+          kyc_latitude: profile.kyc_latitude,
+          kyc_longitude: profile.kyc_longitude,
+          kyc_last_confirmed_at: new Date().toISOString()
         })
-        .eq("id", user?.id);
+        .eq("id", user.id);
 
-      if (updateError) throw updateError;
-
-      toast.success("ID Uploaded! Verification pending.");
+      if (error) throw error;
+      
+      toast.success("KYC details submitted successfully!");
+      
       await notificationDispatcher.sendAlert({
-        userId: user?.id || "",
+        userId: user.id,
         email: profile.email,
         type: "profile",
-        title: "KYC ID Document Uploaded",
-        message:
-          "Your KYC identity document has been uploaded successfully and is currently pending review by administrators.",
+        title: "KYC Details Submitted",
+        message: "Your complete KYC identity verification details have been submitted for admin review.",
       });
-      setPreviewUrl(null);
 
       // Log Activity
       supabase.from("activity_logs").insert({
-        user_id: user?.id,
+        user_id: user.id,
         action: "KYC_UPLOAD",
         details: { status: "pending" },
       });
 
+      setPreviewUrl(null);
       await fetchProfile();
-    } catch (error: any) {
-      console.error("KYC Upload Error:", error);
-      toast.error(error.message || "Failed to submit ID. Please try again.");
+      await checkActiveDebts();
+    } catch (err: any) {
+      console.error("KYC Submit Error:", err);
+      toast.error(err.message || "Failed to submit KYC details");
     } finally {
       setUploadingId(false);
     }
@@ -1034,7 +1304,17 @@ export function Profile() {
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              {profile.gov_id_status !== "not_uploaded" ? (
+              {kycLocked && (
+                <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 p-4 rounded-md text-sm flex gap-2 dark:bg-yellow-900/20 dark:text-yellow-300">
+                  <AlertTriangle className="w-5 h-5 shrink-0" />
+                  <div>
+                    <p className="font-semibold">KYC Profile Locked</p>
+                    <p>Your profile is locked due to active loans or Ajo plans. Please contact an admin to request edit privileges.</p>
+                  </div>
+                </div>
+              )}
+
+              {profile.gov_id_status !== "not_uploaded" && !isEditingKyc ? (
                 <div className="space-y-4">
                   <div
                     className={`border rounded-lg p-4 flex items-center gap-3 ${
@@ -1069,49 +1349,108 @@ export function Profile() {
                       >
                         {profile.gov_id_status === "verified"
                           ? "You have full access to loan applications and premium features."
-                          : "Your document is under review by our admin team. This usually takes 24 hours."}
+                          : "Your details are under review by our admin team. This usually takes 24 hours."}
                       </p>
                     </div>
                   </div>
 
-                  {/* View ID Button - Available for both Pending and Verified */}
-                  {profile.gov_id_url && (
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button variant="outline" className="w-full">
-                          <Eye className="w-4 h-4 mr-2" /> View Submitted ID
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Submitted Identity Document</DialogTitle>
-                          <DialogDescription>
-                            Review your uploaded government-issued ID for verification.
-                          </DialogDescription>
-                        </DialogHeader>
-                        <div className="p-4 flex flex-col items-center justify-center bg-gray-100 rounded-lg">
-                          {profile.gov_id_url ? (
-                            <img
-                              src={
-                                profile.gov_id_url?.includes("mock")
-                                  ? "https://placehold.co/600x400/png?text=Government+ID"
-                                  : profile.gov_id_url
-                              }
-                              alt="Submitted ID"
-                              className="max-w-full h-auto rounded shadow-sm"
-                              onError={(e) => {
-                                const target = e.target as HTMLImageElement;
-                                target.src =
-                                  "https://placehold.co/600x400/png?text=Image+Load+Error";
-                              }}
-                            />
-                          ) : (
-                            <div className="text-gray-500">Image URL not found.</div>
-                          )}
-                        </div>
-                      </DialogContent>
-                    </Dialog>
-                  )}
+                  <div className="grid gap-4 md:grid-cols-2 p-4 border rounded-lg dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/10">
+                    <div>
+                      <span className="text-xs text-gray-400 block">BVN</span>
+                      <span className="text-sm font-medium dark:text-white">{profile.bvn || "N/A"}</span>
+                    </div>
+                    <div>
+                      <span className="text-xs text-gray-400 block">NIN</span>
+                      <span className="text-sm font-medium dark:text-white">{profile.nin || "N/A"}</span>
+                    </div>
+                    <div>
+                      <span className="text-xs text-gray-400 block">Country</span>
+                      <span className="text-sm font-medium dark:text-white">{profile.kyc_country || "Nigeria"}</span>
+                    </div>
+                    <div>
+                      <span className="text-xs text-gray-400 block">State</span>
+                      <span className="text-sm font-medium dark:text-white">{profile.kyc_state || "Lagos"}</span>
+                    </div>
+                    <div className="md:col-span-2">
+                      <span className="text-xs text-gray-400 block">Street Address</span>
+                      <span className="text-sm font-medium dark:text-white">{profile.kyc_street || "N/A"}</span>
+                    </div>
+                    <div className="md:col-span-2">
+                      <span className="text-xs text-gray-400 block">Landmark</span>
+                      <span className="text-sm font-medium dark:text-white">{profile.kyc_landmark || "N/A"}</span>
+                    </div>
+                    <div className="md:col-span-2">
+                      <span className="text-xs text-gray-400 block font-semibold uppercase tracking-wider">Your Current Location</span>
+                      <span className="text-sm font-medium text-emerald-600 dark:text-emerald-400 leading-relaxed block">
+                        {geocodedAddress || "N/A"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-2 w-full">
+                    <div className="flex gap-2 w-full">
+                      {profile.gov_id_url && (
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button variant="outline" className="flex-1">
+                              <Eye className="w-4 h-4 mr-2" /> View NIN Document
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Submitted Identity Document</DialogTitle>
+                              <DialogDescription>
+                                Review your uploaded government-issued ID for verification.
+                              </DialogDescription>
+                            </DialogHeader>
+                            <div className="p-4 flex flex-col items-center justify-center bg-gray-100 rounded-lg">
+                              <img
+                                src={
+                                  profile.gov_id_url?.includes("mock")
+                                    ? "https://placehold.co/600x400/png?text=Government+ID"
+                                    : profile.gov_id_url
+                                }
+                                alt="Submitted ID"
+                                className="max-w-full h-auto rounded shadow-sm"
+                              />
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                      )}
+                      {profile.utility_bill_url && (
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button variant="outline" className="flex-1">
+                              <Eye className="w-4 h-4 mr-2" /> View Utility Bill / Signage
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Submitted Utility Bill / Signage</DialogTitle>
+                              <DialogDescription>
+                                Review your uploaded utility bill or business signage.
+                              </DialogDescription>
+                            </DialogHeader>
+                            <div className="p-4 flex flex-col items-center justify-center bg-gray-100 rounded-lg">
+                              <img
+                                src={profile.utility_bill_url}
+                                alt="Submitted Utility Bill"
+                                className="max-w-full h-auto rounded shadow-sm"
+                              />
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                      )}
+                    </div>
+                    <Button
+                      variant="outline"
+                      onClick={() => setIsEditingKyc(true)}
+                      disabled={kycLocked}
+                      className="w-full"
+                    >
+                      <Edit2 className="w-4 h-4 mr-2" /> Edit KYC Details
+                    </Button>
+                  </div>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -1119,78 +1458,288 @@ export function Profile() {
                     <Info className="w-4 h-4 shrink-0 mt-0.5" />
                     <p>
                       <span className="font-semibold block mb-1">
-                        Optional (Required for Loans)
+                        Mandatory Security KYC
                       </span>
-                      Uploading your ID is optional for basic usage but <strong>mandatory</strong>{" "}
-                      if you wish to apply for loans.
+                      Providing your identity and location details is mandatory for loan eligibility and payout settlement.
                     </p>
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="grid gap-2">
+                      <Label htmlFor="bvn" className="dark:text-gray-300">Bank Verification Number (BVN)</Label>
+                      <Input
+                        id="bvn"
+                        value={profile.bvn}
+                        onChange={(e) => setProfile({ ...profile, bvn: e.target.value })}
+                        disabled={kycLocked || uploadingId}
+                        placeholder="11 digits"
+                        maxLength={11}
+                        className="dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="nin" className="dark:text-gray-300">National Identification Number (NIN)</Label>
+                      <Input
+                        id="nin"
+                        value={profile.nin}
+                        onChange={(e) => setProfile({ ...profile, nin: e.target.value })}
+                        disabled={kycLocked || uploadingId}
+                        placeholder="11 digits"
+                        maxLength={11}
+                        className="dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="kyc_country" className="dark:text-gray-300">Country of Residence</Label>
+                      <Input
+                        id="kyc_country"
+                        value="Nigeria"
+                        disabled
+                        className="bg-gray-50 text-gray-500 dark:bg-gray-800/50 dark:text-gray-400 dark:border-gray-700"
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="kyc_state" className="dark:text-gray-300">State of Residence</Label>
+                      <select
+                        id="kyc_state"
+                        value={profile.kyc_state}
+                        onChange={(e) => setProfile({ ...profile, kyc_state: e.target.value })}
+                        disabled={kycLocked || uploadingId}
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+                      >
+                        <option value="Lagos">Lagos</option>
+                        <option value="Abuja">Abuja</option>
+                        <option value="Kano">Kano</option>
+                        <option value="Kaduna">Kaduna</option>
+                        <option value="Oyo">Oyo</option>
+                        <option value="Rivers">Rivers</option>
+                        <option value="Anambra">Anambra</option>
+                        <option value="Enugu">Enugu</option>
+                        <option value="Edo">Edo</option>
+                        <option value="Delta">Delta</option>
+                      </select>
+                    </div>
+                    <div className="md:col-span-2 grid gap-2">
+                      <Label htmlFor="kyc_street" className="dark:text-gray-300">Street Address</Label>
+                      <Input
+                        id="kyc_street"
+                        value={profile.kyc_street}
+                        onChange={(e) => setProfile({ ...profile, kyc_street: e.target.value })}
+                        disabled={kycLocked || uploadingId}
+                        placeholder="e.g. 12 Marina Street"
+                        className="dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+                      />
+                    </div>
+                    <div className="md:col-span-2 grid gap-2">
+                      <Label htmlFor="kyc_landmark" className="dark:text-gray-300">Closest Landmark</Label>
+                      <Input
+                        id="kyc_landmark"
+                        value={profile.kyc_landmark}
+                        onChange={(e) => setProfile({ ...profile, kyc_landmark: e.target.value })}
+                        disabled={kycLocked || uploadingId}
+                        placeholder="e.g. Opposite Union Bank"
+                        className="dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+                      />
+                    </div>
+                    <div className="md:col-span-2 grid gap-2">
+                      <Label className="dark:text-gray-300">Your Current Location</Label>
+                      <div className="flex flex-col gap-2 items-start w-full">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={handleGPSCapture}
+                          disabled={kycLocked || gpsLoading || uploadingId}
+                          className="dark:bg-gray-900 dark:text-white dark:border-gray-700 dark:hover:bg-gray-800 font-semibold"
+                        >
+                          <Navigation className="w-4 h-4 mr-2" />
+                          {gpsLoading ? "Capturing..." : "Capture Location"}
+                        </Button>
+                        {geocodedAddress ? (
+                          <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium leading-relaxed">
+                            {geocodedAddress}
+                          </span>
+                        ) : (
+                          <span className="text-sm text-gray-500">Location pending capture</span>
+                        )}
+                      </div>
+                    </div>
                   </div>
 
                   <input
                     type="file"
                     ref={fileInputRef}
                     className="hidden"
-                    accept="image/*"
+                    accept="image/*,application/pdf"
                     onChange={handleFileSelect}
+                    disabled={kycLocked || uploadingId}
                   />
 
-                  <div
-                    onClick={() => !uploadingId && fileInputRef.current?.click()}
-                    className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
-                      previewUrl
-                        ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/10"
-                        : "border-gray-200 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800/50 cursor-pointer"
-                    }`}
-                  >
-                    {previewUrl ? (
-                      <div className="relative">
-                        <img
-                          src={previewUrl}
-                          alt="Preview"
-                          className="max-h-48 mx-auto rounded shadow-sm"
-                        />
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          className="absolute top-2 right-2 opacity-80 hover:opacity-100"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setPreviewUrl(null);
-                            if (fileInputRef.current) fileInputRef.current.value = "";
-                          }}
-                        >
-                          <X className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="flex flex-col items-center gap-2">
-                        <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center dark:bg-gray-800">
-                          <Upload className="w-5 h-5 text-gray-400" />
+                  <div className="grid gap-2">
+                    <Label className="dark:text-gray-300">NIN Slip Document Image</Label>
+                    <div
+                      onClick={() => !kycLocked && !uploadingId && fileInputRef.current?.click()}
+                      className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+                        kycLocked ? "cursor-not-allowed opacity-50 bg-gray-100 dark:bg-gray-800/20" : ""
+                      } ${
+                        previewUrl
+                          ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/10"
+                          : "border-gray-200 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800/50 cursor-pointer"
+                      }`}
+                    >
+                      {previewUrl ? (
+                        <div className="relative">
+                          <img
+                            src={previewUrl}
+                            alt="Preview"
+                            className="max-h-48 mx-auto rounded shadow-sm"
+                          />
+                          {!kycLocked && (
+                            <Button
+                              size="sm"
+                              type="button"
+                              variant="secondary"
+                              className="absolute top-2 right-2 opacity-80 hover:opacity-100"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setPreviewUrl(null);
+                                if (fileInputRef.current) fileInputRef.current.value = "";
+                              }}
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          )}
                         </div>
-                        <div className="text-sm text-gray-600 dark:text-gray-400">
-                          <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-                            Click to upload
-                          </span>{" "}
-                          or drag and drop
-                          <p className="text-xs text-gray-400 mt-1">
-                            Government ID (Passport, NIN, Driver's License)
-                          </p>
+                      ) : profile.gov_id_url ? (
+                        <div className="relative">
+                          <img
+                            src={profile.gov_id_url}
+                            alt="Submitted ID"
+                            className="max-h-48 mx-auto rounded shadow-sm"
+                          />
+                          {!kycLocked && (
+                            <div className="mt-2 text-xs text-gray-500">
+                              Click to upload a new NIN Slip image
+                            </div>
+                          )}
                         </div>
-                      </div>
-                    )}
+                      ) : (
+                        <div className="flex flex-col items-center gap-2">
+                          <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center dark:bg-gray-800">
+                            <Upload className="w-5 h-5 text-gray-400" />
+                          </div>
+                          <div className="text-sm text-gray-600 dark:text-gray-400">
+                            <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                              Click to upload NIN Slip
+                            </span>{" "}
+                            or drag and drop
+                            <p className="text-xs text-gray-400 mt-1">
+                              Image or PDF (Max 5MB)
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
 
-                  {previewUrl && (
-                    <div className="mt-4">
-                      <Button
-                        onClick={handleUploadId}
-                        disabled={uploadingId}
-                        className="w-full dark:bg-emerald-600 dark:text-white dark:hover:bg-emerald-700"
-                      >
-                        {uploadingId ? "Verifying..." : "Submit for Verification"}
-                      </Button>
+                  <input
+                    type="file"
+                    ref={utilityBillInputRef}
+                    className="hidden"
+                    accept="image/*,application/pdf"
+                    onChange={handleUtilityBillSelect}
+                    disabled={kycLocked || uploadingId}
+                  />
+
+                  <div className="grid gap-2">
+                    <Label className="dark:text-gray-300">Utility Bill or Business Signage Image</Label>
+                    <div
+                      onClick={() => !kycLocked && !uploadingId && utilityBillInputRef.current?.click()}
+                      className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+                        kycLocked ? "cursor-not-allowed opacity-50 bg-gray-100 dark:bg-gray-800/20" : ""
+                      } ${
+                        utilityBillPreview
+                          ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/10"
+                          : "border-gray-200 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800/50 cursor-pointer"
+                      }`}
+                    >
+                      {utilityBillPreview ? (
+                        <div className="relative">
+                          <img
+                            src={utilityBillPreview}
+                            alt="Utility Bill Preview"
+                            className="max-h-48 mx-auto rounded shadow-sm"
+                          />
+                          {!kycLocked && (
+                            <Button
+                              size="sm"
+                              type="button"
+                              variant="secondary"
+                              className="absolute top-2 right-2 opacity-80 hover:opacity-100"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setUtilityBillPreview(null);
+                                if (utilityBillInputRef.current) utilityBillInputRef.current.value = "";
+                              }}
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
+                      ) : profile.utility_bill_url ? (
+                        <div className="relative">
+                          <img
+                            src={profile.utility_bill_url}
+                            alt="Submitted Utility Bill"
+                            className="max-h-48 mx-auto rounded shadow-sm"
+                          />
+                          {!kycLocked && (
+                            <div className="mt-2 text-xs text-gray-500">
+                              Click to upload a new Utility Bill or Business Signage image
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center gap-2">
+                          <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center dark:bg-gray-800">
+                            <Upload className="w-5 h-5 text-gray-400" />
+                          </div>
+                          <div className="text-sm text-gray-600 dark:text-gray-400">
+                            <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                              Click to upload Utility Bill or Business Signage
+                            </span>{" "}
+                            or drag and drop
+                            <p className="text-xs text-gray-400 mt-1">
+                              Showing User's Name and address (Max 5MB)
+                            </p>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  )}
+                  </div>
+
+                  <div className="space-y-2 mt-4">
+                    <Button
+                      onClick={handleKycSubmit}
+                      disabled={kycLocked || uploadingId}
+                      className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
+                    >
+                      {uploadingId ? "Submitting..." : "Submit KYC Details"}
+                    </Button>
+                    {profile.gov_id_status !== "not_uploaded" && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={() => {
+                          setIsEditingKyc(false);
+                          setPreviewUrl(null);
+                          setUtilityBillPreview(null);
+                        }}
+                        className="w-full"
+                      >
+                        Cancel Editing
+                      </Button>
+                    )}
+                  </div>
                 </div>
               )}
             </CardContent>

@@ -34,6 +34,7 @@ import {
   TableRow,
 } from "@/app/components/ui/table";
 import { useAuth } from "@/app/context/AuthContext";
+import { KYCModal } from "@/app/components/ui/KYCModal";
 import { notificationDispatcher } from "@/lib/notificationDispatcher";
 import { supabase } from "@/lib/supabase";
 import { calculateBalance } from "@/lib/walletUtils";
@@ -57,6 +58,30 @@ export function Loans() {
   const [maxDurationMonths, setMaxDurationMonths] = useState(1);
   const [pastLoanCount, setPastLoanCount] = useState(0);
   const [open, setOpen] = useState(false);
+  const [kycModalOpen, setKycModalOpen] = useState(false);
+  const [kycModalMode, setKycModalMode] = useState<"full" | "confirm">("full");
+
+  const handleRequestLoanClick = () => {
+    if (!hasActivePlan) {
+      toast.error("You must have an active investment/saving plan to request a loan.");
+      return;
+    }
+    if (profile?.gov_id_status !== "verified") {
+      setKycModalMode("full");
+      setKycModalOpen(true);
+      toast.info("Please submit your KYC details to request a loan.");
+    } else {
+      setKycModalMode("confirm");
+      setKycModalOpen(true);
+    }
+  };
+
+  const handleKycSuccess = () => {
+    fetchEligibilityData();
+    if (kycModalMode === "confirm") {
+      setOpen(true);
+    }
+  };
 
   // Repayment State
   const [repayOpen, setRepayOpen] = useState(false);
@@ -542,44 +567,33 @@ export function Loans() {
           </p>
         </div>
 
+        <Button
+          className="bg-emerald-600 hover:bg-emerald-700 dark:text-white"
+          onClick={handleRequestLoanClick}
+        >
+          {loans.some((l) => l.status === "active" || l.status === "pending")
+            ? "Request Another Loan"
+            : "Request Loan"}
+        </Button>
+
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            {isEligible ? (
-              <Button className="bg-emerald-600 hover:bg-emerald-700 dark:text-white">
-                {loans.some((l) => l.status === "active" || l.status === "pending")
-                  ? "Request Another Loan"
-                  : "Request Loan"}
-              </Button>
-            ) : (
-              <Button
-                variant="destructive"
-                className="bg-red-500 hover:bg-red-600 text-white cursor-not-allowed opacity-90"
-              >
-                NOT ELIGIBLE
-              </Button>
-            )}
-          </DialogTrigger>
           <DialogContent className="dark:bg-gray-900 dark:border-gray-800 sm:max-w-[425px]">
             <DialogHeader>
               <DialogTitle className="dark:text-white">Request a Loan</DialogTitle>
               <DialogDescription className="dark:text-gray-400">
-                {isEligible
-                  ? `You qualify for up to ₦${formatCurrency(maxLoanAmount)} (${accountAgeMonths >= 12 ? "70%" : "50%"} of balance).`
-                  : "All the following criteria MUST BE MET to access loans."}
+                You qualify for up to ₦{formatCurrency(maxLoanAmount)} ({accountAgeMonths >= 12 ? "70%" : "50%"} of balance).
               </DialogDescription>
             </DialogHeader>
 
-            {!isEligible ? eligibilityChecklist : loanForm}
+            {loanForm}
 
             <DialogFooter>
-              {isEligible && (
-                <Button
-                  onClick={handleRequestLoan}
-                  className="dark:bg-emerald-600 dark:text-white dark:hover:bg-emerald-700"
-                >
-                  Submit Application
-                </Button>
-              )}
+              <Button
+                onClick={handleRequestLoan}
+                className="dark:bg-emerald-600 dark:text-white dark:hover:bg-emerald-700"
+              >
+                Submit Application
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -811,6 +825,13 @@ export function Loans() {
           </TableBody>
         </Table>
       </div>
+
+      <KYCModal
+        isOpen={kycModalOpen}
+        onOpenChange={setKycModalOpen}
+        onSuccess={handleKycSuccess}
+        mode={kycModalMode}
+      />
     </div>
   );
 }

@@ -245,7 +245,7 @@ const SidebarContent = ({
   <div className="flex flex-col h-full bg-[#0a0f1c] text-slate-300 font-sans">
     <div className="h-20 flex items-center px-6 mb-4">
       {logoUrl ? (
-        <BrandLogo src={logoUrl} alt="Logo" size="sm" />
+        <BrandLogo src={logoUrl} alt="Logo" size="sm" transparent={true} />
       ) : (
         <div className="flex items-center gap-3">
           <div className="size-9 rounded-xl bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/20">

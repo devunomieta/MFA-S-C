@@ -40,8 +40,12 @@ const contactInfo = [
   },
 ];
 
-export function Contact() {
-  const [showRecommender, setShowRecommender] = useState(false);
+export interface ContactProps {
+  onExplorePlans?: (tab?: "quiz" | "compare") => void;
+}
+
+export function Contact({ onExplorePlans }: ContactProps) {
+  const [showRecommenderLocal, setShowRecommenderLocal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [formData, setFormData] = useState({
@@ -186,7 +190,9 @@ export function Contact() {
           </motion.div>
 
           {/* Recommender Tool */}
-          <PlanRecommender open={showRecommender} onOpenChange={setShowRecommender} />
+          {onExplorePlans ? null : (
+            <PlanRecommender open={showRecommenderLocal} onOpenChange={setShowRecommenderLocal} />
+          )}
 
           {/* Right Side: Form */}
           <motion.div
@@ -333,7 +339,7 @@ export function Contact() {
                   Chat on WhatsApp
                 </Button>
                 <Button
-                  onClick={() => setShowRecommender(true)}
+                  onClick={() => onExplorePlans ? onExplorePlans("quiz") : setShowRecommenderLocal(true)}
                   className="bg-emerald-950/30 hover:bg-emerald-950/50 text-white border-white/20 border font-bold rounded-2xl h-16 px-8 transition-all text-lg"
                 >
                   Explore Plans

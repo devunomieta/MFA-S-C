@@ -48,7 +48,7 @@ export function AdminApprovals() {
   async function fetchKycRequests() {
     const { data, error } = await supabase
       .from("profiles")
-      .select("id, full_name, email, gov_id_status, gov_id_url")
+      .select("id, full_name, email, gov_id_status, gov_id_url, utility_bill_url, bvn, nin, kyc_country, kyc_state, kyc_street, kyc_landmark, kyc_latitude, kyc_longitude")
       .eq("gov_id_status", "pending");
 
     if (error) console.error("Error fetching KYC:", error);
@@ -256,41 +256,111 @@ export function AdminApprovals() {
                     </div>
                   </CardHeader>
                   <CardContent className="pt-4 space-y-4">
-                    <div className="aspect-video bg-gray-100 rounded-md overflow-hidden relative group">
-                      {req.gov_id_url ? (
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <div className="cursor-pointer w-full h-full relative">
+                    <div className="grid grid-cols-2 gap-2 text-xs border bg-slate-50/50 p-3 rounded-lg border-slate-100">
+                      <div>
+                        <span className="text-[10px] text-gray-400 block font-bold uppercase">BVN</span>
+                        <span className="font-semibold">{req.bvn || "N/A"}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-gray-400 block font-bold uppercase">NIN</span>
+                        <span className="font-semibold">{req.nin || "N/A"}</span>
+                      </div>
+                      <div className="col-span-2">
+                        <span className="text-[10px] text-gray-400 block font-bold uppercase">Address</span>
+                        <span className="font-semibold">
+                          {req.kyc_street || "N/A"}, {req.kyc_landmark ? `(Landmark: ${req.kyc_landmark})` : ""}, {req.kyc_state || "N/A"}, {req.kyc_country || "N/A"}
+                        </span>
+                      </div>
+                      <div className="col-span-2">
+                        <span className="text-[10px] text-gray-400 block font-bold uppercase">Location Coordinates</span>
+                        {req.kyc_latitude !== null && req.kyc_longitude !== null ? (
+                          <a
+                            href={`https://www.google.com/maps?q=${req.kyc_latitude},${req.kyc_longitude}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-emerald-600 hover:underline font-bold"
+                          >
+                            📍 {Number(req.kyc_latitude).toFixed(4)}, {Number(req.kyc_longitude).toFixed(4)} (Open Map)
+                          </a>
+                        ) : (
+                          <span className="text-gray-500 font-semibold">Not captured</span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 h-28">
+                      <div className="bg-gray-100 rounded-md overflow-hidden relative group h-full">
+                        {req.gov_id_url ? (
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <div className="cursor-pointer w-full h-full relative">
+                                <img
+                                  src={req.gov_id_url}
+                                  alt="ID"
+                                  className="w-full h-full object-cover"
+                                />
+                                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <Eye className="text-white w-5 h-5" />
+                                </div>
+                              </div>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-3xl">
+                              <DialogHeader>
+                                <DialogTitle>{req.full_name}'s ID Document</DialogTitle>
+                                <DialogDescription>
+                                  Review the uploaded identification document for verification
+                                  purposes.
+                                </DialogDescription>
+                              </DialogHeader>
                               <img
                                 src={req.gov_id_url}
-                                alt="ID"
-                                className="w-full h-full object-cover"
+                                alt="Full ID"
+                                className="w-full h-auto rounded"
                               />
-                              <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                <Eye className="text-white w-8 h-8" />
+                            </DialogContent>
+                          </Dialog>
+                        ) : (
+                          <div className="flex items-center justify-center h-full text-gray-400 text-[10px]">
+                            No NIN Uploaded
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="bg-gray-100 rounded-md overflow-hidden relative group h-full">
+                        {req.utility_bill_url ? (
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <div className="cursor-pointer w-full h-full relative">
+                                <img
+                                  src={req.utility_bill_url}
+                                  alt="Utility Bill"
+                                  className="w-full h-full object-cover"
+                                />
+                                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <Eye className="text-white w-5 h-5" />
+                                </div>
                               </div>
-                            </div>
-                          </DialogTrigger>
-                          <DialogContent className="max-w-3xl">
-                            <DialogHeader>
-                              <DialogTitle>{req.full_name}'s ID Document</DialogTitle>
-                              <DialogDescription>
-                                Review the uploaded identification document for verification
-                                purposes.
-                              </DialogDescription>
-                            </DialogHeader>
-                            <img
-                              src={req.gov_id_url}
-                              alt="Full ID"
-                              className="w-full h-auto rounded"
-                            />
-                          </DialogContent>
-                        </Dialog>
-                      ) : (
-                        <div className="flex items-center justify-center h-full text-gray-400 text-sm">
-                          No Image Uploaded
-                        </div>
-                      )}
+                            </DialogTrigger>
+                            <DialogContent className="max-w-3xl">
+                              <DialogHeader>
+                                <DialogTitle>{req.full_name}'s Utility Bill / Signage</DialogTitle>
+                                <DialogDescription>
+                                  Review the uploaded utility bill or business signage for verification.
+                                </DialogDescription>
+                              </DialogHeader>
+                              <img
+                                src={req.utility_bill_url}
+                                alt="Utility Bill / Signage"
+                                className="w-full h-auto rounded"
+                              />
+                            </DialogContent>
+                          </Dialog>
+                        ) : (
+                          <div className="flex items-center justify-center h-full text-gray-400 text-[10px] text-center px-1">
+                            No Utility Bill Uploaded
+                          </div>
+                        )}
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-3">

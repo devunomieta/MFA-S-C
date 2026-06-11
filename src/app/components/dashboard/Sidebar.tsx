@@ -61,7 +61,7 @@ export function Sidebar() {
       <div className="p-6">
         <Link to="/" className="block">
           {logoUrl ? (
-            <BrandLogo src={logoUrl} alt={appName} size="sm" />
+            <BrandLogo src={logoUrl} alt={appName} size="sm" transparent={true} />
           ) : (
             <span className="text-2xl font-bold text-emerald-600">{appName}</span>
           )}
