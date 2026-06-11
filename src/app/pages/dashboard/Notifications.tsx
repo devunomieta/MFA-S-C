@@ -68,6 +68,13 @@ export function Notifications() {
       setHasMore(notifsData.hasMore);
       setSettings(sets);
       setPage(1);
+
+      const hasUnread = notifsData.notifications.some((n: any) => !n.is_read);
+      if (hasUnread) {
+        await notificationService.markAllAsRead();
+        await refreshUnreadCount();
+        setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+      }
     } catch (error: any) {
       console.error("Error fetching notifications:", error);
       toast.error("Failed to load notifications");

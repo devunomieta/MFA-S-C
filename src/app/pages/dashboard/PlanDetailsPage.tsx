@@ -188,7 +188,7 @@ export function PlanDetailsPage() {
       const { error } = await supabase.from("user_plans").insert({
         user_id: user.id,
         plan_id: planId,
-        status: "pending_activation",
+        status: "pending_turn_approval",
         current_balance: 0,
         plan_metadata: {
           slots: subscriptions,
@@ -199,20 +199,19 @@ export function PlanDetailsPage() {
       });
 
       if (error) throw error;
-      toast.success("Joined Ajo Plan! Make your first cycle payment to submit for review.");
+      toast.success("Successfully joined Ajo Plan! Admin will review your profile and assign picking turns.");
 
       if (user.email && plan) {
         await notificationDispatcher.sendAlert({
           userId: user.id,
           email: user.email,
           type: "plan",
-          title: `Welcome to the ${plan.name} Plan!`,
-          message: `You have successfully joined the "${plan.name}" Ajo plan. Make your first cycle payment to activate and submit for review.`,
+          title: `Joined the ${plan.name} Ajo Circle!`,
+          message: `You have successfully joined the "${plan.name}" Ajo plan. Your proposed turns are pending admin review and assignment.`,
         });
       }
 
       fetchPlanDetails();
-      setSelectedPlanForDeposit({ id: planId });
     } catch (err: any) {
       toast.error(err.message || "Failed to join plan");
     }
@@ -312,11 +311,11 @@ export function PlanDetailsPage() {
       </div>
 
       <div
-        className={`grid grid-cols-1 ${!isJoined || ["pending_activation", "pending_turn_approval", "turn_reassigned", "appeal_pending"].includes(userPlan?.status || "") ? "lg:grid-cols-3" : ""} gap-8`}
+        className={`grid grid-cols-1 ${!isJoined || ["pending_activation", "pending_turn_approval", "turn_reassigned"].includes(userPlan?.status || "") ? "lg:grid-cols-3" : ""} gap-8`}
       >
         {/* Main Content Area */}
         <div
-          className={`${!isJoined || ["pending_activation", "pending_turn_approval", "turn_reassigned", "appeal_pending"].includes(userPlan?.status || "") ? "lg:col-span-2" : ""} space-y-8`}
+          className={`${!isJoined || ["pending_activation", "pending_turn_approval", "turn_reassigned"].includes(userPlan?.status || "") ? "lg:col-span-2" : ""} space-y-8`}
         >
           {/* Key Stats / Highlights */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -328,11 +327,13 @@ export function PlanDetailsPage() {
                 Duration
               </p>
               <p className="text-lg font-bold text-gray-900 dark:text-white">
-                {plan.duration_weeks
-                  ? `${plan.duration_weeks} Weeks`
-                  : plan.duration_months
-                    ? `${plan.duration_months} Months`
-                    : "Flexible"}
+                {userPlan?.plan_metadata?.selected_duration
+                  ? `${userPlan.plan_metadata.selected_duration} ${plan.duration_months ? "Months" : "Weeks"}`
+                  : plan.duration_weeks
+                    ? `${plan.duration_weeks} Weeks`
+                    : plan.duration_months
+                      ? `${plan.duration_months} Months`
+                      : "Flexible"}
               </p>
             </div>
             <div className="bg-white dark:bg-gray-950 p-6 rounded-[2rem] border border-gray-100 dark:border-gray-800 shadow-sm space-y-2">
@@ -370,7 +371,6 @@ export function PlanDetailsPage() {
                 "pending_activation",
                 "pending_turn_approval",
                 "turn_reassigned",
-                "appeal_pending",
               ].includes(userPlan?.status || "") && (
                 <div className="bg-white dark:bg-gray-950 p-6 rounded-[2rem] border border-gray-100 dark:border-gray-800 shadow-sm space-y-2">
                   <div className="bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 size-10 rounded-2xl flex items-center justify-center mb-2">
@@ -405,6 +405,10 @@ export function PlanDetailsPage() {
                         );
                         total = plan.duration_weeks || 10;
                         unit = "Weeks";
+                      } else if (plan.type === "marathon") {
+                        current = meta.total_weeks_paid || 0;
+                        total = meta.selected_duration || 48;
+                        unit = "Weeks";
                       } else {
                         current = meta.weeks_completed || 0;
                         total = plan.duration_weeks || 0;
@@ -434,7 +438,6 @@ export function PlanDetailsPage() {
               "pending_activation",
               "pending_turn_approval",
               "turn_reassigned",
-              "appeal_pending",
             ].includes(userPlan?.status || "") ? (
               <div className="space-y-8 animate-in fade-in zoom-in-95 duration-500">
                 {plan.type === "ajo_circle" ? (
@@ -667,7 +670,6 @@ export function PlanDetailsPage() {
             "pending_activation",
             "pending_turn_approval",
             "turn_reassigned",
-            "appeal_pending",
           ].includes(userPlan?.status || "")) && (
           <div className="space-y-8">
             <div className="bg-[#0f172a] text-white p-8 rounded-[2.5rem] shadow-xl space-y-6 relative overflow-hidden group">

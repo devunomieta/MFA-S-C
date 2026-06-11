@@ -38,17 +38,11 @@ export function MarathonPlanCard({
     return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
   };
 
-  const currentWeekOfYear = getWeekNumber(new Date());
-  const startDateStr = userPlan?.start_date || metadata.start_date || userPlan?.created_at;
-  const startDate = startDateStr ? new Date(startDateStr) : new Date();
-  const joinWeek = getWeekNumber(startDate);
   const selectedDuration = metadata.selected_duration || 48;
-  const targetWeeks = Math.max(1, Math.min(selectedDuration, 50 - joinWeek));
-  const maturityWeek = joinWeek + targetWeeks;
-
-  const weeksSaved = Math.min(targetWeeks, Math.max(0, currentWeekOfYear - joinWeek));
-  const weeksRemaining = Math.max(0, maturityWeek - currentWeekOfYear);
-  const isFinished = weeksRemaining === 0 || currentWeekOfYear >= 50;
+  const targetWeeks = selectedDuration;
+  const weeksSaved = metadata.total_weeks_paid || 0;
+  const weeksRemaining = Math.max(0, targetWeeks - weeksSaved);
+  const isFinished = weeksRemaining === 0;
   const progress = targetWeeks > 0 ? Math.min((weeksSaved / targetWeeks) * 100, 100) : 0;
 
   const estMaturity = (() => {
@@ -339,7 +333,7 @@ export function MarathonPlanCard({
               </li>
               <li className="flex items-center gap-2 text-xs text-emerald-700 dark:text-emerald-400">
                 <div className="w-1 h-1 rounded-full bg-emerald-500" />
-                Service charges auto-deducted per deposit
+                Service charges auto deducted per week
               </li>
             </ul>
 

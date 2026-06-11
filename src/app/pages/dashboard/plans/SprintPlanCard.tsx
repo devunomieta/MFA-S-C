@@ -245,6 +245,10 @@ export function SprintPlanCard({
                 <div className="w-1 h-1 rounded-full bg-blue-500" />
                 Withdrawal only after full completion of 30 weeks
               </li>
+              <li className="flex items-center gap-2 text-xs text-blue-700 dark:text-blue-400">
+                <div className="w-1 h-1 rounded-full bg-blue-500" />
+                Service charges auto deducted per week
+              </li>
             </ul>
 
             <div className="rounded border border-blue-100 dark:border-blue-800 overflow-hidden">

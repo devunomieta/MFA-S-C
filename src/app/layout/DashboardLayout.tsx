@@ -22,6 +22,8 @@ import { SecurityOnboarding } from "@/app/components/auth/SecurityOnboarding";
 import { NotificationBell } from "@/app/components/dashboard/NotificationBell";
 import { Sidebar } from "@/app/components/dashboard/Sidebar";
 import { SurveyPopup } from "@/app/components/SurveyPopup";
+import { PWAInstallBanner } from "@/app/components/dashboard/PWAInstallBanner";
+import { NotificationBanner } from "@/app/components/dashboard/NotificationBanner";
 import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
 import {
@@ -314,6 +316,9 @@ export function DashboardLayout() {
             <AccountSwitcher open={showSwitcher} onOpenChange={setShowSwitcher} />
           </div>
         </header>
+
+        <PWAInstallBanner />
+        <NotificationBanner />
 
         <main className="flex-1 p-4 md:p-8 overflow-y-auto dark:bg-gray-900">
           <Outlet />

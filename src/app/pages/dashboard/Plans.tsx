@@ -241,15 +241,13 @@ export function Plans() {
         p.status === "pending_activation" ||
         p.status === "completed" ||
         p.status === "pending_turn_approval" ||
-        p.status === "turn_reassigned" ||
-        p.status === "appeal_pending",
+        p.status === "turn_reassigned",
     )
     .sort((a, b) => {
       // Prioritize Active > Pending > Matured (Descending Weight)
       const statusWeight = {
-        active: 6,
-        turn_reassigned: 5,
-        appeal_pending: 4,
+        active: 5,
+        turn_reassigned: 4,
         pending_turn_approval: 3,
         pending_activation: 2,
         matured: 1,

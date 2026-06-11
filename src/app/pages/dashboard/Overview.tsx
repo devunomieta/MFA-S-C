@@ -7,8 +7,6 @@ import {
   PiggyBank,
   CreditCard,
   ArrowRightLeft,
-  AlertCircle,
-  ChevronRight,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -33,7 +31,6 @@ export function Overview() {
   // Lists
   const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
   const [userPlans, setUserPlans] = useState<any[]>([]);
-  const [notifications, setNotifications] = useState<any[]>([]);
   const [profile, setProfile] = useState<any>(null);
 
   async function fetchDashboardData() {
@@ -86,15 +83,7 @@ export function Overview() {
         setOutstandingLoans(oLoans);
       }
 
-      // 4. Fetch Notifications
-      const { data: notifs } = await supabase
-        .from("notifications")
-        .select("*")
-        .eq("user_id", user?.id)
-        .eq("is_read", false)
-        .order("created_at", { ascending: false })
-        .limit(5);
-      if (notifs) setNotifications(notifs);
+
 
       // 5. Fetch Profile
       const { data: prof } = await supabase
@@ -118,17 +107,7 @@ export function Overview() {
     }
   }, [user?.id]);
 
-  async function handleDismissNotification(id: string) {
-    try {
-      const { error } = await supabase.from("notifications").update({ is_read: true }).eq("id", id);
 
-      if (!error) {
-        setNotifications((prev) => prev.filter((n) => n.id !== id));
-      }
-    } catch (error) {
-      console.error("Error dismissing notification:", error);
-    }
-  }
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -168,89 +147,6 @@ export function Overview() {
 
   return (
     <div className="space-y-6">
-      {/* Urgent Notifications Banner - Stacked & Dismissible */}
-      {notifications.length > 0 && (
-        <div className="relative group/notif space-y-2">
-          {/* Visual Stacking Effect (shows only if more than 1) */}
-          {notifications.length > 1 && (
-            <div className="absolute -bottom-1 left-4 right-4 h-4 bg-amber-200/40 rounded-b-xl z-[1] blur-sm translate-y-1 animate-in fade-in" />
-          )}
-          {notifications.length > 2 && (
-            <div className="absolute -bottom-2 left-8 right-8 h-4 bg-amber-200/20 rounded-b-xl z-[0] blur-sm translate-y-2 animate-in fade-in" />
-          )}
-
-          <div className="space-y-2 relative z-[2]">
-            {notifications.map((n, idx) => (
-              <div
-                key={n.id}
-                className={`bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3 shadow-xl shadow-amber-500/5 
-                                    animate-in fade-in slide-in-from-top-4 duration-500 delay-[${idx * 100}ms]
-                                    group/item hover:bg-white transition-all
-                                `}
-              >
-                <div className="p-2 bg-amber-100/50 rounded-xl text-amber-600">
-                  {n.type === "loan" ? (
-                    <CreditCard className="size-5" />
-                  ) : (
-                    <AlertCircle className="size-5" />
-                  )}
-                </div>
-                <div className="flex-1 space-y-0.5">
-                  <p className="text-sm font-black text-amber-950 tracking-tight leading-none mb-1">
-                    {n.title}
-                  </p>
-                  <p className="text-xs text-amber-700 font-medium leading-relaxed max-w-prose">
-                    {n.message}
-                  </p>
-                </div>
-                <div className="flex flex-col items-end gap-2 self-center">
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-amber-800 hover:bg-amber-100 h-8 font-black text-[10px] uppercase tracking-wider rounded-xl border border-amber-200"
-                      asChild
-                    >
-                      <Link
-                        to={
-                          n.type === "loan"
-                            ? "/dashboard/loans"
-                            : n.type === "plan"
-                              ? "/dashboard/plans"
-                              : n.link || "/dashboard/notifications"
-                        }
-                      >
-                        Fix Now <ChevronRight className="ml-1 size-3" />
-                      </Link>
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleDismissNotification(n.id)}
-                      className="h-8 w-8 rounded-xl text-amber-400 hover:text-amber-600 hover:bg-amber-100 transition-colors"
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="3"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="M18 6 6 18" />
-                        <path d="m6 6 12 12" />
-                      </svg>
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>

@@ -21,7 +21,7 @@ export default defineConfig({
         description: "Secure Thrift & Loan Management",
         theme_color: "#ffffff",
         launch_handler: {
-          client_mode: "navigate-existing",
+          client_mode: "focus-existing",
         },
         icons: [
           {

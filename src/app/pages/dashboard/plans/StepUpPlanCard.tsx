@@ -364,7 +364,7 @@ export function StepUpPlanCard({
               </li>
               <li className="flex items-center gap-2 text-xs text-purple-700 dark:text-purple-400">
                 <div className="w-1 h-1 rounded-full bg-purple-500" />
-                Weekly service charge auto-deducted
+                Service charges auto deducted per week
               </li>
             </ul>
 

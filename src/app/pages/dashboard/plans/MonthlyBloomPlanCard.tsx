@@ -390,7 +390,7 @@ export function MonthlyBloomPlanCard({
                 </li>
                 <li className="flex items-center gap-2 text-xs text-pink-700 dark:text-pink-400">
                   <div className="w-1 h-1 rounded-full bg-pink-500" />
-                  Charges are auto-deducted monthly
+                  Service charges auto deducted per month
                 </li>
                 <li className="flex items-center gap-2 text-xs text-pink-700 dark:text-pink-400">
                   <div className="w-1 h-1 rounded-full bg-pink-500" />
