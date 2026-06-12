@@ -32,6 +32,7 @@ export function SecurityOnboarding({ onComplete }: SecurityOnboardingProps) {
   const [step, setStep] = useState<"intro" | "phone" | "password" | "success">("intro");
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(true);
+  const [requiresPassword, setRequiresPassword] = useState(false);
 
   // Form states
   const [phone, setPhone] = useState("");
@@ -44,6 +45,10 @@ export function SecurityOnboarding({ onComplete }: SecurityOnboardingProps) {
   const isGoogleUser =
     user?.app_metadata?.provider === "google" ||
     (user?.app_metadata?.providers as string[] | undefined)?.includes("google");
+
+  const hasEmailProvider = 
+    user?.app_metadata?.provider === "email" ||
+    (user?.app_metadata?.providers as string[] | undefined)?.includes("email");
 
   const completeOnboarding = async () => {
     try {
@@ -88,7 +93,9 @@ export function SecurityOnboarding({ onComplete }: SecurityOnboardingProps) {
           .maybeSingle();
 
         const hasPhone = !!profile?.phone && profile.phone.trim().length > 3;
-        const needsPassword = isGoogleUser && !profile?.has_password && !user?.user_metadata?.has_password;
+        const needsPassword = isGoogleUser && !hasEmailProvider && !profile?.has_password && !user?.user_metadata?.has_password;
+        
+        setRequiresPassword(needsPassword);
 
         if (profile?.onboarding_completed) {
           onComplete();
@@ -136,7 +143,7 @@ export function SecurityOnboarding({ onComplete }: SecurityOnboardingProps) {
 
       toast.success("Phone number saved!");
 
-      if (isGoogleUser) {
+      if (requiresPassword) {
         setStep("password");
       } else {
         await completeOnboarding();

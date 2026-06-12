@@ -105,8 +105,12 @@ export function DashboardLayout() {
           user.app_metadata?.provider === "google" ||
           (user.app_metadata?.providers as string[] | undefined)?.includes("google");
 
+        const hasEmailProvider = 
+          user.app_metadata?.provider === "email" ||
+          (user.app_metadata?.providers as string[] | undefined)?.includes("email");
+
         const hasPhone = !!profile?.phone && profile.phone.trim().length > 3;
-        const needsPassword = isGoogleUser && !profile?.has_password && !user?.user_metadata?.has_password;
+        const needsPassword = isGoogleUser && !hasEmailProvider && !profile?.has_password && !user?.user_metadata?.has_password;
 
         if (!profile?.onboarding_completed && (!hasPhone || needsPassword)) {
           setShowOnboarding(true);
