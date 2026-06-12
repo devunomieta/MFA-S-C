@@ -12,7 +12,7 @@ interface HoneypotFieldProps {
 export const HoneypotField: React.FC<HoneypotFieldProps> = ({
   value,
   onChange,
-  name = "website",
+  name = "honeypot",
 }) => {
   return (
     <div

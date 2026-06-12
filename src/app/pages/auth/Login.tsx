@@ -20,7 +20,7 @@ export function Login() {
   const [searchParams] = useSearchParams();
   const joinPlanId = searchParams.get("join");
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({ email: "", password: "", website: "" });
+  const [formData, setFormData] = useState({ email: "", password: "", honeypot: "" });
   const [securityData, setSecurityData] = useState<{ timestamp: string; signature: string } | null>(
     null,
   );
@@ -38,7 +38,7 @@ export function Login() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (formData.website) {
+    if (formData.honeypot) {
       console.warn("Honeypot triggered");
       toast.success("Welcome back!");
       navigate("/dashboard");
@@ -52,7 +52,7 @@ export function Login() {
       const isVerified = await verifyHoneypot(
         securityData?.timestamp,
         securityData?.signature,
-        formData.website,
+        formData.honeypot,
       );
 
       if (!isVerified) {
@@ -241,7 +241,7 @@ export function Login() {
               </div>
 
               {/* Honeypot field */}
-              <HoneypotField value={formData.website} onChange={handleChange} />
+              <HoneypotField name="honeypot" value={formData.honeypot} onChange={handleChange} />
             </div>
 
             <div className="flex items-center ml-1">

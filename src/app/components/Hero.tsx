@@ -38,10 +38,10 @@ export function Hero({ onExplorePlans }: HeroProps) {
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="inline-flex items-center gap-2 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 px-4 py-1.5 rounded-full shadow-sm max-w-full"
+            className="inline-flex items-center justify-center gap-1.5 sm:gap-2 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 px-3 sm:px-4 py-1.5 rounded-full shadow-sm max-w-[90vw] mx-auto"
           >
-            <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
-            <span className="text-[9px] min-[360px]:text-[10px] md:text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide whitespace-nowrap">
+            <CheckCircle2 className="size-3.5 sm:size-4 text-emerald-600 shrink-0" />
+            <span className="text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide truncate">
               Join 2,000+ Disciplined Savers today
             </span>
           </motion.div>

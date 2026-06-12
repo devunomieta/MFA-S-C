@@ -26,7 +26,7 @@ export function Signup() {
     email: "",
     password: "",
     confirmPassword: "",
-    website: "", // Honeypot
+    honeypot: "", // Honeypot
   });
   const [securityData, setSecurityData] = useState<{ timestamp: string; signature: string } | null>(
     null,
@@ -46,7 +46,7 @@ export function Signup() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (formData.website) {
+    if (formData.honeypot) {
       console.warn("Honeypot triggered");
       toast.success("Welcome to the community!");
       navigate("/");
@@ -68,7 +68,7 @@ export function Signup() {
       const isVerified = await verifyHoneypot(
         securityData?.timestamp,
         securityData?.signature,
-        formData.website,
+        formData.honeypot,
       );
 
       if (!isVerified) {
@@ -231,7 +231,7 @@ export function Signup() {
               </div>
 
               {/* Honeypot field */}
-              <HoneypotField value={formData.website} onChange={handleChange} />
+              <HoneypotField name="honeypot" value={formData.honeypot} onChange={handleChange} />
             </div>
 
             <div className="space-y-6">

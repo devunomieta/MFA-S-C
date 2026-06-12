@@ -21,7 +21,7 @@ export function UpdatePassword() {
   const [formData, setFormData] = useState({
     password: "",
     confirmPassword: "",
-    website: "", // Honeypot
+    honeypot: "", // Honeypot
   });
   const [securityData, setSecurityData] = useState<{ timestamp: string; signature: string } | null>(
     null,
@@ -42,7 +42,7 @@ export function UpdatePassword() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (formData.website) {
+    if (formData.honeypot) {
       console.warn("Honeypot triggered");
       toast.success("Password updated successfully!");
       navigate("/login");
@@ -61,7 +61,7 @@ export function UpdatePassword() {
       const isVerified = await verifyHoneypot(
         securityData?.timestamp,
         securityData?.signature,
-        formData.website,
+        formData.honeypot,
       );
 
       if (!isVerified) {
@@ -166,7 +166,7 @@ export function UpdatePassword() {
               <PasswordStrength feedback={passFeedback} passwordLength={formData.password.length} />
 
               {/* Honeypot field */}
-              <HoneypotField value={formData.website} onChange={handleChange} />
+              <HoneypotField name="honeypot" value={formData.honeypot} onChange={handleChange} />
             </div>
 
             <Button

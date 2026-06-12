@@ -53,7 +53,7 @@ export function Contact({ onExplorePlans }: ContactProps) {
     email: "",
     subject: "",
     message: "",
-    website: "", // Honeypot
+    honeypot: "", // Honeypot
   });
   const [securityData, setSecurityData] = useState<{ timestamp: string; signature: string } | null>(
     null,
@@ -75,7 +75,7 @@ export function Contact({ onExplorePlans }: ContactProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (formData.website) {
+    if (formData.honeypot) {
       console.warn("Contact Honeypot triggered");
       setSubmitted(true);
       return;
@@ -103,9 +103,9 @@ export function Contact({ onExplorePlans }: ContactProps) {
             email: formData.email,
             subject: formData.subject,
             message: formData.message,
-            honeypot: formData.website,
-            timestamp: securityData.timestamp,
-            signature: securityData.signature,
+            honeypot: formData.honeypot,
+            timestamp: securityData?.timestamp,
+            signature: securityData?.signature,
           },
         });
 
@@ -127,7 +127,7 @@ export function Contact({ onExplorePlans }: ContactProps) {
         email: "",
         subject: "",
         message: "",
-        website: "",
+        honeypot: "",
       });
     } catch (error: any) {
       console.error("Contact Form Critical Error:", error);
@@ -285,7 +285,7 @@ export function Contact({ onExplorePlans }: ContactProps) {
                       </div>
 
                       {/* Honeypot field - Hidden from users */}
-                      <HoneypotField value={formData.website} onChange={handleChange} />
+                      <HoneypotField name="honeypot" value={formData.honeypot} onChange={handleChange} />
 
                       <Button
                         type="submit"
