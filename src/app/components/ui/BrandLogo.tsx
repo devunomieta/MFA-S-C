@@ -42,7 +42,7 @@ export function BrandLogo({
       <ImageWithFallback
         src={src}
         alt={alt || "Logo"}
-        fetchpriority="high"
+        fetchPriority="high"
         className={cn(
           "w-full h-auto object-contain drop-shadow-sm transition-transform duration-500",
           className,

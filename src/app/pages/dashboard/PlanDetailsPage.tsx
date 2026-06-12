@@ -199,7 +199,9 @@ export function PlanDetailsPage() {
       });
 
       if (error) throw error;
-      toast.success("Successfully joined Ajo Plan! Admin will review your profile and assign picking turns.");
+      toast.success(
+        "Successfully joined Ajo Plan! Admin will review your profile and assign picking turns.",
+      );
 
       if (user.email && plan) {
         await notificationDispatcher.sendAlert({
@@ -367,11 +369,9 @@ export function PlanDetailsPage() {
               </p>
             </div>
             {isJoined &&
-              ![
-                "pending_activation",
-                "pending_turn_approval",
-                "turn_reassigned",
-              ].includes(userPlan?.status || "") && (
+              !["pending_activation", "pending_turn_approval", "turn_reassigned"].includes(
+                userPlan?.status || "",
+              ) && (
                 <div className="bg-white dark:bg-gray-950 p-6 rounded-[2rem] border border-gray-100 dark:border-gray-800 shadow-sm space-y-2">
                   <div className="bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 size-10 rounded-2xl flex items-center justify-center mb-2">
                     <Coins className="size-5" />
@@ -434,11 +434,9 @@ export function PlanDetailsPage() {
           {/* Plan Activities / Joined View */}
           <div className="space-y-8">
             {isJoined &&
-            ![
-              "pending_activation",
-              "pending_turn_approval",
-              "turn_reassigned",
-            ].includes(userPlan?.status || "") ? (
+            !["pending_activation", "pending_turn_approval", "turn_reassigned"].includes(
+              userPlan?.status || "",
+            ) ? (
               <div className="space-y-8 animate-in fade-in zoom-in-95 duration-500">
                 {plan.type === "ajo_circle" ? (
                   <AjoPlanCard
@@ -666,11 +664,9 @@ export function PlanDetailsPage() {
 
         {/* Sidebar / Info Area - Hidden for Active Plans */}
         {(!isJoined ||
-          [
-            "pending_activation",
-            "pending_turn_approval",
-            "turn_reassigned",
-          ].includes(userPlan?.status || "")) && (
+          ["pending_activation", "pending_turn_approval", "turn_reassigned"].includes(
+            userPlan?.status || "",
+          )) && (
           <div className="space-y-8">
             <div className="bg-[#0f172a] text-white p-8 rounded-[2.5rem] shadow-xl space-y-6 relative overflow-hidden group">
               <div className="absolute -top-10 -right-10 size-40 bg-emerald-500/10 rounded-full blur-3xl group-hover:bg-emerald-500/20 transition-all duration-700" />

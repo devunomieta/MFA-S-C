@@ -242,7 +242,7 @@ export function DailyDropPlanCard({
                   }
                 >
                   {userPlan.status === "pending_activation"
-                    ? "PENDING ACTIVATION"
+                    ? "Pending Activation"
                     : isFinished
                       ? "Completed"
                       : "Active"}

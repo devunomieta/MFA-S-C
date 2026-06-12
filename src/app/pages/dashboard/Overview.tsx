@@ -83,8 +83,6 @@ export function Overview() {
         setOutstandingLoans(oLoans);
       }
 
-
-
       // 5. Fetch Profile
       const { data: prof } = await supabase
         .from("profiles")
@@ -106,8 +104,6 @@ export function Overview() {
       Promise.resolve().then(() => setLoading(false));
     }
   }, [user?.id]);
-
-
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -147,7 +143,6 @@ export function Overview() {
 
   return (
     <div className="space-y-6">
-
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">

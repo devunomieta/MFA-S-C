@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { History, ArrowDownLeft, ArrowUpRight, Scale, Receipt } from "lucide-react";
 
 import { Badge } from "@/app/components/ui/badge";
+import { Button } from "@/app/components/ui/button";
 import { supabase } from "@/lib/supabase";
 
 interface PlanActivityHistoryProps {

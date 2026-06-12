@@ -1,5 +1,14 @@
 import { useState, useEffect } from "react";
-import { Loader2, Calendar, Settings, Users, CheckSquare, AlertTriangle, PiggyBank } from "lucide-react";
+
+import {
+  Loader2,
+  Calendar,
+  Settings,
+  Users,
+  CheckSquare,
+  AlertTriangle,
+  PiggyBank,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { ActionConfirmModal } from "@/app/components/ui/ActionConfirmModal";
@@ -124,9 +133,10 @@ export function AjoCircleAdminView() {
     setReviewedWithdrawableBalance(0);
 
     const meta = sub.plan_metadata || {};
-    const initialWeeks = meta.picking_turns?.length > 0 
-      ? [...meta.picking_turns] 
-      : meta.slots?.map((s: any) => s.proposed_week) || meta.proposed_turns || [];
+    const initialWeeks =
+      meta.picking_turns?.length > 0
+        ? [...meta.picking_turns]
+        : meta.slots?.map((s: any) => s.proposed_week) || meta.proposed_turns || [];
     setAssignedWeeks(initialWeeks);
 
     try {
@@ -160,10 +170,23 @@ export function AjoCircleAdminView() {
           const amt = Number(curr.amount);
           const chg = Number(curr.charge || 0);
           if (curr.plan_id === null) {
-            if (["deposit", "loan_disbursement", "payout", "maturity_payout", "credit"].includes(curr.type)) {
+            if (
+              ["deposit", "loan_disbursement", "payout", "maturity_payout", "credit"].includes(
+                curr.type,
+              )
+            ) {
               return acc + amt - chg;
             }
-            if (["withdrawal", "loan_repayment", "fee", "service_charge", "penalty", "debit"].includes(curr.type)) {
+            if (
+              [
+                "withdrawal",
+                "loan_repayment",
+                "fee",
+                "service_charge",
+                "penalty",
+                "debit",
+              ].includes(curr.type)
+            ) {
               return acc - amt - chg;
             }
             if (curr.type === "transfer" || curr.type === "internal_transfer") {
@@ -181,10 +204,23 @@ export function AjoCircleAdminView() {
           const amt = Number(curr.amount);
           const chg = Number(curr.charge || 0);
           if (curr.plan?.type === "withdrawable_wallet") {
-            if (["deposit", "loan_disbursement", "payout", "maturity_payout", "credit"].includes(curr.type)) {
+            if (
+              ["deposit", "loan_disbursement", "payout", "maturity_payout", "credit"].includes(
+                curr.type,
+              )
+            ) {
               return acc + amt - chg;
             }
-            if (["withdrawal", "loan_repayment", "fee", "service_charge", "penalty", "debit"].includes(curr.type)) {
+            if (
+              [
+                "withdrawal",
+                "loan_repayment",
+                "fee",
+                "service_charge",
+                "penalty",
+                "debit",
+              ].includes(curr.type)
+            ) {
               return acc - amt - chg;
             }
             if (curr.type === "transfer" || curr.type === "internal_transfer") {
@@ -255,9 +291,9 @@ export function AjoCircleAdminView() {
 
         const { error } = await supabase
           .from("user_plans")
-          .update({ 
-            status: "pending_activation", 
-            plan_metadata: updatedMetadata 
+          .update({
+            status: "pending_activation",
+            plan_metadata: updatedMetadata,
           })
           .eq("id", userPlanId);
 
@@ -277,7 +313,7 @@ export function AjoCircleAdminView() {
           ...slot,
           proposed_week: targetWeeks[idx] !== undefined ? targetWeeks[idx] : slot.proposed_week,
         }));
-        
+
         const totalAmt = newSlots.reduce((acc: number, s: any) => acc + s.amount, 0);
 
         updatedMetadata = {
@@ -290,9 +326,9 @@ export function AjoCircleAdminView() {
 
         const { error } = await supabase
           .from("user_plans")
-          .update({ 
-            status: "turn_reassigned", 
-            plan_metadata: updatedMetadata 
+          .update({
+            status: "turn_reassigned",
+            plan_metadata: updatedMetadata,
           })
           .eq("id", userPlanId);
 
@@ -317,7 +353,7 @@ export function AjoCircleAdminView() {
         ...slot,
         proposed_week: assignedWeeks[idx] !== undefined ? assignedWeeks[idx] : slot.proposed_week,
       }));
-      
+
       const totalAmt = newSlots.reduce((acc: number, s: any) => acc + s.amount, 0);
 
       const updatedMetadata = {
@@ -402,7 +438,9 @@ export function AjoCircleAdminView() {
   // Stats Calculations
   const totalSubscribers = subscribers.length;
   const pendingApprovals = subscribers.filter((s) => s.status === "pending_turn_approval").length;
-  const redFlaggedCount = subscribers.filter((s) => s.profiles?.is_red_flagged || s.profiles?.is_frozen).length;
+  const redFlaggedCount = subscribers.filter(
+    (s) => s.profiles?.is_red_flagged || s.profiles?.is_frozen,
+  ).length;
   const totalPoolBalance = subscribers.reduce((sum, s) => sum + (s.current_balance || 0), 0);
 
   return (
@@ -411,7 +449,9 @@ export function AjoCircleAdminView() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-[#0f172a] text-white p-6 md:p-8 rounded-[2.5rem] shadow-xl border border-gray-800 gap-6 relative overflow-hidden group">
         <div className="absolute -top-10 -right-10 size-40 bg-emerald-500/10 rounded-full blur-3xl group-hover:bg-emerald-500/20 transition-all duration-700" />
         <div>
-          <h2 className="text-2xl font-black text-emerald-400 tracking-tight">Digital Ajo Plan Dashboard</h2>
+          <h2 className="text-2xl font-black text-emerald-400 tracking-tight">
+            Digital Ajo Plan Dashboard
+          </h2>
           <p className="text-gray-400 text-xs font-semibold mt-1">
             Manage subscriber picking turns, configure weekly durations, and perform payouts.
           </p>
@@ -419,20 +459,27 @@ export function AjoCircleAdminView() {
         <div className="flex gap-3 shrink-0">
           <Dialog>
             <DialogTrigger asChild>
-              <Button variant="outline" className="border-gray-700 hover:bg-gray-800 text-white font-bold rounded-2xl">
+              <Button
+                variant="outline"
+                className="border-gray-700 hover:bg-gray-800 text-white font-bold rounded-2xl"
+              >
                 <Settings className="w-4 h-4 mr-2 text-emerald-400" /> Ajo Settings
               </Button>
             </DialogTrigger>
             <DialogContent className="rounded-3xl bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800">
               <DialogHeader>
-                <DialogTitle className="text-xl font-bold tracking-tight">Configure Ajo Season</DialogTitle>
+                <DialogTitle className="text-xl font-bold tracking-tight">
+                  Configure Ajo Season
+                </DialogTitle>
                 <DialogDescription className="text-sm text-gray-500">
                   Set the duration and start date for the next plan cycle.
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-wider text-gray-400">Duration (Weeks)</label>
+                  <label className="text-xs font-bold uppercase tracking-wider text-gray-400">
+                    Duration (Weeks)
+                  </label>
                   <Input
                     type="number"
                     value={newDuration}
@@ -441,7 +488,9 @@ export function AjoCircleAdminView() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-wider text-gray-400">Start Date</label>
+                  <label className="text-xs font-bold uppercase tracking-wider text-gray-400">
+                    Start Date
+                  </label>
                   <Input
                     type="date"
                     value={newStartDate}
@@ -449,14 +498,23 @@ export function AjoCircleAdminView() {
                     onChange={(e) => setNewStartDate(e.target.value)}
                   />
                 </div>
-                <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl h-11" onClick={updateSeasonConfig} disabled={processing}>
+                <Button
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl h-11"
+                  onClick={updateSeasonConfig}
+                  disabled={processing}
+                >
                   {processing ? "Updating..." : "Update Season"}
                 </Button>
               </div>
             </DialogContent>
           </Dialog>
 
-          <Button variant="destructive" className="font-bold rounded-2xl" onClick={triggerWeeklySettlement} disabled={processing}>
+          <Button
+            variant="destructive"
+            className="font-bold rounded-2xl"
+            onClick={triggerWeeklySettlement}
+            disabled={processing}
+          >
             <Calendar className="w-4 h-4 mr-2" /> Settle Week
           </Button>
         </div>
@@ -479,39 +537,57 @@ export function AjoCircleAdminView() {
           <div className="absolute top-4 right-4 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 size-10 rounded-2xl flex items-center justify-center">
             <Users className="size-5" />
           </div>
-          <p className="text-[10px] font-black uppercase text-gray-400 tracking-wider">Subscribers</p>
-          <p className="text-3xl font-black text-gray-900 dark:text-white tracking-tight">{totalSubscribers}</p>
+          <p className="text-[10px] font-black uppercase text-gray-400 tracking-wider">
+            Subscribers
+          </p>
+          <p className="text-3xl font-black text-gray-900 dark:text-white tracking-tight">
+            {totalSubscribers}
+          </p>
         </div>
 
         <div className="bg-white dark:bg-gray-950 p-6 rounded-[2rem] border border-gray-100 dark:border-gray-800 shadow-sm space-y-2 relative overflow-hidden group">
           <div className="absolute top-4 right-4 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 size-10 rounded-2xl flex items-center justify-center">
             <CheckSquare className="size-5" />
           </div>
-          <p className="text-[10px] font-black uppercase text-gray-400 tracking-wider">Pending Approvals</p>
-          <p className="text-3xl font-black text-gray-900 dark:text-white tracking-tight">{pendingApprovals}</p>
+          <p className="text-[10px] font-black uppercase text-gray-400 tracking-wider">
+            Pending Approvals
+          </p>
+          <p className="text-3xl font-black text-gray-900 dark:text-white tracking-tight">
+            {pendingApprovals}
+          </p>
         </div>
 
         <div className="bg-white dark:bg-gray-950 p-6 rounded-[2rem] border border-gray-100 dark:border-gray-800 shadow-sm space-y-2 relative overflow-hidden group">
           <div className="absolute top-4 right-4 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 size-10 rounded-2xl flex items-center justify-center">
             <AlertTriangle className="size-5 animate-pulse" />
           </div>
-          <p className="text-[10px] font-black uppercase text-gray-400 tracking-wider">Flagged / Frozen</p>
-          <p className="text-3xl font-black text-gray-900 dark:text-white tracking-tight">{redFlaggedCount}</p>
+          <p className="text-[10px] font-black uppercase text-gray-400 tracking-wider">
+            Flagged / Frozen
+          </p>
+          <p className="text-3xl font-black text-gray-900 dark:text-white tracking-tight">
+            {redFlaggedCount}
+          </p>
         </div>
 
         <div className="bg-white dark:bg-gray-950 p-6 rounded-[2rem] border border-gray-100 dark:border-gray-800 shadow-sm space-y-2 relative overflow-hidden group">
           <div className="absolute top-4 right-4 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 size-10 rounded-2xl flex items-center justify-center">
             <PiggyBank className="size-5" />
           </div>
-          <p className="text-[10px] font-black uppercase text-gray-400 tracking-wider">Total Pool Value</p>
-          <p className="text-2xl font-black text-gray-900 dark:text-white tracking-tight font-mono">{formatCurrency(totalPoolBalance)}</p>
+          <p className="text-[10px] font-black uppercase text-gray-400 tracking-wider">
+            Total Pool Value
+          </p>
+          <p className="text-2xl font-black text-gray-900 dark:text-white tracking-tight font-mono">
+            {formatCurrency(totalPoolBalance)}
+          </p>
         </div>
       </div>
 
       {/* Main Subscribers Card */}
       <Card className="rounded-[2.5rem] border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden bg-white dark:bg-gray-950">
         <CardHeader className="pb-4 border-b border-gray-100 dark:border-gray-900">
-          <CardTitle className="text-lg font-black text-gray-900 dark:text-white tracking-tight">Active Season Subscribers</CardTitle>
+          <CardTitle className="text-lg font-black text-gray-900 dark:text-white tracking-tight">
+            Active Season Subscribers
+          </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           {loading ? (
@@ -525,12 +601,24 @@ export function AjoCircleAdminView() {
               <Table>
                 <TableHeader className="bg-gray-50 dark:bg-gray-900/50">
                   <TableRow className="border-b border-gray-100 dark:border-gray-900">
-                    <TableHead className="font-bold text-gray-500 uppercase tracking-wider text-[10px] px-6 py-4">User</TableHead>
-                    <TableHead className="font-bold text-gray-500 uppercase tracking-wider text-[10px] px-6 py-4">Contribution</TableHead>
-                    <TableHead className="font-bold text-gray-500 uppercase tracking-wider text-[10px] px-6 py-4">Cycle Week</TableHead>
-                    <TableHead className="font-bold text-gray-500 uppercase tracking-wider text-[10px] px-6 py-4">Assigned Week(s)</TableHead>
-                    <TableHead className="font-bold text-gray-500 uppercase tracking-wider text-[10px] px-6 py-4">Status</TableHead>
-                    <TableHead className="font-bold text-gray-500 uppercase tracking-wider text-[10px] px-6 py-4 text-right">Actions</TableHead>
+                    <TableHead className="font-bold text-gray-500 uppercase tracking-wider text-[10px] px-6 py-4">
+                      User
+                    </TableHead>
+                    <TableHead className="font-bold text-gray-500 uppercase tracking-wider text-[10px] px-6 py-4">
+                      Contribution
+                    </TableHead>
+                    <TableHead className="font-bold text-gray-500 uppercase tracking-wider text-[10px] px-6 py-4">
+                      Cycle Week
+                    </TableHead>
+                    <TableHead className="font-bold text-gray-500 uppercase tracking-wider text-[10px] px-6 py-4">
+                      Assigned Week(s)
+                    </TableHead>
+                    <TableHead className="font-bold text-gray-500 uppercase tracking-wider text-[10px] px-6 py-4">
+                      Status
+                    </TableHead>
+                    <TableHead className="font-bold text-gray-500 uppercase tracking-wider text-[10px] px-6 py-4 text-right">
+                      Actions
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody className="divide-y divide-gray-100 dark:divide-gray-900">
@@ -547,26 +635,35 @@ export function AjoCircleAdminView() {
                       .slice(0, 2);
 
                     return (
-                      <TableRow key={sub.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-900/30 transition-colors border-b border-gray-100 dark:border-gray-900">
+                      <TableRow
+                        key={sub.id}
+                        className="hover:bg-gray-50/50 dark:hover:bg-gray-900/30 transition-colors border-b border-gray-100 dark:border-gray-900"
+                      >
                         <TableCell className="px-6 py-4">
                           <div className="flex items-center gap-3">
                             <div className="size-9 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-black flex items-center justify-center text-xs shrink-0 select-none">
                               {initials}
                             </div>
                             <div>
-                              <div 
-                                className="font-bold cursor-pointer text-gray-900 dark:text-white hover:text-emerald-600 dark:hover:text-emerald-400 flex items-center gap-1.5" 
+                              <div
+                                className="font-bold cursor-pointer text-gray-900 dark:text-white hover:text-emerald-600 dark:hover:text-emerald-400 flex items-center gap-1.5"
                                 onClick={() => openReviewModal(sub)}
                               >
                                 {sub.profiles?.full_name || "Unknown User"}
                                 {sub.profiles?.is_red_flagged && (
-                                  <Badge className="bg-red-500 text-white text-[9px] px-1.5 h-4 font-bold rounded">FLAGGED</Badge>
+                                  <Badge className="bg-red-500 text-white text-[9px] px-1.5 h-4 font-bold rounded">
+                                    FLAGGED
+                                  </Badge>
                                 )}
                                 {sub.profiles?.is_frozen && (
-                                  <Badge className="bg-slate-700 text-white text-[9px] px-1.5 h-4 font-bold rounded">FROZEN</Badge>
+                                  <Badge className="bg-slate-700 text-white text-[9px] px-1.5 h-4 font-bold rounded">
+                                    FROZEN
+                                  </Badge>
                                 )}
                               </div>
-                              <div className="text-[11px] text-gray-500 font-semibold">{sub.profiles?.email}</div>
+                              <div className="text-[11px] text-gray-500 font-semibold">
+                                {sub.profiles?.email}
+                              </div>
                             </div>
                           </div>
                         </TableCell>
@@ -578,7 +675,8 @@ export function AjoCircleAdminView() {
                         </TableCell>
                         <TableCell className="px-6 py-4">
                           <div className="flex flex-wrap gap-1.5">
-                            {sub.status === "pending_turn_approval" && meta.proposed_turns?.length > 0 ? (
+                            {sub.status === "pending_turn_approval" &&
+                            meta.proposed_turns?.length > 0 ? (
                               <div className="flex flex-col gap-1">
                                 {turns.length > 0 && (
                                   <div className="text-[10px] text-gray-400">
@@ -606,21 +704,33 @@ export function AjoCircleAdminView() {
                                 </Badge>
                               ))
                             ) : (
-                              <span className="text-gray-400 text-xs font-semibold">None Assigned</span>
+                              <span className="text-gray-400 text-xs font-semibold">
+                                None Assigned
+                              </span>
                             )}
                           </div>
                         </TableCell>
                         <TableCell className="px-6 py-4">
                           {sub.status === "pending_turn_approval" ? (
-                            <Badge className="bg-amber-500/10 text-amber-600 border border-amber-500/20 rounded-full font-bold">Pending Approval</Badge>
+                            <Badge className="bg-amber-500/10 text-amber-600 border border-amber-500/20 rounded-full font-bold">
+                              Pending Approval
+                            </Badge>
                           ) : sub.status === "pending_activation" ? (
-                            <Badge className="bg-orange-500/10 text-orange-600 border border-orange-500/20 rounded-full font-bold">Pending Activation</Badge>
+                            <Badge className="bg-orange-500/10 text-orange-600 border border-orange-500/20 rounded-full font-bold">
+                              Pending Activation
+                            </Badge>
                           ) : sub.status === "turn_reassigned" ? (
-                            <Badge className="bg-blue-500/10 text-blue-600 border border-blue-500/20 rounded-full font-bold">Reassigned</Badge>
+                            <Badge className="bg-blue-500/10 text-blue-600 border border-blue-500/20 rounded-full font-bold">
+                              Reassigned
+                            </Badge>
                           ) : weekPaid ? (
-                            <Badge className="bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 rounded-full font-bold">Paid</Badge>
+                            <Badge className="bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 rounded-full font-bold">
+                              Paid
+                            </Badge>
                           ) : (
-                            <Badge variant="destructive" className="rounded-full font-bold">Due</Badge>
+                            <Badge variant="destructive" className="rounded-full font-bold">
+                              Due
+                            </Badge>
                           )}
                           {meta.missed_weeks > 0 && (
                             <div className="text-[10px] text-red-500 mt-1 font-bold">
@@ -629,7 +739,12 @@ export function AjoCircleAdminView() {
                           )}
                         </TableCell>
                         <TableCell className="px-6 py-4 text-right">
-                          <Button size="sm" variant="outline" className="rounded-xl font-bold" onClick={() => openReviewModal(sub)}>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="rounded-xl font-bold"
+                            onClick={() => openReviewModal(sub)}
+                          >
                             Review User
                           </Button>
                         </TableCell>
@@ -663,23 +778,34 @@ export function AjoCircleAdminView() {
             <div className="space-y-8 pt-6">
               {/* Profile Details & Status Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                
                 {/* Left side: Profile Info */}
                 <div className="bg-gray-50/50 dark:bg-gray-900/50 p-6 rounded-[2rem] border border-gray-100 dark:border-gray-800 space-y-4">
-                  <h4 className="text-xs uppercase font-extrabold tracking-wider text-gray-400">Personal Details</h4>
+                  <h4 className="text-xs uppercase font-extrabold tracking-wider text-gray-400">
+                    Personal Details
+                  </h4>
                   <div className="space-y-3">
                     <div>
-                      <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">Full Name</span>
-                      <span className="text-sm font-bold text-gray-900 dark:text-white">{reviewedProfile.full_name || "N/A"}</span>
+                      <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">
+                        Full Name
+                      </span>
+                      <span className="text-sm font-bold text-gray-900 dark:text-white">
+                        {reviewedProfile.full_name || "N/A"}
+                      </span>
                     </div>
                     <div>
-                      <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">Email Address</span>
-                      <span className="text-sm font-bold text-gray-900 dark:text-white">{reviewedProfile.email || "N/A"}</span>
+                      <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">
+                        Email Address
+                      </span>
+                      <span className="text-sm font-bold text-gray-900 dark:text-white">
+                        {reviewedProfile.email || "N/A"}
+                      </span>
                     </div>
                     <div>
-                      <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">Phone Number</span>
+                      <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">
+                        Phone Number
+                      </span>
                       <div>
-                        <a 
+                        <a
                           href={`https://wa.me/${reviewedProfile.phone?.replace(/[^0-9]/g, "")}`}
                           target="_blank"
                           rel="noopener noreferrer"
@@ -690,9 +816,13 @@ export function AjoCircleAdminView() {
                       </div>
                     </div>
                     <div>
-                      <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">System Join Date</span>
+                      <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">
+                        System Join Date
+                      </span>
                       <span className="text-sm font-bold text-gray-900 dark:text-white">
-                        {reviewedProfile.created_at ? new Date(reviewedProfile.created_at).toLocaleDateString() : "N/A"}
+                        {reviewedProfile.created_at
+                          ? new Date(reviewedProfile.created_at).toLocaleDateString()
+                          : "N/A"}
                       </span>
                     </div>
                   </div>
@@ -700,28 +830,49 @@ export function AjoCircleAdminView() {
 
                 {/* Right side: Balances & Active Savings */}
                 <div className="space-y-4">
-                  <h4 className="text-xs uppercase font-extrabold tracking-wider text-gray-400">Financial Overview</h4>
+                  <h4 className="text-xs uppercase font-extrabold tracking-wider text-gray-400">
+                    Financial Overview
+                  </h4>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="p-4 bg-emerald-500/5 dark:bg-emerald-500/10 rounded-2xl border border-emerald-500/10 text-emerald-800 dark:text-emerald-400">
-                      <span className="text-[10px] text-emerald-600/70 dark:text-emerald-400/70 font-bold uppercase tracking-wider block">General Wallet</span>
-                      <span className="text-md font-black">{formatCurrency(reviewedWalletBalance)}</span>
+                      <span className="text-[10px] text-emerald-600/70 dark:text-emerald-400/70 font-bold uppercase tracking-wider block">
+                        General Wallet
+                      </span>
+                      <span className="text-md font-black">
+                        {formatCurrency(reviewedWalletBalance)}
+                      </span>
                     </div>
                     <div className="p-4 bg-blue-500/5 dark:bg-blue-500/10 rounded-2xl border border-blue-500/10 text-blue-800 dark:text-blue-400">
-                      <span className="text-[10px] text-blue-600/70 dark:text-blue-400/70 font-bold uppercase tracking-wider block">Withdrawable</span>
-                      <span className="text-md font-black">{formatCurrency(reviewedWithdrawableBalance)}</span>
+                      <span className="text-[10px] text-blue-600/70 dark:text-blue-400/70 font-bold uppercase tracking-wider block">
+                        Withdrawable
+                      </span>
+                      <span className="text-md font-black">
+                        {formatCurrency(reviewedWithdrawableBalance)}
+                      </span>
                     </div>
                   </div>
 
                   <div className="bg-gray-50/50 dark:bg-gray-900/50 p-4 rounded-2xl border border-gray-100 dark:border-gray-800 space-y-3">
-                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">Other Savings</span>
+                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">
+                      Other Savings
+                    </span>
                     {reviewedPlans.length === 0 ? (
-                      <p className="text-xs text-gray-500 font-semibold">No other active savings plans.</p>
+                      <p className="text-xs text-gray-500 font-semibold">
+                        No other active savings plans.
+                      </p>
                     ) : (
                       <div className="space-y-2 max-h-[120px] overflow-y-auto pr-1">
                         {reviewedPlans.map((up: any) => (
-                          <div key={up.id} className="flex justify-between items-center text-xs py-1.5 border-b border-gray-100/50 dark:border-gray-800/50 last:border-0">
-                            <span className="font-bold text-gray-800 dark:text-gray-200">{up.plan?.name}</span>
-                            <span className="font-mono font-black text-gray-900 dark:text-gray-100">{formatCurrency(up.current_balance || 0)}</span>
+                          <div
+                            key={up.id}
+                            className="flex justify-between items-center text-xs py-1.5 border-b border-gray-100/50 dark:border-gray-800/50 last:border-0"
+                          >
+                            <span className="font-bold text-gray-800 dark:text-gray-200">
+                              {up.plan?.name}
+                            </span>
+                            <span className="font-mono font-black text-gray-900 dark:text-gray-100">
+                              {formatCurrency(up.current_balance || 0)}
+                            </span>
                           </div>
                         ))}
                       </div>
@@ -733,8 +884,12 @@ export function AjoCircleAdminView() {
               {/* Compliance section */}
               <div className="bg-amber-50/50 dark:bg-amber-950/10 p-5 rounded-[2rem] border border-amber-200/40 dark:border-amber-900/20 flex flex-col md:flex-row gap-4 items-center justify-between">
                 <div>
-                  <h4 className="text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider mb-1">Risk & Compliance</h4>
-                  <p className="text-xs text-gray-500 font-medium">Flag or freeze defaulting users to block withdrawals.</p>
+                  <h4 className="text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider mb-1">
+                    Risk & Compliance
+                  </h4>
+                  <p className="text-xs text-gray-500 font-medium">
+                    Flag or freeze defaulting users to block withdrawals.
+                  </p>
                 </div>
                 <div className="flex gap-2 shrink-0">
                   <Button
@@ -762,21 +917,27 @@ export function AjoCircleAdminView() {
                 <h4 className="text-xs uppercase font-extrabold tracking-wider text-indigo-700 dark:text-indigo-400">
                   Picking Turn Administration
                 </h4>
-                
+
                 <div className="grid grid-cols-2 gap-4 pb-4 border-b border-indigo-500/10">
                   <div>
-                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">Proposed Turns</span>
+                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">
+                      Proposed Turns
+                    </span>
                     <span className="text-sm font-bold text-indigo-700 dark:text-indigo-400">
-                      {reviewedUser.plan_metadata?.proposed_turns?.length > 0 
-                        ? reviewedUser.plan_metadata.proposed_turns.map((t: any) => `Week ${t}`).join(", ") 
+                      {reviewedUser.plan_metadata?.proposed_turns?.length > 0
+                        ? reviewedUser.plan_metadata.proposed_turns
+                            .map((t: any) => `Week ${t}`)
+                            .join(", ")
                         : "None proposed"}
                     </span>
                   </div>
                   <div>
-                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">Assigned Weeks</span>
+                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">
+                      Assigned Weeks
+                    </span>
                     <span className="text-sm font-bold text-indigo-700 dark:text-indigo-400">
-                      {assignedWeeks.length > 0 
-                        ? assignedWeeks.map((t: any) => `Week ${t}`).join(", ") 
+                      {assignedWeeks.length > 0
+                        ? assignedWeeks.map((t: any) => `Week ${t}`).join(", ")
                         : "None assigned"}
                     </span>
                   </div>
@@ -786,11 +947,11 @@ export function AjoCircleAdminView() {
                   <p className="text-xs text-gray-600 dark:text-gray-400 font-bold">
                     Reassign weeks to match corresponding proposed slot amounts:
                   </p>
-                  
+
                   <div className="space-y-3">
                     {(reviewedUser.plan_metadata?.slots || []).map((slot: any, index: number) => (
-                      <div 
-                        key={index} 
+                      <div
+                        key={index}
                         className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-3 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800"
                       >
                         <div className="flex flex-col">
@@ -798,10 +959,13 @@ export function AjoCircleAdminView() {
                             Slot {index + 1}
                           </span>
                           <span className="text-[10px] text-gray-500 font-semibold">
-                            Proposed: Week {slot.proposed_week} • Amount: <strong className="text-emerald-600">₦{slot.amount?.toLocaleString()}</strong>
+                            Proposed: Week {slot.proposed_week} • Amount:{" "}
+                            <strong className="text-emerald-600">
+                              ₦{slot.amount?.toLocaleString()}
+                            </strong>
                           </span>
                         </div>
-                        
+
                         <div className="w-full sm:w-[160px]">
                           <Select
                             value={String(assignedWeeks[index] || "")}
@@ -831,8 +995,8 @@ export function AjoCircleAdminView() {
 
               {/* Dialog Footer Actions */}
               <div className="flex gap-3 pt-4 border-t border-gray-100 dark:border-gray-900 justify-end">
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   onClick={() => setReviewedUser(null)}
                   className="rounded-2xl font-bold"
                 >
@@ -841,7 +1005,7 @@ export function AjoCircleAdminView() {
 
                 {reviewedUser.status === "pending_turn_approval" ? (
                   <>
-                    <Button 
+                    <Button
                       className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl"
                       disabled={processing}
                       onClick={() => {
@@ -851,7 +1015,7 @@ export function AjoCircleAdminView() {
                     >
                       Approve Proposed Turns
                     </Button>
-                    <Button 
+                    <Button
                       className="bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl"
                       disabled={processing || assignedWeeks.length === 0}
                       onClick={() => {
@@ -863,7 +1027,7 @@ export function AjoCircleAdminView() {
                     </Button>
                   </>
                 ) : (
-                  <Button 
+                  <Button
                     className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-2xl"
                     disabled={processing}
                     onClick={handleUpdateAssignedTurnsOnly}
@@ -874,7 +1038,9 @@ export function AjoCircleAdminView() {
               </div>
             </div>
           ) : (
-            <p className="p-8 text-center text-sm text-red-500 font-bold">Failed to load profile details.</p>
+            <p className="p-8 text-center text-sm text-red-500 font-bold">
+              Failed to load profile details.
+            </p>
           )}
         </DialogContent>
       </Dialog>

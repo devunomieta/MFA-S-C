@@ -95,7 +95,7 @@ export function MonthlyBloomPlanCard({
                       : "bg-emerald-600 border-emerald-500 text-white"
                   }
                 >
-                  {userPlan.status === "pending_activation" ? "PENDING ACTIVATION" : "Active"}
+                  {userPlan.status === "pending_activation" ? "Pending Activation" : "Active"}
                 </Badge>
               </div>
               <CardTitle className="text-xl font-bold text-gray-900 dark:text-gray-100">

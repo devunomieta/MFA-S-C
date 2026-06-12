@@ -17,18 +17,58 @@ import {
   Camera,
   RefreshCw,
 } from "lucide-react";
-import { User, KeyRound, UserCheck, Landmark, Shield, Mail, Phone, MapPin, Navigation } from "lucide-react";
+import {
+  User,
+  KeyRound,
+  UserCheck,
+  Landmark,
+  Shield,
+  Mail,
+  Phone,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { ActionConfirmModal } from "@/app/components/ui/ActionConfirmModal";
 import { Avatar, AvatarFallback, AvatarImage } from "@/app/components/ui/avatar";
-import WalletBalanceWidget from "./WalletBalanceWidget";
 
 const NIGERIAN_STATES = [
-  "Lagos", "Abuja", "Abia", "Adamawa", "Akwa Ibom", "Anambra", "Bauchi", "Bayelsa", "Benue", "Borno", 
-  "Cross River", "Delta", "Ebonyi", "Edo", "Ekiti", "Enugu", "Gombe", "Imo", "Jigawa", "Kaduna", 
-  "Kano", "Katsina", "Kebbi", "Kogi", "Kwara", "Nasarawa", "Niger", "Ogun", "Ondo", "Osun", 
-  "Oyo", "Plateau", "Rivers", "Sokoto", "Taraba", "Yobe", "Zamfara"
+  "Lagos",
+  "Abuja",
+  "Abia",
+  "Adamawa",
+  "Akwa Ibom",
+  "Anambra",
+  "Bauchi",
+  "Bayelsa",
+  "Benue",
+  "Borno",
+  "Cross River",
+  "Delta",
+  "Ebonyi",
+  "Edo",
+  "Ekiti",
+  "Enugu",
+  "Gombe",
+  "Imo",
+  "Jigawa",
+  "Kaduna",
+  "Kano",
+  "Katsina",
+  "Kebbi",
+  "Kogi",
+  "Kwara",
+  "Nasarawa",
+  "Niger",
+  "Ogun",
+  "Ondo",
+  "Osun",
+  "Oyo",
+  "Plateau",
+  "Rivers",
+  "Sokoto",
+  "Taraba",
+  "Yobe",
+  "Zamfara",
 ];
 
 import { Badge } from "@/app/components/ui/badge";
@@ -64,6 +104,7 @@ import { notificationDispatcher } from "@/lib/notificationDispatcher";
 import { supabase } from "@/lib/supabase";
 import { validateFile, validatePassword } from "@/lib/validation";
 
+
 // ---------------------------------------------------------------------------
 // Image quality analysis helpers (shared with KYCModal)
 // ---------------------------------------------------------------------------
@@ -78,7 +119,7 @@ import { validateFile, validatePassword } from "@/lib/validation";
  */
 function analyseImageQuality(
   canvas: HTMLCanvasElement,
-  blurThreshold = 5
+  blurThreshold = 5,
 ): { ok: boolean; reason?: string } {
   const ctx = canvas.getContext("2d");
   if (!ctx) return { ok: true };
@@ -104,7 +145,10 @@ function analyseImageQuality(
     return { ok: false, reason: "The image is too dark. Please improve lighting and try again." };
   }
   if (avgBrightness > 250) {
-    return { ok: false, reason: "The image is overexposed / too bright. Please reduce glare and try again." };
+    return {
+      ok: false,
+      reason: "The image is overexposed / too bright. Please reduce glare and try again.",
+    };
   }
 
   // Laplacian variance — sharpness metric
@@ -116,11 +160,7 @@ function analyseImageQuality(
     for (let x = 1; x < width - 1; x++) {
       const idx = y * width + x;
       const lap =
-        -grey[idx - width] -
-        grey[idx - 1] +
-        4 * grey[idx] -
-        grey[idx + 1] -
-        grey[idx + width];
+        -grey[idx - width] - grey[idx - 1] + 4 * grey[idx] - grey[idx + 1] - grey[idx + width];
       lapSum += lap;
       lapSumSq += lap * lap;
       lapCount++;
@@ -132,8 +172,7 @@ function analyseImageQuality(
   if (lapVariance < blurThreshold) {
     return {
       ok: false,
-      reason:
-        "The image appears very blurry. Please ensure the document is clear and well-lit.",
+      reason: "The image appears very blurry. Please ensure the document is clear and well-lit.",
     };
   }
 
@@ -143,7 +182,10 @@ function analyseImageQuality(
 /** Loads an image File into an off-screen canvas and runs analyseImageQuality. PDF files are passed through. */
 async function validateDocumentQuality(file: File): Promise<{ ok: boolean; reason?: string }> {
   return new Promise((resolve) => {
-    if (!file.type.startsWith("image/")) { resolve({ ok: true }); return; }
+    if (!file.type.startsWith("image/")) {
+      resolve({ ok: true });
+      return;
+    }
     const reader = new FileReader();
     reader.onload = (e) => {
       const img = new Image();
@@ -152,7 +194,10 @@ async function validateDocumentQuality(file: File): Promise<{ ok: boolean; reaso
         canvas.width = img.width;
         canvas.height = img.height;
         const ctx = canvas.getContext("2d");
-        if (!ctx) { resolve({ ok: true }); return; }
+        if (!ctx) {
+          resolve({ ok: true });
+          return;
+        }
         ctx.drawImage(img, 0, 0);
         resolve(analyseImageQuality(canvas));
       };
@@ -163,7 +208,6 @@ async function validateDocumentQuality(file: File): Promise<{ ok: boolean; reaso
     reader.readAsDataURL(file);
   });
 }
-
 
 export function Profile() {
   const { user } = useAuth();
@@ -265,16 +309,20 @@ export function Profile() {
   // KYC Camera state
   const [kycLivePhoto, setKycLivePhoto] = useState<string | null>(null);
   const [isCapturingKyc, setIsCapturingKyc] = useState(false);
-  const [kycCameraError, setKycCameraError] = useState<"denied" | "blocked" | "no_camera" | "in_use" | "unknown" | null>(null);
+  const [kycCameraError, setKycCameraError] = useState<
+    "denied" | "blocked" | "no_camera" | "in_use" | "unknown" | null
+  >(null);
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
-    setIsMobile(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
+    setIsMobile(
+      /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent),
+    );
   }, []);
 
   const videoKycRef = useRef<HTMLVideoElement>(null);
-  const canvasKycRef   = useRef<HTMLCanvasElement>(null);
-  const streamKycRef   = useRef<MediaStream | null>(null);
+  const canvasKycRef = useRef<HTMLCanvasElement>(null);
+  const streamKycRef = useRef<MediaStream | null>(null);
 
   /** Fully stops the camera: clears intervals, stops all tracks, nulls srcObject. */
   const releaseKycCamera = () => {
@@ -813,7 +861,7 @@ export function Profile() {
   const getKycBrowserName = () => {
     const ua = navigator.userAgent;
     if (/Firefox\//.test(ua)) return "firefox";
-    if (/Edg\//.test(ua))     return "edge";
+    if (/Edg\//.test(ua)) return "edge";
     if (/OPR\/|Opera\//.test(ua)) return "opera";
     if (/Chrome\//.test(ua)) return "chrome";
     if (/Safari\//.test(ua)) return "safari";
@@ -822,33 +870,37 @@ export function Profile() {
 
   const getKycCameraUnblockSteps = (): string[] => {
     const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-    if (isMobile) return [
-      "Open your device Settings",
-      "Find your browser app (Chrome, Safari, etc.)",
-      "Tap Permissions → Camera → Allow",
-      "Return here and tap \"Try Again\"",
-    ];
+    if (isMobile)
+      return [
+        "Open your device Settings",
+        "Find your browser app (Chrome, Safari, etc.)",
+        "Tap Permissions → Camera → Allow",
+        'Return here and tap "Try Again"',
+      ];
     const b = getKycBrowserName();
-    if (b === "chrome" || b === "edge") return [
-      "Click the 🔒 lock icon in the address bar",
-      "Select \"Site settings\" then find Camera",
-      "Change Camera from \"Blocked\" to \"Allow\"",
-      "Click \"Try Again\" below — no refresh needed",
-    ];
-    if (b === "firefox") return [
-      "Click the camera icon (🎥) in the address bar",
-      "Select \"Remove Blocked permission\"",
-      "Click \"Try Again\" below to re-trigger the prompt",
-    ];
-    if (b === "safari") return [
-      "Click Safari menu → Settings for this Website",
-      "Set Camera to \"Allow\"",
-      "Click \"Try Again\" below",
-    ];
+    if (b === "chrome" || b === "edge")
+      return [
+        "Click the 🔒 lock icon in the address bar",
+        'Select "Site settings" then find Camera',
+        'Change Camera from "Blocked" to "Allow"',
+        'Click "Try Again" below — no refresh needed',
+      ];
+    if (b === "firefox")
+      return [
+        "Click the camera icon (🎥) in the address bar",
+        'Select "Remove Blocked permission"',
+        'Click "Try Again" below to re-trigger the prompt',
+      ];
+    if (b === "safari")
+      return [
+        "Click Safari menu → Settings for this Website",
+        'Set Camera to "Allow"',
+        'Click "Try Again" below',
+      ];
     return [
       "Click the camera / lock icon in your browser's address bar",
-      "Find Camera permissions and set them to \"Allow\"",
-      "Click \"Try Again\" below",
+      'Find Camera permissions and set them to "Allow"',
+      'Click "Try Again" below',
     ];
   };
 
@@ -904,7 +956,7 @@ export function Profile() {
     const constraintsList = [
       { video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } } },
       { video: { facingMode: "user" } },
-      { video: true }
+      { video: true },
     ];
 
     let lastErr: unknown = null;
@@ -939,11 +991,11 @@ export function Profile() {
       if (context) {
         canvasKycRef.current.width = videoKycRef.current.videoWidth;
         canvasKycRef.current.height = videoKycRef.current.videoHeight;
-        
+
         // Ensure the canvas capture respects the mirrored video
         context.translate(canvasKycRef.current.width, 0);
         context.scale(-1, 1);
-        
+
         context.drawImage(videoKycRef.current, 0, 0);
 
         const dataUrl = canvasKycRef.current.toDataURL("image/jpeg", 0.9);
@@ -1097,7 +1149,9 @@ export function Profile() {
       }
 
       if (file.size < 50 * 1024) {
-        toast.error("The uploaded file is too small or blurry. Please upload a clear NIN document image (at least 50KB).");
+        toast.error(
+          "The uploaded file is too small or blurry. Please upload a clear NIN document image (at least 50KB).",
+        );
         return;
       }
 
@@ -1181,7 +1235,9 @@ export function Profile() {
       }
 
       if (file.size < 50 * 1024) {
-        toast.error("The uploaded file is too small or blurry. Please upload a clear utility bill image (at least 50KB).");
+        toast.error(
+          "The uploaded file is too small or blurry. Please upload a clear utility bill image (at least 50KB).",
+        );
         return;
       }
 
@@ -1228,7 +1284,9 @@ export function Profile() {
         const filePath = `kyc/${fileName}`;
         const { error: uploadError } = await supabase.storage.from("kyc").upload(filePath, file);
         if (uploadError) throw uploadError;
-        const { data: { publicUrl } } = supabase.storage.from("kyc").getPublicUrl(filePath);
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from("kyc").getPublicUrl(filePath);
         finalGovIdUrl = publicUrl;
       } catch (err: any) {
         toast.error("NIN slip upload failed");
@@ -1250,7 +1308,9 @@ export function Profile() {
         const filePath = `kyc/${fileName}`;
         const { error: uploadError } = await supabase.storage.from("kyc").upload(filePath, file);
         if (uploadError) throw uploadError;
-        const { data: { publicUrl } } = supabase.storage.from("kyc").getPublicUrl(filePath);
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from("kyc").getPublicUrl(filePath);
         finalUtilityBillUrl = publicUrl;
       } catch (err: any) {
         toast.error("Utility bill upload failed");
@@ -1273,14 +1333,14 @@ export function Profile() {
         const { error: avatarUploadError } = await supabase.storage
           .from("avatars")
           .upload(filePath, blob, {
-            contentType: "image/jpeg"
+            contentType: "image/jpeg",
           });
 
         if (avatarUploadError) throw avatarUploadError;
 
-        const { data: { publicUrl: avatarPublicUrl } } = supabase.storage
-          .from("avatars")
-          .getPublicUrl(filePath);
+        const {
+          data: { publicUrl: avatarPublicUrl },
+        } = supabase.storage.from("avatars").getPublicUrl(filePath);
 
         finalAvatarUrl = avatarPublicUrl;
       }
@@ -1298,37 +1358,39 @@ export function Profile() {
         kyc_landmark: profile.kyc_landmark,
         kyc_latitude: null,
         kyc_longitude: null,
-        kyc_last_confirmed_at: new Date().toISOString()
+        kyc_last_confirmed_at: new Date().toISOString(),
       };
 
       if (fileInputRef.current?.files?.[0] || profile.nin_status === "not_uploaded") {
         updateData.nin_status = "pending";
       }
-      if (utilityBillInputRef.current?.files?.[0] || profile.utility_bill_status === "not_uploaded") {
+      if (
+        utilityBillInputRef.current?.files?.[0] ||
+        profile.utility_bill_status === "not_uploaded"
+      ) {
         updateData.utility_bill_status = "pending";
       }
       if (kycLivePhoto || profile.avatar_status === "not_uploaded") {
         updateData.avatar_status = "pending";
       }
 
-      const { error } = await supabase
-        .from("profiles")
-        .update(updateData)
-        .eq("id", user.id);
+      const { error } = await supabase.from("profiles").update(updateData).eq("id", user.id);
 
       if (error) throw error;
-      
+
       // Update Auth Metadata too
       await supabase.auth.updateUser({
         data: { avatar_url: finalAvatarUrl },
-      });toast.success("KYC details submitted successfully!");
-      
+      });
+      toast.success("KYC details submitted successfully!");
+
       await notificationDispatcher.sendAlert({
         userId: user.id,
         email: profile.email,
         type: "profile",
         title: "KYC Details Submitted",
-        message: "Your complete KYC identity verification details have been submitted for admin review.",
+        message:
+          "Your complete KYC identity verification details have been submitted for admin review.",
       });
 
       // Log Activity
@@ -1542,7 +1604,10 @@ export function Profile() {
                   <AlertTriangle className="w-5 h-5 shrink-0" />
                   <div>
                     <p className="font-semibold">KYC Profile Locked</p>
-                    <p>Your profile is locked due to active loans or Ajo plans. Please contact an admin to request edit privileges.</p>
+                    <p>
+                      Your profile is locked due to active loans or Ajo plans. Please contact an
+                      admin to request edit privileges.
+                    </p>
                   </div>
                 </div>
               )}
@@ -1567,86 +1632,127 @@ export function Profile() {
                           profile.gov_id_status === "verified"
                             ? "text-emerald-800 dark:text-emerald-400"
                             : profile.gov_id_status === "rejected"
-                            ? "text-rose-800 dark:text-rose-400"
-                            : "text-yellow-800 dark:text-yellow-400"
+                              ? "text-rose-800 dark:text-rose-400"
+                              : "text-yellow-800 dark:text-yellow-400"
                         }`}
                       >
                         {profile.gov_id_status === "verified"
                           ? "Identity Verified"
                           : profile.gov_id_status === "rejected"
-                          ? "Verification Rejected"
-                          : "Verification Pending"}
+                            ? "Verification Rejected"
+                            : "Verification Pending"}
                       </h4>
                       <p
                         className={`text-sm ${
                           profile.gov_id_status === "verified"
                             ? "text-emerald-700/80 dark:text-emerald-500/80"
                             : profile.gov_id_status === "rejected"
-                            ? "text-rose-700/80 dark:text-rose-500/80"
-                            : "text-yellow-700/80 dark:text-yellow-500/80"
+                              ? "text-rose-700/80 dark:text-rose-500/80"
+                              : "text-yellow-700/80 dark:text-yellow-500/80"
                         }`}
                       >
                         {profile.gov_id_status === "verified"
                           ? "You have full access to loan applications and premium features."
                           : profile.gov_id_status === "rejected"
-                          ? "One or more of your uploaded KYC documents was rejected by the admin. Please edit and upload valid documents."
-                          : "Your details are under review by our admin team. This usually takes 24 hours."}
+                            ? "One or more of your uploaded KYC documents was rejected by the admin. Please edit and upload valid documents."
+                            : "Your details are under review by our admin team. This usually takes 24 hours."}
                       </p>
                     </div>
                   </div>
- 
+
                   <div className="grid gap-4 md:grid-cols-2 p-4 border rounded-lg dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/10">
                     <div>
                       <span className="text-xs text-gray-400 block">BVN</span>
-                      <span className="text-sm font-medium dark:text-white">{profile.bvn || "N/A"}</span>
+                      <span className="text-sm font-medium dark:text-white">
+                        {profile.bvn || "N/A"}
+                      </span>
                     </div>
                     <div>
                       <span className="text-xs text-gray-400 block">NIN</span>
-                      <span className="text-sm font-medium dark:text-white">{profile.nin || "N/A"}</span>
+                      <span className="text-sm font-medium dark:text-white">
+                        {profile.nin || "N/A"}
+                      </span>
                     </div>
                     <div>
                       <span className="text-xs text-gray-400 block">Country</span>
-                      <span className="text-sm font-medium dark:text-white">{profile.kyc_country || "Nigeria"}</span>
+                      <span className="text-sm font-medium dark:text-white">
+                        {profile.kyc_country || "Nigeria"}
+                      </span>
                     </div>
                     <div>
                       <span className="text-xs text-gray-400 block">State</span>
-                      <span className="text-sm font-medium dark:text-white">{profile.kyc_state || "Lagos"}</span>
+                      <span className="text-sm font-medium dark:text-white">
+                        {profile.kyc_state || "Lagos"}
+                      </span>
                     </div>
                     <div className="md:col-span-2">
                       <span className="text-xs text-gray-400 block">Street Address</span>
-                      <span className="text-sm font-medium dark:text-white">{profile.kyc_street || "N/A"}</span>
+                      <span className="text-sm font-medium dark:text-white">
+                        {profile.kyc_street || "N/A"}
+                      </span>
                     </div>
                     <div className="md:col-span-2">
                       <span className="text-xs text-gray-400 block">Landmark</span>
-                      <span className="text-sm font-medium dark:text-white">{profile.kyc_landmark || "N/A"}</span>
+                      <span className="text-sm font-medium dark:text-white">
+                        {profile.kyc_landmark || "N/A"}
+                      </span>
                     </div>
-                    
+
                     <div className="md:col-span-2 border-t border-slate-100 dark:border-slate-800 pt-3 mt-1 space-y-2">
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Document Statuses</p>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                        Document Statuses
+                      </p>
                       <div className="grid grid-cols-3 gap-2">
                         <div className="p-2 border border-slate-100 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 text-center">
-                          <span className="text-[9px] text-slate-400 block uppercase font-bold">NIN Status</span>
-                          <Badge variant="outline" className={`text-[8px] mt-1.5 px-1.5 py-0 h-4 uppercase font-semibold ${
-                            profile.nin_status === "verified" ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
-                            profile.nin_status === "rejected" ? "bg-rose-50 text-rose-700 border-rose-200" :
-                            "bg-amber-50 text-amber-700 border-amber-200"
-                          }`}>{profile.nin_status || "pending"}</Badge>
+                          <span className="text-[9px] text-slate-400 block uppercase font-bold">
+                            NIN Status
+                          </span>
+                          <Badge
+                            variant="outline"
+                            className={`text-[8px] mt-1.5 px-1.5 py-0 h-4 uppercase font-semibold ${
+                              profile.nin_status === "verified"
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                : profile.nin_status === "rejected"
+                                  ? "bg-rose-50 text-rose-700 border-rose-200"
+                                  : "bg-amber-50 text-amber-700 border-amber-200"
+                            }`}
+                          >
+                            {profile.nin_status || "pending"}
+                          </Badge>
                         </div>
                         <div className="p-2 border border-slate-100 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 text-center">
-                          <span className="text-[9px] text-slate-400 block uppercase font-bold">Utility Status</span>
-                          <Badge variant="outline" className={`text-[8px] mt-1.5 px-1.5 py-0 h-4 uppercase font-semibold ${
-                            profile.utility_bill_status === "verified" ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
-                            profile.utility_bill_status === "rejected" ? "bg-rose-50 text-rose-700 border-rose-200" :
-                            "bg-amber-50 text-amber-700 border-amber-200"
-                          }`}>{profile.utility_bill_status || "pending"}</Badge>
+                          <span className="text-[9px] text-slate-400 block uppercase font-bold">
+                            Utility Status
+                          </span>
+                          <Badge
+                            variant="outline"
+                            className={`text-[8px] mt-1.5 px-1.5 py-0 h-4 uppercase font-semibold ${
+                              profile.utility_bill_status === "verified"
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                : profile.utility_bill_status === "rejected"
+                                  ? "bg-rose-50 text-rose-700 border-rose-200"
+                                  : "bg-amber-50 text-amber-700 border-amber-200"
+                            }`}
+                          >
+                            {profile.utility_bill_status || "pending"}
+                          </Badge>
                         </div>
                         <div className="p-2 border border-slate-100 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 text-center">
-                          <span className="text-[9px] text-slate-400 block uppercase font-bold">Selfie Photo</span>
-                          <Badge variant="outline" className={`text-[8px] mt-1.5 px-1.5 py-0 h-4 uppercase font-semibold ${
-                            profile.avatar_status === "verified" ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
-                            profile.avatar_status === "rejected" ? "bg-rose-50 text-rose-700 border-rose-200" :
-                            "bg-amber-50 text-amber-700 border-amber-200"
-                          }`}>{profile.avatar_status || "pending"}</Badge>
+                          <span className="text-[9px] text-slate-400 block uppercase font-bold">
+                            Selfie Photo
+                          </span>
+                          <Badge
+                            variant="outline"
+                            className={`text-[8px] mt-1.5 px-1.5 py-0 h-4 uppercase font-semibold ${
+                              profile.avatar_status === "verified"
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                : profile.avatar_status === "rejected"
+                                  ? "bg-rose-50 text-rose-700 border-rose-200"
+                                  : "bg-amber-50 text-amber-700 border-amber-200"
+                            }`}
+                          >
+                            {profile.avatar_status || "pending"}
+                          </Badge>
                         </div>
                       </div>
                     </div>
@@ -1722,16 +1828,17 @@ export function Profile() {
                   <div className="bg-blue-50 text-blue-800 p-3 rounded-md text-sm flex gap-2 dark:bg-blue-900/20 dark:text-blue-300">
                     <Info className="w-4 h-4 shrink-0 mt-0.5" />
                     <p>
-                      <span className="font-semibold block mb-1">
-                        Mandatory Security KYC
-                      </span>
-                      Providing your identity and location details is mandatory for loan eligibility and payout settlement.
+                      <span className="font-semibold block mb-1">Mandatory Security KYC</span>
+                      Providing your identity and location details is mandatory for loan eligibility
+                      and payout settlement.
                     </p>
                   </div>
 
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="grid gap-2">
-                      <Label htmlFor="bvn" className="dark:text-gray-300">Bank Verification Number (BVN)</Label>
+                      <Label htmlFor="bvn" className="dark:text-gray-300">
+                        Bank Verification Number (BVN)
+                      </Label>
                       <Input
                         id="bvn"
                         value={profile.bvn}
@@ -1743,7 +1850,9 @@ export function Profile() {
                       />
                     </div>
                     <div className="grid gap-2">
-                      <Label htmlFor="nin" className="dark:text-gray-300">National Identification Number (NIN)</Label>
+                      <Label htmlFor="nin" className="dark:text-gray-300">
+                        National Identification Number (NIN)
+                      </Label>
                       <Input
                         id="nin"
                         value={profile.nin}
@@ -1755,7 +1864,9 @@ export function Profile() {
                       />
                     </div>
                     <div className="grid gap-2">
-                      <Label htmlFor="kyc_country" className="dark:text-gray-300">Country of Residence</Label>
+                      <Label htmlFor="kyc_country" className="dark:text-gray-300">
+                        Country of Residence
+                      </Label>
                       <Input
                         id="kyc_country"
                         value="Nigeria"
@@ -1764,7 +1875,9 @@ export function Profile() {
                       />
                     </div>
                     <div className="grid gap-2">
-                      <Label htmlFor="kyc_state" className="dark:text-gray-300">State of Residence</Label>
+                      <Label htmlFor="kyc_state" className="dark:text-gray-300">
+                        State of Residence
+                      </Label>
                       <select
                         id="kyc_state"
                         value={profile.kyc_state}
@@ -1773,12 +1886,16 @@ export function Profile() {
                         className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
                       >
                         {NIGERIAN_STATES.map((s) => (
-                          <option key={s} value={s}>{s}</option>
+                          <option key={s} value={s}>
+                            {s}
+                          </option>
                         ))}
                       </select>
                     </div>
                     <div className="md:col-span-2 grid gap-2">
-                      <Label htmlFor="kyc_street" className="dark:text-gray-300">Street Address</Label>
+                      <Label htmlFor="kyc_street" className="dark:text-gray-300">
+                        Street Address
+                      </Label>
                       <Input
                         id="kyc_street"
                         value={profile.kyc_street}
@@ -1789,7 +1906,9 @@ export function Profile() {
                       />
                     </div>
                     <div className="md:col-span-2 grid gap-2">
-                      <Label htmlFor="kyc_landmark" className="dark:text-gray-300">Closest Landmark</Label>
+                      <Label htmlFor="kyc_landmark" className="dark:text-gray-300">
+                        Closest Landmark
+                      </Label>
                       <Input
                         id="kyc_landmark"
                         value={profile.kyc_landmark}
@@ -1853,26 +1972,35 @@ export function Profile() {
                         ) : kycCameraError ? (
                           /* ── Camera error / permission panel ────────────────────── */
                           <div className="w-full rounded-xl border border-slate-700 bg-slate-900 p-5 flex flex-col items-center gap-4 text-center">
-                            <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                              kycCameraError === "no_camera" ? "bg-red-500/15" : "bg-amber-500/15"
-                            }`}>
-                              <Camera className={`w-6 h-6 ${
-                                kycCameraError === "no_camera" ? "text-red-400" : "text-amber-400"
-                              }`} />
+                            <div
+                              className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                                kycCameraError === "no_camera" ? "bg-red-500/15" : "bg-amber-500/15"
+                              }`}
+                            >
+                              <Camera
+                                className={`w-6 h-6 ${
+                                  kycCameraError === "no_camera" ? "text-red-400" : "text-amber-400"
+                                }`}
+                              />
                             </div>
 
                             {kycCameraError === "denied" || kycCameraError === "blocked" ? (
                               <>
                                 <div>
-                                  <p className="text-sm font-bold text-white mb-1">Camera Access Blocked</p>
+                                  <p className="text-sm font-bold text-white mb-1">
+                                    Camera Access Blocked
+                                  </p>
                                   <p className="text-xs text-slate-400">
-                                    Your browser is blocking camera access. Follow the steps below to allow it:
+                                    Your browser is blocking camera access. Follow the steps below
+                                    to allow it:
                                   </p>
                                 </div>
                                 <ol className="text-xs text-slate-300 text-left space-y-2 w-full list-none">
                                   {getKycCameraUnblockSteps().map((step, i) => (
                                     <li key={i} className="flex items-start gap-2">
-                                      <span className="flex-shrink-0 w-5 h-5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-bold flex items-center justify-center">{i + 1}</span>
+                                      <span className="flex-shrink-0 w-5 h-5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-bold flex items-center justify-center">
+                                        {i + 1}
+                                      </span>
                                       <span>{step}</span>
                                     </li>
                                   ))}
@@ -1881,17 +2009,28 @@ export function Profile() {
                             ) : kycCameraError === "no_camera" ? (
                               <div>
                                 <p className="text-sm font-bold text-white mb-1">No Camera Found</p>
-                                <p className="text-xs text-slate-400">No camera device was detected. Please connect a camera and try again.</p>
+                                <p className="text-xs text-slate-400">
+                                  No camera device was detected. Please connect a camera and try
+                                  again.
+                                </p>
                               </div>
                             ) : kycCameraError === "in_use" ? (
                               <div>
                                 <p className="text-sm font-bold text-white mb-1">Camera In Use</p>
-                                <p className="text-xs text-slate-400">Your camera is currently in use by another app or tab. Please close it and try again.</p>
+                                <p className="text-xs text-slate-400">
+                                  Your camera is currently in use by another app or tab. Please
+                                  close it and try again.
+                                </p>
                               </div>
                             ) : (
                               <div>
-                                <p className="text-sm font-bold text-white mb-1">Camera Unavailable</p>
-                                <p className="text-xs text-slate-400">An unexpected error occurred. Please ensure your camera is connected and not blocked.</p>
+                                <p className="text-sm font-bold text-white mb-1">
+                                  Camera Unavailable
+                                </p>
+                                <p className="text-xs text-slate-400">
+                                  An unexpected error occurred. Please ensure your camera is
+                                  connected and not blocked.
+                                </p>
                               </div>
                             )}
 
@@ -1936,7 +2075,9 @@ export function Profile() {
                                   alt="Current Profile Pic"
                                   className="w-16 h-16 rounded-full mx-auto object-cover border-2 border-emerald-505"
                                 />
-                                <p className="text-xs text-slate-500 font-semibold">Existing profile picture loaded</p>
+                                <p className="text-xs text-slate-500 font-semibold">
+                                  Existing profile picture loaded
+                                </p>
                               </div>
                             ) : (
                               <Camera className="w-8 h-8 text-slate-400 mb-2" />
@@ -1994,7 +2135,9 @@ export function Profile() {
                     <div
                       onClick={() => !kycLocked && !uploadingId && fileInputRef.current?.click()}
                       className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
-                        kycLocked ? "cursor-not-allowed opacity-50 bg-gray-100 dark:bg-gray-800/20" : ""
+                        kycLocked
+                          ? "cursor-not-allowed opacity-50 bg-gray-100 dark:bg-gray-800/20"
+                          : ""
                       } ${
                         previewUrl
                           ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/10"
@@ -2047,9 +2190,7 @@ export function Profile() {
                               Click to upload NIN Slip
                             </span>{" "}
                             or drag and drop
-                            <p className="text-xs text-gray-400 mt-1">
-                              Image or PDF (Max 5MB)
-                            </p>
+                            <p className="text-xs text-gray-400 mt-1">Image or PDF (Max 5MB)</p>
                           </div>
                         </div>
                       )}
@@ -2066,11 +2207,17 @@ export function Profile() {
                   />
 
                   <div className="grid gap-2">
-                    <Label className="dark:text-gray-300">Utility Bill or Business Signage Image</Label>
+                    <Label className="dark:text-gray-300">
+                      Utility Bill or Business Signage Image
+                    </Label>
                     <div
-                      onClick={() => !kycLocked && !uploadingId && utilityBillInputRef.current?.click()}
+                      onClick={() =>
+                        !kycLocked && !uploadingId && utilityBillInputRef.current?.click()
+                      }
                       className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
-                        kycLocked ? "cursor-not-allowed opacity-50 bg-gray-100 dark:bg-gray-800/20" : ""
+                        kycLocked
+                          ? "cursor-not-allowed opacity-50 bg-gray-100 dark:bg-gray-800/20"
+                          : ""
                       } ${
                         utilityBillPreview
                           ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/10"
@@ -2093,7 +2240,8 @@ export function Profile() {
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setUtilityBillPreview(null);
-                                if (utilityBillInputRef.current) utilityBillInputRef.current.value = "";
+                                if (utilityBillInputRef.current)
+                                  utilityBillInputRef.current.value = "";
                               }}
                             >
                               <X className="w-4 h-4" />

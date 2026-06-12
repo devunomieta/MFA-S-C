@@ -46,7 +46,7 @@ export function SecurityOnboarding({ onComplete }: SecurityOnboardingProps) {
     user?.app_metadata?.provider === "google" ||
     (user?.app_metadata?.providers as string[] | undefined)?.includes("google");
 
-  const hasEmailProvider = 
+  const hasEmailProvider =
     user?.app_metadata?.provider === "email" ||
     (user?.app_metadata?.providers as string[] | undefined)?.includes("email");
 
@@ -93,9 +93,13 @@ export function SecurityOnboarding({ onComplete }: SecurityOnboardingProps) {
           .maybeSingle();
 
         const hasPhone = !!profile?.phone && profile.phone.trim().length > 3;
-        const needsPassword = isGoogleUser && !hasEmailProvider && !profile?.has_password && !user?.user_metadata?.has_password;
-        
-        setRequiresPassword(needsPassword);
+        const needsPassword =
+          isGoogleUser &&
+          !hasEmailProvider &&
+          !profile?.has_password &&
+          !user?.user_metadata?.has_password;
+
+        setRequiresPassword(!!needsPassword);
 
         if (profile?.onboarding_completed) {
           onComplete();
@@ -120,23 +124,74 @@ export function SecurityOnboarding({ onComplete }: SecurityOnboardingProps) {
     checkStatus();
   }, [user, isGoogleUser, onComplete]);
 
+  // Live validation calculations for Phone
+  const phoneDigitsOnly = phone.replace(/\D/g, "");
+  const is11Digits = phoneDigitsOnly.length === 11 && phoneDigitsOnly.startsWith("0");
+  const is13Digits = phoneDigitsOnly.length === 13 && phoneDigitsOnly.startsWith("234");
+  const isPhoneValid = is11Digits || is13Digits;
+
+  let phoneWarningText = "";
+  if (phone.length > 0 && !isPhoneValid) {
+    if (phoneDigitsOnly.startsWith("234")) {
+      if (phoneDigitsOnly.length < 13) {
+        phoneWarningText = `Needs ${13 - phoneDigitsOnly.length} more digits`;
+      }
+    } else if (phoneDigitsOnly.startsWith("0")) {
+      if (phoneDigitsOnly.length < 11) {
+        phoneWarningText = `Needs ${11 - phoneDigitsOnly.length} more digits`;
+      }
+    } else {
+      phoneWarningText = "Must start with 0 (e.g. 080) or 234";
+    }
+  }
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let val = e.target.value;
+    // Allow only digits and a leading '+'
+    val = val.replace(/(?!^\+)[^\d]/g, "");
+
+    const dOnly = val.replace(/\D/g, "");
+    if (dOnly.startsWith("234") || dOnly.startsWith("23")) {
+      // Limit to 13 digits (+1 for the plus sign if present)
+      const maxLen = val.startsWith("+") ? 14 : 13;
+      if (val.length > maxLen) {
+        val = val.slice(0, maxLen);
+      }
+    } else if (dOnly.startsWith("0")) {
+      // Limit to 11 digits
+      if (val.length > 11) {
+        val = val.slice(0, 11);
+      }
+    } else {
+      // Fallback max
+      const maxLen = val.startsWith("+") ? 14 : 13;
+      if (val.length > maxLen) {
+        val = val.slice(0, maxLen);
+      }
+    }
+    setPhone(val);
+  };
+
   async function handlePhoneSubmit() {
-    if (phone.length < 10) {
-      toast.error("Please enter a valid phone number");
+    if (!isPhoneValid) {
+      toast.error("Please enter a valid Nigerian phone number");
       return;
     }
 
     setLoading(true);
     try {
+      // Normalize to 11 digits for consistency if they entered 234
+      const normalizedPhone = is13Digits ? "0" + phoneDigitsOnly.slice(3) : phoneDigitsOnly;
+
       const { error: dbError } = await supabase
         .from("profiles")
-        .update({ phone: phone })
+        .update({ phone: normalizedPhone })
         .eq("id", user?.id);
 
       if (dbError) throw dbError;
 
       const { error: authError } = await supabase.auth.updateUser({
-        data: { phone: phone },
+        data: { phone: normalizedPhone },
       });
 
       if (authError) throw authError;
@@ -256,14 +311,40 @@ export function SecurityOnboarding({ onComplete }: SecurityOnboardingProps) {
 
                 <div className="space-y-2">
                   <Label className="text-xs font-bold uppercase text-slate-500">Phone Number</Label>
-                  <Input
-                    type="tel"
-                    placeholder="e.g. +234 800 000 0000"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    className="h-12 rounded-xl dark:bg-slate-800 dark:border-slate-700"
-                  />
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 italic leading-normal">
+                  <div className="relative">
+                    <Input
+                      type="tel"
+                      placeholder="e.g. 08012345678"
+                      value={phone}
+                      onChange={handlePhoneChange}
+                      className={`h-12 rounded-xl dark:bg-slate-800 focus-visible:ring-2 transition-all ${
+                        phone.length > 0
+                          ? isPhoneValid
+                            ? "border-emerald-500 focus-visible:ring-emerald-500/20"
+                            : "border-red-500 focus-visible:ring-red-500/20"
+                          : "dark:border-slate-700"
+                      }`}
+                    />
+                    {isPhoneValid && (
+                      <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-emerald-500" />
+                    )}
+                  </div>
+
+                  {/* Live Validation Warning */}
+                  <AnimatePresence>
+                    {phoneWarningText && (
+                      <motion.p
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="text-xs font-medium text-red-500 m-0"
+                      >
+                        {phoneWarningText}
+                      </motion.p>
+                    )}
+                  </AnimatePresence>
+
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 italic leading-normal">
                     💡 <strong>Recommendation:</strong> Use a WhatsApp-enabled number to receive
                     deposit, withdrawal, approval, and plan alerts directly on WhatsApp.
                   </p>
@@ -271,8 +352,8 @@ export function SecurityOnboarding({ onComplete }: SecurityOnboardingProps) {
 
                 <Button
                   onClick={handlePhoneSubmit}
-                  disabled={loading}
-                  className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 rounded-xl font-bold shadow-lg shadow-emerald-500/20"
+                  disabled={loading || phone.length === 0 || !isPhoneValid}
+                  className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl font-bold shadow-lg shadow-emerald-500/20 transition-all"
                 >
                   {loading ? <Loader2 className="animate-spin" /> : "Continue"}
                 </Button>

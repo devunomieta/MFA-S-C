@@ -1,15 +1,24 @@
 import React, { useState, useEffect, useRef } from "react";
-import { ShieldCheck, MapPin, Upload, Loader2, CheckCircle2, AlertTriangle, Navigation, X, Camera, RefreshCw } from "lucide-react";
+
+import {
+  ShieldCheck,
+  Upload,
+  Loader2,
+  Camera,
+  RefreshCw,
+} from "lucide-react";
 import { toast } from "sonner";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./dialog";
+
+import { useAuth } from "@/app/context/AuthContext";
+import { notificationDispatcher } from "@/lib/notificationDispatcher";
+import { supabase } from "@/lib/supabase";
+import { validateFile } from "@/lib/validation";
+
 import { Button } from "./button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./dialog";
 import { Input } from "./input";
 import { Label } from "./label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./select";
-import { supabase } from "@/lib/supabase";
-import { useAuth } from "@/app/context/AuthContext";
-import { validateFile } from "@/lib/validation";
-import { notificationDispatcher } from "@/lib/notificationDispatcher";
 
 /**
  * Detects image quality issues using canvas pixel analysis.
@@ -21,7 +30,7 @@ import { notificationDispatcher } from "@/lib/notificationDispatcher";
  */
 function analyseImageQuality(
   canvas: HTMLCanvasElement,
-  blurThreshold = 5
+  blurThreshold = 5,
 ): { ok: boolean; reason?: string } {
   const ctx = canvas.getContext("2d");
   if (!ctx) return { ok: true };
@@ -47,7 +56,10 @@ function analyseImageQuality(
     return { ok: false, reason: "The image is too dark. Please improve lighting and try again." };
   }
   if (avgBrightness > 250) {
-    return { ok: false, reason: "The image is overexposed / too bright. Please reduce glare and try again." };
+    return {
+      ok: false,
+      reason: "The image is overexposed / too bright. Please reduce glare and try again.",
+    };
   }
 
   // Laplacian variance — sharpness metric
@@ -59,11 +71,7 @@ function analyseImageQuality(
     for (let x = 1; x < width - 1; x++) {
       const idx = y * width + x;
       const lap =
-        -grey[idx - width] -
-        grey[idx - 1] +
-        4 * grey[idx] -
-        grey[idx + 1] -
-        grey[idx + width];
+        -grey[idx - width] - grey[idx - 1] + 4 * grey[idx] - grey[idx + 1] - grey[idx + width];
       lapSum += lap;
       lapSumSq += lap * lap;
       lapCount++;
@@ -75,8 +83,7 @@ function analyseImageQuality(
   if (lapVariance < blurThreshold) {
     return {
       ok: false,
-      reason:
-        "The image appears very blurry. Please ensure the document is clear and well-lit.",
+      reason: "The image appears very blurry. Please ensure the document is clear and well-lit.",
     };
   }
 
@@ -87,9 +94,7 @@ function analyseImageQuality(
  * Loads a File into an off-screen canvas and runs analyseImageQuality.
  * Returns the same { ok, reason } result.
  */
-async function validateDocumentQuality(
-  file: File
-): Promise<{ ok: boolean; reason?: string }> {
+async function validateDocumentQuality(file: File): Promise<{ ok: boolean; reason?: string }> {
   return new Promise((resolve) => {
     // Only validate image files (not PDFs)
     if (!file.type.startsWith("image/")) {
@@ -104,7 +109,10 @@ async function validateDocumentQuality(
         canvas.width = img.width;
         canvas.height = img.height;
         const ctx = canvas.getContext("2d");
-        if (!ctx) { resolve({ ok: true }); return; }
+        if (!ctx) {
+          resolve({ ok: true });
+          return;
+        }
         ctx.drawImage(img, 0, 0);
         resolve(analyseImageQuality(canvas));
       };
@@ -124,28 +132,51 @@ interface KYCModalProps {
 }
 
 const NIGERIAN_STATES = [
-  "Lagos", "Abuja", "Abia", "Adamawa", "Akwa Ibom", "Anambra", "Bauchi", "Bayelsa", "Benue", "Borno", 
-  "Cross River", "Delta", "Ebonyi", "Edo", "Ekiti", "Enugu", "Gombe", "Imo", "Jigawa", "Kaduna", 
-  "Kano", "Katsina", "Kebbi", "Kogi", "Kwara", "Nasarawa", "Niger", "Ogun", "Ondo", "Osun", 
-  "Oyo", "Plateau", "Rivers", "Sokoto", "Taraba", "Yobe", "Zamfara"
+  "Lagos",
+  "Abuja",
+  "Abia",
+  "Adamawa",
+  "Akwa Ibom",
+  "Anambra",
+  "Bauchi",
+  "Bayelsa",
+  "Benue",
+  "Borno",
+  "Cross River",
+  "Delta",
+  "Ebonyi",
+  "Edo",
+  "Ekiti",
+  "Enugu",
+  "Gombe",
+  "Imo",
+  "Jigawa",
+  "Kaduna",
+  "Kano",
+  "Katsina",
+  "Kebbi",
+  "Kogi",
+  "Kwara",
+  "Nasarawa",
+  "Niger",
+  "Ogun",
+  "Ondo",
+  "Osun",
+  "Oyo",
+  "Plateau",
+  "Rivers",
+  "Sokoto",
+  "Taraba",
+  "Yobe",
+  "Zamfara",
 ];
 
-const dataURLtoBlob = (dataurl: string) => {
-  const arr = dataurl.split(",");
-  const mime = arr[0].match(/:(.*?);/)?.[1] || "image/jpeg";
-  const bstr = atob(arr[1]);
-  let n = bstr.length;
-  const u8arr = new Uint8Array(n);
-  while (n--) {
-    u8arr[n] = bstr.charCodeAt(n);
-  }
-  return new Blob([u8arr], { type: mime });
-};
+
 
 export function KYCModal({ isOpen, onOpenChange, onSuccess, mode = "full" }: KYCModalProps) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
-  
+
   // Form values
   const [bvn, setBvn] = useState("");
   const [nin, setNin] = useState("");
@@ -163,16 +194,20 @@ export function KYCModal({ isOpen, onOpenChange, onSuccess, mode = "full" }: KYC
   const [isCapturing, setIsCapturing] = useState(false);
   const [livePhoto, setLivePhoto] = useState("");
   // 'prompt' = first time, 'denied' = user clicked block, 'blocked' = persisted block, 'no_camera' = no device, 'in_use' = busy
-  const [cameraError, setCameraError] = useState<"denied" | "blocked" | "no_camera" | "in_use" | "unknown" | null>(null);
+  const [cameraError, setCameraError] = useState<
+    "denied" | "blocked" | "no_camera" | "in_use" | "unknown" | null
+  >(null);
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
-    setIsMobile(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
+    setIsMobile(
+      /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent),
+    );
   }, []);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const streamRef     = useRef<MediaStream | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
   /** Fully stops the camera: clears intervals, stops all tracks, nulls srcObject. */
   const releaseCamera = () => {
@@ -196,7 +231,9 @@ export function KYCModal({ isOpen, onOpenChange, onSuccess, mode = "full" }: KYC
         return;
       }
       if (selectedFile.size < 50 * 1024) {
-        toast.error("The uploaded file is too small or blurry. Please upload a clear NIN document image (at least 50KB).");
+        toast.error(
+          "The uploaded file is too small or blurry. Please upload a clear NIN document image (at least 50KB).",
+        );
         return;
       }
       // Quality check — blur / brightness
@@ -222,7 +259,9 @@ export function KYCModal({ isOpen, onOpenChange, onSuccess, mode = "full" }: KYC
         return;
       }
       if (selectedFile.size < 50 * 1024) {
-        toast.error("The uploaded file is too small or blurry. Please upload a clear utility bill image (at least 50KB).");
+        toast.error(
+          "The uploaded file is too small or blurry. Please upload a clear utility bill image (at least 50KB).",
+        );
         return;
       }
       // Quality check — blur / brightness
@@ -254,8 +293,8 @@ export function KYCModal({ isOpen, onOpenChange, onSuccess, mode = "full" }: KYC
   // Release camera on unmount
   useEffect(() => {
     return () => {
-      if (streamRef.current)     streamRef.current.getTracks().forEach(t => t.stop());
-      if (videoRef.current)      videoRef.current.srcObject = null;
+      if (streamRef.current) streamRef.current.getTracks().forEach((t) => t.stop());
+      if (videoRef.current) videoRef.current.srcObject = null;
     };
   }, []);
 
@@ -270,10 +309,12 @@ export function KYCModal({ isOpen, onOpenChange, onSuccess, mode = "full" }: KYC
     try {
       const { data, error } = await supabase
         .from("profiles")
-        .select("bvn, nin, kyc_country, kyc_state, kyc_street, kyc_landmark, utility_bill_url, avatar_url")
+        .select(
+          "bvn, nin, kyc_country, kyc_state, kyc_street, kyc_landmark, utility_bill_url, avatar_url",
+        )
         .eq("id", user?.id)
         .single();
-      
+
       if (data && !error) {
         if (data.bvn) setBvn(data.bvn);
         if (data.nin) setNin(data.nin);
@@ -295,7 +336,7 @@ export function KYCModal({ isOpen, onOpenChange, onSuccess, mode = "full" }: KYC
   const getBrowserName = () => {
     const ua = navigator.userAgent;
     if (/Firefox\//.test(ua)) return "firefox";
-    if (/Edg\//.test(ua))     return "edge";
+    if (/Edg\//.test(ua)) return "edge";
     if (/OPR\/|Opera\//.test(ua)) return "opera";
     if (/Chrome\//.test(ua)) return "chrome";
     if (/Safari\//.test(ua)) return "safari";
@@ -305,33 +346,37 @@ export function KYCModal({ isOpen, onOpenChange, onSuccess, mode = "full" }: KYC
   /** Returns ordered unblock steps for the detected browser / platform. */
   const getCameraUnblockSteps = (): string[] => {
     const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-    if (isMobile) return [
-      "Open your device Settings",
-      "Find your browser app (Chrome, Safari, etc.)",
-      "Tap Permissions → Camera → Allow",
-      "Return here and tap \"Try Again\"",
-    ];
+    if (isMobile)
+      return [
+        "Open your device Settings",
+        "Find your browser app (Chrome, Safari, etc.)",
+        "Tap Permissions → Camera → Allow",
+        'Return here and tap "Try Again"',
+      ];
     const b = getBrowserName();
-    if (b === "chrome" || b === "edge") return [
-      "Click the 🔒 lock icon in the address bar",
-      "Select \"Site settings\" then find Camera",
-      "Change Camera from \"Blocked\" to \"Allow\"",
-      "Click \"Try Again\" below — no refresh needed",
-    ];
-    if (b === "firefox") return [
-      "Click the camera icon (🎥) in the address bar",
-      "Select \"Remove Blocked permission\"",
-      "Click \"Try Again\" below to re-trigger the prompt",
-    ];
-    if (b === "safari") return [
-      "Click Safari menu → Settings for this Website",
-      "Set Camera to \"Allow\"",
-      "Click \"Try Again\" below",
-    ];
+    if (b === "chrome" || b === "edge")
+      return [
+        "Click the 🔒 lock icon in the address bar",
+        'Select "Site settings" then find Camera',
+        'Change Camera from "Blocked" to "Allow"',
+        'Click "Try Again" below — no refresh needed',
+      ];
+    if (b === "firefox")
+      return [
+        "Click the camera icon (🎥) in the address bar",
+        'Select "Remove Blocked permission"',
+        'Click "Try Again" below to re-trigger the prompt',
+      ];
+    if (b === "safari")
+      return [
+        "Click Safari menu → Settings for this Website",
+        'Set Camera to "Allow"',
+        'Click "Try Again" below',
+      ];
     return [
       "Click the camera / lock icon in your browser's address bar",
-      "Find Camera permissions and set them to \"Allow\"",
-      "Click \"Try Again\" below",
+      'Find Camera permissions and set them to "Allow"',
+      'Click "Try Again" below',
     ];
   };
 
@@ -390,7 +435,7 @@ export function KYCModal({ isOpen, onOpenChange, onSuccess, mode = "full" }: KYC
     const constraintsList = [
       { video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } } },
       { video: { facingMode: "user" } },
-      { video: true }
+      { video: true },
     ];
 
     let lastErr: unknown = null;
@@ -425,11 +470,11 @@ export function KYCModal({ isOpen, onOpenChange, onSuccess, mode = "full" }: KYC
       if (context) {
         canvasRef.current.width = videoRef.current.videoWidth;
         canvasRef.current.height = videoRef.current.videoHeight;
-        
+
         // Ensure the canvas capture respects the mirrored video
         context.translate(canvasRef.current.width, 0);
         context.scale(-1, 1);
-        
+
         context.drawImage(videoRef.current, 0, 0);
 
         const dataUrl = canvasRef.current.toDataURL("image/jpeg", 0.9);
@@ -489,15 +534,13 @@ export function KYCModal({ isOpen, onOpenChange, onSuccess, mode = "full" }: KYC
         const fileName = `${user.id}-nin-${Date.now()}.${fileExt}`;
         const filePath = `kyc/${fileName}`;
 
-        const { error: uploadError } = await supabase.storage
-          .from("kyc")
-          .upload(filePath, file);
+        const { error: uploadError } = await supabase.storage.from("kyc").upload(filePath, file);
 
         if (uploadError) throw uploadError;
 
-        const { data: { publicUrl } } = supabase.storage
-          .from("kyc")
-          .getPublicUrl(filePath);
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from("kyc").getPublicUrl(filePath);
 
         // 2. Upload Utility Bill
         let finalUtilityBillUrl = existingUtilityBillUrl;
@@ -512,9 +555,9 @@ export function KYCModal({ isOpen, onOpenChange, onSuccess, mode = "full" }: KYC
 
           if (utilUploadError) throw utilUploadError;
 
-          const { data: { publicUrl: utilPublicUrl } } = supabase.storage
-            .from("kyc")
-            .getPublicUrl(utilFilePath);
+          const {
+            data: { publicUrl: utilPublicUrl },
+          } = supabase.storage.from("kyc").getPublicUrl(utilFilePath);
 
           finalUtilityBillUrl = utilPublicUrl;
         }
@@ -529,14 +572,14 @@ export function KYCModal({ isOpen, onOpenChange, onSuccess, mode = "full" }: KYC
           const { error: avatarUploadError } = await supabase.storage
             .from("avatars")
             .upload(filePath, blob, {
-              contentType: "image/jpeg"
+              contentType: "image/jpeg",
             });
 
           if (avatarUploadError) throw avatarUploadError;
 
-          const { data: { publicUrl: avatarPublicUrl } } = supabase.storage
-            .from("avatars")
-            .getPublicUrl(filePath);
+          const {
+            data: { publicUrl: avatarPublicUrl },
+          } = supabase.storage.from("avatars").getPublicUrl(filePath);
 
           finalAvatarUrl = avatarPublicUrl;
         }
@@ -560,7 +603,7 @@ export function KYCModal({ isOpen, onOpenChange, onSuccess, mode = "full" }: KYC
             kyc_landmark: landmark,
             kyc_latitude: null,
             kyc_longitude: null,
-            kyc_last_confirmed_at: new Date().toISOString()
+            kyc_last_confirmed_at: new Date().toISOString(),
           })
           .eq("id", user.id);
 
@@ -568,7 +611,7 @@ export function KYCModal({ isOpen, onOpenChange, onSuccess, mode = "full" }: KYC
 
         // Update auth metadata
         await supabase.auth.updateUser({
-          data: { avatar_url: finalAvatarUrl }
+          data: { avatar_url: finalAvatarUrl },
         });
 
         // Notify user — submission received, pending admin review
@@ -612,14 +655,14 @@ export function KYCModal({ isOpen, onOpenChange, onSuccess, mode = "full" }: KYC
         const { error: avatarUploadError } = await supabase.storage
           .from("avatars")
           .upload(filePath, blob, {
-            contentType: "image/jpeg"
+            contentType: "image/jpeg",
           });
 
         if (avatarUploadError) throw avatarUploadError;
 
-        const { data: { publicUrl: avatarPublicUrl } } = supabase.storage
-          .from("avatars")
-          .getPublicUrl(filePath);
+        const {
+          data: { publicUrl: avatarPublicUrl },
+        } = supabase.storage.from("avatars").getPublicUrl(filePath);
 
         const { error } = await supabase
           .from("profiles")
@@ -627,7 +670,7 @@ export function KYCModal({ isOpen, onOpenChange, onSuccess, mode = "full" }: KYC
             avatar_url: avatarPublicUrl,
             kyc_latitude: null,
             kyc_longitude: null,
-            kyc_last_confirmed_at: new Date().toISOString()
+            kyc_last_confirmed_at: new Date().toISOString(),
           })
           .eq("id", user.id);
 
@@ -635,7 +678,7 @@ export function KYCModal({ isOpen, onOpenChange, onSuccess, mode = "full" }: KYC
 
         // Update auth metadata
         await supabase.auth.updateUser({
-          data: { avatar_url: avatarPublicUrl }
+          data: { avatar_url: avatarPublicUrl },
         });
 
         toast.success("Identity and address confirmed successfully!");
@@ -659,10 +702,9 @@ export function KYCModal({ isOpen, onOpenChange, onSuccess, mode = "full" }: KYC
             {mode === "full" ? "Mandatory Security KYC" : "Confirm Address & Location"}
           </DialogTitle>
           <DialogDescription className="text-xs text-slate-500 font-medium">
-            {mode === "full" 
+            {mode === "full"
               ? "Complete verification to unlock loans and Ajo plan payouts safely."
-              : "Verify your location and check that your address details are current."
-            }
+              : "Verify your location and check that your address details are current."}
           </DialogDescription>
         </DialogHeader>
 
@@ -671,7 +713,12 @@ export function KYCModal({ isOpen, onOpenChange, onSuccess, mode = "full" }: KYC
             <>
               {/* Full Mode Inputs */}
               <div className="grid gap-1.5">
-                <Label htmlFor="bvn" className="text-xs font-bold text-slate-400 uppercase tracking-wider">Bank Verification Number (BVN)</Label>
+                <Label
+                  htmlFor="bvn"
+                  className="text-xs font-bold text-slate-400 uppercase tracking-wider"
+                >
+                  Bank Verification Number (BVN)
+                </Label>
                 <Input
                   id="bvn"
                   type="text"
@@ -685,7 +732,12 @@ export function KYCModal({ isOpen, onOpenChange, onSuccess, mode = "full" }: KYC
               </div>
 
               <div className="grid gap-1.5">
-                <Label htmlFor="nin" className="text-xs font-bold text-slate-400 uppercase tracking-wider">National Identity Number (NIN)</Label>
+                <Label
+                  htmlFor="nin"
+                  className="text-xs font-bold text-slate-400 uppercase tracking-wider"
+                >
+                  National Identity Number (NIN)
+                </Label>
                 <Input
                   id="nin"
                   type="text"
@@ -699,7 +751,9 @@ export function KYCModal({ isOpen, onOpenChange, onSuccess, mode = "full" }: KYC
               </div>
 
               <div className="grid gap-1.5">
-                <Label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Upload NIN Slip / Card Image</Label>
+                <Label className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  Upload NIN Slip / Card Image
+                </Label>
                 <div className="flex items-center justify-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl p-4 text-center cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors relative">
                   <input
                     type="file"
@@ -719,7 +773,9 @@ export function KYCModal({ isOpen, onOpenChange, onSuccess, mode = "full" }: KYC
               </div>
 
               <div className="grid gap-1.5">
-                <Label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Upload Utility Bill or Business Signage Image</Label>
+                <Label className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  Upload Utility Bill or Business Signage Image
+                </Label>
                 <div className="flex items-center justify-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl p-4 text-center cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors relative">
                   <input
                     type="file"
@@ -731,16 +787,24 @@ export function KYCModal({ isOpen, onOpenChange, onSuccess, mode = "full" }: KYC
                   <div className="space-y-1">
                     <Upload className="w-6 h-6 text-slate-400 mx-auto" />
                     <p className="text-xs font-bold text-slate-600 dark:text-slate-300">
-                      {utilityFile ? utilityFile.name : existingUtilityBillUrl ? "Utility bill uploaded (Click to replace)" : "Click to select utility bill or signage"}
+                      {utilityFile
+                        ? utilityFile.name
+                        : existingUtilityBillUrl
+                          ? "Utility bill uploaded (Click to replace)"
+                          : "Click to select utility bill or signage"}
                     </p>
-                    <p className="text-[10px] text-slate-400">Showing User's Name and Address (Max 5MB)</p>
+                    <p className="text-[10px] text-slate-400">
+                      Showing User's Name and Address (Max 5MB)
+                    </p>
                   </div>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="grid gap-1.5">
-                  <Label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Country</Label>
+                  <Label className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                    Country
+                  </Label>
                   <Select value={country} onValueChange={setCountry}>
                     <SelectTrigger className="rounded-xl">
                       <SelectValue placeholder="Country" />
@@ -751,14 +815,18 @@ export function KYCModal({ isOpen, onOpenChange, onSuccess, mode = "full" }: KYC
                   </Select>
                 </div>
                 <div className="grid gap-1.5">
-                  <Label className="text-xs font-bold text-slate-400 uppercase tracking-wider">State</Label>
+                  <Label className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                    State
+                  </Label>
                   <Select value={state} onValueChange={setState}>
                     <SelectTrigger className="rounded-xl">
                       <SelectValue placeholder="State" />
                     </SelectTrigger>
                     <SelectContent>
                       {NIGERIAN_STATES.map((s) => (
-                        <SelectItem key={s} value={s}>{s}</SelectItem>
+                        <SelectItem key={s} value={s}>
+                          {s}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -766,7 +834,12 @@ export function KYCModal({ isOpen, onOpenChange, onSuccess, mode = "full" }: KYC
               </div>
 
               <div className="grid gap-1.5">
-                <Label htmlFor="street" className="text-xs font-bold text-slate-400 uppercase tracking-wider">Street Address</Label>
+                <Label
+                  htmlFor="street"
+                  className="text-xs font-bold text-slate-400 uppercase tracking-wider"
+                >
+                  Street Address
+                </Label>
                 <Input
                   id="street"
                   type="text"
@@ -779,7 +852,12 @@ export function KYCModal({ isOpen, onOpenChange, onSuccess, mode = "full" }: KYC
               </div>
 
               <div className="grid gap-1.5">
-                <Label htmlFor="landmark" className="text-xs font-bold text-slate-400 uppercase tracking-wider">Closest Landmark</Label>
+                <Label
+                  htmlFor="landmark"
+                  className="text-xs font-bold text-slate-400 uppercase tracking-wider"
+                >
+                  Closest Landmark
+                </Label>
                 <Input
                   id="landmark"
                   type="text"
@@ -795,7 +873,9 @@ export function KYCModal({ isOpen, onOpenChange, onSuccess, mode = "full" }: KYC
             <>
               {/* Confirm Mode / Address Check */}
               <div className="p-4 bg-slate-50 dark:bg-slate-800/30 border border-slate-100 dark:border-slate-800/80 rounded-2xl space-y-2.5">
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Saved Address Details</p>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  Saved Address Details
+                </p>
                 <div className="space-y-1">
                   <div className="text-sm font-semibold text-slate-800 dark:text-slate-200">
                     {street}
@@ -817,8 +897,12 @@ export function KYCModal({ isOpen, onOpenChange, onSuccess, mode = "full" }: KYC
                   onChange={(e) => setAddressConfirmed(e.target.checked)}
                   className="mt-0.5 h-4.5 w-4.5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
                 />
-                <Label htmlFor="address-confirm" className="text-xs font-semibold text-slate-600 dark:text-slate-400 cursor-pointer select-none leading-relaxed">
-                  I confirm that my residential address and closest landmark listed above are still correct and current.
+                <Label
+                  htmlFor="address-confirm"
+                  className="text-xs font-semibold text-slate-600 dark:text-slate-400 cursor-pointer select-none leading-relaxed"
+                >
+                  I confirm that my residential address and closest landmark listed above are still
+                  correct and current.
                 </Label>
               </div>
             </>
@@ -829,8 +913,13 @@ export function KYCModal({ isOpen, onOpenChange, onSuccess, mode = "full" }: KYC
             <div className="flex items-start gap-3">
               <Camera className="w-5 h-5 text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0" />
               <div>
-                <p className="text-xs font-bold text-slate-800 dark:text-slate-200">Mandatory Live Photo Update</p>
-                <p className="text-[10px] text-slate-500 leading-normal mt-0.5">Please take a live photo of yourself to update your profile picture and verify your identity.</p>
+                <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                  Mandatory Live Photo Update
+                </p>
+                <p className="text-[10px] text-slate-500 leading-normal mt-0.5">
+                  Please take a live photo of yourself to update your profile picture and verify
+                  your identity.
+                </p>
               </div>
             </div>
 
@@ -885,12 +974,16 @@ export function KYCModal({ isOpen, onOpenChange, onSuccess, mode = "full" }: KYC
               ) : cameraError ? (
                 /* ── Camera error / permission panel ─────────────────────────── */
                 <div className="w-full rounded-xl border border-slate-700 bg-slate-900 p-5 flex flex-col items-center gap-4 text-center">
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                    cameraError === "no_camera" ? "bg-red-500/15" : "bg-amber-500/15"
-                  }`}>
-                    <Camera className={`w-6 h-6 ${
-                      cameraError === "no_camera" ? "text-red-400" : "text-amber-400"
-                    }`} />
+                  <div
+                    className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                      cameraError === "no_camera" ? "bg-red-500/15" : "bg-amber-500/15"
+                    }`}
+                  >
+                    <Camera
+                      className={`w-6 h-6 ${
+                        cameraError === "no_camera" ? "text-red-400" : "text-amber-400"
+                      }`}
+                    />
                   </div>
 
                   {/* Title + description */}
@@ -899,13 +992,16 @@ export function KYCModal({ isOpen, onOpenChange, onSuccess, mode = "full" }: KYC
                       <div>
                         <p className="text-sm font-bold text-white mb-1">Camera Access Blocked</p>
                         <p className="text-xs text-slate-400">
-                          Your browser is blocking camera access for this site. Follow the steps below to allow it:
+                          Your browser is blocking camera access for this site. Follow the steps
+                          below to allow it:
                         </p>
                       </div>
                       <ol className="text-xs text-slate-300 text-left space-y-2 w-full list-none">
                         {getCameraUnblockSteps().map((step, i) => (
                           <li key={i} className="flex items-start gap-2">
-                            <span className="flex-shrink-0 w-5 h-5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-bold flex items-center justify-center">{i + 1}</span>
+                            <span className="flex-shrink-0 w-5 h-5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-bold flex items-center justify-center">
+                              {i + 1}
+                            </span>
                             <span>{step}</span>
                           </li>
                         ))}
@@ -922,14 +1018,16 @@ export function KYCModal({ isOpen, onOpenChange, onSuccess, mode = "full" }: KYC
                     <div>
                       <p className="text-sm font-bold text-white mb-1">Camera In Use</p>
                       <p className="text-xs text-slate-400">
-                        Your camera is currently being used by another application (e.g. video call, another browser tab). Please close it and try again.
+                        Your camera is currently being used by another application (e.g. video call,
+                        another browser tab). Please close it and try again.
                       </p>
                     </div>
                   ) : (
                     <div>
                       <p className="text-sm font-bold text-white mb-1">Camera Unavailable</p>
                       <p className="text-xs text-slate-400">
-                        An unexpected error occurred. Please ensure your camera is connected and not blocked, then try again.
+                        An unexpected error occurred. Please ensure your camera is connected and not
+                        blocked, then try again.
                       </p>
                     </div>
                   )}
@@ -974,7 +1072,9 @@ export function KYCModal({ isOpen, onOpenChange, onSuccess, mode = "full" }: KYC
                         alt="Current Profile Pic"
                         className="w-16 h-16 rounded-full mx-auto object-cover border-2 border-emerald-505"
                       />
-                      <p className="text-xs text-slate-500 font-semibold">Existing profile picture loaded</p>
+                      <p className="text-xs text-slate-500 font-semibold">
+                        Existing profile picture loaded
+                      </p>
                     </div>
                   ) : (
                     <Camera className="w-8 h-8 text-slate-400 mb-2" />

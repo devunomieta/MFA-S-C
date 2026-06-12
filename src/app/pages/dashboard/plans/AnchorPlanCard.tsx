@@ -67,7 +67,7 @@ export function AnchorPlanCard({
                       : "bg-indigo-600 hover:bg-indigo-700 text-white"
                   }
                 >
-                  {userPlan?.status === "pending_activation" ? "PENDING ACTIVATION" : "Active"}
+                  {userPlan?.status === "pending_activation" ? "Pending Activation" : "Active"}
                 </Badge>
               </div>
               <CardTitle className="text-xl font-bold text-gray-900 dark:text-gray-100">

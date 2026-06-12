@@ -105,7 +105,7 @@ export function Hero({ onExplorePlans }: HeroProps) {
               transition={{ delay: 0.4, duration: 0.8 }}
               className="text-xs md:text-sm text-slate-500 font-medium"
             >
-              Not sure which strategy is for you? Use our {" "}
+              Not sure which strategy is for you? Use our{" "}
               <button
                 onClick={() => onExplorePlans("quiz")}
                 className="text-emerald-600 hover:text-emerald-700 hover:underline font-bold bg-transparent border-none p-0 cursor-pointer"

@@ -27,13 +27,15 @@ export const HoneypotField: React.FC<HoneypotFieldProps> = ({
       }}
       aria-hidden="true"
     >
-      <input
-        type="text"
+      <textarea
         name={name}
         value={value}
-        onChange={onChange}
+        onChange={onChange as any}
         tabIndex={-1}
-        autoComplete="off"
+        autoComplete="new-password"
+        data-lpignore="true"
+        data-form-type="other"
+        data-1p-ignore="true"
       />
     </div>
   );

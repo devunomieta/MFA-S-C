@@ -1,13 +1,8 @@
 import { useEffect, useState } from "react";
 
 import {
-  CheckCircle2,
-  XCircle,
-  AlertTriangle,
-  Upload,
   FileText,
-  Clock,
-  Loader2,
+  AlertTriangle,
 } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -21,9 +16,9 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/app/components/ui/dialog";
 import { Input } from "@/app/components/ui/input";
+import { KYCModal } from "@/app/components/ui/KYCModal";
 import { Label } from "@/app/components/ui/label";
 import {
   Table,
@@ -34,7 +29,6 @@ import {
   TableRow,
 } from "@/app/components/ui/table";
 import { useAuth } from "@/app/context/AuthContext";
-import { KYCModal } from "@/app/components/ui/KYCModal";
 import { notificationDispatcher } from "@/lib/notificationDispatcher";
 import { supabase } from "@/lib/supabase";
 import { calculateBalance } from "@/lib/walletUtils";
@@ -88,9 +82,6 @@ export function Loans() {
   const [repayAmount, setRepayAmount] = useState("");
   const [selectedLoan, setSelectedLoan] = useState<any>(null);
   const [repaying, setRepaying] = useState(false);
-
-  // Mock ID Upload
-  const [isUploadingId, setIsUploadingId] = useState(false);
 
   const formatCurrency = (value: number | string) => {
     const val = Number(value);
@@ -241,39 +232,7 @@ export function Loans() {
 
   const isEligible = hasActivePlan && profile?.gov_id_status === "verified";
 
-  async function handleUploadId(file: File) {
-    if (!user) return;
-    setIsUploadingId(true);
 
-    try {
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${user.id}-${Math.random()}.${fileExt}`;
-
-      const { error: uploadError } = await supabase.storage.from("kyc").upload(fileName, file);
-
-      if (uploadError) throw uploadError;
-
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from("kyc").getPublicUrl(fileName);
-
-      await supabase
-        .from("profiles")
-        .update({
-          gov_id_status: "pending",
-          gov_id_url: publicUrl,
-        })
-        .eq("id", user.id);
-
-      toast.success("ID Uploaded! Verification pending.");
-      fetchEligibilityData();
-    } catch (error: any) {
-      console.error("ID Upload Error:", error);
-      toast.error("Failed to upload ID. Please try again.");
-    } finally {
-      setIsUploadingId(false);
-    }
-  }
 
   async function handleRequestLoan() {
     if (!user || !amount) return;
@@ -391,103 +350,6 @@ export function Loans() {
     setRepaying(false);
   }
 
-  const eligibilityChecklist = (
-    <div className="py-4 space-y-4">
-      <div className="space-y-2">
-        <div className="flex items-center justify-between p-2 rounded bg-gray-50 dark:bg-gray-800">
-          <div className="flex items-center gap-2">
-            {hasActivePlan ? (
-              <CheckCircle2 className="text-emerald-500 w-5 h-5" />
-            ) : (
-              <XCircle className="text-red-500 w-5 h-5" />
-            )}
-            <span className="text-sm dark:text-gray-300">Active Investment Plan</span>
-          </div>
-        </div>
-
-        <div className="flex items-center justify-between p-2 rounded bg-gray-50 dark:bg-gray-800">
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-2">
-              {profile?.gov_id_status === "verified" ? (
-                <CheckCircle2 className="text-emerald-500 w-5 h-5" />
-              ) : profile?.gov_id_status === "pending" ? (
-                <Clock className="text-yellow-500 w-5 h-5" />
-              ) : (
-                <XCircle className="text-red-500 w-5 h-5" />
-              )}
-              <span className="text-sm dark:text-gray-300">
-                {profile?.gov_id_status === "verified"
-                  ? "Verified Government ID"
-                  : profile?.gov_id_status === "pending"
-                    ? "ID Verification Pending"
-                    : "Verified Government ID"}
-              </span>
-            </div>
-            {profile?.gov_id_status === "not_uploaded" && (
-              <>
-                <input
-                  type="file"
-                  id="id-upload"
-                  className="hidden"
-                  accept="image/*,application/pdf"
-                  onChange={(e) => {
-                    if (e.target.files && e.target.files[0]) {
-                      handleUploadId(e.target.files[0]);
-                    }
-                  }}
-                />
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => document.getElementById("id-upload")?.click()}
-                  disabled={isUploadingId}
-                >
-                  {isUploadingId ? (
-                    <Loader2 className="w-3 h-3 animate-spin mr-1" />
-                  ) : (
-                    <Upload className="w-3 h-3 mr-1" />
-                  )}
-                  Upload
-                </Button>
-              </>
-            )}
-            {profile?.gov_id_status === "pending" && (
-              <span className="text-xs text-yellow-600 font-medium">Under Review</span>
-            )}
-          </div>
-        </div>
-
-        <div className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-800 border border-transparent hover:border-gray-200 dark:hover:border-gray-700 transition-colors">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-full bg-blue-500/10 text-blue-500">
-              <Clock className="w-4 h-4" />
-            </div>
-            <div>
-              <span className="text-sm font-semibold dark:text-gray-200 block">Account Age</span>
-              <span className="text-[10px] text-gray-500 font-medium tracking-tight">
-                Qualified for{" "}
-                <span className="text-blue-500">{accountAgeMonths >= 12 ? "70%" : "50%"}</span> loan
-                limit
-              </span>
-            </div>
-          </div>
-          <div className="flex flex-col items-end">
-            <span className="text-xl font-black text-blue-600 dark:text-blue-400 leading-none">
-              {accountAgeMonths}
-            </span>
-            <span className="text-[9px] font-bold text-blue-500/70 uppercase tracking-widest mt-0.5">
-              Months
-            </span>
-          </div>
-        </div>
-      </div>
-      <div className="bg-yellow-50 p-3 rounded text-xs text-yellow-800 flex items-start gap-2">
-        <AlertTriangle className="w-4 h-4 shrink-0" />
-        <span>Complete these steps to unlock loan access.</span>
-      </div>
-    </div>
-  );
-
   const loanForm = (
     <div className="grid gap-4 py-4">
       <div className="grid gap-2">
@@ -581,7 +443,8 @@ export function Loans() {
             <DialogHeader>
               <DialogTitle className="dark:text-white">Request a Loan</DialogTitle>
               <DialogDescription className="dark:text-gray-400">
-                You qualify for up to ₦{formatCurrency(maxLoanAmount)} ({accountAgeMonths >= 12 ? "70%" : "50%"} of balance).
+                You qualify for up to ₦{formatCurrency(maxLoanAmount)} (
+                {accountAgeMonths >= 12 ? "70%" : "50%"} of balance).
               </DialogDescription>
             </DialogHeader>
 

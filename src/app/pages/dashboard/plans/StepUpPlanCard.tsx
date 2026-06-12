@@ -92,7 +92,7 @@ export function StepUpPlanCard({
                   }
                 >
                   {userPlan.status === "pending_activation"
-                    ? "PENDING ACTIVATION"
+                    ? "Pending Activation"
                     : isCompleted
                       ? "Completed"
                       : "Active"}

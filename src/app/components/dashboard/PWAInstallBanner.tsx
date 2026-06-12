@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
+
 import { Download, X } from "lucide-react";
+
 import { Button } from "@/app/components/ui/button";
 
 export function PWAInstallBanner() {
@@ -83,7 +85,8 @@ export function PWAInstallBanner() {
         <div>
           <h4 className="text-sm font-bold tracking-tight">Install Mary's Thrift App</h4>
           <p className="text-xs text-emerald-100 font-medium">
-            Install the PWA on your home screen or desktop for offline access, faster loading, and full dashboard features.
+            Install the PWA on your home screen or desktop for offline access, faster loading, and
+            full dashboard features.
           </p>
         </div>
       </div>

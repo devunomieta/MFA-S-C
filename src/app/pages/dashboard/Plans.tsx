@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Loader2, PiggyBank, Calendar, ShieldCheck } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
+import { PlanRecommender } from "@/app/components/PlanRecommender";
 import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
@@ -12,7 +13,6 @@ import { checkAndProcessMaturity } from "@/lib/planUtils";
 import { slugify } from "@/lib/slug";
 import { supabase } from "@/lib/supabase";
 import { Plan, UserPlan } from "@/types";
-import { PlanRecommender } from "@/app/components/PlanRecommender";
 
 const PlanCardGrid = ({
   items,

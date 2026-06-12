@@ -358,7 +358,9 @@ export function AdminUserDetails() {
             <CardContent className="p-6 space-y-6">
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
-                  <span className="text-xs text-gray-400 block font-bold uppercase tracking-wider">Verification Status</span>
+                  <span className="text-xs text-gray-400 block font-bold uppercase tracking-wider">
+                    Verification Status
+                  </span>
                   <Badge
                     variant={
                       profile.gov_id_status === "verified"
@@ -379,7 +381,9 @@ export function AdminUserDetails() {
                   </Badge>
                 </div>
                 <div>
-                  <span className="text-xs text-gray-400 block font-bold uppercase tracking-wider">KYC Edit Status</span>
+                  <span className="text-xs text-gray-400 block font-bold uppercase tracking-wider">
+                    KYC Edit Status
+                  </span>
                   {profile.kyc_edit_allowed ? (
                     <Badge className="bg-emerald-500">Edit Privileges Active (Allowed)</Badge>
                   ) : (
@@ -387,28 +391,50 @@ export function AdminUserDetails() {
                   )}
                 </div>
                 <div>
-                  <span className="text-xs text-gray-400 block font-bold uppercase tracking-wider">BVN (Bank Verification Number)</span>
-                  <span className="text-sm font-medium font-mono">{profile.bvn || "Not provided"}</span>
+                  <span className="text-xs text-gray-400 block font-bold uppercase tracking-wider">
+                    BVN (Bank Verification Number)
+                  </span>
+                  <span className="text-sm font-medium font-mono">
+                    {profile.bvn || "Not provided"}
+                  </span>
                 </div>
                 <div>
-                  <span className="text-xs text-gray-400 block font-bold uppercase tracking-wider">NIN (National Identity Number)</span>
-                  <span className="text-sm font-medium font-mono">{profile.nin || "Not provided"}</span>
+                  <span className="text-xs text-gray-400 block font-bold uppercase tracking-wider">
+                    NIN (National Identity Number)
+                  </span>
+                  <span className="text-sm font-medium font-mono">
+                    {profile.nin || "Not provided"}
+                  </span>
                 </div>
                 <div>
-                  <span className="text-xs text-gray-400 block font-bold uppercase tracking-wider">Country of Residence</span>
-                  <span className="text-sm font-medium">{profile.kyc_country || "Not provided"}</span>
+                  <span className="text-xs text-gray-400 block font-bold uppercase tracking-wider">
+                    Country of Residence
+                  </span>
+                  <span className="text-sm font-medium">
+                    {profile.kyc_country || "Not provided"}
+                  </span>
                 </div>
                 <div>
-                  <span className="text-xs text-gray-400 block font-bold uppercase tracking-wider">State of Residence</span>
+                  <span className="text-xs text-gray-400 block font-bold uppercase tracking-wider">
+                    State of Residence
+                  </span>
                   <span className="text-sm font-medium">{profile.kyc_state || "Not provided"}</span>
                 </div>
                 <div className="md:col-span-2">
-                  <span className="text-xs text-gray-400 block font-bold uppercase tracking-wider">Street Address</span>
-                  <span className="text-sm font-medium">{profile.kyc_street || "Not provided"}</span>
+                  <span className="text-xs text-gray-400 block font-bold uppercase tracking-wider">
+                    Street Address
+                  </span>
+                  <span className="text-sm font-medium">
+                    {profile.kyc_street || "Not provided"}
+                  </span>
                 </div>
                 <div className="md:col-span-2">
-                  <span className="text-xs text-gray-400 block font-bold uppercase tracking-wider">Closest Landmark</span>
-                  <span className="text-sm font-medium">{profile.kyc_landmark || "Not provided"}</span>
+                  <span className="text-xs text-gray-400 block font-bold uppercase tracking-wider">
+                    Closest Landmark
+                  </span>
+                  <span className="text-sm font-medium">
+                    {profile.kyc_landmark || "Not provided"}
+                  </span>
                 </div>
               </div>
 
@@ -416,12 +442,21 @@ export function AdminUserDetails() {
                 {profile.gov_id_url && (
                   <div>
                     <div className="flex justify-between items-center mb-2">
-                      <span className="text-xs text-gray-400 block font-bold uppercase tracking-wider">NIN Document</span>
-                      <Badge variant="outline" className={`text-[8px] px-1.5 py-0 h-4 uppercase font-semibold ${
-                        profile.nin_status === "verified" ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
-                        profile.nin_status === "rejected" ? "bg-rose-50 text-rose-700 border-rose-200" :
-                        "bg-amber-50 text-amber-700 border-amber-200"
-                      }`}>{profile.nin_status || "pending"}</Badge>
+                      <span className="text-xs text-gray-400 block font-bold uppercase tracking-wider">
+                        NIN Document
+                      </span>
+                      <Badge
+                        variant="outline"
+                        className={`text-[8px] px-1.5 py-0 h-4 uppercase font-semibold ${
+                          profile.nin_status === "verified"
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                            : profile.nin_status === "rejected"
+                              ? "bg-rose-50 text-rose-700 border-rose-200"
+                              : "bg-amber-50 text-amber-700 border-amber-200"
+                        }`}
+                      >
+                        {profile.nin_status || "pending"}
+                      </Badge>
                     </div>
                     <div className="p-4 bg-slate-50 rounded-xl flex items-center justify-center max-w-md border border-slate-100 h-64">
                       <img
@@ -435,12 +470,21 @@ export function AdminUserDetails() {
                 {profile.utility_bill_url && (
                   <div>
                     <div className="flex justify-between items-center mb-2">
-                      <span className="text-xs text-gray-400 block font-bold uppercase tracking-wider">Utility Bill / Signage</span>
-                      <Badge variant="outline" className={`text-[8px] px-1.5 py-0 h-4 uppercase font-semibold ${
-                        profile.utility_bill_status === "verified" ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
-                        profile.utility_bill_status === "rejected" ? "bg-rose-50 text-rose-700 border-rose-200" :
-                        "bg-amber-50 text-amber-700 border-amber-200"
-                      }`}>{profile.utility_bill_status || "pending"}</Badge>
+                      <span className="text-xs text-gray-400 block font-bold uppercase tracking-wider">
+                        Utility Bill / Signage
+                      </span>
+                      <Badge
+                        variant="outline"
+                        className={`text-[8px] px-1.5 py-0 h-4 uppercase font-semibold ${
+                          profile.utility_bill_status === "verified"
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                            : profile.utility_bill_status === "rejected"
+                              ? "bg-rose-50 text-rose-700 border-rose-200"
+                              : "bg-amber-50 text-amber-700 border-amber-200"
+                        }`}
+                      >
+                        {profile.utility_bill_status || "pending"}
+                      </Badge>
                     </div>
                     <div className="p-4 bg-slate-50 rounded-xl flex items-center justify-center max-w-md border border-slate-100 h-64">
                       <img
@@ -454,12 +498,21 @@ export function AdminUserDetails() {
                 {profile.avatar_url && (
                   <div>
                     <div className="flex justify-between items-center mb-2">
-                      <span className="text-xs text-gray-400 block font-bold uppercase tracking-wider">Captured Live Photo</span>
-                      <Badge variant="outline" className={`text-[8px] px-1.5 py-0 h-4 uppercase font-semibold ${
-                        profile.avatar_status === "verified" ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
-                        profile.avatar_status === "rejected" ? "bg-rose-50 text-rose-700 border-rose-200" :
-                        "bg-amber-50 text-amber-700 border-amber-200"
-                      }`}>{profile.avatar_status || "pending"}</Badge>
+                      <span className="text-xs text-gray-400 block font-bold uppercase tracking-wider">
+                        Captured Live Photo
+                      </span>
+                      <Badge
+                        variant="outline"
+                        className={`text-[8px] px-1.5 py-0 h-4 uppercase font-semibold ${
+                          profile.avatar_status === "verified"
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                            : profile.avatar_status === "rejected"
+                              ? "bg-rose-50 text-rose-700 border-rose-200"
+                              : "bg-amber-50 text-amber-700 border-amber-200"
+                        }`}
+                      >
+                        {profile.avatar_status || "pending"}
+                      </Badge>
                     </div>
                     <div className="p-4 bg-slate-50 rounded-xl flex items-center justify-center max-w-md border border-slate-100 h-64">
                       <img
@@ -475,7 +528,11 @@ export function AdminUserDetails() {
               <div className="border-t pt-4 flex gap-3">
                 <Button
                   variant={profile.kyc_edit_allowed ? "outline" : "default"}
-                  className={!profile.kyc_edit_allowed ? "bg-emerald-600 hover:bg-emerald-700 text-white" : ""}
+                  className={
+                    !profile.kyc_edit_allowed
+                      ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                      : ""
+                  }
                   onClick={async () => {
                     const nextVal = !profile.kyc_edit_allowed;
                     const { error } = await supabase
@@ -485,7 +542,9 @@ export function AdminUserDetails() {
                     if (error) {
                       toast.error("Failed to update KYC edit flag.");
                     } else {
-                      toast.success(nextVal ? "KYC edit privileges enabled." : "KYC edit privileges disabled.");
+                      toast.success(
+                        nextVal ? "KYC edit privileges enabled." : "KYC edit privileges disabled.",
+                      );
                       setProfile({ ...profile, kyc_edit_allowed: nextVal });
                     }
                   }}

@@ -59,7 +59,7 @@ export function SprintPlanCard({
                       : "bg-blue-600 hover:bg-blue-700 text-white"
                   }
                 >
-                  {userPlan?.status === "pending_activation" ? "PENDING ACTIVATION" : "Active"}
+                  {userPlan?.status === "pending_activation" ? "Pending Activation" : "Active"}
                 </Badge>
               </div>
               <CardTitle className="text-xl font-bold text-gray-900 dark:text-gray-100">

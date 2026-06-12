@@ -19,11 +19,11 @@ import { Outlet, Link, useLocation } from "react-router-dom";
 
 import { AccountSwitcher } from "@/app/components/AccountSwitcher";
 import { SecurityOnboarding } from "@/app/components/auth/SecurityOnboarding";
+import { NotificationBanner } from "@/app/components/dashboard/NotificationBanner";
 import { NotificationBell } from "@/app/components/dashboard/NotificationBell";
+import { PWAInstallBanner } from "@/app/components/dashboard/PWAInstallBanner";
 import { Sidebar } from "@/app/components/dashboard/Sidebar";
 import { SurveyPopup } from "@/app/components/SurveyPopup";
-import { PWAInstallBanner } from "@/app/components/dashboard/PWAInstallBanner";
-import { NotificationBanner } from "@/app/components/dashboard/NotificationBanner";
 import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
 import {
@@ -105,12 +105,16 @@ export function DashboardLayout() {
           user.app_metadata?.provider === "google" ||
           (user.app_metadata?.providers as string[] | undefined)?.includes("google");
 
-        const hasEmailProvider = 
+        const hasEmailProvider =
           user.app_metadata?.provider === "email" ||
           (user.app_metadata?.providers as string[] | undefined)?.includes("email");
 
         const hasPhone = !!profile?.phone && profile.phone.trim().length > 3;
-        const needsPassword = isGoogleUser && !hasEmailProvider && !profile?.has_password && !user?.user_metadata?.has_password;
+        const needsPassword =
+          isGoogleUser &&
+          !hasEmailProvider &&
+          !profile?.has_password &&
+          !user?.user_metadata?.has_password;
 
         if (!profile?.onboarding_completed && (!hasPhone || needsPassword)) {
           setShowOnboarding(true);

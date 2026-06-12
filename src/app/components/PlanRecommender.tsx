@@ -14,6 +14,7 @@ import {
   MessageSquare,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 import { Button } from "@/app/components/ui/button";
 import {
@@ -23,10 +24,9 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/app/components/ui/dialog";
+import { useAuth } from "@/app/context/AuthContext";
 import { slugify } from "@/lib/slug";
 import { supabase } from "@/lib/supabase";
-import { useAuth } from "@/app/context/AuthContext";
-import { toast } from "sonner";
 
 interface PlanRecommenderProps {
   open?: boolean;
@@ -108,7 +108,6 @@ const planComparisonMatrix = [
     dbType: "ajo_circle",
   },
 ];
-
 
 export function PlanRecommender({ open, onOpenChange, inline, defaultTab }: PlanRecommenderProps) {
   const navigate = useNavigate();
@@ -218,9 +217,7 @@ export function PlanRecommender({ open, onOpenChange, inline, defaultTab }: Plan
   };
 
   const recommendations = getRecommendations();
-  const comparedPlans = planComparisonMatrix.filter((p) =>
-    selectedComparePlans.includes(p.dbType)
-  );
+  const comparedPlans = planComparisonMatrix.filter((p) => selectedComparePlans.includes(p.dbType));
   const planCount = comparedPlans.length;
   const gridColsClass =
     planCount === 1
@@ -238,7 +235,9 @@ export function PlanRecommender({ open, onOpenChange, inline, defaultTab }: Plan
       }
     >
       {/* View Tabs */}
-      <div className={`px-6 sm:px-8 pt-6 pb-0 border-b border-slate-100 dark:border-slate-800 flex gap-6 bg-slate-50/50 dark:bg-slate-900/30 relative ${!inline ? "pr-12" : ""}`}>
+      <div
+        className={`px-6 sm:px-8 pt-6 pb-0 border-b border-slate-100 dark:border-slate-800 flex gap-6 bg-slate-50/50 dark:bg-slate-900/30 relative ${!inline ? "pr-12" : ""}`}
+      >
         <button
           onClick={() => setActiveView("quiz")}
           className={`pb-3 text-sm font-bold border-b-2 transition-all relative ${
@@ -486,79 +485,77 @@ export function PlanRecommender({ open, onOpenChange, inline, defaultTab }: Plan
                             : ""
                       }`}
                     >
-                        {/* Dynamic Top Stripe */}
-                        <div
-                          className={`absolute top-0 left-0 w-full h-1.5 rounded-t-3xl ${
-                            item.dbType === "marathon"
-                              ? "bg-emerald-500"
-                              : item.dbType === "sprint"
-                                ? "bg-blue-500"
-                                : item.dbType === "anchor"
-                                  ? "bg-indigo-600"
-                                  : item.dbType === "daily_drop"
-                                    ? "bg-cyan-500"
-                                    : item.dbType === "step_up"
-                                      ? "bg-teal-600"
-                                      : item.dbType === "monthly_bloom"
-                                        ? "bg-pink-500"
-                                        : "bg-orange-500"
-                          }`}
-                        />
+                      {/* Dynamic Top Stripe */}
+                      <div
+                        className={`absolute top-0 left-0 w-full h-1.5 rounded-t-3xl ${
+                          item.dbType === "marathon"
+                            ? "bg-emerald-500"
+                            : item.dbType === "sprint"
+                              ? "bg-blue-500"
+                              : item.dbType === "anchor"
+                                ? "bg-indigo-600"
+                                : item.dbType === "daily_drop"
+                                  ? "bg-cyan-500"
+                                  : item.dbType === "step_up"
+                                    ? "bg-teal-600"
+                                    : item.dbType === "monthly_bloom"
+                                      ? "bg-pink-500"
+                                      : "bg-orange-500"
+                        }`}
+                      />
 
-                        {/* Plan Header */}
-                        <div className="mb-3 sm:mb-4 pt-1">
-                          <h4 className="font-black text-slate-950 dark:text-white text-[17px] tracking-tight mb-1">
-                            {item.name}
-                          </h4>
-                          <span className="inline-block px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/30">
-                            {item.frequency}
+                      {/* Plan Header */}
+                      <div className="mb-3 sm:mb-4 pt-1">
+                        <h4 className="font-black text-slate-950 dark:text-white text-[17px] tracking-tight mb-1">
+                          {item.name}
+                        </h4>
+                        <span className="inline-block px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/30">
+                          {item.frequency}
+                        </span>
+                      </div>
+
+                      {/* Comparison Parameters */}
+                      <div className="space-y-3 sm:space-y-4 flex-1 text-xs border-t border-slate-100 dark:border-slate-850/50 pt-3 sm:pt-4">
+                        <div>
+                          <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-slate-500 block mb-1">
+                            Duration
                           </span>
+                          <p className="font-bold text-slate-850 dark:text-slate-200 text-sm">
+                            {item.duration}
+                          </p>
                         </div>
 
-                        {/* Comparison Parameters */}
-                        <div className="space-y-3 sm:space-y-4 flex-1 text-xs border-t border-slate-100 dark:border-slate-850/50 pt-3 sm:pt-4">
-                          <div>
-                            <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-slate-500 block mb-1">
-                              Duration
-                            </span>
-                            <p className="font-bold text-slate-850 dark:text-slate-200 text-sm">
-                              {item.duration}
-                            </p>
-                          </div>
-
-                          <div>
-                            <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-slate-500 block mb-1">
-                              Withdrawal Policy
-                            </span>
-                            <p className="font-medium text-slate-600 dark:text-slate-400 leading-relaxed">
-                              {item.withdrawals}
-                            </p>
-                          </div>
-
-                          <div>
-                            <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-slate-500 block mb-1">
-                              Best For
-                            </span>
-                            <p className="font-medium text-slate-600 dark:text-slate-400 leading-relaxed">
-                              {item.benefit}
-                            </p>
-                          </div>
+                        <div>
+                          <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-slate-500 block mb-1">
+                            Withdrawal Policy
+                          </span>
+                          <p className="font-medium text-slate-600 dark:text-slate-400 leading-relaxed">
+                            {item.withdrawals}
+                          </p>
                         </div>
 
-                        {/* Action Button */}
-                        <div className="mt-3.5 sm:mt-4 pt-3 border-t border-slate-150 dark:border-slate-850/50">
-                          <Button
-                            onClick={() =>
-                              handleSelectPlan({ name: item.name, id: dbMatch?.id })
-                            }
-                            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-bold h-12 shadow-md active:scale-95 transition-all"
-                          >
-                            Join {item.name}
-                          </Button>
+                        <div>
+                          <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-slate-500 block mb-1">
+                            Best For
+                          </span>
+                          <p className="font-medium text-slate-600 dark:text-slate-400 leading-relaxed">
+                            {item.benefit}
+                          </p>
                         </div>
                       </div>
-                    );
-                  })}
+
+                      {/* Action Button */}
+                      <div className="mt-3.5 sm:mt-4 pt-3 border-t border-slate-150 dark:border-slate-850/50">
+                        <Button
+                          onClick={() => handleSelectPlan({ name: item.name, id: dbMatch?.id })}
+                          className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-bold h-12 shadow-md active:scale-95 transition-all"
+                        >
+                          Join {item.name}
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </motion.div>
           )}

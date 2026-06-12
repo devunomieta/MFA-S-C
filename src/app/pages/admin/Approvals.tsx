@@ -34,7 +34,10 @@ export function AdminApprovals() {
   const [emailRequests, setEmailRequests] = useState<any[]>([]);
 
   // --- REJECTION PANEL STATE ---
-  const [rejectingItem, setRejectingItem] = useState<{ id: string; field: "nin_status" | "avatar_status" | "utility_bill_status" } | null>(null);
+  const [rejectingItem, setRejectingItem] = useState<{
+    id: string;
+    field: "nin_status" | "avatar_status" | "utility_bill_status";
+  } | null>(null);
   const [selectedReason, setSelectedReason] = useState<string>("");
   const [customReason, setCustomReason] = useState<string>("");
 
@@ -80,7 +83,9 @@ export function AdminApprovals() {
   async function fetchKycRequests() {
     const { data, error } = await supabase
       .from("profiles")
-      .select("id, full_name, email, gov_id_status, gov_id_url, utility_bill_url, avatar_url, bvn, nin, kyc_country, kyc_state, kyc_street, kyc_landmark, kyc_latitude, kyc_longitude, nin_status, avatar_status, utility_bill_status")
+      .select(
+        "id, full_name, email, gov_id_status, gov_id_url, utility_bill_url, avatar_url, bvn, nin, kyc_country, kyc_state, kyc_street, kyc_landmark, kyc_latitude, kyc_longitude, nin_status, avatar_status, utility_bill_status",
+      )
       .or("nin_status.eq.pending,avatar_status.eq.pending,utility_bill_status.eq.pending");
 
     if (error) console.error("Error fetching KYC:", error);
@@ -113,7 +118,7 @@ export function AdminApprovals() {
     req: any,
     field: "nin_status" | "avatar_status" | "utility_bill_status",
     newStatus: "verified" | "rejected",
-    reasonMessage?: string
+    reasonMessage?: string,
   ) {
     const { error } = await supabase
       .from("profiles")
@@ -121,9 +126,13 @@ export function AdminApprovals() {
       .eq("id", req.id);
 
     if (error) {
-      toast.error(`Failed to update ${field.replace("_status", "").replace("avatar", "selfie photo").toUpperCase()} status`);
+      toast.error(
+        `Failed to update ${field.replace("_status", "").replace("avatar", "selfie photo").toUpperCase()} status`,
+      );
     } else {
-      toast.success(`${field.replace("_status", "").replace("avatar", "selfie photo").toUpperCase()} set to ${newStatus}`);
+      toast.success(
+        `${field.replace("_status", "").replace("avatar", "selfie photo").toUpperCase()} set to ${newStatus}`,
+      );
 
       // Update local state immediately
       setKycRequests((prev) =>
@@ -133,12 +142,12 @@ export function AdminApprovals() {
             return updated;
           }
           return r;
-        })
+        }),
       );
 
       const actionText = newStatus === "verified" ? "approved" : "rejected";
       let msg = `Your uploaded ${field.replace("_status", "").replace("avatar", "selfie photo").toUpperCase()} has been ${actionText} by the administrator.`;
-      
+
       if (newStatus === "rejected" && reasonMessage) {
         msg += `\n\nReason: ${reasonMessage}`;
       }
@@ -162,13 +171,22 @@ export function AdminApprovals() {
         setKycRequests((prev) =>
           prev.filter((r) => {
             if (r.id === req.id) {
-              const currentNin = r.id === req.id && field === "nin_status" ? newStatus : r.nin_status;
-              const currentAvatar = r.id === req.id && field === "avatar_status" ? newStatus : r.avatar_status;
-              const currentUtility = r.id === req.id && field === "utility_bill_status" ? newStatus : r.utility_bill_status;
-              return currentNin === "pending" || currentAvatar === "pending" || currentUtility === "pending";
+              const currentNin =
+                r.id === req.id && field === "nin_status" ? newStatus : r.nin_status;
+              const currentAvatar =
+                r.id === req.id && field === "avatar_status" ? newStatus : r.avatar_status;
+              const currentUtility =
+                r.id === req.id && field === "utility_bill_status"
+                  ? newStatus
+                  : r.utility_bill_status;
+              return (
+                currentNin === "pending" ||
+                currentAvatar === "pending" ||
+                currentUtility === "pending"
+              );
             }
             return true;
-          })
+          }),
         );
       }, 500);
     }
@@ -256,7 +274,7 @@ export function AdminApprovals() {
   const renderDocumentControls = (
     req: any,
     label: string,
-    field: "nin_status" | "avatar_status" | "utility_bill_status"
+    field: "nin_status" | "avatar_status" | "utility_bill_status",
   ) => {
     const status = req[field] || "pending";
     const isRejectingThis = rejectingItem?.id === req.id && rejectingItem?.field === field;
@@ -271,14 +289,14 @@ export function AdminApprovals() {
               status === "verified"
                 ? "bg-emerald-50 text-emerald-700 border-emerald-200"
                 : status === "rejected"
-                ? "bg-rose-50 text-rose-700 border-rose-200"
-                : "bg-amber-50 text-amber-700 border-amber-200"
+                  ? "bg-rose-50 text-rose-700 border-rose-200"
+                  : "bg-amber-50 text-amber-700 border-amber-200"
             }`}
           >
             {status}
           </Badge>
         </div>
-        
+
         {!isRejectingThis ? (
           <div className="flex gap-1 pt-0.5">
             <Button
@@ -319,9 +337,9 @@ export function AdminApprovals() {
                   key={reason.id}
                   onClick={() => setSelectedReason(reason.id)}
                   className={`text-left text-[9px] px-2 py-1 rounded-md transition-colors ${
-                    selectedReason === reason.id 
-                      ? 'bg-rose-600 text-white' 
-                      : 'bg-white border border-rose-200 text-rose-700 hover:bg-rose-100'
+                    selectedReason === reason.id
+                      ? "bg-rose-600 text-white"
+                      : "bg-white border border-rose-200 text-rose-700 hover:bg-rose-100"
                   }`}
                 >
                   {reason.label}
@@ -351,9 +369,10 @@ export function AdminApprovals() {
                 className="flex-1 h-6 text-[9px] px-1 py-0 bg-rose-600 hover:bg-rose-700 text-white"
                 disabled={!selectedReason || (selectedReason === "other" && !customReason.trim())}
                 onClick={() => {
-                  const reasonText = selectedReason === "other" 
-                    ? customReason 
-                    : REJECTION_REASONS[field].find((r) => r.id === selectedReason)?.label || "";
+                  const reasonText =
+                    selectedReason === "other"
+                      ? customReason
+                      : REJECTION_REASONS[field].find((r) => r.id === selectedReason)?.label || "";
                   handleUpdateDocumentStatus(req, field, "rejected", reasonText);
                 }}
               >
@@ -445,17 +464,25 @@ export function AdminApprovals() {
                   <CardContent className="pt-4 space-y-4">
                     <div className="grid grid-cols-2 gap-2 text-xs border bg-slate-50/50 p-3 rounded-lg border-slate-100">
                       <div>
-                        <span className="text-[10px] text-gray-400 block font-bold uppercase">BVN</span>
+                        <span className="text-[10px] text-gray-400 block font-bold uppercase">
+                          BVN
+                        </span>
                         <span className="font-semibold">{req.bvn || "N/A"}</span>
                       </div>
                       <div>
-                        <span className="text-[10px] text-gray-400 block font-bold uppercase">NIN</span>
+                        <span className="text-[10px] text-gray-400 block font-bold uppercase">
+                          NIN
+                        </span>
                         <span className="font-semibold">{req.nin || "N/A"}</span>
                       </div>
                       <div className="col-span-2">
-                        <span className="text-[10px] text-gray-400 block font-bold uppercase">Address</span>
+                        <span className="text-[10px] text-gray-400 block font-bold uppercase">
+                          Address
+                        </span>
                         <span className="font-semibold">
-                          {req.kyc_street || "N/A"}, {req.kyc_landmark ? `(Landmark: ${req.kyc_landmark})` : ""}, {req.kyc_state || "N/A"}, {req.kyc_country || "N/A"}
+                          {req.kyc_street || "N/A"},{" "}
+                          {req.kyc_landmark ? `(Landmark: ${req.kyc_landmark})` : ""},{" "}
+                          {req.kyc_state || "N/A"}, {req.kyc_country || "N/A"}
                         </span>
                       </div>
                     </div>
@@ -521,9 +548,12 @@ export function AdminApprovals() {
                               </DialogTrigger>
                               <DialogContent className="max-w-3xl">
                                 <DialogHeader>
-                                  <DialogTitle>{req.full_name}'s Utility Bill / Signage</DialogTitle>
+                                  <DialogTitle>
+                                    {req.full_name}'s Utility Bill / Signage
+                                  </DialogTitle>
                                   <DialogDescription>
-                                    Review the uploaded utility bill or business signage for verification.
+                                    Review the uploaded utility bill or business signage for
+                                    verification.
                                   </DialogDescription>
                                 </DialogHeader>
                                 <img
@@ -563,7 +593,8 @@ export function AdminApprovals() {
                                 <DialogHeader>
                                   <DialogTitle>{req.full_name}'s Captured Live Photo</DialogTitle>
                                   <DialogDescription>
-                                    Review the user's captured webcam selfie to compare with the ID document.
+                                    Review the user's captured webcam selfie to compare with the ID
+                                    document.
                                   </DialogDescription>
                                 </DialogHeader>
                                 <img
@@ -582,7 +613,6 @@ export function AdminApprovals() {
                         {renderDocumentControls(req, "Selfie Photo", "avatar_status")}
                       </div>
                     </div>
-
                   </CardContent>
                 </Card>
               ))

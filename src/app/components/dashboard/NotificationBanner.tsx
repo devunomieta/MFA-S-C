@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
+
 import { Bell, X, ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useNotifications } from "@/app/context/NotificationContext";
+
 import { Button } from "@/app/components/ui/button";
+import { useNotifications } from "@/app/context/NotificationContext";
 
 export function NotificationBanner() {
   const { unreadCount } = useNotifications();

@@ -285,7 +285,11 @@ export function Contact({ onExplorePlans }: ContactProps) {
                       </div>
 
                       {/* Honeypot field - Hidden from users */}
-                      <HoneypotField name="honeypot" value={formData.honeypot} onChange={handleChange} />
+                      <HoneypotField
+                        name="honeypot"
+                        value={formData.honeypot}
+                        onChange={handleChange}
+                      />
 
                       <Button
                         type="submit"
@@ -339,7 +343,9 @@ export function Contact({ onExplorePlans }: ContactProps) {
                   Chat on WhatsApp
                 </Button>
                 <Button
-                  onClick={() => onExplorePlans ? onExplorePlans("quiz") : setShowRecommenderLocal(true)}
+                  onClick={() =>
+                    onExplorePlans ? onExplorePlans("quiz") : setShowRecommenderLocal(true)
+                  }
                   className="bg-emerald-950/30 hover:bg-emerald-950/50 text-white border-white/20 border font-bold rounded-2xl h-16 px-8 transition-all text-lg"
                 >
                   Explore Plans
