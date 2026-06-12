@@ -88,7 +88,7 @@ export function SecurityOnboarding({ onComplete }: SecurityOnboardingProps) {
           .maybeSingle();
 
         const hasPhone = !!profile?.phone && profile.phone.trim().length > 3;
-        const needsPassword = isGoogleUser && !profile?.has_password;
+        const needsPassword = isGoogleUser && !profile?.has_password && !user?.user_metadata?.has_password;
 
         if (profile?.onboarding_completed) {
           onComplete();

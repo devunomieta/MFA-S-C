@@ -164,6 +164,12 @@ export function KYCModal({ isOpen, onOpenChange, onSuccess, mode = "full" }: KYC
   const [livePhoto, setLivePhoto] = useState("");
   // 'prompt' = first time, 'denied' = user clicked block, 'blocked' = persisted block, 'no_camera' = no device, 'in_use' = busy
   const [cameraError, setCameraError] = useState<"denied" | "blocked" | "no_camera" | "in_use" | "unknown" | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    setIsMobile(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
+  }, []);
+
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef     = useRef<MediaStream | null>(null);
@@ -227,6 +233,13 @@ export function KYCModal({ isOpen, onOpenChange, onSuccess, mode = "full" }: KYC
       }
       setUtilityFile(selectedFile);
       toast.success("Utility bill looks clear ✓");
+    }
+  };
+
+  const handleManualSelfieUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files?.[0]) {
+      setLivePhoto(URL.createObjectURL(e.target.files[0]));
+      setCameraError(null);
     }
   };
 
@@ -509,7 +522,7 @@ export function KYCModal({ isOpen, onOpenChange, onSuccess, mode = "full" }: KYC
         // 3. Upload Live Photo
         let finalAvatarUrl = existingAvatarUrl;
         if (livePhoto) {
-          const blob = dataURLtoBlob(livePhoto);
+          const blob = await (await fetch(livePhoto)).blob();
           const fileName = `${user.id}-avatar-${Date.now()}.jpg`;
           const filePath = `${fileName}`;
 
@@ -592,7 +605,7 @@ export function KYCModal({ isOpen, onOpenChange, onSuccess, mode = "full" }: KYC
       setLoading(true);
       try {
         // 1. Upload new Live Photo
-        const blob = dataURLtoBlob(livePhoto);
+        const blob = await (await fetch(livePhoto)).blob();
         const fileName = `${user.id}-avatar-${Date.now()}.jpg`;
         const filePath = `${fileName}`;
 
@@ -921,14 +934,36 @@ export function KYCModal({ isOpen, onOpenChange, onSuccess, mode = "full" }: KYC
                     </div>
                   )}
 
-                  <Button
-                    type="button"
-                    size="sm"
-                    onClick={startCamera}
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg"
-                  >
-                    <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Try Again
-                  </Button>
+                  <div className="flex flex-col gap-2 mt-4 items-center w-full">
+                    {!isMobile && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={startCamera}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg w-full max-w-[200px]"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Try Again
+                      </Button>
+                    )}
+                    {isMobile && (
+                      <div className="relative w-full max-w-[200px]">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                          onChange={handleManualSelfieUpload}
+                        />
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="border-emerald-600 text-emerald-500 font-bold w-full pointer-events-none"
+                        >
+                          Or Upload Photo Instead
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               ) : (
                 <div className="w-full aspect-video flex flex-col items-center justify-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-900/50 p-4">
@@ -944,15 +979,36 @@ export function KYCModal({ isOpen, onOpenChange, onSuccess, mode = "full" }: KYC
                   ) : (
                     <Camera className="w-8 h-8 text-slate-400 mb-2" />
                   )}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={startCamera}
-                    className="bg-white hover:bg-slate-50 text-emerald-600 border-slate-200 dark:bg-slate-900 dark:border-slate-800 dark:text-emerald-400 font-bold mt-2"
-                  >
-                    Start Selfie Camera
-                  </Button>
+                  <div className="flex flex-col gap-2 w-full max-w-[200px] mt-2">
+                    {isMobile ? (
+                      <div className="relative">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                          onChange={handleManualSelfieUpload}
+                        />
+                        <Button
+                          type="button"
+                          variant="default"
+                          size="sm"
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold w-full pointer-events-none"
+                        >
+                          Take / Upload Photo
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={startCamera}
+                        className="bg-white hover:bg-slate-50 text-emerald-600 border-slate-200 dark:bg-slate-900 dark:border-slate-800 dark:text-emerald-400 font-bold w-full"
+                      >
+                        Use Web Camera
+                      </Button>
+                    )}
+                  </div>
                 </div>
               )}
 

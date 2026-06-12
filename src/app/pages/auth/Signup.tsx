@@ -82,6 +82,7 @@ export function Signup() {
         options: {
           data: {
             full_name: formData.name,
+            has_password: true,
           },
         },
       });
