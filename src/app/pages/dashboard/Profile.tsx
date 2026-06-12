@@ -850,19 +850,62 @@ export function Profile() {
     setIsCapturingKyc(true);
     setKycLivePhoto(null);
 
-    // ── 1. Request stream ──
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "user" },
-      });
-      streamKycRef.current = stream;
-      if (videoKycRef.current) {
-        videoKycRef.current.srcObject = stream;
-        // Mirror the video horizontally for a more natural selfie experience
-        videoKycRef.current.style.transform = "scaleX(-1)";
+    // ── 0. Check if mediaDevices is supported (e.g. secure context, not webview) ──
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      setKycCameraError("no_camera");
+      releaseKycCamera();
+      return;
+    }
+
+    // ── 1. Check permission state first (if supported) ──
+    if (navigator.permissions && navigator.permissions.query) {
+      try {
+        const perm = await navigator.permissions.query({ name: "camera" as PermissionName });
+        if (perm.state === "denied") {
+          setKycCameraError("blocked");
+          releaseKycCamera();
+          return;
+        }
+        perm.onchange = () => {
+          if (perm.state === "granted") {
+            setKycCameraError(null);
+            startKycCamera();
+          }
+        };
+      } catch {
+        // Permissions API not fully supported on some mobile browsers (e.g. iOS Safari)
       }
-    } catch (err: unknown) {
-      handleKycCameraError(err);
+    }
+
+    // ── 2. Request stream with progressive fallbacks ──
+    let stream: MediaStream | null = null;
+    const constraintsList = [
+      { video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } } },
+      { video: { facingMode: "user" } },
+      { video: true }
+    ];
+
+    let lastErr: unknown = null;
+    for (const constraints of constraintsList) {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
+        break; // Success!
+      } catch (err: unknown) {
+        lastErr = err;
+        // Continue to the next fallback constraint
+      }
+    }
+
+    if (!stream) {
+      handleKycCameraError(lastErr || new Error("No stream"));
+      return;
+    }
+
+    streamKycRef.current = stream;
+    if (videoKycRef.current) {
+      videoKycRef.current.srcObject = stream;
+      // Mirror the video horizontally for a more natural selfie experience
+      videoKycRef.current.style.transform = "scaleX(-1)";
     }
   };
 

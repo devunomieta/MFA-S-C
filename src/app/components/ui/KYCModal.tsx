@@ -343,16 +343,22 @@ export function KYCModal({ isOpen, onOpenChange, onSuccess, mode = "full" }: KYC
     setIsCapturing(true);
     setLivePhoto("");
 
-    // ── 1. Check permission state first (avoids instantly-failing getUserMedia) ──
-    if (navigator.permissions) {
+    // ── 0. Check if mediaDevices is supported (e.g. secure context, not webview) ──
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      setCameraError("no_camera");
+      releaseCamera();
+      return;
+    }
+
+    // ── 1. Check permission state first (if supported) ──
+    if (navigator.permissions && navigator.permissions.query) {
       try {
         const perm = await navigator.permissions.query({ name: "camera" as PermissionName });
         if (perm.state === "denied") {
-          setCameraError("blocked"); // Permanently blocked in browser settings
+          setCameraError("blocked");
           releaseCamera();
           return;
         }
-        // React to user changing permission while the panel is open
         perm.onchange = () => {
           if (perm.state === "granted") {
             setCameraError(null);
@@ -360,38 +366,35 @@ export function KYCModal({ isOpen, onOpenChange, onSuccess, mode = "full" }: KYC
           }
         };
       } catch {
-        // Permissions API not supported — fall through and let getUserMedia handle it
+        // Permissions API not fully supported on some mobile browsers (e.g. iOS Safari)
       }
     }
 
-    // ── 2. Request stream with ideal constraints, fall back to plain video if they fail ──
+    // ── 2. Request stream with progressive fallbacks ──
+    // Some mobile browsers throw generic errors instead of OverconstrainedError.
+    // We try ideal -> basic facing mode -> any video available.
     let stream: MediaStream | null = null;
-    try {
-      stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } },
-      });
-    } catch (err: unknown) {
-      const n = (err as any)?.name ?? "";
-      if (n === "OverconstrainedError" || n === "ConstraintNotSatisfiedError") {
-        // Relax constraints — try plain video (handles unusual cameras)
-        try {
-          stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
-        } catch (fallbackErr) {
-          try {
-            // Last resort: no constraints at all
-            stream = await navigator.mediaDevices.getUserMedia({ video: true });
-          } catch (lastErr) {
-            handleCameraError(lastErr);
-            return;
-          }
-        }
-      } else {
-        handleCameraError(err);
-        return;
+    const constraintsList = [
+      { video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } } },
+      { video: { facingMode: "user" } },
+      { video: true }
+    ];
+
+    let lastErr: unknown = null;
+    for (const constraints of constraintsList) {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
+        break; // Success!
+      } catch (err: unknown) {
+        lastErr = err;
+        // Continue to the next fallback constraint
       }
     }
 
-    if (!stream) { handleCameraError(new Error("No stream")); return; }
+    if (!stream) {
+      handleCameraError(lastErr || new Error("No stream"));
+      return;
+    }
 
     streamRef.current = stream;
     if (videoRef.current) {
