@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { ShieldCheck, MapPin, Upload, Loader2, CheckCircle2, AlertTriangle, Navigation, X } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { ShieldCheck, MapPin, Upload, Loader2, CheckCircle2, AlertTriangle, Navigation, X, Camera, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./dialog";
 import { Button } from "./button";
@@ -9,48 +9,112 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/app/context/AuthContext";
 import { validateFile } from "@/lib/validation";
+import { notificationDispatcher } from "@/lib/notificationDispatcher";
 
-const reverseGeocode = async (latitude: number, longitude: number) => {
-  try {
-    const response = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&accept-language=en`,
-      {
-        headers: {
-          "User-Agent": "MarysThriftFinance/1.0"
-        }
-      }
-    );
-    if (response.ok) {
-      const data = await response.json();
-      return data.display_name || `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
-    }
-  } catch (err) {
-    console.error("Reverse geocoding error:", err);
+/**
+ * Detects image quality issues using canvas pixel analysis.
+ * Returns { ok, reason } — reason is a human-readable rejection message.
+ *
+ * Thresholds are tuned very loosely for document scans:
+ *  1. Brightness — rejects near-black (too dark) or near-white (overexposed)
+ *  2. Laplacian variance — estimates sharpness; threshold lowered to 5
+ */
+function analyseImageQuality(
+  canvas: HTMLCanvasElement,
+  blurThreshold = 5
+): { ok: boolean; reason?: string } {
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return { ok: true };
+
+  const { width, height } = canvas;
+  if (width === 0 || height === 0) return { ok: false, reason: "The image appears to be empty." };
+
+  const imageData = ctx.getImageData(0, 0, width, height);
+  const pixels = imageData.data; // RGBA
+  const totalPixels = width * height;
+
+  // Build greyscale array
+  const grey: number[] = [];
+  let brightnessSum = 0;
+  for (let i = 0; i < pixels.length; i += 4) {
+    const g = 0.299 * pixels[i] + 0.587 * pixels[i + 1] + 0.114 * pixels[i + 2];
+    grey.push(g);
+    brightnessSum += g;
   }
-  return `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
-};
+  const avgBrightness = brightnessSum / totalPixels;
 
-const verifyAddressMatch = (typedStreet: string, typedState: string, geocodedAddressStr: string) => {
-  const normalizedGeocode = geocodedAddressStr.toLowerCase();
-  
-  let stateMatch = normalizedGeocode.includes(typedState.toLowerCase());
-  // Abuja/FCT equivalence
-  if (typedState.toLowerCase() === "abuja" || typedState.toLowerCase() === "federal capital territory") {
-    if (normalizedGeocode.includes("abuja") || normalizedGeocode.includes("federal capital territory") || normalizedGeocode.includes("fct")) {
-      stateMatch = true;
+  if (avgBrightness < 10) {
+    return { ok: false, reason: "The image is too dark. Please improve lighting and try again." };
+  }
+  if (avgBrightness > 250) {
+    return { ok: false, reason: "The image is overexposed / too bright. Please reduce glare and try again." };
+  }
+
+  // Laplacian variance — sharpness metric
+  // Apply 3×3 Laplacian kernel: [0,-1,0,-1,4,-1,0,-1,0]
+  let lapSum = 0;
+  let lapSumSq = 0;
+  let lapCount = 0;
+  for (let y = 1; y < height - 1; y++) {
+    for (let x = 1; x < width - 1; x++) {
+      const idx = y * width + x;
+      const lap =
+        -grey[idx - width] -
+        grey[idx - 1] +
+        4 * grey[idx] -
+        grey[idx + 1] -
+        grey[idx + width];
+      lapSum += lap;
+      lapSumSq += lap * lap;
+      lapCount++;
     }
   }
-  
-  const streetWords = typedStreet
-    .toLowerCase()
-    .replace(/[^\w\s]/g, "")
-    .split(/\s+/)
-    .filter(word => word.length > 2 && !["street", "road", "lane", "avenue", "drive", "way", "close", "crescent"].includes(word));
+  const lapMean = lapSum / lapCount;
+  const lapVariance = lapSumSq / lapCount - lapMean * lapMean;
 
-  const streetMatch = streetWords.length === 0 || streetWords.some(word => normalizedGeocode.includes(word));
-  
-  return stateMatch && streetMatch;
-};
+  if (lapVariance < blurThreshold) {
+    return {
+      ok: false,
+      reason:
+        "The image appears very blurry. Please ensure the document is clear and well-lit.",
+    };
+  }
+
+  return { ok: true };
+}
+
+/**
+ * Loads a File into an off-screen canvas and runs analyseImageQuality.
+ * Returns the same { ok, reason } result.
+ */
+async function validateDocumentQuality(
+  file: File
+): Promise<{ ok: boolean; reason?: string }> {
+  return new Promise((resolve) => {
+    // Only validate image files (not PDFs)
+    if (!file.type.startsWith("image/")) {
+      resolve({ ok: true });
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) { resolve({ ok: true }); return; }
+        ctx.drawImage(img, 0, 0);
+        resolve(analyseImageQuality(canvas));
+      };
+      img.onerror = () => resolve({ ok: true });
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = () => resolve({ ok: true });
+    reader.readAsDataURL(file);
+  });
+}
 
 interface KYCModalProps {
   isOpen: boolean;
@@ -63,13 +127,24 @@ const NIGERIAN_STATES = [
   "Lagos", "Abuja", "Abia", "Adamawa", "Akwa Ibom", "Anambra", "Bauchi", "Bayelsa", "Benue", "Borno", 
   "Cross River", "Delta", "Ebonyi", "Edo", "Ekiti", "Enugu", "Gombe", "Imo", "Jigawa", "Kaduna", 
   "Kano", "Katsina", "Kebbi", "Kogi", "Kwara", "Nasarawa", "Niger", "Ogun", "Ondo", "Osun", 
-  "Oyo", "Plateate", "Rivers", "Sokoto", "Taraba", "Yobe", "Zamfara"
+  "Oyo", "Plateau", "Rivers", "Sokoto", "Taraba", "Yobe", "Zamfara"
 ];
+
+const dataURLtoBlob = (dataurl: string) => {
+  const arr = dataurl.split(",");
+  const mime = arr[0].match(/:(.*?);/)?.[1] || "image/jpeg";
+  const bstr = atob(arr[1]);
+  let n = bstr.length;
+  const u8arr = new Uint8Array(n);
+  while (n--) {
+    u8arr[n] = bstr.charCodeAt(n);
+  }
+  return new Blob([u8arr], { type: mime });
+};
 
 export function KYCModal({ isOpen, onOpenChange, onSuccess, mode = "full" }: KYCModalProps) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [gpsLoading, setGpsLoading] = useState(false);
   
   // Form values
   const [bvn, setBvn] = useState("");
@@ -80,13 +155,30 @@ export function KYCModal({ isOpen, onOpenChange, onSuccess, mode = "full" }: KYC
   const [state, setState] = useState("Lagos");
   const [street, setStreet] = useState("");
   const [landmark, setLandmark] = useState("");
-  const [lat, setLat] = useState<number | null>(null);
-  const [lng, setLng] = useState<number | null>(null);
   const [addressConfirmed, setAddressConfirmed] = useState(false);
-  const [geocodedAddress, setGeocodedAddress] = useState("");
   const [existingUtilityBillUrl, setExistingUtilityBillUrl] = useState("");
+  const [existingAvatarUrl, setExistingAvatarUrl] = useState("");
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Webcam States
+  const [isCapturing, setIsCapturing] = useState(false);
+  const [livePhoto, setLivePhoto] = useState("");
+  // 'prompt' = first time, 'denied' = user clicked block, 'blocked' = persisted block, 'no_camera' = no device, 'in_use' = busy
+  const [cameraError, setCameraError] = useState<"denied" | "blocked" | "no_camera" | "in_use" | "unknown" | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const streamRef     = useRef<MediaStream | null>(null);
+
+  /** Fully stops the camera: clears intervals, stops all tracks, nulls srcObject. */
+  const releaseCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+    if (videoRef.current) videoRef.current.srcObject = null;
+    setIsCapturing(false);
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.[0]) {
       const selectedFile = e.target.files[0];
       const validation = validateFile(selectedFile, {
@@ -95,13 +187,24 @@ export function KYCModal({ isOpen, onOpenChange, onSuccess, mode = "full" }: KYC
       });
       if (!validation.isValid) {
         toast.error(validation.error);
+        return;
+      }
+      if (selectedFile.size < 50 * 1024) {
+        toast.error("The uploaded file is too small or blurry. Please upload a clear NIN document image (at least 50KB).");
+        return;
+      }
+      // Quality check — blur / brightness
+      const quality = await validateDocumentQuality(selectedFile);
+      if (!quality.ok) {
+        toast.error(`NIN Slip rejected: ${quality.reason}`);
         return;
       }
       setFile(selectedFile);
+      toast.success("NIN slip looks clear ✓");
     }
   };
 
-  const handleUtilityFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleUtilityFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.[0]) {
       const selectedFile = e.target.files[0];
       const validation = validateFile(selectedFile, {
@@ -112,19 +215,36 @@ export function KYCModal({ isOpen, onOpenChange, onSuccess, mode = "full" }: KYC
         toast.error(validation.error);
         return;
       }
+      if (selectedFile.size < 50 * 1024) {
+        toast.error("The uploaded file is too small or blurry. Please upload a clear utility bill image (at least 50KB).");
+        return;
+      }
+      // Quality check — blur / brightness
+      const quality = await validateDocumentQuality(selectedFile);
+      if (!quality.ok) {
+        toast.error(`Utility Bill rejected: ${quality.reason}`);
+        return;
+      }
       setUtilityFile(selectedFile);
+      toast.success("Utility bill looks clear ✓");
     }
   };
 
+  // Release camera whenever modal closes — useRef values are never stale
   useEffect(() => {
-    if (lat && lng) {
-      reverseGeocode(lat, lng).then((address) => {
-        setGeocodedAddress(address);
-      });
-    } else {
-      setGeocodedAddress("");
+    if (!isOpen) {
+      releaseCamera();
+      setLivePhoto("");
     }
-  }, [lat, lng]);
+  }, [isOpen]);
+
+  // Release camera on unmount
+  useEffect(() => {
+    return () => {
+      if (streamRef.current)     streamRef.current.getTracks().forEach(t => t.stop());
+      if (videoRef.current)      videoRef.current.srcObject = null;
+    };
+  }, []);
 
   // Load existing profile details if mode is confirm
   useEffect(() => {
@@ -137,7 +257,7 @@ export function KYCModal({ isOpen, onOpenChange, onSuccess, mode = "full" }: KYC
     try {
       const { data, error } = await supabase
         .from("profiles")
-        .select("bvn, nin, kyc_country, kyc_state, kyc_street, kyc_landmark, kyc_latitude, kyc_longitude, utility_bill_url")
+        .select("bvn, nin, kyc_country, kyc_state, kyc_street, kyc_landmark, utility_bill_url, avatar_url")
         .eq("id", user?.id)
         .single();
       
@@ -148,85 +268,160 @@ export function KYCModal({ isOpen, onOpenChange, onSuccess, mode = "full" }: KYC
         if (data.kyc_state) setState(data.kyc_state);
         if (data.kyc_street) setStreet(data.kyc_street);
         if (data.kyc_landmark) setLandmark(data.kyc_landmark);
-        if (data.kyc_latitude) setLat(Number(data.kyc_latitude));
-        if (data.kyc_longitude) setLng(Number(data.kyc_longitude));
         if (data.utility_bill_url) setExistingUtilityBillUrl(data.utility_bill_url);
+        if (data.avatar_url) setExistingAvatarUrl(data.avatar_url);
       }
     } catch (err) {
       console.error("Error loading profile KYC:", err);
     }
   }
 
-  // Handle GPS Capture
-  const handleGPSCapture = () => {
-    if (!navigator.geolocation) {
-      toast.error("Geolocation is not supported by your browser");
-      return;
+  // ─── Camera permission + startup helpers ────────────────────────────────
+
+  /** Detects the user's browser for tailored unblock instructions. */
+  const getBrowserName = () => {
+    const ua = navigator.userAgent;
+    if (/Firefox\//.test(ua)) return "firefox";
+    if (/Edg\//.test(ua))     return "edge";
+    if (/OPR\/|Opera\//.test(ua)) return "opera";
+    if (/Chrome\//.test(ua)) return "chrome";
+    if (/Safari\//.test(ua)) return "safari";
+    return "other";
+  };
+
+  /** Returns ordered unblock steps for the detected browser / platform. */
+  const getCameraUnblockSteps = (): string[] => {
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    if (isMobile) return [
+      "Open your device Settings",
+      "Find your browser app (Chrome, Safari, etc.)",
+      "Tap Permissions → Camera → Allow",
+      "Return here and tap \"Try Again\"",
+    ];
+    const b = getBrowserName();
+    if (b === "chrome" || b === "edge") return [
+      "Click the 🔒 lock icon in the address bar",
+      "Select \"Site settings\" then find Camera",
+      "Change Camera from \"Blocked\" to \"Allow\"",
+      "Click \"Try Again\" below — no refresh needed",
+    ];
+    if (b === "firefox") return [
+      "Click the camera icon (🎥) in the address bar",
+      "Select \"Remove Blocked permission\"",
+      "Click \"Try Again\" below to re-trigger the prompt",
+    ];
+    if (b === "safari") return [
+      "Click Safari menu → Settings for this Website",
+      "Set Camera to \"Allow\"",
+      "Click \"Try Again\" below",
+    ];
+    return [
+      "Click the camera / lock icon in your browser's address bar",
+      "Find Camera permissions and set them to \"Allow\"",
+      "Click \"Try Again\" below",
+    ];
+  };
+
+  /** Classifies a getUserMedia error and sets cameraError state. */
+  const handleCameraError = (err: unknown) => {
+    const name = (err as any)?.name ?? "";
+    if (name === "NotAllowedError" || name === "PermissionDeniedError") {
+      setCameraError("denied");
+    } else if (name === "NotFoundError" || name === "DevicesNotFoundError") {
+      setCameraError("no_camera");
+    } else if (name === "NotReadableError" || name === "TrackStartError") {
+      setCameraError("in_use");
+    } else {
+      setCameraError("unknown");
     }
+    releaseCamera();
+  };
 
-    if (window.location.protocol !== "https:" && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1") {
-      toast.warning("Warning: Mobile browsers block geolocation prompts on insecure HTTP connections. Please test via HTTPS or localhost to trigger the prompt.");
-    }
+  const startCamera = async () => {
+    releaseCamera();
+    setCameraError(null);
+    setIsCapturing(true);
+    setLivePhoto("");
 
-    setGpsLoading(true);
-
-    const successCallback = async (position: GeolocationPosition) => {
-      const accuracy = position.coords.accuracy;
-      if (accuracy > 200) {
-        setGpsLoading(false);
-        toast.error(`Capture failed: Location accuracy is too low (${accuracy.toFixed(1)} meters). We detected an approximate IP-based location. Please ensure your device's Wi-Fi is turned ON (to allow Wi-Fi triangulation) or use a mobile device with location services enabled to get under 200 meters precision.`);
-        return;
-      }
-
-      const latitude = position.coords.latitude;
-      const longitude = position.coords.longitude;
-      setLat(latitude);
-      setLng(longitude);
-      
-      toast.info("Retrieving physical address from GPS...");
-      const address = await reverseGeocode(latitude, longitude);
-      setGeocodedAddress(address);
-      setGpsLoading(false);
-      toast.success("Location captured successfully!");
-
-      if (street.trim()) {
-        const isMatch = verifyAddressMatch(street, state, address);
-        if (!isMatch) {
-          toast.warning("Warning: Captured location address does not match your entered street address and state. Please check your address inputs or ensure you are present at the location.");
-        } else {
-          toast.success("GPS Location matches your entered address!");
+    // ── 1. Check permission state first (avoids instantly-failing getUserMedia) ──
+    if (navigator.permissions) {
+      try {
+        const perm = await navigator.permissions.query({ name: "camera" as PermissionName });
+        if (perm.state === "denied") {
+          setCameraError("blocked"); // Permanently blocked in browser settings
+          releaseCamera();
+          return;
         }
+        // React to user changing permission while the panel is open
+        perm.onchange = () => {
+          if (perm.state === "granted") {
+            setCameraError(null);
+            startCamera();
+          }
+        };
+      } catch {
+        // Permissions API not supported — fall through and let getUserMedia handle it
       }
-    };
+    }
 
-    const errorCallback = (error: GeolocationPositionError) => {
-      console.error("GPS Capture Error:", error);
-      if (error.code === 1) {
-        setGpsLoading(false);
-        toast.error("Location permission denied. Please allow location access in your device and browser settings.");
+    // ── 2. Request stream with ideal constraints, fall back to plain video if they fail ──
+    let stream: MediaStream | null = null;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } },
+      });
+    } catch (err: unknown) {
+      const n = (err as any)?.name ?? "";
+      if (n === "OverconstrainedError" || n === "ConstraintNotSatisfiedError") {
+        // Relax constraints — try plain video (handles unusual cameras)
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+        } catch (fallbackErr) {
+          try {
+            // Last resort: no constraints at all
+            stream = await navigator.mediaDevices.getUserMedia({ video: true });
+          } catch (lastErr) {
+            handleCameraError(lastErr);
+            return;
+          }
+        }
+      } else {
+        handleCameraError(err);
         return;
       }
+    }
 
-      toast.info("High accuracy GPS search timed out or is unavailable. Retrying with standard accuracy...");
-      navigator.geolocation.getCurrentPosition(
-        successCallback,
-        (err) => {
-          setGpsLoading(false);
-          if (err.code === 1) {
-            toast.error("Location permission denied. Please allow location access in your device and browser settings.");
-          } else {
-            toast.error(`Failed to capture location: ${err.message || "Unknown error"}. Check device location settings.`);
-          }
-        },
-        { enableHighAccuracy: false, timeout: 15000, maximumAge: 60000 }
-      );
-    };
+    if (!stream) { handleCameraError(new Error("No stream")); return; }
 
-    navigator.geolocation.getCurrentPosition(
-      successCallback,
-      errorCallback,
-      { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
-    );
+    streamRef.current = stream;
+    if (videoRef.current) {
+      videoRef.current.srcObject = stream;
+      // Mirror the video horizontally for a more natural selfie experience
+      videoRef.current.style.transform = "scaleX(-1)";
+    }
+  };
+
+  const stopCamera = () => releaseCamera();
+
+  const capturePhoto = () => {
+    if (videoRef.current && canvasRef.current) {
+      const context = canvasRef.current.getContext("2d");
+      if (context) {
+        canvasRef.current.width = videoRef.current.videoWidth;
+        canvasRef.current.height = videoRef.current.videoHeight;
+        
+        // Ensure the canvas capture respects the mirrored video
+        context.translate(canvasRef.current.width, 0);
+        context.scale(-1, 1);
+        
+        context.drawImage(videoRef.current, 0, 0);
+
+        const dataUrl = canvasRef.current.toDataURL("image/jpeg", 0.9);
+        setLivePhoto(dataUrl);
+        stopCamera();
+        toast.success("Photo captured successfully ✓");
+      }
+    }
   };
 
   // Submit Handler
@@ -253,16 +448,9 @@ export function KYCModal({ isOpen, onOpenChange, onSuccess, mode = "full" }: KYC
         return;
       }
 
-      // Validate GPS coordinates
-      if (lat === null || lng === null) {
-        toast.error("Please capture your live location");
-        return;
-      }
-
-      // Verify physical address match
-      const isMatch = verifyAddressMatch(street, state, geocodedAddress);
-      if (!isMatch) {
-        toast.error("Verification failed: Your physical GPS location does not match your typed address. Please ensure you are physically present at your typed address to submit KYC.");
+      // Validate Live Photo
+      if (!livePhoto) {
+        toast.error("Please capture a live photo profile picture");
         return;
       }
 
@@ -315,7 +503,29 @@ export function KYCModal({ isOpen, onOpenChange, onSuccess, mode = "full" }: KYC
           finalUtilityBillUrl = utilPublicUrl;
         }
 
-        // 3. Update profiles in Supabase
+        // 3. Upload Live Photo
+        let finalAvatarUrl = existingAvatarUrl;
+        if (livePhoto) {
+          const blob = dataURLtoBlob(livePhoto);
+          const fileName = `${user.id}-avatar-${Date.now()}.jpg`;
+          const filePath = `${fileName}`;
+
+          const { error: avatarUploadError } = await supabase.storage
+            .from("avatars")
+            .upload(filePath, blob, {
+              contentType: "image/jpeg"
+            });
+
+          if (avatarUploadError) throw avatarUploadError;
+
+          const { data: { publicUrl: avatarPublicUrl } } = supabase.storage
+            .from("avatars")
+            .getPublicUrl(filePath);
+
+          finalAvatarUrl = avatarPublicUrl;
+        }
+
+        // 4. Update profiles in Supabase
         const { error: updateError } = await supabase
           .from("profiles")
           .update({
@@ -323,18 +533,37 @@ export function KYCModal({ isOpen, onOpenChange, onSuccess, mode = "full" }: KYC
             nin: nin,
             gov_id_url: publicUrl,
             utility_bill_url: finalUtilityBillUrl,
+            avatar_url: finalAvatarUrl,
             gov_id_status: "pending",
+            nin_status: "pending",
+            avatar_status: "pending",
+            utility_bill_status: "pending",
             kyc_country: country,
             kyc_state: state,
             kyc_street: street,
             kyc_landmark: landmark,
-            kyc_latitude: lat,
-            kyc_longitude: lng,
+            kyc_latitude: null,
+            kyc_longitude: null,
             kyc_last_confirmed_at: new Date().toISOString()
           })
           .eq("id", user.id);
 
         if (updateError) throw updateError;
+
+        // Update auth metadata
+        await supabase.auth.updateUser({
+          data: { avatar_url: finalAvatarUrl }
+        });
+
+        // Notify user — submission received, pending admin review
+        await notificationDispatcher.sendAlert({
+          userId: user.id,
+          email: user.email || "",
+          type: "profile",
+          title: "KYC Documents Submitted",
+          message:
+            "Your KYC documents (NIN slip, selfie photo, and utility bill) have been submitted and are pending admin review. You will be notified once each document is approved or if any action is required.",
+        });
 
         toast.success("KYC submitted successfully! Pending admin verification.");
         onSuccess();
@@ -352,37 +581,53 @@ export function KYCModal({ isOpen, onOpenChange, onSuccess, mode = "full" }: KYC
         return;
       }
 
-      if (lat === null || lng === null) {
-        toast.error("Please refresh your live location via GPS");
-        return;
-      }
-
-      // Verify physical address match
-      const isMatch = verifyAddressMatch(street, state, geocodedAddress);
-      if (!isMatch) {
-        toast.error("Verification failed: Your physical GPS location does not match your confirmed address. Please ensure you are physically present at your registered address to complete this request.");
+      if (!livePhoto) {
+        toast.error("Please capture a live photo to confirm your identity");
         return;
       }
 
       setLoading(true);
       try {
+        // 1. Upload new Live Photo
+        const blob = dataURLtoBlob(livePhoto);
+        const fileName = `${user.id}-avatar-${Date.now()}.jpg`;
+        const filePath = `${fileName}`;
+
+        const { error: avatarUploadError } = await supabase.storage
+          .from("avatars")
+          .upload(filePath, blob, {
+            contentType: "image/jpeg"
+          });
+
+        if (avatarUploadError) throw avatarUploadError;
+
+        const { data: { publicUrl: avatarPublicUrl } } = supabase.storage
+          .from("avatars")
+          .getPublicUrl(filePath);
+
         const { error } = await supabase
           .from("profiles")
           .update({
-            kyc_latitude: lat,
-            kyc_longitude: lng,
+            avatar_url: avatarPublicUrl,
+            kyc_latitude: null,
+            kyc_longitude: null,
             kyc_last_confirmed_at: new Date().toISOString()
           })
           .eq("id", user.id);
 
         if (error) throw error;
 
-        toast.success("Address & Live Location verified successfully!");
+        // Update auth metadata
+        await supabase.auth.updateUser({
+          data: { avatar_url: avatarPublicUrl }
+        });
+
+        toast.success("Identity and address confirmed successfully!");
         onSuccess();
         onOpenChange(false);
       } catch (err: any) {
         console.error("Verification Error:", err);
-        toast.error(err.message || "Failed to verify address and location");
+        toast.error(err.message || "Failed to confirm identity");
       } finally {
         setLoading(false);
       }
@@ -563,44 +808,152 @@ export function KYCModal({ isOpen, onOpenChange, onSuccess, mode = "full" }: KYC
             </>
           )}
 
-          {/* GPS Capture Button */}
+          {/* Mandatory Live Photo Capture */}
           <div className="bg-emerald-50/50 dark:bg-emerald-950/10 border border-emerald-500/10 rounded-2xl p-4 space-y-3">
             <div className="flex items-start gap-3">
-              <Navigation className="w-5 h-5 text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0" />
+              <Camera className="w-5 h-5 text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0" />
               <div>
-                <p className="text-xs font-bold text-slate-800 dark:text-slate-200">Your Current Location</p>
-                <p className="text-[10px] text-slate-500 leading-normal mt-0.5">We verify your physical device location at the time of this request for security and anti-fraud audit logs.</p>
+                <p className="text-xs font-bold text-slate-800 dark:text-slate-200">Mandatory Live Photo Update</p>
+                <p className="text-[10px] text-slate-500 leading-normal mt-0.5">Please take a live photo of yourself to update your profile picture and verify your identity.</p>
               </div>
             </div>
-            
-            <div className="flex flex-col gap-2.5 items-start w-full">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleGPSCapture}
-                disabled={gpsLoading}
-                className="bg-white border-slate-200 hover:bg-slate-50 text-emerald-600 dark:bg-slate-900 dark:border-slate-800 font-bold shrink-0"
-              >
-                {gpsLoading ? (
-                  <>
-                    <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Capturing...
-                  </>
-                ) : (
-                  <>
-                    <MapPin className="w-3.5 h-3.5 mr-1.5" /> Capture Location
-                  </>
-                )}
-              </Button>
-              {geocodedAddress ? (
-                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold leading-normal">
-                  {geocodedAddress}
-                </span>
+
+            <div className="w-full flex flex-col items-center justify-center gap-3">
+              {isCapturing ? (
+                <div className="relative w-full overflow-hidden rounded-xl bg-black aspect-[3/4] sm:aspect-video flex items-center justify-center">
+                  <video
+                    ref={videoRef}
+                    autoPlay
+                    playsInline
+                    className="w-full h-full object-cover"
+                  />
+                  {/* Action buttons */}
+                  <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-2 z-10">
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={capturePhoto}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg px-6"
+                    >
+                      Capture Photo
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={stopCamera}
+                      className="bg-slate-900/80 border-slate-700 text-slate-200 hover:bg-slate-800 font-bold rounded-lg"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              ) : livePhoto ? (
+                <div className="relative w-full aspect-video bg-slate-100 dark:bg-slate-900 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800">
+                  <img
+                    src={livePhoto}
+                    alt="Live Photo Selfie"
+                    className="w-full h-full object-cover scale-x-[-1]"
+                  />
+                  <div className="absolute bottom-3 left-0 right-0 flex justify-center">
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={startCamera}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg"
+                    >
+                      Retake Photo
+                    </Button>
+                  </div>
+                </div>
+              ) : cameraError ? (
+                /* ── Camera error / permission panel ─────────────────────────── */
+                <div className="w-full rounded-xl border border-slate-700 bg-slate-900 p-5 flex flex-col items-center gap-4 text-center">
+                  <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                    cameraError === "no_camera" ? "bg-red-500/15" : "bg-amber-500/15"
+                  }`}>
+                    <Camera className={`w-6 h-6 ${
+                      cameraError === "no_camera" ? "text-red-400" : "text-amber-400"
+                    }`} />
+                  </div>
+
+                  {/* Title + description */}
+                  {cameraError === "denied" || cameraError === "blocked" ? (
+                    <>
+                      <div>
+                        <p className="text-sm font-bold text-white mb-1">Camera Access Blocked</p>
+                        <p className="text-xs text-slate-400">
+                          Your browser is blocking camera access for this site. Follow the steps below to allow it:
+                        </p>
+                      </div>
+                      <ol className="text-xs text-slate-300 text-left space-y-2 w-full list-none">
+                        {getCameraUnblockSteps().map((step, i) => (
+                          <li key={i} className="flex items-start gap-2">
+                            <span className="flex-shrink-0 w-5 h-5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-bold flex items-center justify-center">{i + 1}</span>
+                            <span>{step}</span>
+                          </li>
+                        ))}
+                      </ol>
+                    </>
+                  ) : cameraError === "no_camera" ? (
+                    <div>
+                      <p className="text-sm font-bold text-white mb-1">No Camera Found</p>
+                      <p className="text-xs text-slate-400">
+                        No camera device was detected. Please connect a camera and try again.
+                      </p>
+                    </div>
+                  ) : cameraError === "in_use" ? (
+                    <div>
+                      <p className="text-sm font-bold text-white mb-1">Camera In Use</p>
+                      <p className="text-xs text-slate-400">
+                        Your camera is currently being used by another application (e.g. video call, another browser tab). Please close it and try again.
+                      </p>
+                    </div>
+                  ) : (
+                    <div>
+                      <p className="text-sm font-bold text-white mb-1">Camera Unavailable</p>
+                      <p className="text-xs text-slate-400">
+                        An unexpected error occurred. Please ensure your camera is connected and not blocked, then try again.
+                      </p>
+                    </div>
+                  )}
+
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={startCamera}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Try Again
+                  </Button>
+                </div>
               ) : (
-                <span className="text-[10px] text-red-500 font-bold flex items-center gap-1">
-                  <AlertTriangle className="w-3.5 h-3.5 animate-pulse" /> Location pending capture
-                </span>
+                <div className="w-full aspect-video flex flex-col items-center justify-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-900/50 p-4">
+                  {existingAvatarUrl ? (
+                    <div className="text-center space-y-2">
+                      <img
+                        src={existingAvatarUrl}
+                        alt="Current Profile Pic"
+                        className="w-16 h-16 rounded-full mx-auto object-cover border-2 border-emerald-505"
+                      />
+                      <p className="text-xs text-slate-500 font-semibold">Existing profile picture loaded</p>
+                    </div>
+                  ) : (
+                    <Camera className="w-8 h-8 text-slate-400 mb-2" />
+                  )}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={startCamera}
+                    className="bg-white hover:bg-slate-50 text-emerald-600 border-slate-200 dark:bg-slate-900 dark:border-slate-800 dark:text-emerald-400 font-bold mt-2"
+                  >
+                    Start Selfie Camera
+                  </Button>
+                </div>
               )}
+
+              <canvas ref={canvasRef} className="hidden" />
             </div>
           </div>
 
@@ -615,7 +968,7 @@ export function KYCModal({ isOpen, onOpenChange, onSuccess, mode = "full" }: KYC
             </Button>
             <Button
               type="submit"
-              disabled={loading || (mode === "confirm" && (!addressConfirmed || lat === null))}
+              disabled={loading || !livePhoto || (mode === "confirm" && !addressConfirmed)}
               className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl"
             >
               {loading ? (

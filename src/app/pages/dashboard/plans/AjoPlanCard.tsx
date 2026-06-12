@@ -92,31 +92,14 @@ export function AjoPlanCard({
     if (!user || !user_plan) return;
     setSettling(true);
     try {
-      const { data: updatedProfile, error: profileError } = await supabase
-        .from("profiles")
-        .select("kyc_latitude, kyc_longitude")
-        .eq("id", user.id)
-        .single();
-      
-      if (profileError || !updatedProfile) {
-        throw new Error("Failed to retrieve location coordinates. Please try again.");
-      }
-
-      const lat = updatedProfile.kyc_latitude ? Number(updatedProfile.kyc_latitude) : null;
-      const lng = updatedProfile.kyc_longitude ? Number(updatedProfile.kyc_longitude) : null;
-
-      if (lat === null || lng === null) {
-        throw new Error("GPS coordinates not found. Please capture location.");
-      }
-
       const metadata = user_plan.plan_metadata || {};
       const currentWeek = metadata.current_week || 1;
 
       const { error: rpcError } = await supabase.rpc("settle_user_ajo_payout", {
         p_user_plan_id: user_plan.id,
         p_week: currentWeek,
-        p_lat: lat,
-        p_lng: lng
+        p_lat: null,
+        p_lng: null
       });
 
       if (rpcError) throw rpcError;

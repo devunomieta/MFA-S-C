@@ -410,27 +410,19 @@ export function AdminUserDetails() {
                   <span className="text-xs text-gray-400 block font-bold uppercase tracking-wider">Closest Landmark</span>
                   <span className="text-sm font-medium">{profile.kyc_landmark || "Not provided"}</span>
                 </div>
-                <div className="md:col-span-2">
-                  <span className="text-xs text-gray-400 block font-bold uppercase tracking-wider">GPS Live Coordinates</span>
-                  {profile.kyc_latitude !== null && profile.kyc_longitude !== null ? (
-                    <a
-                      href={`https://www.google.com/maps?q=${profile.kyc_latitude},${profile.kyc_longitude}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm font-bold text-emerald-600 hover:underline flex items-center gap-1"
-                    >
-                      📍 {Number(profile.kyc_latitude).toFixed(6)}, {Number(profile.kyc_longitude).toFixed(6)} (Open Google Maps)
-                    </a>
-                  ) : (
-                    <span className="text-sm text-slate-500">Not captured</span>
-                  )}
-                </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t pt-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-t pt-4">
                 {profile.gov_id_url && (
                   <div>
-                    <span className="text-xs text-gray-400 block font-bold uppercase tracking-wider mb-2">NIN Document</span>
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-xs text-gray-400 block font-bold uppercase tracking-wider">NIN Document</span>
+                      <Badge variant="outline" className={`text-[8px] px-1.5 py-0 h-4 uppercase font-semibold ${
+                        profile.nin_status === "verified" ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
+                        profile.nin_status === "rejected" ? "bg-rose-50 text-rose-700 border-rose-200" :
+                        "bg-amber-50 text-amber-700 border-amber-200"
+                      }`}>{profile.nin_status || "pending"}</Badge>
+                    </div>
                     <div className="p-4 bg-slate-50 rounded-xl flex items-center justify-center max-w-md border border-slate-100 h-64">
                       <img
                         src={profile.gov_id_url}
@@ -442,11 +434,37 @@ export function AdminUserDetails() {
                 )}
                 {profile.utility_bill_url && (
                   <div>
-                    <span className="text-xs text-gray-400 block font-bold uppercase tracking-wider mb-2">Utility Bill / Signage</span>
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-xs text-gray-400 block font-bold uppercase tracking-wider">Utility Bill / Signage</span>
+                      <Badge variant="outline" className={`text-[8px] px-1.5 py-0 h-4 uppercase font-semibold ${
+                        profile.utility_bill_status === "verified" ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
+                        profile.utility_bill_status === "rejected" ? "bg-rose-50 text-rose-700 border-rose-200" :
+                        "bg-amber-50 text-amber-700 border-amber-200"
+                      }`}>{profile.utility_bill_status || "pending"}</Badge>
+                    </div>
                     <div className="p-4 bg-slate-50 rounded-xl flex items-center justify-center max-w-md border border-slate-100 h-64">
                       <img
                         src={profile.utility_bill_url}
                         alt="Utility Bill or Signage"
+                        className="max-h-full rounded shadow-md object-contain"
+                      />
+                    </div>
+                  </div>
+                )}
+                {profile.avatar_url && (
+                  <div>
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-xs text-gray-400 block font-bold uppercase tracking-wider">Captured Live Photo</span>
+                      <Badge variant="outline" className={`text-[8px] px-1.5 py-0 h-4 uppercase font-semibold ${
+                        profile.avatar_status === "verified" ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
+                        profile.avatar_status === "rejected" ? "bg-rose-50 text-rose-700 border-rose-200" :
+                        "bg-amber-50 text-amber-700 border-amber-200"
+                      }`}>{profile.avatar_status || "pending"}</Badge>
+                    </div>
+                    <div className="p-4 bg-slate-50 rounded-xl flex items-center justify-center max-w-md border border-slate-100 h-64">
+                      <img
+                        src={profile.avatar_url}
+                        alt="Live Photo Selfie"
                         className="max-h-full rounded shadow-md object-contain"
                       />
                     </div>

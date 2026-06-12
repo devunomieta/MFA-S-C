@@ -15,6 +15,7 @@ import {
   Info,
   Eye,
   Camera,
+  RefreshCw,
 } from "lucide-react";
 import { User, KeyRound, UserCheck, Landmark, Shield, Mail, Phone, MapPin, Navigation } from "lucide-react";
 import { toast } from "sonner";
@@ -54,47 +55,106 @@ import { notificationDispatcher } from "@/lib/notificationDispatcher";
 import { supabase } from "@/lib/supabase";
 import { validateFile, validatePassword } from "@/lib/validation";
 
-const reverseGeocode = async (latitude: number, longitude: number) => {
-  try {
-    const response = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&accept-language=en`,
-      {
-        headers: {
-          "User-Agent": "MarysThriftFinance/1.0"
-        }
-      }
-    );
-    if (response.ok) {
-      const data = await response.json();
-      return data.display_name || `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
-    }
-  } catch (err) {
-    console.error("Reverse geocoding error:", err);
-  }
-  return `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
-};
+// ---------------------------------------------------------------------------
+// Image quality analysis helpers (shared with KYCModal)
+// ---------------------------------------------------------------------------
 
-const verifyAddressMatch = (typedStreet: string, typedState: string, geocodedAddressStr: string) => {
-  const normalizedGeocode = geocodedAddressStr.toLowerCase();
-  
-  let stateMatch = normalizedGeocode.includes(typedState.toLowerCase());
-  // Abuja/FCT equivalence
-  if (typedState.toLowerCase() === "abuja" || typedState.toLowerCase() === "federal capital territory") {
-    if (normalizedGeocode.includes("abuja") || normalizedGeocode.includes("federal capital territory") || normalizedGeocode.includes("fct")) {
-      stateMatch = true;
+/**
+ * Detects image quality issues using canvas pixel analysis.
+ * Returns { ok, reason } — reason is a human-readable rejection message.
+ *
+ * Thresholds are tuned very loosely for document scans:
+ *  1. Brightness — rejects near-black (too dark) or near-white (overexposed)
+ *  2. Laplacian variance — estimates sharpness; threshold lowered to 5
+ */
+function analyseImageQuality(
+  canvas: HTMLCanvasElement,
+  blurThreshold = 5
+): { ok: boolean; reason?: string } {
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return { ok: true };
+
+  const { width, height } = canvas;
+  if (width === 0 || height === 0) return { ok: false, reason: "The image appears to be empty." };
+
+  const imageData = ctx.getImageData(0, 0, width, height);
+  const pixels = imageData.data; // RGBA
+  const totalPixels = width * height;
+
+  // Build greyscale array
+  const grey: number[] = [];
+  let brightnessSum = 0;
+  for (let i = 0; i < pixels.length; i += 4) {
+    const g = 0.299 * pixels[i] + 0.587 * pixels[i + 1] + 0.114 * pixels[i + 2];
+    grey.push(g);
+    brightnessSum += g;
+  }
+  const avgBrightness = brightnessSum / totalPixels;
+
+  if (avgBrightness < 10) {
+    return { ok: false, reason: "The image is too dark. Please improve lighting and try again." };
+  }
+  if (avgBrightness > 250) {
+    return { ok: false, reason: "The image is overexposed / too bright. Please reduce glare and try again." };
+  }
+
+  // Laplacian variance — sharpness metric
+  // Apply 3×3 Laplacian kernel: [0,-1,0,-1,4,-1,0,-1,0]
+  let lapSum = 0;
+  let lapSumSq = 0;
+  let lapCount = 0;
+  for (let y = 1; y < height - 1; y++) {
+    for (let x = 1; x < width - 1; x++) {
+      const idx = y * width + x;
+      const lap =
+        -grey[idx - width] -
+        grey[idx - 1] +
+        4 * grey[idx] -
+        grey[idx + 1] -
+        grey[idx + width];
+      lapSum += lap;
+      lapSumSq += lap * lap;
+      lapCount++;
     }
   }
-  
-  const streetWords = typedStreet
-    .toLowerCase()
-    .replace(/[^\w\s]/g, "")
-    .split(/\s+/)
-    .filter(word => word.length > 2 && !["street", "road", "lane", "avenue", "drive", "way", "close", "crescent"].includes(word));
+  const lapMean = lapSum / lapCount;
+  const lapVariance = lapSumSq / lapCount - lapMean * lapMean;
 
-  const streetMatch = streetWords.length === 0 || streetWords.some(word => normalizedGeocode.includes(word));
-  
-  return stateMatch && streetMatch;
-};
+  if (lapVariance < blurThreshold) {
+    return {
+      ok: false,
+      reason:
+        "The image appears very blurry. Please ensure the document is clear and well-lit.",
+    };
+  }
+
+  return { ok: true };
+}
+
+/** Loads an image File into an off-screen canvas and runs analyseImageQuality. PDF files are passed through. */
+async function validateDocumentQuality(file: File): Promise<{ ok: boolean; reason?: string }> {
+  return new Promise((resolve) => {
+    if (!file.type.startsWith("image/")) { resolve({ ok: true }); return; }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) { resolve({ ok: true }); return; }
+        ctx.drawImage(img, 0, 0);
+        resolve(analyseImageQuality(canvas));
+      };
+      img.onerror = () => resolve({ ok: true });
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = () => resolve({ ok: true });
+    reader.readAsDataURL(file);
+  });
+}
+
 
 export function Profile() {
   const { user } = useAuth();
@@ -118,22 +178,14 @@ export function Profile() {
     kyc_latitude: null as number | null,
     kyc_longitude: null as number | null,
     kyc_edit_allowed: false,
+    nin_status: "not_uploaded",
+    avatar_status: "not_uploaded",
+    utility_bill_status: "not_uploaded",
   });
 
   const [hasActiveDebt, setHasActiveDebt] = useState(false);
   const [isEditingKyc, setIsEditingKyc] = useState(false);
   const kycLocked = hasActiveDebt && !profile.kyc_edit_allowed;
-  const [geocodedAddress, setGeocodedAddress] = useState("");
-
-  useEffect(() => {
-    if (profile.kyc_latitude && profile.kyc_longitude) {
-      reverseGeocode(profile.kyc_latitude, profile.kyc_longitude).then((address) => {
-        setGeocodedAddress(address);
-      });
-    } else {
-      setGeocodedAddress("");
-    }
-  }, [profile.kyc_latitude, profile.kyc_longitude]);
 
   // Keep track of original name to detect changes
   const [originalName, setOriginalName] = useState("");
@@ -201,6 +253,24 @@ export function Profile() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
+  // KYC Camera state
+  const [kycLivePhoto, setKycLivePhoto] = useState<string | null>(null);
+  const [isCapturingKyc, setIsCapturingKyc] = useState(false);
+  const [kycCameraError, setKycCameraError] = useState<"denied" | "blocked" | "no_camera" | "in_use" | "unknown" | null>(null);
+  const videoKycRef    = useRef<HTMLVideoElement>(null);
+  const canvasKycRef   = useRef<HTMLCanvasElement>(null);
+  const streamKycRef   = useRef<MediaStream | null>(null);
+
+  /** Fully stops the camera: clears intervals, stops all tracks, nulls srcObject. */
+  const releaseKycCamera = () => {
+    if (streamKycRef.current) {
+      streamKycRef.current.getTracks().forEach((track) => track.stop());
+      streamKycRef.current = null;
+    }
+    if (videoKycRef.current) videoKycRef.current.srcObject = null;
+    setIsCapturingKyc(false);
+  };
+
   useEffect(() => {
     if (user) {
       fetchProfile();
@@ -256,6 +326,9 @@ export function Profile() {
         kyc_latitude: data.kyc_latitude ? Number(data.kyc_latitude) : null,
         kyc_longitude: data.kyc_longitude ? Number(data.kyc_longitude) : null,
         kyc_edit_allowed: data.kyc_edit_allowed || false,
+        nin_status: data.nin_status || "not_uploaded",
+        avatar_status: data.avatar_status || "not_uploaded",
+        utility_bill_status: data.utility_bill_status || "not_uploaded",
       });
       setOriginalName(data.full_name || "");
     } else {
@@ -278,6 +351,9 @@ export function Profile() {
         kyc_latitude: null,
         kyc_longitude: null,
         kyc_edit_allowed: false,
+        nin_status: "not_uploaded",
+        avatar_status: "not_uploaded",
+        utility_bill_status: "not_uploaded",
       });
       setOriginalName(metaName);
     }
@@ -690,8 +766,11 @@ export function Profile() {
   };
 
   const stopCamera = () => {
-    const stream = videoRef.current?.srcObject as MediaStream;
-    stream?.getTracks().forEach((track) => track.stop());
+    if (videoRef.current?.srcObject) {
+      const stream = videoRef.current.srcObject as MediaStream;
+      stream.getTracks().forEach((track) => track.stop());
+      videoRef.current.srcObject = null;
+    }
     setIsCapturing(false);
   };
 
@@ -708,6 +787,72 @@ export function Profile() {
       }
     }
   };
+
+  const handleKycCameraError = (err: unknown) => {
+    const name = (err as any)?.name ?? "";
+    if (name === "NotAllowedError" || name === "PermissionDeniedError") {
+      setKycCameraError("denied");
+    } else if (name === "NotFoundError" || name === "DevicesNotFoundError") {
+      setKycCameraError("no_camera");
+    } else if (name === "NotReadableError" || name === "TrackStartError") {
+      setKycCameraError("in_use");
+    } else {
+      setKycCameraError("unknown");
+    }
+    releaseKycCamera();
+  };
+
+  const startKycCamera = async () => {
+    releaseKycCamera();
+    setKycCameraError(null);
+    setIsCapturingKyc(true);
+    setKycLivePhoto(null);
+
+    // ── 1. Request stream ──
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "user" },
+      });
+      streamKycRef.current = stream;
+      if (videoKycRef.current) {
+        videoKycRef.current.srcObject = stream;
+        // Mirror the video horizontally for a more natural selfie experience
+        videoKycRef.current.style.transform = "scaleX(-1)";
+      }
+    } catch (err: unknown) {
+      handleKycCameraError(err);
+    }
+  };
+
+  const stopKycCamera = () => releaseKycCamera();
+
+  const captureKycPhoto = () => {
+    if (videoKycRef.current && canvasKycRef.current) {
+      const context = canvasKycRef.current.getContext("2d");
+      if (context) {
+        canvasKycRef.current.width = videoKycRef.current.videoWidth;
+        canvasKycRef.current.height = videoKycRef.current.videoHeight;
+        
+        // Ensure the canvas capture respects the mirrored video
+        context.translate(canvasKycRef.current.width, 0);
+        context.scale(-1, 1);
+        
+        context.drawImage(videoKycRef.current, 0, 0);
+
+        const dataUrl = canvasKycRef.current.toDataURL("image/jpeg", 0.9);
+        setKycLivePhoto(dataUrl);
+        stopKycCamera();
+        toast.success("Photo captured successfully ✓");
+      }
+    }
+  };
+
+  // Release KYC camera on unmount
+  useEffect(() => {
+    return () => {
+      releaseKycCamera();
+    };
+  }, []);
 
   async function handleManualEmailChangeRequest() {
     if (!manualEmail || !livePhoto) {
@@ -829,7 +974,7 @@ export function Profile() {
     }
   }
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
 
@@ -844,8 +989,21 @@ export function Profile() {
         return;
       }
 
+      if (file.size < 50 * 1024) {
+        toast.error("The uploaded file is too small or blurry. Please upload a clear NIN document image (at least 50KB).");
+        return;
+      }
+
+      // Quality gate — blur / brightness
+      const quality = await validateDocumentQuality(file);
+      if (!quality.ok) {
+        toast.error(`NIN Slip rejected: ${quality.reason}`);
+        return;
+      }
+
       const objectUrl = URL.createObjectURL(file);
       setPreviewUrl(objectUrl);
+      toast.success("NIN slip looks clear ✓");
     }
   };
 
@@ -901,83 +1059,7 @@ export function Profile() {
     }
   };
 
-  const [gpsLoading, setGpsLoading] = useState(false);
-
-  const handleGPSCapture = () => {
-    if (!navigator.geolocation) {
-      toast.error("Geolocation is not supported by your browser");
-      return;
-    }
-
-    if (window.location.protocol !== "https:" && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1") {
-      toast.warning("Warning: Mobile browsers block geolocation prompts on insecure HTTP connections. Please test via HTTPS or localhost to trigger the prompt.");
-    }
-
-    setGpsLoading(true);
-
-    const successCallback = async (position: GeolocationPosition) => {
-      const accuracy = position.coords.accuracy;
-      if (accuracy > 200) {
-        setGpsLoading(false);
-        toast.error(`Capture failed: Location accuracy is too low (${accuracy.toFixed(1)} meters). We detected an approximate IP-based location. Please ensure your device's Wi-Fi is turned ON (to allow Wi-Fi triangulation) or use a mobile device with location services enabled to get under 200 meters precision.`);
-        return;
-      }
-
-      const lat = position.coords.latitude;
-      const lng = position.coords.longitude;
-      setProfile((prev) => ({
-        ...prev,
-        kyc_latitude: lat,
-        kyc_longitude: lng,
-      }));
-      
-      toast.info("Retrieving physical address from GPS...");
-      const address = await reverseGeocode(lat, lng);
-      setGeocodedAddress(address);
-      setGpsLoading(false);
-      toast.success("Location captured successfully!");
-
-      if (profile.kyc_street.trim()) {
-        const isMatch = verifyAddressMatch(profile.kyc_street, profile.kyc_state, address);
-        if (!isMatch) {
-          toast.warning("Warning: Captured location address does not match your entered street address and state. Please check your address inputs or ensure you are present at the location.");
-        } else {
-          toast.success("GPS Location matches your entered address!");
-        }
-      }
-    };
-
-    const errorCallback = (error: GeolocationPositionError) => {
-      console.error("GPS Error:", error);
-      if (error.code === 1) {
-        setGpsLoading(false);
-        toast.error("Location permission denied. Please allow location access in your device and browser settings.");
-        return;
-      }
-
-      toast.info("High accuracy GPS search timed out or is unavailable. Retrying with standard accuracy...");
-      navigator.geolocation.getCurrentPosition(
-        successCallback,
-        (err) => {
-          setGpsLoading(false);
-          if (err.code === 1) {
-            toast.error("Location permission denied. Please allow location access in your device and browser settings.");
-          } else {
-            toast.error(`Failed to capture location: ${err.message || "Unknown error"}. Check device location settings.`);
-          }
-        },
-        { enableHighAccuracy: false, timeout: 15000, maximumAge: 60000 }
-      );
-    };
-
-    navigator.geolocation.getCurrentPosition(
-      successCallback,
-      errorCallback,
-      { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
-    );
-  };
-
-  const handleUtilityBillSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleUtilityBillSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
 
@@ -991,8 +1073,21 @@ export function Profile() {
         return;
       }
 
+      if (file.size < 50 * 1024) {
+        toast.error("The uploaded file is too small or blurry. Please upload a clear utility bill image (at least 50KB).");
+        return;
+      }
+
+      // Quality gate — blur / brightness
+      const quality = await validateDocumentQuality(file);
+      if (!quality.ok) {
+        toast.error(`Utility Bill rejected: ${quality.reason}`);
+        return;
+      }
+
       const objectUrl = URL.createObjectURL(file);
       setUtilityBillPreview(objectUrl);
+      toast.success("Utility bill looks clear ✓");
     }
   };
 
@@ -1011,14 +1106,8 @@ export function Profile() {
       toast.error("Please fill in both the street address and closest landmark");
       return;
     }
-    if (profile.kyc_latitude === null || profile.kyc_longitude === null) {
-      toast.error("Please capture your live location");
-      return;
-    }
-
-    const isMatch = verifyAddressMatch(profile.kyc_street, profile.kyc_state, geocodedAddress);
-    if (!isMatch) {
-      toast.error("Verification failed: Your physical GPS location does not match your entered address. Please ensure you are physically present at your typed address to submit KYC.");
+    if (!kycLivePhoto && !profile.avatar_url) {
+      toast.error("Please capture a live photo profile picture");
       return;
     }
 
@@ -1068,27 +1157,64 @@ export function Profile() {
 
     setUploadingId(true);
     try {
+      let finalAvatarUrl = profile.avatar_url;
+      if (kycLivePhoto) {
+        const blob = await (await fetch(kycLivePhoto)).blob();
+        const fileName = `${user.id}-avatar-${Date.now()}.jpg`;
+        const filePath = `${fileName}`;
+
+        const { error: avatarUploadError } = await supabase.storage
+          .from("avatars")
+          .upload(filePath, blob, {
+            contentType: "image/jpeg"
+          });
+
+        if (avatarUploadError) throw avatarUploadError;
+
+        const { data: { publicUrl: avatarPublicUrl } } = supabase.storage
+          .from("avatars")
+          .getPublicUrl(filePath);
+
+        finalAvatarUrl = avatarPublicUrl;
+      }
+
+      const updateData: any = {
+        bvn: profile.bvn,
+        nin: profile.nin,
+        gov_id_url: finalGovIdUrl,
+        utility_bill_url: finalUtilityBillUrl,
+        avatar_url: finalAvatarUrl,
+        gov_id_status: "pending",
+        kyc_country: profile.kyc_country,
+        kyc_state: profile.kyc_state,
+        kyc_street: profile.kyc_street,
+        kyc_landmark: profile.kyc_landmark,
+        kyc_latitude: null,
+        kyc_longitude: null,
+        kyc_last_confirmed_at: new Date().toISOString()
+      };
+
+      if (fileInputRef.current?.files?.[0] || profile.nin_status === "not_uploaded") {
+        updateData.nin_status = "pending";
+      }
+      if (utilityBillInputRef.current?.files?.[0] || profile.utility_bill_status === "not_uploaded") {
+        updateData.utility_bill_status = "pending";
+      }
+      if (kycLivePhoto || profile.avatar_status === "not_uploaded") {
+        updateData.avatar_status = "pending";
+      }
+
       const { error } = await supabase
         .from("profiles")
-        .update({
-          bvn: profile.bvn,
-          nin: profile.nin,
-          gov_id_url: finalGovIdUrl,
-          utility_bill_url: finalUtilityBillUrl,
-          gov_id_status: "pending",
-          kyc_country: profile.kyc_country,
-          kyc_state: profile.kyc_state,
-          kyc_street: profile.kyc_street,
-          kyc_landmark: profile.kyc_landmark,
-          kyc_latitude: profile.kyc_latitude,
-          kyc_longitude: profile.kyc_longitude,
-          kyc_last_confirmed_at: new Date().toISOString()
-        })
+        .update(updateData)
         .eq("id", user.id);
 
       if (error) throw error;
       
-      toast.success("KYC details submitted successfully!");
+      // Update Auth Metadata too
+      await supabase.auth.updateUser({
+        data: { avatar_url: finalAvatarUrl },
+      });toast.success("KYC details submitted successfully!");
       
       await notificationDispatcher.sendAlert({
         userId: user.id,
@@ -1333,27 +1459,35 @@ export function Profile() {
                         className={`font-semibold ${
                           profile.gov_id_status === "verified"
                             ? "text-emerald-800 dark:text-emerald-400"
+                            : profile.gov_id_status === "rejected"
+                            ? "text-rose-800 dark:text-rose-400"
                             : "text-yellow-800 dark:text-yellow-400"
                         }`}
                       >
                         {profile.gov_id_status === "verified"
                           ? "Identity Verified"
+                          : profile.gov_id_status === "rejected"
+                          ? "Verification Rejected"
                           : "Verification Pending"}
                       </h4>
                       <p
                         className={`text-sm ${
                           profile.gov_id_status === "verified"
                             ? "text-emerald-700/80 dark:text-emerald-500/80"
+                            : profile.gov_id_status === "rejected"
+                            ? "text-rose-700/80 dark:text-rose-500/80"
                             : "text-yellow-700/80 dark:text-yellow-500/80"
                         }`}
                       >
                         {profile.gov_id_status === "verified"
                           ? "You have full access to loan applications and premium features."
+                          : profile.gov_id_status === "rejected"
+                          ? "One or more of your uploaded KYC documents was rejected by the admin. Please edit and upload valid documents."
                           : "Your details are under review by our admin team. This usually takes 24 hours."}
                       </p>
                     </div>
                   </div>
-
+ 
                   <div className="grid gap-4 md:grid-cols-2 p-4 border rounded-lg dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/10">
                     <div>
                       <span className="text-xs text-gray-400 block">BVN</span>
@@ -1379,11 +1513,35 @@ export function Profile() {
                       <span className="text-xs text-gray-400 block">Landmark</span>
                       <span className="text-sm font-medium dark:text-white">{profile.kyc_landmark || "N/A"}</span>
                     </div>
-                    <div className="md:col-span-2">
-                      <span className="text-xs text-gray-400 block font-semibold uppercase tracking-wider">Your Current Location</span>
-                      <span className="text-sm font-medium text-emerald-600 dark:text-emerald-400 leading-relaxed block">
-                        {geocodedAddress || "N/A"}
-                      </span>
+                    
+                    <div className="md:col-span-2 border-t border-slate-100 dark:border-slate-800 pt-3 mt-1 space-y-2">
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Document Statuses</p>
+                      <div className="grid grid-cols-3 gap-2">
+                        <div className="p-2 border border-slate-100 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 text-center">
+                          <span className="text-[9px] text-slate-400 block uppercase font-bold">NIN Status</span>
+                          <Badge variant="outline" className={`text-[8px] mt-1.5 px-1.5 py-0 h-4 uppercase font-semibold ${
+                            profile.nin_status === "verified" ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
+                            profile.nin_status === "rejected" ? "bg-rose-50 text-rose-700 border-rose-200" :
+                            "bg-amber-50 text-amber-700 border-amber-200"
+                          }`}>{profile.nin_status || "pending"}</Badge>
+                        </div>
+                        <div className="p-2 border border-slate-100 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 text-center">
+                          <span className="text-[9px] text-slate-400 block uppercase font-bold">Utility Status</span>
+                          <Badge variant="outline" className={`text-[8px] mt-1.5 px-1.5 py-0 h-4 uppercase font-semibold ${
+                            profile.utility_bill_status === "verified" ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
+                            profile.utility_bill_status === "rejected" ? "bg-rose-50 text-rose-700 border-rose-200" :
+                            "bg-amber-50 text-amber-700 border-amber-200"
+                          }`}>{profile.utility_bill_status || "pending"}</Badge>
+                        </div>
+                        <div className="p-2 border border-slate-100 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 text-center">
+                          <span className="text-[9px] text-slate-400 block uppercase font-bold">Selfie Photo</span>
+                          <Badge variant="outline" className={`text-[8px] mt-1.5 px-1.5 py-0 h-4 uppercase font-semibold ${
+                            profile.avatar_status === "verified" ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
+                            profile.avatar_status === "rejected" ? "bg-rose-50 text-rose-700 border-rose-200" :
+                            "bg-amber-50 text-amber-700 border-amber-200"
+                          }`}>{profile.avatar_status || "pending"}</Badge>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
@@ -1542,25 +1700,137 @@ export function Profile() {
                       />
                     </div>
                     <div className="md:col-span-2 grid gap-2">
-                      <Label className="dark:text-gray-300">Your Current Location</Label>
-                      <div className="flex flex-col gap-2 items-start w-full">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={handleGPSCapture}
-                          disabled={kycLocked || gpsLoading || uploadingId}
-                          className="dark:bg-gray-900 dark:text-white dark:border-gray-700 dark:hover:bg-gray-800 font-semibold"
-                        >
-                          <Navigation className="w-4 h-4 mr-2" />
-                          {gpsLoading ? "Capturing..." : "Capture Location"}
-                        </Button>
-                        {geocodedAddress ? (
-                          <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium leading-relaxed">
-                            {geocodedAddress}
-                          </span>
+                      <Label className="dark:text-gray-300">Mandatory Live Photo Capture</Label>
+                      <div className="w-full flex flex-col items-center justify-center gap-3 border border-slate-200 dark:border-slate-700 rounded-xl p-4 bg-slate-50/50 dark:bg-slate-900/10">
+                        {isCapturingKyc ? (
+                          <div className="relative w-full overflow-hidden rounded-xl bg-black aspect-[3/4] sm:aspect-video flex items-center justify-center">
+                            <video
+                              ref={videoKycRef}
+                              autoPlay
+                              playsInline
+                              className="w-full h-full object-cover"
+                            />
+
+                            {/* Action buttons */}
+                            <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-2 z-10">
+                              <Button
+                                type="button"
+                                size="sm"
+                                onClick={captureKycPhoto}
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg px-6"
+                              >
+                                Capture Photo
+                              </Button>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                onClick={stopKycCamera}
+                                className="bg-slate-900/80 border-slate-700 text-slate-200 hover:bg-slate-800 font-bold rounded-lg"
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          </div>
+                        ) : kycLivePhoto ? (
+                          <div className="relative w-full max-w-md aspect-video bg-slate-100 dark:bg-slate-900 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700">
+                            <img
+                              src={kycLivePhoto}
+                              alt="Live Photo Selfie"
+                              className="w-full h-full object-cover scale-x-[-1]"
+                            />
+                            <div className="absolute bottom-3 left-0 right-0 flex justify-center">
+                              <Button
+                                type="button"
+                                size="sm"
+                                onClick={startKycCamera}
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg"
+                              >
+                                Retake Photo
+                              </Button>
+                            </div>
+                          </div>
+                        ) : kycCameraError ? (
+                          /* ── Camera error / permission panel ────────────────────── */
+                          <div className="w-full rounded-xl border border-slate-700 bg-slate-900 p-5 flex flex-col items-center gap-4 text-center">
+                            <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                              kycCameraError === "no_camera" ? "bg-red-500/15" : "bg-amber-500/15"
+                            }`}>
+                              <Camera className={`w-6 h-6 ${
+                                kycCameraError === "no_camera" ? "text-red-400" : "text-amber-400"
+                              }`} />
+                            </div>
+
+                            {kycCameraError === "denied" || kycCameraError === "blocked" ? (
+                              <>
+                                <div>
+                                  <p className="text-sm font-bold text-white mb-1">Camera Access Blocked</p>
+                                  <p className="text-xs text-slate-400">
+                                    Your browser is blocking camera access. Follow the steps below to allow it:
+                                  </p>
+                                </div>
+                                <ol className="text-xs text-slate-300 text-left space-y-2 w-full list-none">
+                                  {getKycCameraUnblockSteps().map((step, i) => (
+                                    <li key={i} className="flex items-start gap-2">
+                                      <span className="flex-shrink-0 w-5 h-5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-bold flex items-center justify-center">{i + 1}</span>
+                                      <span>{step}</span>
+                                    </li>
+                                  ))}
+                                </ol>
+                              </>
+                            ) : kycCameraError === "no_camera" ? (
+                              <div>
+                                <p className="text-sm font-bold text-white mb-1">No Camera Found</p>
+                                <p className="text-xs text-slate-400">No camera device was detected. Please connect a camera and try again.</p>
+                              </div>
+                            ) : kycCameraError === "in_use" ? (
+                              <div>
+                                <p className="text-sm font-bold text-white mb-1">Camera In Use</p>
+                                <p className="text-xs text-slate-400">Your camera is currently in use by another app or tab. Please close it and try again.</p>
+                              </div>
+                            ) : (
+                              <div>
+                                <p className="text-sm font-bold text-white mb-1">Camera Unavailable</p>
+                                <p className="text-xs text-slate-400">An unexpected error occurred. Please ensure your camera is connected and not blocked.</p>
+                              </div>
+                            )}
+
+                            <Button
+                              type="button"
+                              size="sm"
+                              onClick={startKycCamera}
+                              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg"
+                            >
+                              <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Try Again
+                            </Button>
+                          </div>
                         ) : (
-                          <span className="text-sm text-gray-500">Location pending capture</span>
+                          <div className="w-full max-w-md aspect-video flex flex-col items-center justify-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-900/50 p-4">
+                            {profile.avatar_url ? (
+                              <div className="text-center space-y-2">
+                                <img
+                                  src={profile.avatar_url}
+                                  alt="Current Profile Pic"
+                                  className="w-16 h-16 rounded-full mx-auto object-cover border-2 border-emerald-505"
+                                />
+                                <p className="text-xs text-slate-500 font-semibold">Existing profile picture loaded</p>
+                              </div>
+                            ) : (
+                              <Camera className="w-8 h-8 text-slate-400 mb-2" />
+                            )}
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={startKycCamera}
+                              disabled={kycLocked || uploadingId}
+                              className="bg-white hover:bg-slate-50 text-emerald-600 border-slate-200 dark:bg-slate-900 dark:border-slate-800 dark:text-emerald-400 font-bold mt-2"
+                            >
+                              Start Selfie Camera
+                            </Button>
+                          </div>
                         )}
+                        <canvas ref={canvasKycRef} className="hidden" />
                       </div>
                     </div>
                   </div>

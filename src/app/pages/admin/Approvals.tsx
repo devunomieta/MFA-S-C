@@ -33,6 +33,38 @@ export function AdminApprovals() {
   const [bankRequests, setBankRequests] = useState<any[]>([]);
   const [emailRequests, setEmailRequests] = useState<any[]>([]);
 
+  // --- REJECTION PANEL STATE ---
+  const [rejectingItem, setRejectingItem] = useState<{ id: string; field: "nin_status" | "avatar_status" | "utility_bill_status" } | null>(null);
+  const [selectedReason, setSelectedReason] = useState<string>("");
+  const [customReason, setCustomReason] = useState<string>("");
+
+  const REJECTION_REASONS = {
+    avatar_status: [
+      { id: "blurry", label: "Blurry or Unclear Image" },
+      { id: "no_face", label: "No Human Face Visible" },
+      { id: "poor_lighting", label: "Too Dark / Overexposed" },
+      { id: "face_covered", label: "Face Partially Covered (hat, glasses)" },
+      { id: "not_live", label: "Appears to be a Screen Capture/Edited" },
+      { id: "wrong_person", label: "Wrong Person / Multiple Faces" },
+      { id: "other", label: "Other (specify)" },
+    ],
+    nin_status: [
+      { id: "blurry", label: "Blurry or Unclear Image" },
+      { id: "poor_lighting", label: "Too Dark / Overexposed" },
+      { id: "cropped", label: "Missing Information / Cropped" },
+      { id: "name_mismatch", label: "Name/Details Mismatch" },
+      { id: "other", label: "Other (specify)" },
+    ],
+    utility_bill_status: [
+      { id: "blurry", label: "Blurry or Unclear Image" },
+      { id: "poor_lighting", label: "Too Dark / Overexposed" },
+      { id: "cropped", label: "Missing Information / Cropped" },
+      { id: "expired", label: "Document is Too Old (>3 months)" },
+      { id: "name_mismatch", label: "Name/Address Mismatch" },
+      { id: "other", label: "Other (specify)" },
+    ],
+  };
+
   async function fetchData() {
     setLoading(true);
     await Promise.all([fetchKycRequests(), fetchBankRequests(), fetchEmailRequests()]);
@@ -48,8 +80,8 @@ export function AdminApprovals() {
   async function fetchKycRequests() {
     const { data, error } = await supabase
       .from("profiles")
-      .select("id, full_name, email, gov_id_status, gov_id_url, utility_bill_url, bvn, nin, kyc_country, kyc_state, kyc_street, kyc_landmark, kyc_latitude, kyc_longitude")
-      .eq("gov_id_status", "pending");
+      .select("id, full_name, email, gov_id_status, gov_id_url, utility_bill_url, avatar_url, bvn, nin, kyc_country, kyc_state, kyc_street, kyc_landmark, kyc_latitude, kyc_longitude, nin_status, avatar_status, utility_bill_status")
+      .or("nin_status.eq.pending,avatar_status.eq.pending,utility_bill_status.eq.pending");
 
     if (error) console.error("Error fetching KYC:", error);
     else setKycRequests(data || []);
@@ -77,26 +109,68 @@ export function AdminApprovals() {
   }
 
   // --- KYC ACTIONS ---
-  async function handleKycAction(req: any, action: "verified" | "rejected") {
+  async function handleUpdateDocumentStatus(
+    req: any,
+    field: "nin_status" | "avatar_status" | "utility_bill_status",
+    newStatus: "verified" | "rejected",
+    reasonMessage?: string
+  ) {
     const { error } = await supabase
       .from("profiles")
-      .update({ gov_id_status: action })
+      .update({ [field]: newStatus })
       .eq("id", req.id);
 
     if (error) {
-      toast.error("Failed to update KYC status");
+      toast.error(`Failed to update ${field.replace("_status", "").replace("avatar", "selfie photo").toUpperCase()} status`);
     } else {
-      toast.success(`KYC ${action === "verified" ? "Approved" : "Rejected"}`);
+      toast.success(`${field.replace("_status", "").replace("avatar", "selfie photo").toUpperCase()} set to ${newStatus}`);
+
+      // Update local state immediately
+      setKycRequests((prev) =>
+        prev.map((r) => {
+          if (r.id === req.id) {
+            const updated = { ...r, [field]: newStatus };
+            return updated;
+          }
+          return r;
+        })
+      );
+
+      const actionText = newStatus === "verified" ? "approved" : "rejected";
+      let msg = `Your uploaded ${field.replace("_status", "").replace("avatar", "selfie photo").toUpperCase()} has been ${actionText} by the administrator.`;
+      
+      if (newStatus === "rejected" && reasonMessage) {
+        msg += `\n\nReason: ${reasonMessage}`;
+      }
 
       await notificationDispatcher.sendAlert({
         userId: req.id,
         email: req.email,
         type: "profile",
-        title: `KYC Verification ${action === "verified" ? "Approved" : "Rejected"}`,
-        message: `Your identity verification (KYC) request has been ${action === "verified" ? "approved successfully" : "rejected by the administrator"}.`,
+        title: `KYC Document ${newStatus === "verified" ? "Approved" : "Rejected"}`,
+        message: msg,
       });
 
-      fetchKycRequests();
+      if (newStatus === "rejected") {
+        setRejectingItem(null);
+        setSelectedReason("");
+        setCustomReason("");
+      }
+
+      // If all three items on the card are no longer 'pending', filter the card out of the view
+      setTimeout(() => {
+        setKycRequests((prev) =>
+          prev.filter((r) => {
+            if (r.id === req.id) {
+              const currentNin = r.id === req.id && field === "nin_status" ? newStatus : r.nin_status;
+              const currentAvatar = r.id === req.id && field === "avatar_status" ? newStatus : r.avatar_status;
+              const currentUtility = r.id === req.id && field === "utility_bill_status" ? newStatus : r.utility_bill_status;
+              return currentNin === "pending" || currentAvatar === "pending" || currentUtility === "pending";
+            }
+            return true;
+          })
+        );
+      }, 500);
     }
   }
 
@@ -178,6 +252,119 @@ export function AdminApprovals() {
       });
     }
   }
+
+  const renderDocumentControls = (
+    req: any,
+    label: string,
+    field: "nin_status" | "avatar_status" | "utility_bill_status"
+  ) => {
+    const status = req[field] || "pending";
+    const isRejectingThis = rejectingItem?.id === req.id && rejectingItem?.field === field;
+
+    return (
+      <div className="mt-2 space-y-1">
+        <div className="flex justify-between items-center text-[10px]">
+          <span className="font-bold text-slate-400 uppercase tracking-wider">{label}</span>
+          <Badge
+            variant="outline"
+            className={`text-[8px] px-1 py-0 h-4 font-semibold uppercase ${
+              status === "verified"
+                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                : status === "rejected"
+                ? "bg-rose-50 text-rose-700 border-rose-200"
+                : "bg-amber-50 text-amber-700 border-amber-200"
+            }`}
+          >
+            {status}
+          </Badge>
+        </div>
+        
+        {!isRejectingThis ? (
+          <div className="flex gap-1 pt-0.5">
+            <Button
+              size="sm"
+              variant={status === "verified" ? "default" : "outline"}
+              className={`flex-1 h-6 text-[9px] px-1 py-0 font-medium ${
+                status === "verified"
+                  ? "bg-emerald-600 hover:bg-emerald-700 text-white border-transparent"
+                  : "text-emerald-600 border-emerald-100 hover:bg-emerald-50"
+              }`}
+              onClick={() => handleUpdateDocumentStatus(req, field, "verified")}
+            >
+              Approve
+            </Button>
+            <Button
+              size="sm"
+              variant={status === "rejected" ? "destructive" : "outline"}
+              className={`flex-1 h-6 text-[9px] px-1 py-0 font-medium ${
+                status === "rejected"
+                  ? "bg-rose-600 hover:bg-rose-700 text-white border-transparent"
+                  : "text-rose-600 border-rose-100 hover:bg-rose-50"
+              }`}
+              onClick={() => {
+                setRejectingItem({ id: req.id, field });
+                setSelectedReason("");
+                setCustomReason("");
+              }}
+            >
+              Reject
+            </Button>
+          </div>
+        ) : (
+          <div className="bg-rose-50 border border-rose-100 p-2 rounded-lg mt-1 space-y-2">
+            <span className="text-[10px] font-bold text-rose-800">Select Rejection Reason</span>
+            <div className="flex flex-col gap-1">
+              {REJECTION_REASONS[field].map((reason) => (
+                <button
+                  key={reason.id}
+                  onClick={() => setSelectedReason(reason.id)}
+                  className={`text-left text-[9px] px-2 py-1 rounded-md transition-colors ${
+                    selectedReason === reason.id 
+                      ? 'bg-rose-600 text-white' 
+                      : 'bg-white border border-rose-200 text-rose-700 hover:bg-rose-100'
+                  }`}
+                >
+                  {reason.label}
+                </button>
+              ))}
+              {selectedReason === "other" && (
+                <input
+                  type="text"
+                  value={customReason}
+                  onChange={(e) => setCustomReason(e.target.value)}
+                  placeholder="Enter custom reason..."
+                  className="w-full text-[10px] px-2 py-1 rounded border border-rose-200 bg-white text-slate-800 focus:outline-none focus:border-rose-400 mt-1"
+                />
+              )}
+            </div>
+            <div className="flex gap-1 pt-1">
+              <Button
+                size="sm"
+                variant="outline"
+                className="flex-1 h-6 text-[9px] px-1 py-0 text-slate-600 hover:bg-slate-100"
+                onClick={() => setRejectingItem(null)}
+              >
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                className="flex-1 h-6 text-[9px] px-1 py-0 bg-rose-600 hover:bg-rose-700 text-white"
+                disabled={!selectedReason || (selectedReason === "other" && !customReason.trim())}
+                onClick={() => {
+                  const reasonText = selectedReason === "other" 
+                    ? customReason 
+                    : REJECTION_REASONS[field].find((r) => r.id === selectedReason)?.label || "";
+                  handleUpdateDocumentStatus(req, field, "rejected", reasonText);
+                }}
+              >
+                Confirm Reject
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   if (loading) {
     return <div className="p-8 text-center text-gray-500">Loading pending approvals...</div>;
@@ -271,113 +458,131 @@ export function AdminApprovals() {
                           {req.kyc_street || "N/A"}, {req.kyc_landmark ? `(Landmark: ${req.kyc_landmark})` : ""}, {req.kyc_state || "N/A"}, {req.kyc_country || "N/A"}
                         </span>
                       </div>
-                      <div className="col-span-2">
-                        <span className="text-[10px] text-gray-400 block font-bold uppercase">Location Coordinates</span>
-                        {req.kyc_latitude !== null && req.kyc_longitude !== null ? (
-                          <a
-                            href={`https://www.google.com/maps?q=${req.kyc_latitude},${req.kyc_longitude}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-emerald-600 hover:underline font-bold"
-                          >
-                            📍 {Number(req.kyc_latitude).toFixed(4)}, {Number(req.kyc_longitude).toFixed(4)} (Open Map)
-                          </a>
-                        ) : (
-                          <span className="text-gray-500 font-semibold">Not captured</span>
-                        )}
-                      </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3 h-28">
-                      <div className="bg-gray-100 rounded-md overflow-hidden relative group h-full">
-                        {req.gov_id_url ? (
-                          <Dialog>
-                            <DialogTrigger asChild>
-                              <div className="cursor-pointer w-full h-full relative">
+                    <div className="grid grid-cols-3 gap-3">
+                      {/* NIN Document */}
+                      <div className="flex flex-col justify-between">
+                        <div className="bg-gray-100 rounded-md overflow-hidden relative group h-24">
+                          {req.gov_id_url ? (
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <div className="cursor-pointer w-full h-full relative">
+                                  <img
+                                    src={req.gov_id_url}
+                                    alt="ID"
+                                    className="w-full h-full object-cover"
+                                  />
+                                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <Eye className="text-white w-5 h-5" />
+                                  </div>
+                                </div>
+                              </DialogTrigger>
+                              <DialogContent className="max-w-3xl">
+                                <DialogHeader>
+                                  <DialogTitle>{req.full_name}'s ID Document</DialogTitle>
+                                  <DialogDescription>
+                                    Review the uploaded identification document for verification
+                                    purposes.
+                                  </DialogDescription>
+                                </DialogHeader>
                                 <img
                                   src={req.gov_id_url}
-                                  alt="ID"
-                                  className="w-full h-full object-cover"
+                                  alt="Full ID"
+                                  className="w-full h-auto rounded"
                                 />
-                                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <Eye className="text-white w-5 h-5" />
-                                </div>
-                              </div>
-                            </DialogTrigger>
-                            <DialogContent className="max-w-3xl">
-                              <DialogHeader>
-                                <DialogTitle>{req.full_name}'s ID Document</DialogTitle>
-                                <DialogDescription>
-                                  Review the uploaded identification document for verification
-                                  purposes.
-                                </DialogDescription>
-                              </DialogHeader>
-                              <img
-                                src={req.gov_id_url}
-                                alt="Full ID"
-                                className="w-full h-auto rounded"
-                              />
-                            </DialogContent>
-                          </Dialog>
-                        ) : (
-                          <div className="flex items-center justify-center h-full text-gray-400 text-[10px]">
-                            No NIN Uploaded
-                          </div>
-                        )}
+                              </DialogContent>
+                            </Dialog>
+                          ) : (
+                            <div className="flex items-center justify-center h-full text-gray-400 text-[10px] text-center px-1">
+                              No NIN Uploaded
+                            </div>
+                          )}
+                        </div>
+                        {renderDocumentControls(req, "NIN Slip", "nin_status")}
                       </div>
 
-                      <div className="bg-gray-100 rounded-md overflow-hidden relative group h-full">
-                        {req.utility_bill_url ? (
-                          <Dialog>
-                            <DialogTrigger asChild>
-                              <div className="cursor-pointer w-full h-full relative">
+                      {/* Utility Bill / Signage */}
+                      <div className="flex flex-col justify-between">
+                        <div className="bg-gray-100 rounded-md overflow-hidden relative group h-24">
+                          {req.utility_bill_url ? (
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <div className="cursor-pointer w-full h-full relative">
+                                  <img
+                                    src={req.utility_bill_url}
+                                    alt="Utility Bill"
+                                    className="w-full h-full object-cover"
+                                  />
+                                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <Eye className="text-white w-5 h-5" />
+                                  </div>
+                                </div>
+                              </DialogTrigger>
+                              <DialogContent className="max-w-3xl">
+                                <DialogHeader>
+                                  <DialogTitle>{req.full_name}'s Utility Bill / Signage</DialogTitle>
+                                  <DialogDescription>
+                                    Review the uploaded utility bill or business signage for verification.
+                                  </DialogDescription>
+                                </DialogHeader>
                                 <img
                                   src={req.utility_bill_url}
-                                  alt="Utility Bill"
-                                  className="w-full h-full object-cover"
+                                  alt="Utility Bill / Signage"
+                                  className="w-full h-auto rounded"
                                 />
-                                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <Eye className="text-white w-5 h-5" />
+                              </DialogContent>
+                            </Dialog>
+                          ) : (
+                            <div className="flex items-center justify-center h-full text-gray-400 text-[10px] text-center px-1">
+                              No Utility Bill Uploaded
+                            </div>
+                          )}
+                        </div>
+                        {renderDocumentControls(req, "Utility Bill", "utility_bill_status")}
+                      </div>
+
+                      {/* Captured Live Selfie Photo */}
+                      <div className="flex flex-col justify-between">
+                        <div className="bg-gray-100 rounded-md overflow-hidden relative group h-24">
+                          {req.avatar_url ? (
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <div className="cursor-pointer w-full h-full relative">
+                                  <img
+                                    src={req.avatar_url}
+                                    alt="Live Photo Selfie"
+                                    className="w-full h-full object-cover"
+                                  />
+                                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <Eye className="text-white w-5 h-5" />
+                                  </div>
                                 </div>
-                              </div>
-                            </DialogTrigger>
-                            <DialogContent className="max-w-3xl">
-                              <DialogHeader>
-                                <DialogTitle>{req.full_name}'s Utility Bill / Signage</DialogTitle>
-                                <DialogDescription>
-                                  Review the uploaded utility bill or business signage for verification.
-                                </DialogDescription>
-                              </DialogHeader>
-                              <img
-                                src={req.utility_bill_url}
-                                alt="Utility Bill / Signage"
-                                className="w-full h-auto rounded"
-                              />
-                            </DialogContent>
-                          </Dialog>
-                        ) : (
-                          <div className="flex items-center justify-center h-full text-gray-400 text-[10px] text-center px-1">
-                            No Utility Bill Uploaded
-                          </div>
-                        )}
+                              </DialogTrigger>
+                              <DialogContent className="max-w-3xl">
+                                <DialogHeader>
+                                  <DialogTitle>{req.full_name}'s Captured Live Photo</DialogTitle>
+                                  <DialogDescription>
+                                    Review the user's captured webcam selfie to compare with the ID document.
+                                  </DialogDescription>
+                                </DialogHeader>
+                                <img
+                                  src={req.avatar_url}
+                                  alt="Live Photo Selfie"
+                                  className="w-full h-auto rounded"
+                                />
+                              </DialogContent>
+                            </Dialog>
+                          ) : (
+                            <div className="flex items-center justify-center h-full text-gray-400 text-[10px] text-center px-1">
+                              No Live Photo Captured
+                            </div>
+                          )}
+                        </div>
+                        {renderDocumentControls(req, "Selfie Photo", "avatar_status")}
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3">
-                      <Button
-                        variant="outline"
-                        className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
-                        onClick={() => handleKycAction(req, "rejected")}
-                      >
-                        <X className="w-4 h-4 mr-2" /> Reject
-                      </Button>
-                      <Button
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                        onClick={() => handleKycAction(req, "verified")}
-                      >
-                        <Check className="w-4 h-4 mr-2" /> Approve
-                      </Button>
-                    </div>
                   </CardContent>
                 </Card>
               ))
