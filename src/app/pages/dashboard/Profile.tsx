@@ -788,6 +788,48 @@ export function Profile() {
     }
   };
 
+  const getKycBrowserName = () => {
+    const ua = navigator.userAgent;
+    if (/Firefox\//.test(ua)) return "firefox";
+    if (/Edg\//.test(ua))     return "edge";
+    if (/OPR\/|Opera\//.test(ua)) return "opera";
+    if (/Chrome\//.test(ua)) return "chrome";
+    if (/Safari\//.test(ua)) return "safari";
+    return "other";
+  };
+
+  const getKycCameraUnblockSteps = (): string[] => {
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    if (isMobile) return [
+      "Open your device Settings",
+      "Find your browser app (Chrome, Safari, etc.)",
+      "Tap Permissions → Camera → Allow",
+      "Return here and tap \"Try Again\"",
+    ];
+    const b = getKycBrowserName();
+    if (b === "chrome" || b === "edge") return [
+      "Click the 🔒 lock icon in the address bar",
+      "Select \"Site settings\" then find Camera",
+      "Change Camera from \"Blocked\" to \"Allow\"",
+      "Click \"Try Again\" below — no refresh needed",
+    ];
+    if (b === "firefox") return [
+      "Click the camera icon (🎥) in the address bar",
+      "Select \"Remove Blocked permission\"",
+      "Click \"Try Again\" below to re-trigger the prompt",
+    ];
+    if (b === "safari") return [
+      "Click Safari menu → Settings for this Website",
+      "Set Camera to \"Allow\"",
+      "Click \"Try Again\" below",
+    ];
+    return [
+      "Click the camera / lock icon in your browser's address bar",
+      "Find Camera permissions and set them to \"Allow\"",
+      "Click \"Try Again\" below",
+    ];
+  };
+
   const handleKycCameraError = (err: unknown) => {
     const name = (err as any)?.name ?? "";
     if (name === "NotAllowedError" || name === "PermissionDeniedError") {
