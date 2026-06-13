@@ -132,7 +132,7 @@ export function AjoCircleAdminView() {
     setReviewedWalletBalance(0);
     setReviewedWithdrawableBalance(0);
 
-    const meta = sub.plan_metadata || {};
+    const meta = sub?.plan_metadata || {};
     const initialWeeks =
       meta.picking_turns?.length > 0
         ? [...meta.picking_turns]
@@ -282,7 +282,7 @@ export function AjoCircleAdminView() {
     }
 
     try {
-      const meta = subscriber.plan_metadata || {};
+      const meta = subscriber?.plan_metadata || {};
       let updatedMetadata = { ...meta };
 
       if (accept) {
@@ -347,7 +347,7 @@ export function AjoCircleAdminView() {
     if (!reviewedUser) return;
     setProcessing(true);
     try {
-      const meta = reviewedUser.plan_metadata || {};
+      const meta = reviewedUser?.plan_metadata || {};
       const originalSlots = meta.slots || [];
       const newSlots = originalSlots.map((slot: any, idx: number) => ({
         ...slot,
@@ -623,7 +623,7 @@ export function AjoCircleAdminView() {
                 </TableHeader>
                 <TableBody className="divide-y divide-gray-100 dark:divide-gray-900">
                   {subscribers.map((sub) => {
-                    const meta = sub.plan_metadata || {};
+                    const meta = sub?.plan_metadata || {};
                     const turns = meta.picking_turns || [];
                     const currentWeek = meta.current_week || 1;
                     const weekPaid = meta.week_paid || false;
@@ -924,8 +924,8 @@ export function AjoCircleAdminView() {
                       Proposed Turns
                     </span>
                     <span className="text-sm font-bold text-indigo-700 dark:text-indigo-400">
-                      {reviewedUser.plan_metadata?.proposed_turns?.length > 0
-                        ? reviewedUser.plan_metadata.proposed_turns
+                      {reviewedUser?.plan_metadata?.proposed_turns?.length > 0
+                        ? reviewedUser?.plan_metadata.proposed_turns
                             .map((t: any) => `Week ${t}`)
                             .join(", ")
                         : "None proposed"}
@@ -949,7 +949,7 @@ export function AjoCircleAdminView() {
                   </p>
 
                   <div className="space-y-3">
-                    {(reviewedUser.plan_metadata?.slots || []).map((slot: any, index: number) => (
+                    {(reviewedUser?.plan_metadata?.slots || []).map((slot: any, index: number) => (
                       <div
                         key={index}
                         className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-3 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800"

@@ -9,6 +9,7 @@ import {
   Trash2,
   ShieldCheck,
   ShieldAlert,
+  Wallet as WalletIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -45,6 +46,11 @@ export function AdminSettings() {
     pass: "",
     secure: false,
     from_email: "",
+  });
+  const [bankDetails, setBankDetails] = useState<any>({
+    account_name: "",
+    bank_name: "",
+    account_number: "",
   });
   const [logoUrl, setLogoUrl] = useState("");
   const [faviconUrl, setFaviconUrl] = useState("");
@@ -140,6 +146,7 @@ export function AdminSettings() {
         const generalSettings = data.find((s) => s.key === "general")?.value;
         const smtpSettings = data.find((s) => s.key === "smtp")?.value;
         const templateSettings = data.find((s) => s.key === "email_templates")?.value;
+        const bankSettings = data.find((s) => s.key === "bank_details")?.value;
 
         if (generalSettings) setGeneral(generalSettings);
         if (generalSettings?.logo_url) setLogoUrl(generalSettings.logo_url);
@@ -148,6 +155,10 @@ export function AdminSettings() {
 
         if (templateSettings) {
           setTemplates({ ...templates, ...templateSettings });
+        }
+
+        if (bankSettings) {
+          setBankDetails(bankSettings);
         }
       }
     } catch {
@@ -257,6 +268,9 @@ export function AdminSettings() {
           )}
           <TabsTrigger value="email" className="gap-2">
             <Mail className="w-4 h-4" /> Email & SMTP
+          </TabsTrigger>
+          <TabsTrigger value="bank" className="gap-2">
+            <WalletIcon className="w-4 h-4" /> Bank Details
           </TabsTrigger>
           <TabsTrigger value="announcements" className="gap-2">
             <Megaphone className="w-4 h-4" /> Announcements
@@ -626,6 +640,49 @@ export function AdminSettings() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="bank" className="space-y-6 mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Deposit Bank Details</CardTitle>
+              <CardDescription>Configure the official bank account displayed for user deposits.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-4 max-w-md">
+                <div className="space-y-2">
+                  <Label>Bank Name</Label>
+                  <Input
+                    value={bankDetails.bank_name}
+                    onChange={(e) => setBankDetails({ ...bankDetails, bank_name: e.target.value })}
+                    placeholder="e.g. Moniepoint"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Account Name</Label>
+                  <Input
+                    value={bankDetails.account_name}
+                    onChange={(e) => setBankDetails({ ...bankDetails, account_name: e.target.value })}
+                    placeholder="e.g. HachStacks Technologies"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Account Number</Label>
+                  <Input
+                    value={bankDetails.account_number}
+                    onChange={(e) => setBankDetails({ ...bankDetails, account_number: e.target.value })}
+                    placeholder="e.g. 1234567890"
+                  />
+                </div>
+              </div>
+              <div className="flex justify-start">
+                <Button onClick={() => saveSettings("bank_details", bankDetails)}>
+                  <Save className="w-4 h-4 mr-2" /> Save Bank Details
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
 
         <TabsContent value="announcements" className="space-y-6 mt-4">
           <Card>

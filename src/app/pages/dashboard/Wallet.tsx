@@ -277,6 +277,11 @@ export function Wallet() {
       toast.error("Please enter a valid amount greater than 0");
       return;
     }
+
+    if (finalAmount % 50 !== 0) {
+      toast.error("Amount must be a whole value in multiples of 50 (e.g. 1000, 1500, 50, 100)");
+      return;
+    }
     if (finalAmount > totalWithdrawable) {
       toast.error("Insufficient withdrawable funds");
       return;
@@ -545,6 +550,7 @@ export function Wallet() {
               <Input
                 id="bank_amount"
                 type="number"
+                step="50"
                 onKeyDown={(e) => {
                   if (["-", "+", ".", "e", "E"].includes(e.key)) e.preventDefault();
                 }}
@@ -609,6 +615,7 @@ export function Wallet() {
               <Input
                 id="wallet_amount"
                 type="number"
+                step="50"
                 onKeyDown={(e) => {
                   if (["-", "+", ".", "e", "E"].includes(e.key)) e.preventDefault();
                 }}
@@ -782,6 +789,7 @@ export function Wallet() {
                     <Input
                       id="plan_amount"
                       type="number"
+                      step="50"
                       onKeyDown={(e) => {
                         if (["-", "+", ".", "e", "E"].includes(e.key)) e.preventDefault();
                       }}

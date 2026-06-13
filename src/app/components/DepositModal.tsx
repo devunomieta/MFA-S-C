@@ -132,6 +132,18 @@ export function DepositModal({
     setLoadingBalance(false);
   }
 
+  async function fetchBankDetails() {
+    const { data } = await supabase
+      .from("app_settings")
+      .select("value")
+      .eq("key", "bank_details")
+      .single();
+
+    if (data?.value) {
+      setBankDetails(data.value);
+    }
+  }
+
   useEffect(() => {
     Promise.resolve().then(() => setIsAdvanceMode(initialAdvanceMode || false));
   }, [initialAdvanceMode]);
@@ -228,9 +240,9 @@ export function DepositModal({
       );
     const effectiveMin =
       isFlexibleGoalPlan && mandatedAmount === 0
-        ? 1
+        ? 50
         : activeTab === "wallet" && selectedPlanObj?.plan?.min_amount
-          ? selectedPlanObj.plan.min_amount
+          ? Math.max(selectedPlanObj.plan.min_amount, 50)
           : 500;
 
     if (isNaN(finalAmount) || finalAmount < effectiveMin) {
@@ -239,6 +251,11 @@ export function DepositModal({
           ? `Minimum contribution is ₦${formatCurrency(mandatedAmount)}`
           : `Minimum amount for this ${activeTab === "external" ? "deposit" : "transfer"} is ₦${formatCurrency(effectiveMin)}`,
       );
+      return;
+    }
+
+    if (finalAmount % 50 !== 0) {
+      toast.error("Amount must be a whole value in multiples of 50 (e.g. 1000, 1500, 50, 100)");
       return;
     }
 
@@ -1294,10 +1311,11 @@ export function DepositModal({
                     <Input
                       id="unit-amount"
                       type="number"
+                      step="50"
                       onKeyDown={(e) => {
                         if (["-", "+", ".", "e", "E"].includes(e.key)) e.preventDefault();
                       }}
-                      placeholder="0.00"
+                      placeholder="50"
                       value={amountPerUnit}
                       onChange={(e) => setAmountPerUnit(e.target.value)}
                       disabled={["step_up", "ajo_circle", "daily_drop"].includes(planType || "")}
@@ -1320,10 +1338,11 @@ export function DepositModal({
               <Input
                 id="amount-w"
                 type="number"
+                step="50"
                 onKeyDown={(e) => {
                   if (["-", "+", ".", "e", "E"].includes(e.key)) e.preventDefault();
                 }}
-                placeholder="0.00"
+                placeholder="50"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 max={generalBalance}

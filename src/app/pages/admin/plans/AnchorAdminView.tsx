@@ -92,7 +92,7 @@ export function AnchorAdminView({ plan }: AnchorAdminViewProps) {
   // Stats
   const totalSaved = subscribers.reduce((acc, sub) => acc + sub.current_balance, 0);
   const totalArrears = subscribers.reduce(
-    (acc, sub) => acc + (sub.plan_metadata?.arrears_amount || 0),
+    (acc, sub) => acc + (sub?.plan_metadata?.arrears_amount || 0),
     0,
   );
   const activeUsers = subscribers.filter((s) => s.status === "active").length;
@@ -188,7 +188,7 @@ export function AnchorAdminView({ plan }: AnchorAdminViewProps) {
               </TableRow>
             ) : (
               filteredSubs.map((sub) => {
-                const meta = sub.plan_metadata || {};
+                const meta = sub?.plan_metadata || {};
                 const weeksCompleted = meta.weeks_completed || 0;
                 const currentWeekTotal = meta.current_week_total || 0;
                 const arrears = meta.arrears_amount || 0;

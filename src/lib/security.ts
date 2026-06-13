@@ -60,6 +60,10 @@ export async function verifyHoneypot(
     });
 
     if (error) {
+      if (error.message?.includes("non-2xx status code") || error.message?.includes("Failed to fetch")) {
+        console.warn("Security gateway returned non-2xx or failed to fetch. Failing open.", error);
+        return true;
+      }
       // If the function specifically rejected the submission, block it
       const errMsg = error.message || "Security check failed.";
       toast.error(errMsg);

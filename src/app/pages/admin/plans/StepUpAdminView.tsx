@@ -84,7 +84,7 @@ export function StepUpAdminView({ plan }: StepUpAdminViewProps) {
   // Stats
   const totalSaved = subscribers.reduce((acc, sub) => acc + sub.current_balance, 0);
   const totalArrears = subscribers.reduce(
-    (acc, sub) => acc + (sub.plan_metadata?.arrears_amount || 0),
+    (acc, sub) => acc + (sub?.plan_metadata?.arrears_amount || 0),
     0,
   );
 
@@ -191,7 +191,7 @@ export function StepUpAdminView({ plan }: StepUpAdminViewProps) {
               </TableRow>
             ) : (
               filteredSubs.map((sub) => {
-                const meta = sub.plan_metadata || {};
+                const meta = sub?.plan_metadata || {};
                 const weeksCompleted = meta.weeks_completed || 0;
                 const weekPaid = meta.week_paid_so_far || 0;
                 const totalWeeks = meta.selected_duration || 0;

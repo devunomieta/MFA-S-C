@@ -65,7 +65,7 @@ export function DailyDropAdminView({ plan }: DailyDropAdminViewProps) {
   const activeUsers = subscribers.filter((s) => s.status === "active").length;
   // Calculate total days accumulated across all users
   const totalDaysAcrossUsers = subscribers.reduce(
-    (acc, sub) => acc + (sub.plan_metadata?.total_days_paid || 0),
+    (acc, sub) => acc + (sub?.plan_metadata?.total_days_paid || 0),
     0,
   );
 
@@ -147,7 +147,7 @@ export function DailyDropAdminView({ plan }: DailyDropAdminViewProps) {
               </TableRow>
             ) : (
               filteredSubs.map((sub) => {
-                const meta = sub.plan_metadata || {};
+                const meta = sub?.plan_metadata || {};
                 const duration = meta.selected_duration || 31;
                 const daysPaid = meta.total_days_paid || 0;
                 const fixedAmount = meta.fixed_amount || 0;

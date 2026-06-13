@@ -62,7 +62,7 @@ export function MarathonAdminView({ plan }: MarathonAdminViewProps) {
   // Stats
   const totalSaved = subscribers.reduce((acc, sub) => acc + sub.current_balance, 0);
   const totalArrears = subscribers.reduce(
-    (acc, sub) => acc + (sub.plan_metadata?.arrears_amount || 0),
+    (acc, sub) => acc + (sub?.plan_metadata?.arrears_amount || 0),
     0,
   );
   const activeUsers = subscribers.filter((s) => s.status === "active").length;
@@ -147,7 +147,7 @@ export function MarathonAdminView({ plan }: MarathonAdminViewProps) {
               </TableRow>
             ) : (
               filteredSubs.map((sub) => {
-                const meta = sub.plan_metadata || {};
+                const meta = sub?.plan_metadata || {};
                 const duration = meta.selected_duration || 48;
                 const weeksPaid = meta.total_weeks_paid || 0;
                 const isPaidThisWeek = meta.current_week_paid;

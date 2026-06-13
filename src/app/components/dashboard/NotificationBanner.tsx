@@ -54,6 +54,18 @@ export function NotificationBanner() {
     localStorage.setItem("notification_banner_last_count", unreadCount.toString());
   }, [unreadCount]);
 
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (isVisible) {
+      timer = setTimeout(() => {
+        setIsVisible(false);
+      }, 5000);
+    }
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [isVisible]);
+
   const handleDismiss = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();

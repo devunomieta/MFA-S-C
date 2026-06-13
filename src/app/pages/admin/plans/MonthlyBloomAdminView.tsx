@@ -108,7 +108,7 @@ export function MonthlyBloomAdminView() {
             <div className="text-2xl font-bold text-purple-900">
               {formatCurrency(
                 plans.reduce(
-                  (acc, curr) => acc + parseFloat(curr.plan_metadata?.arrears || "0"),
+                  (acc, curr) => acc + parseFloat(curr?.plan_metadata?.arrears || "0"),
                   0,
                 ),
               )}
@@ -172,7 +172,7 @@ export function MonthlyBloomAdminView() {
                 </TableRow>
               ) : (
                 plans.map((plan) => {
-                  const meta = plan.plan_metadata || {};
+                  const meta = plan?.plan_metadata || {};
                   const target = meta.target_amount || 0;
                   const monthPaid = meta.month_paid_so_far || 0;
                   const arrears = meta.arrears || 0;

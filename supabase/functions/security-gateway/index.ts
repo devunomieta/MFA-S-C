@@ -100,8 +100,8 @@ serve(async (req) => {
 
       const diffMs = submissionTime - generatedTime;
 
-      // Min delay: 1.5 seconds (human can't fill/submit form faster than that)
-      if (diffMs < 1500) {
+      // Min delay: 500ms (to prevent rapid automated bot requests but allow autofill)
+      if (diffMs < 500) {
         console.warn("Submission too fast:", { diffMs });
         return new Response(
           JSON.stringify({ error: "Submission failed (too fast)." }),
