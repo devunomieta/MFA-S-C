@@ -238,7 +238,7 @@ export function Profile() {
 
   const [hasActiveDebt, setHasActiveDebt] = useState(false);
   const [isEditingKyc, setIsEditingKyc] = useState(false);
-  const kycLocked = hasActiveDebt && !profile.kyc_edit_allowed;
+  const kycLocked = hasActiveDebt && !profile.kyc_edit_allowed && profile.gov_id_status !== "not_uploaded";
 
   // Keep track of original name to detect changes
   const [originalName, setOriginalName] = useState("");

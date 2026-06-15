@@ -179,15 +179,6 @@ export function Overview() {
             {/* General Wallet */}
             <div className="p-6 space-y-3 hover:bg-gray-50/50 dark:hover:bg-white/[0.02] transition-all duration-200">
               <div className="flex flex-col gap-3">
-                <div className="flex justify-start">
-                  <button
-                    onClick={toggleBalanceReveal}
-                    className="flex items-center gap-1.5 text-[10px] font-bold text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-md"
-                  >
-                    {isBalanceHidden ? <EyeOff className="size-3" /> : <Eye className="size-3" />}
-                    {isBalanceHidden ? "Show Balances" : "Hide Balances"}
-                  </button>
-                </div>
                 <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold uppercase tracking-wider">
                   <div className="p-1.5 bg-emerald-100 dark:bg-emerald-500/10 rounded-md">
                     <Wallet className="size-4" />
@@ -202,6 +193,15 @@ export function Overview() {
                 <p className="text-[10px] text-gray-500 font-medium">
                   Available for plan contributions
                 </p>
+                <div className="flex justify-start pt-1">
+                  <button
+                    onClick={toggleBalanceReveal}
+                    className="flex items-center gap-1.5 text-[10px] font-bold text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-md"
+                  >
+                    {isBalanceHidden ? <EyeOff className="size-3" /> : <Eye className="size-3" />}
+                    {isBalanceHidden ? "Show Balances" : "Hide Balances"}
+                  </button>
+                </div>
               </div>
             </div>
 

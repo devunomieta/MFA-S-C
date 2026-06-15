@@ -1,8 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 
 import {
   FileText,
   AlertTriangle,
+  ChevronLeft,
+  ChevronRight,
+  Search,
 } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -20,6 +23,7 @@ import {
 import { Input } from "@/app/components/ui/input";
 import { KYCModal } from "@/app/components/ui/KYCModal";
 import { Label } from "@/app/components/ui/label";
+import { Checkbox } from "@/app/components/ui/checkbox";
 import {
   Table,
   TableBody,
@@ -39,25 +43,55 @@ export function Loans() {
   const [loans, setLoans] = useState<any[]>([]);
   const [interestRate, setInterestRate] = useState(10); // Default fallback
 
+  // Pagination & Search
+  const [currentPage, setCurrentPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState("");
+  const itemsPerPage = 15;
+
   // Eligibility State
   const [profile, setProfile] = useState<any>(null);
   const [hasActivePlan, setHasActivePlan] = useState(false);
   const [totalBalance, setTotalBalance] = useState(0);
+  const [withdrawableBalance, setWithdrawableBalance] = useState(0);
   const [maxLoanAmount, setMaxLoanAmount] = useState(0);
   const [accountAgeMonths, setAccountAgeMonths] = useState(0);
+  const [bankAccounts, setBankAccounts] = useState<any[]>([]);
 
   // Form State
   const [amount, setAmount] = useState("");
-  const [duration, setDuration] = useState("3");
-  const [maxDurationMonths, setMaxDurationMonths] = useState(1);
-  const [pastLoanCount, setPastLoanCount] = useState(0);
+  const [needHigherAmount, setNeedHigherAmount] = useState(false);
+  const [higherAmount, setHigherAmount] = useState("");
+  
+  const [duration, setDuration] = useState("1_month"); // keys for options
+  const [repaymentType, setRepaymentType] = useState("monthly");
+  const [selectedBankId, setSelectedBankId] = useState("");
+  
   const [open, setOpen] = useState(false);
   const [kycModalOpen, setKycModalOpen] = useState(false);
   const [kycModalMode, setKycModalMode] = useState<"full" | "confirm">("full");
 
+  // Options
+  const durationOptions = [
+    { id: "1_week", label: "1 Week", months: 0.25, requiredAge: 0, requiredSavings: 0 },
+    { id: "2_weeks", label: "2 Weeks", months: 0.5, requiredAge: 0, requiredSavings: 0 },
+    { id: "1_month", label: "1 Month", months: 1, requiredAge: 0, requiredSavings: 0 },
+    { id: "2_months", label: "2 Months", months: 2, requiredAge: 0, requiredSavings: 0 },
+    { id: "3_months", label: "3 Months", months: 3, requiredAge: 0, requiredSavings: 0 },
+    { id: "6_months", label: "6 Months", months: 6, requiredAge: 6, requiredSavings: 500000 },
+    { id: "12_months", label: "12 Months", months: 12, requiredAge: 12, requiredSavings: 1000000 },
+  ];
+
+  const availableDurations = durationOptions.filter(
+    d => accountAgeMonths >= d.requiredAge && totalBalance >= d.requiredSavings
+  );
+
   const handleRequestLoanClick = () => {
     if (!hasActivePlan) {
       toast.error("You must have an active investment/saving plan to request a loan.");
+      return;
+    }
+    if (profile?.is_loan_eligible === false) {
+      toast.error("You are currently not eligible for a loan. Please contact support.");
       return;
     }
     if (profile?.gov_id_status !== "verified") {
@@ -82,6 +116,8 @@ export function Loans() {
   const [repayAmount, setRepayAmount] = useState("");
   const [selectedLoan, setSelectedLoan] = useState<any>(null);
   const [repaying, setRepaying] = useState(false);
+  const [repaySource, setRepaySource] = useState("general"); // 'general' | 'withdrawable'
+  const [repayMode, setRepayMode] = useState("scheduled"); // 'scheduled' | 'part' | 'full'
 
   const formatCurrency = (value: number | string) => {
     const val = Number(value);
@@ -171,12 +207,15 @@ export function Loans() {
     // 2. Fetch Plans (Active Plan Check)
     const { data: plansData } = await supabase
       .from("user_plans")
-      .select("id")
+      .select("id, plans!inner(type), current_balance")
       .eq("user_id", user?.id)
       .eq("status", "active");
 
     const activePlans = plansData ? plansData.length > 0 : false;
     setHasActivePlan(activePlans);
+
+    const withdrawablePlan = plansData?.find(p => p.plans.type === "withdrawable_wallet");
+    setWithdrawableBalance(withdrawablePlan?.current_balance || 0);
 
     // 3. Fetch Balance (For Max Loan Calc)
     const { data: txData } = await supabase
@@ -194,60 +233,51 @@ export function Loans() {
       setMaxLoanAmount(bal * percentage);
     }
 
-    // 4. Calculate Max Duration based on History
-    const { count: completedLoansCount } = await supabase
-      .from("loans")
-      .select("*", { count: "exact", head: true })
+    // Fetch Bank Accounts
+    const { data: bankData } = await supabase
+      .from("bank_accounts")
+      .select("*")
       .eq("user_id", user?.id)
-      .in("status", ["paid", "active"]); // Count approved loans
+      .eq("status", "active");
 
-    const count = completedLoansCount || 0;
-    setPastLoanCount(count);
-
-    let allowedDuration = 1;
-    if (count < 2) {
-      // 0 or 1 past loans -> Requesting 1st or 2nd (Max 1)
-      allowedDuration = 1;
-    } else if (count < 5) {
-      // 2, 3, 4 past loans -> Requesting 3rd, 4th, 5th (Max 3)
-      allowedDuration = 3;
-    } else {
-      // 5 or more past loans -> Requesting 6th+ (Max 6)
-      allowedDuration = 6;
-    }
-    setMaxDurationMonths(allowedDuration);
-
-    // Reset duration if it exceeds new max
-    if (parseInt(duration) > allowedDuration) {
-      setDuration(allowedDuration.toString());
+    if (bankData) {
+      setBankAccounts(bankData);
+      if (bankData.length > 0) setSelectedBankId(bankData[0].id);
     }
   }
 
   const activeLoansTotal = loans
     .filter((l) => l.status === "active" || l.status === "defaulted")
-    .reduce((sum, loan) => sum + Number(loan.total_payable), 0);
+    .reduce((sum, loan) => sum + Number(loan.repayable_amount || loan.total_payable || 0), 0);
 
   // Available limit considers existing debt
   const availableLoanLimit = Math.max(0, maxLoanAmount - activeLoansTotal);
 
-  const isEligible = hasActivePlan && profile?.gov_id_status === "verified";
-
-
+  const isEligible = hasActivePlan && profile?.gov_id_status === "verified" && profile?.is_loan_eligible !== false;
 
   async function handleRequestLoan() {
-    if (!user || !amount) return;
+    if (!user) return;
+    
+    const finalAmountStr = needHigherAmount ? higherAmount : amount;
+    if (!finalAmountStr) return;
 
     if (!isEligible) {
       toast.error("You are not eligible for a loan yet");
       return;
     }
 
-    const loanAmount = parseFloat(amount);
-    // Compare against the REMAINING limit, not full total limit
-    // Compare against the REMAINING limit, not full total limit
+    if (!selectedBankId) {
+      toast.error("Please select a bank account to receive the funds.");
+      return;
+    }
+
+    const selectedBank = bankAccounts.find(b => b.id === selectedBankId);
+
+    const loanAmount = parseFloat(finalAmountStr);
     const isHighValue = loanAmount > availableLoanLimit;
 
-    // const interestRate is now from state
+    // Use requested duration mapping
+    const durationObj = availableDurations.find(d => d.id === duration) || availableDurations[0];
     const totalPayable = loanAmount + loanAmount * (interestRate / 100);
 
     // Generate Loan Number: MTF - XXXXXX
@@ -255,19 +285,29 @@ export function Loans() {
 
     const { error } = await supabase.from("loans").insert({
       user_id: user.id,
-      amount: loanAmount,
+      amount: needHigherAmount ? parseFloat(amount) || loanAmount : loanAmount, // baseline amount
       loan_number: loanNumber,
       interest_rate: interestRate,
-      total_payable: totalPayable,
-      duration_months: parseInt(duration) || 1, // Default to 1 month if invalid
+      total_payable: totalPayable, // legacy field fallback
+      duration_months: durationObj.months,
       status: "pending",
+      repayment_duration_type: repaymentType,
+      repayment_duration_value: durationObj.months,
+      requested_higher_amount: needHigherAmount,
+      requested_amount_value: needHigherAmount ? loanAmount : 0,
+      bank_account_details: selectedBank ? {
+        bank_name: selectedBank.bank_name,
+        account_number: selectedBank.account_number,
+        account_name: selectedBank.account_name
+      } : null
     });
 
     if (error) {
       toast.error("Loan request failed");
+      console.error(error);
     } else {
-      if (isHighValue) {
-        toast.warning("Request exceeds available limit. Submitted for Admin Approval.");
+      if (isHighValue || needHigherAmount) {
+        toast.warning("Request exceeds standard parameters. Submitted for Admin Approval.");
       } else {
         toast.success("Loan requested successfully!");
       }
@@ -285,35 +325,66 @@ export function Loans() {
 
       setOpen(false);
       setAmount("");
+      setHigherAmount("");
+      setNeedHigherAmount(false);
       fetchLoans();
     }
   }
 
+  // Handle Repayment Modes inside Modal
+  useEffect(() => {
+    if (selectedLoan && repayMode === "full") {
+      setRepayAmount((selectedLoan.remaining_balance || selectedLoan.repayable_amount || selectedLoan.total_payable || 0).toString());
+    } else if (selectedLoan && repayMode === "scheduled") {
+      // rough scheduled amount (just an estimate if not fully defined yet)
+      const duration = selectedLoan.repayment_duration_value || selectedLoan.duration_months || 1;
+      const total = selectedLoan.remaining_balance || selectedLoan.repayable_amount || selectedLoan.total_payable || 0;
+      let divs = 1;
+      if (selectedLoan.repayment_duration_type === 'weekly') divs = duration * 4;
+      if (selectedLoan.repayment_duration_type === 'bi-weekly') divs = duration * 2;
+      if (selectedLoan.repayment_duration_type === 'monthly') divs = duration;
+      
+      const amt = total / (divs || 1);
+      setRepayAmount(amt > total ? total.toString() : amt.toFixed(2));
+    } else if (repayMode === "part") {
+      setRepayAmount("");
+    }
+  }, [repayMode, selectedLoan]);
+
   async function handleRepayment() {
     if (!selectedLoan || !repayAmount) return;
     const amountToRepay = parseFloat(repayAmount);
+    const balanceToCheck = repaySource === "general" ? totalBalance : withdrawableBalance;
 
     if (amountToRepay <= 0) {
       toast.error("Please enter a valid amount");
       return;
     }
-    if (amountToRepay > totalBalance) {
-      toast.error("Insufficient wallet balance for repayment");
+    if (amountToRepay > balanceToCheck) {
+      toast.error(`Insufficient balance in ${repaySource} wallet for repayment`);
       return;
     }
 
     setRepaying(true);
 
-    // 1. Create COMPLETED transaction
-    // The backend trigger 'handle_loan_repayment' will automatically
-    // update the loan balance and status when this transaction is inserted.
+    // Fetch proper plan IDs
+    let planIdToDebit = null;
+    if (repaySource === "withdrawable") {
+      const { data: wPlan } = await supabase.from("user_plans").select("plan_id, plans!inner(type)").eq("user_id", user?.id).eq("plans.type", "withdrawable_wallet").single();
+      planIdToDebit = wPlan?.plan_id;
+    } else {
+      const { data: gPlan } = await supabase.from("user_plans").select("plan_id, plans!inner(type)").eq("user_id", user?.id).eq("plans.type", "general_wallet").single();
+      planIdToDebit = gPlan?.plan_id;
+    }
+
+    // We do a double entry basically: a debit from wallet, and credit to loan is handled natively if type=loan_repayment
     const { error: txError } = await supabase.from("transactions").insert({
       user_id: user?.id,
       amount: amountToRepay,
       type: "loan_repayment",
       status: "completed",
-      description: `Repayment for ${selectedLoan.loan_number || "Loan"}`,
-      plan_id: null,
+      description: `Repayment for ${selectedLoan.loan_number || "Loan"} from ${repaySource} wallet`,
+      plan_id: planIdToDebit,
       loan_id: selectedLoan.id,
       charge: 0,
     });
@@ -328,15 +399,30 @@ export function Loans() {
       `Repayment submitted! Payment of ₦${formatCurrency(amountToRepay)} is being processed.`,
     );
 
-    // Trigger notification for loan repayment
-    if (user?.email) {
-      await notificationDispatcher.sendAlert({
-        userId: user.id,
-        email: user.email,
-        type: "loan",
-        title: "Loan Repayment Received",
-        message: `Your repayment of ₦${formatCurrency(amountToRepay)} for loan number ${selectedLoan.loan_number || "Loan"} has been successfully processed.`,
-      });
+    // Check if fully settled (roughly)
+    const newBal = (selectedLoan.remaining_balance || selectedLoan.repayable_amount || selectedLoan.total_payable) - amountToRepay;
+    if (newBal <= 0) {
+      // The DB trigger handles status update, but let's notify user
+      toast.success("Congratulations! Your loan is fully settled!");
+      if (user?.email) {
+        await notificationDispatcher.sendAlert({
+          userId: user.id,
+          email: user.email,
+          type: "loan",
+          title: "Loan Fully Settled 🎉",
+          message: `Congratulations! Your loan ${selectedLoan.loan_number || "Loan"} has been fully paid off.`,
+        });
+      }
+    } else {
+      if (user?.email) {
+        await notificationDispatcher.sendAlert({
+          userId: user.id,
+          email: user.email,
+          type: "loan",
+          title: "Loan Repayment Received",
+          message: `Your repayment of ₦${formatCurrency(amountToRepay)} for loan number ${selectedLoan.loan_number || "Loan"} has been successfully processed.`,
+        });
+      }
     }
 
     setRepayOpen(false);
@@ -351,10 +437,10 @@ export function Loans() {
   }
 
   const loanForm = (
-    <div className="grid gap-4 py-4">
+    <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto px-2">
       <div className="grid gap-2">
         <Label htmlFor="amount" className="dark:text-gray-300">
-          Loan Amount
+          Required Loan Amount
         </Label>
         <div className="flex justify-between text-xs mb-1">
           <span className="text-gray-500 dark:text-gray-400">
@@ -367,56 +453,141 @@ export function Loans() {
         <Input
           id="amount"
           type="number"
-          onKeyDown={(e) => {
-            if (["-", "+", ".", "e", "E"].includes(e.key)) e.preventDefault();
-          }}
           placeholder="0.00"
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
+          disabled={needHigherAmount}
           className="dark:bg-gray-800 dark:border-gray-700 dark:text-white"
         />
-        {amount && parseFloat(amount) > availableLoanLimit && (
-          <p className="text-xs text-amber-600 font-medium flex items-center gap-1">
+        {amount && parseFloat(amount) > availableLoanLimit && !needHigherAmount && (
+          <p className="text-xs text-amber-600 font-medium flex items-center gap-1 mt-1">
             <AlertTriangle className="w-3 h-3" />
             Exceeds available limit. Requires Admin Review.
           </p>
         )}
       </div>
+
+      <div className="flex items-center space-x-2 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-lg border dark:border-slate-800">
+        <Checkbox 
+          id="needHigherAmount" 
+          checked={needHigherAmount}
+          onCheckedChange={(c) => setNeedHigherAmount(!!c)}
+        />
+        <Label htmlFor="needHigherAmount" className="text-sm cursor-pointer dark:text-white">
+          I need a higher amount than my limit
+        </Label>
+      </div>
+
+      {needHigherAmount && (
+        <div className="grid gap-2 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
+          <Label htmlFor="higherAmount" className="text-amber-900 dark:text-amber-100 text-sm">
+            Enter required amount
+          </Label>
+          <Input
+            id="higherAmount"
+            type="number"
+            placeholder="0.00"
+            value={higherAmount}
+            onChange={(e) => setHigherAmount(e.target.value)}
+            className="bg-white dark:bg-gray-800 dark:text-white"
+          />
+          <p className="text-xs text-amber-700 dark:text-amber-400">
+            Requests exceeding limits are subject to strict administrative review and KYC verification.
+          </p>
+        </div>
+      )}
+
       <div className="grid gap-2">
         <Label htmlFor="duration" className="dark:text-gray-300">
-          Duration (Months)
+          Duration of Repayment
         </Label>
         <select
           id="duration"
           value={duration}
           onChange={(e) => setDuration(e.target.value)}
-          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm dark:bg-gray-800 dark:border-gray-700 dark:text-white"
         >
-          {Array.from({ length: maxDurationMonths }, (_, i) => i + 1).map((m) => (
-            <option key={m} value={m}>
-              {m} Month{m > 1 ? "s" : ""}
+          {availableDurations.map((d) => (
+            <option key={d.id} value={d.id}>
+              {d.label}
             </option>
           ))}
         </select>
         <p className="text-xs text-gray-500">
-          Max duration based on your history ({pastLoanCount} previous loans).
+          Max duration is unlocked based on your account age and savings volume.
         </p>
       </div>
+
+      <div className="grid gap-2">
+        <Label htmlFor="repaymentType" className="dark:text-gray-300">
+          Repayment Duration Type
+        </Label>
+        <select
+          id="repaymentType"
+          value={repaymentType}
+          onChange={(e) => setRepaymentType(e.target.value)}
+          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+        >
+          <option value="weekly">Weekly</option>
+          <option value="bi-weekly">Bi-Weekly</option>
+          <option value="monthly">Monthly</option>
+          <option value="full_settlement">Full Settlement (One-time)</option>
+        </select>
+      </div>
+
+      <div className="grid gap-2">
+        <Label htmlFor="bankAccount" className="dark:text-gray-300">
+          Bank Account (For Disbursement)
+        </Label>
+        {bankAccounts.length === 0 ? (
+          <div className="text-xs text-red-500 p-2 bg-red-50 rounded">
+            You must add a bank account in your Profile Settings before requesting a loan.
+          </div>
+        ) : (
+          <select
+            id="bankAccount"
+            value={selectedBankId}
+            onChange={(e) => setSelectedBankId(e.target.value)}
+            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+          >
+            {bankAccounts.map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.bank_name} - {b.account_number} ({b.account_name})
+              </option>
+            ))}
+          </select>
+        )}
+      </div>
+
       <div className="bg-blue-50 p-3 rounded text-sm text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 space-y-1">
         <div className="flex justify-between">
           <span>Interest Rate:</span>
           <span className="font-medium">{interestRate}% Flat</span>
         </div>
-        <div className="flex justify-between text-red-600/80 dark:text-red-400/80">
-          <span>Overdue Fee:</span>
-          <span className="font-medium">5% (if late)</span>
-        </div>
         <div className="border-t border-blue-200 dark:border-blue-800 my-2 pt-2 flex justify-between font-bold">
-          <span>Estimated Repayment:</span>
-          <span>{amount ? `₦${formatCurrency(parseFloat(amount) * 1.1)}` : "₦0.00"}</span>
+          <span>Estimated Total Repayment:</span>
+          <span>
+            {amount || higherAmount 
+              ? `₦${formatCurrency(parseFloat(needHigherAmount ? higherAmount : amount) * (1 + interestRate/100))}` 
+              : "₦0.00"}
+          </span>
         </div>
       </div>
     </div>
+  );
+
+  // Pagination Logic
+  const filteredLoans = useMemo(() => {
+    return loans.filter(l => 
+      l.loan_number?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      l.status.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [loans, searchQuery]);
+
+  const totalPages = Math.ceil(filteredLoans.length / itemsPerPage);
+  const paginatedLoans = filteredLoans.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
   );
 
   return (
@@ -430,7 +601,7 @@ export function Loans() {
         </div>
 
         <Button
-          className="bg-emerald-600 hover:bg-emerald-700 dark:text-white"
+          className="bg-emerald-600 hover:bg-emerald-700 dark:text-white shadow-sm"
           onClick={handleRequestLoanClick}
         >
           {loans.some((l) => l.status === "active" || l.status === "pending")
@@ -453,7 +624,8 @@ export function Loans() {
             <DialogFooter>
               <Button
                 onClick={handleRequestLoan}
-                className="dark:bg-emerald-600 dark:text-white dark:hover:bg-emerald-700"
+                className="w-full dark:bg-emerald-600 dark:text-white dark:hover:bg-emerald-700"
+                disabled={!selectedBankId || (!amount && !higherAmount)}
               >
                 Submit Application
               </Button>
@@ -462,94 +634,126 @@ export function Loans() {
         </Dialog>
       </div>
 
+      {/* Active Loan Countdown Highlight */}
+      {loans.filter(l => l.status === 'active').map(activeLoan => (
+        <div key={`active-${activeLoan.id}`} className="bg-gradient-to-r from-emerald-600 to-teal-700 rounded-xl shadow-lg p-6 text-white flex flex-col md:flex-row justify-between items-center gap-6">
+          <div>
+            <h3 className="text-lg font-bold opacity-90">Active Loan: {activeLoan.loan_number}</h3>
+            <div className="text-3xl font-extrabold tracking-tight mt-1">
+              ₦{formatCurrency(activeLoan.remaining_balance || activeLoan.repayable_amount || activeLoan.total_payable || 0)}
+            </div>
+            <p className="text-emerald-100 text-sm mt-1">Remaining Balance</p>
+          </div>
+          
+          <div className="flex gap-3 w-full md:w-auto">
+             <Button
+                size="lg"
+                className="bg-white text-emerald-700 hover:bg-gray-100 font-bold w-full md:w-auto shadow-sm"
+                onClick={() => {
+                  setSelectedLoan(activeLoan);
+                  setRepayMode("scheduled");
+                  setRepayOpen(true);
+                }}
+              >
+                Repay Now
+              </Button>
+          </div>
+        </div>
+      ))}
+
       {/* Repayment Dialog */}
       <Dialog open={repayOpen} onOpenChange={setRepayOpen}>
         <DialogContent className="dark:bg-gray-900 dark:border-gray-800 sm:max-w-[600px]">
           <DialogHeader>
             <DialogTitle className="dark:text-white flex items-center justify-between">
-              <span>Loan Details</span>
+              <span>Loan Repayment</span>
               {selectedLoan && <Badge variant="outline">{selectedLoan.loan_number}</Badge>}
             </DialogTitle>
             <DialogDescription className="dark:text-gray-400">
-              Review loan status, history, and manage repayments.
+              Manage your loan repayment schedule.
             </DialogDescription>
           </DialogHeader>
 
           {selectedLoan && (
             <div className="space-y-6">
-              {/* Key Stats */}
               <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
                 <div>
-                  <p className="text-xs text-gray-500">Original Amount</p>
+                  <p className="text-xs text-gray-500">Total Approved</p>
                   <p className="font-medium dark:text-white">
-                    ₦{formatCurrency(selectedLoan.amount)}
+                    ₦{formatCurrency(selectedLoan.approved_amount || selectedLoan.amount)}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500">Total Payable</p>
+                  <p className="text-xs text-gray-500">Remaining Balance</p>
                   <p className="font-bold text-emerald-600 dark:text-emerald-400">
-                    ₦{formatCurrency(selectedLoan.total_payable)}
+                    ₦{formatCurrency(selectedLoan.remaining_balance || selectedLoan.repayable_amount || selectedLoan.total_payable)}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500">Interest Rate</p>
-                  <p className="font-medium dark:text-white">{selectedLoan.interest_rate}%</p>
+                  <p className="text-xs text-gray-500">Duration type</p>
+                  <p className="font-medium dark:text-white capitalize">{(selectedLoan.repayment_duration_type || "monthly").replace('_', ' ')}</p>
                 </div>
                 <div>
                   <p className="text-xs text-gray-500">Status</p>
-                  <span
-                    className={`text-sm font-medium capitalize ${
-                      selectedLoan.status === "active"
-                        ? "text-green-600"
-                        : selectedLoan.status === "defaulted"
-                          ? "text-red-600"
-                          : "text-gray-600"
-                    }`}
-                  >
-                    {selectedLoan.status}
-                  </span>
+                  <span className="text-sm font-medium capitalize text-emerald-600">{selectedLoan.status}</span>
                 </div>
               </div>
 
-              {/* Repayment Section (Active/Overdue Only) */}
               {(selectedLoan.status === "active" || selectedLoan.status === "defaulted") && (
-                <div className="space-y-3 border-t border-gray-100 dark:border-gray-700 pt-4">
-                  <h4 className="text-sm font-semibold dark:text-white">Make a Repayment</h4>
-                  <div className="flex gap-2 items-end">
-                    <div className="grid gap-1 flex-1">
-                      <Label htmlFor="repayAmount" className="sr-only">
-                        Amount
-                      </Label>
-                      <Input
-                        id="repayAmount"
-                        type="number"
-                        onKeyDown={(e) => {
-                          if (["-", "+", ".", "e", "E"].includes(e.key)) e.preventDefault();
-                        }}
-                        value={repayAmount}
-                        onChange={(e) => setRepayAmount(e.target.value)}
-                        className="dark:bg-gray-800 dark:border-gray-700 dark:text-white"
-                        placeholder="Enter amount"
-                      />
+                <div className="space-y-4 border-t border-gray-100 dark:border-gray-700 pt-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                       <Label className="dark:text-gray-300">Repayment Source</Label>
+                       <select
+                          value={repaySource}
+                          onChange={(e) => setRepaySource(e.target.value)}
+                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+                        >
+                          <option value="general">General Wallet (₦{formatCurrency(totalBalance)})</option>
+                          <option value="withdrawable">Withdrawable Wallet (₦{formatCurrency(withdrawableBalance)})</option>
+                        </select>
                     </div>
-                    <Button
-                      variant="secondary"
-                      onClick={() => setRepayAmount(selectedLoan.total_payable.toString())}
-                    >
-                      Clear All
-                    </Button>
+                    
+                    <div className="space-y-2">
+                       <Label className="dark:text-gray-300">Payment Type</Label>
+                       <select
+                          value={repayMode}
+                          onChange={(e) => setRepayMode(e.target.value)}
+                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+                        >
+                          <option value="scheduled">Scheduled Payment ({selectedLoan.repayment_duration_type?.split('_')[0]})</option>
+                          <option value="part">Part Payment</option>
+                          <option value="full">Full Settlement</option>
+                        </select>
+                    </div>
                   </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="repayAmount" className="dark:text-gray-300">
+                      Amount to Repay
+                    </Label>
+                    <Input
+                      id="repayAmount"
+                      type="number"
+                      value={repayAmount}
+                      onChange={(e) => setRepayAmount(e.target.value)}
+                      disabled={repayMode === "full"}
+                      className="text-lg font-bold dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+                      placeholder="Enter amount"
+                    />
+                  </div>
+
                   <Button
-                    className="w-full bg-blue-600 hover:bg-blue-700"
+                    className="w-full bg-emerald-600 hover:bg-emerald-700 h-12 text-lg font-semibold"
                     onClick={handleRepayment}
                     disabled={repaying || !repayAmount}
                   >
-                    {repaying ? "Processing..." : "Submit Repayment"}
+                    {repaying ? "Processing..." : `Pay ₦${formatCurrency(repayAmount || 0)}`}
                   </Button>
                 </div>
               )}
 
-              {/* Transaction History */}
+              {/* Transaction History in modal */}
               <div className="space-y-2">
                 <h4 className="text-sm font-semibold dark:text-white">Transaction History</h4>
                 <div className="border rounded-md border-gray-100 dark:border-gray-700 max-h-[150px] overflow-y-auto">
@@ -590,95 +794,83 @@ export function Loans() {
         </DialogContent>
       </Dialog>
 
-      {/* NEW TABLE LAYOUT */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
+      {/* NEW TABLE LAYOUT WITH PAGINATION */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden flex flex-col">
+        <div className="p-4 border-b dark:border-gray-700 flex justify-between items-center">
+           <h2 className="font-semibold dark:text-white">Loans History</h2>
+           <div className="relative w-64">
+             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+             <Input 
+               placeholder="Search loans..." 
+               className="pl-9 h-9 dark:bg-gray-900 dark:border-gray-700" 
+               value={searchQuery}
+               onChange={(e) => {
+                 setSearchQuery(e.target.value);
+                 setCurrentPage(1);
+               }}
+             />
+           </div>
+        </div>
+        
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead className="w-[140px]">Loan ID</TableHead>
               <TableHead>Date</TableHead>
-              <TableHead>Amount</TableHead>
-              <TableHead>Total Payable</TableHead>
-              <TableHead>Duration</TableHead>
-              <TableHead>Overdue Status</TableHead>
+              <TableHead>Requested</TableHead>
+              <TableHead>Repayable</TableHead>
+              <TableHead>Type</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Action</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {loans.length === 0 ? (
+            {paginatedLoans.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-12 text-gray-500">
+                <TableCell colSpan={7} className="text-center py-12 text-gray-500">
                   <div className="flex flex-col items-center justify-center">
                     <FileText className="w-12 h-12 mb-4 opacity-50" />
-                    <p>No loan history found.</p>
+                    <p>No records found.</p>
                   </div>
                 </TableCell>
               </TableRow>
             ) : (
-              loans.map((loan) => {
-                // Overdue Logic
-                const dueDate = new Date(
-                  new Date(loan.created_at).getTime() +
-                    loan.duration_months * 30 * 24 * 60 * 60 * 1000,
-                );
-                const now = new Date();
-                let overdueStatus = "Not Yet";
-                let overdueColor = "text-gray-500";
-
-                if (loan.status === "active") {
-                  if (now > dueDate) {
-                    overdueStatus = "Overdue";
-                    overdueColor = "text-red-600 font-bold";
-                  } else if (dueDate.getTime() - now.getTime() < 7 * 24 * 60 * 60 * 1000) {
-                    // 7 days
-                    overdueStatus = "Due Soon";
-                    overdueColor = "text-amber-600 font-medium";
-                  }
-                } else if (loan.status === "defaulted") {
-                  overdueStatus = "Overdue";
-                  overdueColor = "text-red-600 font-bold";
-                } else {
-                  overdueStatus = "-";
-                }
-
+              paginatedLoans.map((loan) => {
                 return (
                   <TableRow key={loan.id}>
-                    <TableCell className="font-medium">{loan.loan_number || "LN----"}</TableCell>
+                    <TableCell className="font-medium font-mono text-xs">{loan.loan_number || "LN----"}</TableCell>
                     <TableCell>{new Date(loan.created_at).toLocaleDateString()}</TableCell>
-                    <TableCell>₦{formatCurrency(loan.amount)}</TableCell>
-                    <TableCell>₦{formatCurrency(loan.total_payable)}</TableCell>
-                    <TableCell>
-                      {loan.duration_months} Month{loan.duration_months > 1 ? "s" : ""}
+                    <TableCell>₦{formatCurrency(loan.requested_amount_value || loan.amount)}</TableCell>
+                    <TableCell>₦{formatCurrency(loan.repayable_amount || loan.total_payable || 0)}</TableCell>
+                    <TableCell className="capitalize">
+                      {(loan.repayment_duration_type || "monthly").replace('_', ' ')}
                     </TableCell>
-                    <TableCell className={overdueColor}>{overdueStatus}</TableCell>
                     <TableCell>
                       <Badge
                         variant={
                           loan.status === "active"
                             ? "default"
-                            : loan.status === "paid"
+                            : loan.status === "completed" || loan.status === "paid"
                               ? "secondary"
-                              : loan.status === "defaulted"
+                              : loan.status === "defaulted" || loan.status === "rejected"
                                 ? "destructive"
                                 : "outline"
                         }
                       >
-                        {loan.status === "paid" ? "Cleared" : loan.status}
+                        {loan.status === "paid" ? "completed" : loan.status}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
                       <Button
-                        variant="outline"
+                        variant="ghost"
                         size="sm"
+                        className="text-emerald-600 hover:bg-emerald-50"
                         onClick={() => {
                           setSelectedLoan(loan);
                           setRepayOpen(true);
-                          // If loan is active, user can interact.
-                          // Logic for popup is handled by passing loan to state.
                         }}
                       >
-                        View Details
+                        Details
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -687,6 +879,35 @@ export function Loans() {
             )}
           </TableBody>
         </Table>
+
+        {totalPages > 1 && (
+          <div className="p-4 flex items-center justify-between border-t dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/20">
+            <p className="text-sm text-gray-500">
+              Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredLoans.length)} of {filteredLoans.length} entries
+            </p>
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <div className="text-sm font-medium px-2 text-slate-700 dark:text-slate-300">
+                Page {currentPage} of {totalPages}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
       <KYCModal

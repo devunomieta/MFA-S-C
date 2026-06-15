@@ -29,12 +29,12 @@ export function Sidebar() {
 
   const sidebarItems = [
     { icon: LayoutDashboard, label: "Overview", href: "/dashboard" },
-    { icon: PiggyBank, label: "Plans", href: "/dashboard/plans" },
     { icon: Wallet, label: "Wallet", href: "/dashboard/wallet" },
+    { icon: PiggyBank, label: "Plans", href: "/dashboard/plans" },
     { icon: Banknote, label: "Loans", href: "/dashboard/loans" },
-    { icon: User, label: "Profile", href: "/dashboard/profile" },
-    { icon: Bell, label: "Notifications", href: "/dashboard/notifications", count: unreadCount },
     { icon: LifeBuoy, label: "Request Help", href: "/dashboard/help" },
+    { icon: Bell, label: "Notifications", href: "/dashboard/notifications", count: unreadCount },
+    { icon: User, label: "Profile", href: "/dashboard/profile" },
   ];
 
   useEffect(() => {
@@ -106,27 +106,6 @@ export function Sidebar() {
       </nav>
 
       <div className="p-4 border-t border-gray-200 dark:border-gray-800 space-y-4">
-        {user && (
-          <div className="flex items-center gap-3 px-2 py-1">
-            <div className="h-10 w-10 rounded-full overflow-hidden bg-emerald-100 dark:bg-emerald-900 flex items-center justify-center text-emerald-600 dark:text-emerald-300 font-bold shrink-0 border border-emerald-200 dark:border-emerald-700">
-              {user.user_metadata?.avatar_url ? (
-                <img
-                  src={user.user_metadata.avatar_url}
-                  alt="Profile"
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                (user.user_metadata?.full_name?.[0] || user.email?.[0] || "U").toUpperCase()
-              )}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
-                {user.user_metadata?.full_name || "User"}
-              </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user.email}</p>
-            </div>
-          </div>
-        )}
         <Button
           variant="ghost"
           className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/10 h-10 px-3 rounded-lg"

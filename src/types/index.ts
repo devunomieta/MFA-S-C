@@ -106,3 +106,36 @@ export interface UserPlan {
     payout_history?: number[];
   };
 }
+
+export interface Loan {
+  id: string;
+  user_id: string;
+  loan_number: string;
+  amount: number;
+  duration_months: number;
+  remaining_balance: number;
+  status: "pending" | "active" | "completed" | "rejected" | "defaulted";
+  created_at: string;
+  updated_at?: string;
+  
+  // New comprehensive loan fields
+  repayment_duration_type?: "weekly" | "bi-weekly" | "monthly" | "full_settlement";
+  repayment_duration_value?: number;
+  requested_higher_amount?: boolean;
+  requested_amount_value?: number;
+  approved_amount?: number;
+  repayable_amount?: number;
+  bank_account_details?: {
+    bank_name: string;
+    account_number: string;
+    account_name: string;
+  };
+  disbursement_receipt_url?: string;
+  defaulted_at?: string;
+  
+  // Joins
+  profile?: {
+    full_name: string;
+    email: string;
+  };
+}
