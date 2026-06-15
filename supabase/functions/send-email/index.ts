@@ -71,15 +71,18 @@ serve(async (req) => {
           to: Array.isArray(to) ? to : [to],
           subject: finalSubject,
           html: `
-            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; rounded: 8px;">
-              ${logoUrl ? `<img src="${logoUrl}" alt="${appName}" style="height: 40px; margin-bottom: 20px;">` : `<h2>${appName}</h2>`}
-              <div style="line-height: 1.6; color: #1e293b; font-size: 16px; white-space: pre-wrap;">
+            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 0; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
+              <div style="padding: 30px; border-bottom: 1px solid #e2e8f0; text-align: left;">
+                ${logoUrl ? `<img src="${logoUrl}" alt="${appName}" style="height: 48px;">` : `<h2 style="margin:0; color: #0f172a;">${appName}</h2>`}
+              </div>
+              <div style="line-height: 1.8; color: #1e293b; font-size: 16px; white-space: pre-wrap; padding: 40px 30px; text-align: center;">
                 ${finalBody}
               </div>
-              <hr style="margin-top: 30px; border: 0; border-top: 1px solid #e2e8f0;">
-              <p style="font-size: 12px; color: #64748b; text-align: center;">
-                &copy; ${new Date().getFullYear()} ${appName}. All rights reserved.
-              </p>
+              <div style="background-color: #f8fafc; padding: 20px 30px; text-align: center; border-top: 1px solid #e2e8f0;">
+                <p style="font-size: 13px; color: #64748b; margin: 0;">
+                  &copy; ${new Date().getFullYear()} ${appName}. All rights reserved.
+                </p>
+              </div>
             </div>
           `,
         }),
@@ -116,7 +119,7 @@ serve(async (req) => {
           },
           body: JSON.stringify({
             phone: profile.phone,
-            message: `*Alert from Mary's Thrift Services:*\n\n${cleanMessage}`,
+            message: `*${appName}*\n\n${cleanMessage}\n\n_Thank you for banking with us!_`,
             user_id: profile.id,
           }),
         });

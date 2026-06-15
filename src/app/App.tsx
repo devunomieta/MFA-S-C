@@ -105,6 +105,9 @@ const Compliance = lazy(() =>
 const Security = lazy(() =>
   import("@/app/pages/legal/Security").then((m) => ({ default: m.Security })),
 );
+const Changelog = lazy(() =>
+  import("@/app/pages/landing/Changelog").then((m) => ({ default: m.Changelog })),
+);
 
 function LoadingFallback() {
   return (
@@ -364,6 +367,14 @@ function AppRoutes() {
               element={
                 <MainLayout>
                   <Security />
+                </MainLayout>
+              }
+            />
+            <Route
+              path="/changelog"
+              element={
+                <MainLayout>
+                  <Changelog />
                 </MainLayout>
               }
             />

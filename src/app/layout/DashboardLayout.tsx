@@ -24,6 +24,7 @@ import { NotificationBell } from "@/app/components/dashboard/NotificationBell";
 import { PWAInstallBanner } from "@/app/components/dashboard/PWAInstallBanner";
 import { Sidebar } from "@/app/components/dashboard/Sidebar";
 import { SurveyPopup } from "@/app/components/SurveyPopup";
+import { SystemUpdatePopup } from "@/app/components/SystemUpdatePopup";
 import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
 import {
@@ -50,7 +51,6 @@ export function DashboardLayout() {
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showSwitcher, setShowSwitcher] = useState(false);
-  const [announcement, setAnnouncement] = useState<any>(null);
   const location = useLocation();
   const { unreadCount } = useNotifications();
 
@@ -77,23 +77,6 @@ export function DashboardLayout() {
 
     const fetchData = async () => {
       try {
-        const { data, error } = await supabase
-          .from("announcements")
-          .select("*")
-          .eq("is_active", true)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-        if (error && error.code !== "PGRST116") {
-          console.warn("Announcement fetch error:", error.message);
-        }
-
-        if (data) {
-          if (data.expires_at && new Date(data.expires_at) < new Date()) return;
-          setAnnouncement(data);
-        }
-
         // Check if user needs onboarding
         const { data: profile } = await supabase
           .from("profiles")
@@ -172,30 +155,8 @@ export function DashboardLayout() {
       {showOnboarding && <SecurityOnboarding onComplete={handleOnboardingComplete} />}
 
       {surveyTrigger && <SurveyPopup triggerEvent={surveyTrigger} />}
+      <SystemUpdatePopup />
 
-      {/* Admin / System Announcement Banner */}
-      {announcement && (
-        <div
-          className={`fixed top-0 left-0 right-0 z-[60] px-4 py-2 text-white text-sm font-medium flex items-center justify-center gap-2 ${
-            announcement.type === "error"
-              ? "bg-red-600"
-              : announcement.type === "success"
-                ? "bg-emerald-600"
-                : announcement.type === "warning"
-                  ? "bg-yellow-600"
-                  : "bg-indigo-600"
-          }`}
-        >
-          <Megaphone className="w-4 h-4 animate-pulse" />
-          <span>{announcement.message}</span>
-          <button
-            onClick={() => setAnnouncement(null)}
-            className="absolute right-4 hover:bg-white/20 p-1 rounded"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-      )}
       <Sidebar />
 
       {/* Mobile Header */}

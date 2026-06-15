@@ -80,12 +80,14 @@ export function AdminSettings() {
     },
   });
 
-  // Announcement State
+  // System Updates / Changelog State
   const [announcements, setAnnouncements] = useState<any[]>([]);
   const [newAnnouncement, setNewAnnouncement] = useState({
+    version: "",
     message: "",
     type: "info",
-    expires_at: "",
+    features: [""],
+    bugfixes: [""],
   });
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [announcementToDelete, setAnnouncementToDelete] = useState<string | null>(null);
@@ -104,18 +106,20 @@ export function AdminSettings() {
   }
 
   async function createAnnouncement() {
-    if (!newAnnouncement.message) return toast.error("Message required");
+    if (!newAnnouncement.message || !newAnnouncement.version) return toast.error("Version and Message required");
 
     const { error } = await supabase.from("announcements").insert({
+      version: newAnnouncement.version,
       message: newAnnouncement.message,
       type: newAnnouncement.type,
-      expires_at: newAnnouncement.expires_at || null,
+      features: newAnnouncement.features.filter(f => f.trim() !== ""),
+      bugfixes: newAnnouncement.bugfixes.filter(b => b.trim() !== ""),
     });
 
-    if (error) toast.error("Failed");
+    if (error) toast.error("Failed to publish system update");
     else {
-      toast.success("Created");
-      setNewAnnouncement({ message: "", type: "info", expires_at: "" });
+      toast.success("System update published");
+      setNewAnnouncement({ version: "", message: "", type: "info", features: [""], bugfixes: [""] });
       fetchAnnouncements();
     }
   }
@@ -273,7 +277,7 @@ export function AdminSettings() {
             <WalletIcon className="w-4 h-4" /> Bank Details
           </TabsTrigger>
           <TabsTrigger value="announcements" className="gap-2">
-            <Megaphone className="w-4 h-4" /> Announcements
+            <Megaphone className="w-4 h-4" /> System Updates
           </TabsTrigger>
         </TabsList>
 
@@ -687,54 +691,107 @@ export function AdminSettings() {
         <TabsContent value="announcements" className="space-y-6 mt-4">
           <Card>
             <CardHeader>
-              <CardTitle>Broadcast Announcements</CardTitle>
-              <CardDescription>Create sitewide banners for all users.</CardDescription>
+              <CardTitle>System Updates & Changelogs</CardTitle>
+              <CardDescription>Publish updates, features, and bug fixes to all users.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="grid gap-4 p-4 border rounded bg-slate-50">
-                <Label>New Announcement</Label>
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Message..."
-                    value={newAnnouncement.message}
-                    onChange={(e) =>
-                      setNewAnnouncement({ ...newAnnouncement, message: e.target.value })
-                    }
-                  />
-                  <select
-                    className="border rounded px-2"
-                    value={newAnnouncement.type}
-                    onChange={(e) =>
-                      setNewAnnouncement({ ...newAnnouncement, type: e.target.value })
-                    }
-                  >
-                    <option value="info">Info (Blue)</option>
-                    <option value="warning">Warning (Yellow)</option>
-                    <option value="error">Error (Red)</option>
-                    <option value="success">Success (Green)</option>
-                  </select>
-                  <Button onClick={createAnnouncement}>Create</Button>
+              <div className="grid gap-4 p-5 border rounded-xl bg-slate-50">
+                <h3 className="font-semibold text-slate-700">New System Update</h3>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label>Version Tag</Label>
+                    <Input placeholder="e.g. v2.1.0" value={newAnnouncement.version} onChange={e => setNewAnnouncement({...newAnnouncement, version: e.target.value})} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Type</Label>
+                    <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={newAnnouncement.type} onChange={e => setNewAnnouncement({...newAnnouncement, type: e.target.value})}>
+                      <option value="info">System Upgrade</option>
+                      <option value="success">New Feature</option>
+                      <option value="warning">Maintenance</option>
+                      <option value="error">Critical Fix</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2 md:col-span-2">
+                    <Label>Short Description / Title</Label>
+                    <Input placeholder="e.g. Major UI improvements and bug fixes..." value={newAnnouncement.message} onChange={e => setNewAnnouncement({...newAnnouncement, message: e.target.value})} />
+                  </div>
+                </div>
+                
+                <div className="grid gap-4 md:grid-cols-2 pt-4 border-t border-slate-200">
+                  <div className="space-y-2">
+                    <Label className="flex justify-between items-center">
+                      New Features
+                      <Button variant="ghost" size="sm" className="h-6 px-2" onClick={() => setNewAnnouncement({...newAnnouncement, features: [...newAnnouncement.features, ""]})}>+ Add</Button>
+                    </Label>
+                    {newAnnouncement.features.map((f, i) => (
+                      <Input key={`f-${i}`} placeholder="Feature description..." value={f} onChange={e => {
+                        const newF = [...newAnnouncement.features];
+                        newF[i] = e.target.value;
+                        setNewAnnouncement({...newAnnouncement, features: newF});
+                      }} />
+                    ))}
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label className="flex justify-between items-center">
+                      Bug Fixes
+                      <Button variant="ghost" size="sm" className="h-6 px-2" onClick={() => setNewAnnouncement({...newAnnouncement, bugfixes: [...newAnnouncement.bugfixes, ""]})}>+ Add</Button>
+                    </Label>
+                    {newAnnouncement.bugfixes.map((b, i) => (
+                      <Input key={`b-${i}`} placeholder="Bug fix description..." value={b} onChange={e => {
+                        const newB = [...newAnnouncement.bugfixes];
+                        newB[i] = e.target.value;
+                        setNewAnnouncement({...newAnnouncement, bugfixes: newB});
+                      }} />
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-2">
+                  <Button onClick={createAnnouncement} className="bg-emerald-600 hover:bg-emerald-700">Publish Update</Button>
                 </div>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {announcements.map((a) => (
-                  <div key={a.id} className="flex items-center justify-between p-3 border rounded">
-                    <div className="flex items-center gap-3">
-                      <Switch
-                        checked={a.is_active}
-                        onCheckedChange={() => toggleAnnouncement(a.id, a.is_active)}
-                      />
-                      <div>
-                        <p className="font-medium text-sm">{a.message}</p>
-                        <p className="text-xs text-slate-500">
-                          Type: {a.type} | Created: {new Date(a.created_at).toLocaleDateString()}
-                        </p>
+                  <div key={a.id} className="flex flex-col p-4 border rounded-lg bg-white space-y-3 shadow-sm">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Switch checked={a.is_active} onCheckedChange={() => toggleAnnouncement(a.id, a.is_active)} />
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded text-xs">{a.version || 'v1.0.0'}</span>
+                            <span className="font-semibold text-sm">{a.message}</span>
+                          </div>
+                          <p className="text-xs text-slate-500 mt-1">
+                            Type: {a.type} | Published: {new Date(a.created_at).toLocaleDateString()}
+                          </p>
+                        </div>
                       </div>
+                      <Button variant="ghost" size="icon" onClick={() => deleteAnnouncement(a.id)}>
+                        <Trash2 className="w-4 h-4 text-red-500" />
+                      </Button>
                     </div>
-                    <Button variant="ghost" size="sm" onClick={() => deleteAnnouncement(a.id)}>
-                      <Trash2 className="w-4 h-4 text-red-500" />
-                    </Button>
+                    {((a.features && a.features.length > 0) || (a.bugfixes && a.bugfixes.length > 0)) && (
+                       <div className="pl-14 grid grid-cols-2 gap-4 text-xs">
+                          {a.features && a.features.length > 0 && (
+                            <div>
+                              <strong className="text-emerald-700">Features:</strong>
+                              <ul className="list-disc pl-4 mt-1 text-slate-600 space-y-0.5">
+                                {a.features.map((f: string, i: number) => <li key={i}>{f}</li>)}
+                              </ul>
+                            </div>
+                          )}
+                          {a.bugfixes && a.bugfixes.length > 0 && (
+                            <div>
+                              <strong className="text-amber-700">Bug Fixes:</strong>
+                              <ul className="list-disc pl-4 mt-1 text-slate-600 space-y-0.5">
+                                {a.bugfixes.map((b: string, i: number) => <li key={i}>{b}</li>)}
+                              </ul>
+                            </div>
+                          )}
+                       </div>
+                    )}
                   </div>
                 ))}
               </div>
