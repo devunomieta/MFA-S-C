@@ -1,6 +1,14 @@
 import { useEffect, useState, useMemo } from "react";
 
-import { ArrowDownLeft, ArrowUpRight, Filter, Milestone, Wallet as WalletIcon, Eye, EyeOff } from "lucide-react";
+import {
+  ArrowDownLeft,
+  ArrowUpRight,
+  Filter,
+  Milestone,
+  Wallet as WalletIcon,
+  Eye,
+  EyeOff,
+} from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -31,10 +39,10 @@ import { TransactionDetailsModal } from "@/app/components/wallet/TransactionDeta
 import { useAuth } from "@/app/context/AuthContext";
 import { useBalanceReveal } from "@/app/context/BalanceRevealContext";
 import { notificationDispatcher } from "@/lib/notificationDispatcher";
+import { numberToWords } from "@/lib/numberToWords";
 import { checkAndProcessMaturity } from "@/lib/planUtils";
 import { supabase } from "@/lib/supabase";
 import { formatNaira, formatCurrency } from "@/lib/utils";
-import { numberToWords } from "@/lib/numberToWords";
 import { calculateBalance, deduplicateTransactions } from "@/lib/walletUtils";
 
 interface Plan {
@@ -103,6 +111,11 @@ export function Wallet() {
   } | null>(null);
   const [withdrawalsEnabled, setWithdrawalsEnabled] = useState(true);
   const [isAdvanceMode, setIsAdvanceMode] = useState(false);
+
+  // Security Pin State
+  const [showPinDialog, setShowPinDialog] = useState(false);
+  const [pinInput, setPinInput] = useState("");
+  const [pinError, setPinError] = useState("");
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -214,7 +227,6 @@ export function Wallet() {
         tx.description !== "System_Credit",
     );
   }, [selectedPlanFilter, transactions, userPlans]);
-
 
   async function fetchPlansData() {
     const { data: plansData } = await supabase.from("plans").select("*").eq("is_active", true);
@@ -344,15 +356,48 @@ export function Wallet() {
       }
     }
 
-    // STRICT LOAN CHECK
-    if (activeLoan) {
-      setPendingWithdrawalParams({ target, amount: finalAmount });
-      setShowLoanDialog(true);
+    // Require Transaction PIN before anything else
+    setPendingWithdrawalParams({ target, amount: finalAmount });
+    setShowPinDialog(true);
+    setPinInput("");
+    setPinError("");
+  }
+
+  async function verifyPinAndExecute() {
+    if (pinInput.length !== 4) {
+      setPinError("PIN must be 4 digits");
       return;
     }
+    setUploading(true);
+    try {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("transaction_pin")
+        .eq("id", user?.id)
+        .single();
 
-    // Standard
-    await executeStandardWithdrawal(target, finalAmount);
+      if (profile?.transaction_pin !== pinInput) {
+        setPinError("Incorrect PIN");
+        setUploading(false);
+        return;
+      }
+
+      setShowPinDialog(false);
+      setUploading(false);
+
+      if (activeLoan) {
+        setShowLoanDialog(true);
+      } else {
+        await executeStandardWithdrawal(
+          pendingWithdrawalParams!.target,
+          pendingWithdrawalParams!.amount,
+        );
+      }
+    } catch (err: any) {
+      console.error(err);
+      setPinError("Verification failed");
+      setUploading(false);
+    }
   }
 
   async function executeStandardWithdrawal(
@@ -945,15 +990,15 @@ export function Wallet() {
                     {isBalanceHidden ? "Show Balances" : "Hide Balances"}
                   </button>
                 </div>
-              <div className="space-y-1">
-                <p className="text-[10px] text-gray-400 uppercase font-black tracking-widest opacity-60">
-                  Available Balance
-                </p>
-                <p className="text-3xl font-black tracking-tighter tabular-nums drop-shadow-2xl">
-                  <span className="text-emerald-500 mr-1 text-2xl">₦</span>
-                  {isBalanceHidden ? "****" : formatNaira(generalBalance).replace("₦", "")}
-                </p>
-              </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] text-gray-400 uppercase font-black tracking-widest opacity-60">
+                    Available Balance
+                  </p>
+                  <p className="text-3xl font-black tracking-tighter tabular-nums drop-shadow-2xl">
+                    <span className="text-emerald-500 mr-1 text-2xl">₦</span>
+                    {isBalanceHidden ? "****" : formatNaira(generalBalance).replace("₦", "")}
+                  </p>
+                </div>
               </div>
             </CardContent>
 
@@ -1099,9 +1144,7 @@ export function Wallet() {
                   variant="ghost"
                   className="text-[10px] h-11 px-6 font-black uppercase tracking-widest text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-900/10 transition-all border border-transparent hover:border-emerald-500/20 rounded-xl relative z-10"
                 >
-                  <Link to="/dashboard/plans?tab=my-plans">
-                    View Plans
-                  </Link>
+                  <Link to="/dashboard/plans?tab=my-plans">View Plans</Link>
                 </Button>
               </div>
             </div>
@@ -1266,7 +1309,9 @@ export function Wallet() {
                               <TableCell
                                 className={`text-right font-black font-mono tracking-tighter text-[13px] ${amountClass}`}
                               >
-                                {isBalanceHidden ? "****" : (
+                                {isBalanceHidden ? (
+                                  "****"
+                                ) : (
                                   <>
                                     {amountPrefix}
                                     {formatNaira(Math.abs(tx.amount))}
@@ -1391,6 +1436,45 @@ export function Wallet() {
         onOpenChange={setShowDetailsDialog}
         transaction={selectedTransaction}
       />
+
+      {/* Transaction PIN Dialog */}
+      <Dialog open={showPinDialog} onOpenChange={setShowPinDialog}>
+        <DialogContent className="dark:bg-slate-900 dark:border-slate-800 max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-center">Enter Transaction PIN</DialogTitle>
+            <DialogDescription className="text-center">
+              Please enter your 4-digit PIN to authorize this transaction.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Input
+                type="password"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={4}
+                value={pinInput}
+                onChange={(e) => {
+                  setPinInput(e.target.value.replace(/\D/g, ""));
+                  setPinError("");
+                }}
+                className="h-14 rounded-xl text-center text-3xl tracking-[1em] font-bold"
+                autoFocus
+              />
+              {pinError && (
+                <p className="text-sm text-red-500 text-center font-medium">{pinError}</p>
+              )}
+            </div>
+            <Button
+              onClick={verifyPinAndExecute}
+              disabled={uploading || pinInput.length !== 4}
+              className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl"
+            >
+              {uploading ? "Verifying..." : "Authorize"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

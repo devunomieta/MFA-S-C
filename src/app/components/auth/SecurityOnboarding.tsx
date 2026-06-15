@@ -29,26 +29,26 @@ interface SecurityOnboardingProps {
 
 export function SecurityOnboarding({ onComplete }: SecurityOnboardingProps) {
   const { user, signOut } = useAuth();
-  const [step, setStep] = useState<"intro" | "phone" | "password" | "success">("intro");
+  const [step, setStep] = useState<"intro" | "phone" | "password" | "pin" | "success">("intro");
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(true);
   const [requiresPassword, setRequiresPassword] = useState(false);
+  const [requiresPin, setRequiresPin] = useState(false);
 
   // Form states
   const [phone, setPhone] = useState("");
+  const [fullName, setFullName] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [pin, setPin] = useState("");
+  const [confirmPin, setConfirmPin] = useState("");
   const passFeedback = validatePassword(password);
 
   const isGoogleUser =
     user?.app_metadata?.provider === "google" ||
     (user?.app_metadata?.providers as string[] | undefined)?.includes("google");
-
-  const hasEmailProvider =
-    user?.app_metadata?.provider === "email" ||
-    (user?.app_metadata?.providers as string[] | undefined)?.includes("email");
 
   const completeOnboarding = async () => {
     try {
@@ -88,20 +88,23 @@ export function SecurityOnboarding({ onComplete }: SecurityOnboardingProps) {
       try {
         const { data: profile } = await supabase
           .from("profiles")
-          .select("phone, onboarding_completed, has_password")
+          .select("phone, full_name, onboarding_completed, has_password, transaction_pin")
           .eq("id", user.id)
           .maybeSingle();
 
+        setFullName(profile?.full_name || "");
+
         const hasPhone = !!profile?.phone && profile.phone.trim().length > 3;
-        const needsPassword =
-          isGoogleUser &&
-          !hasEmailProvider &&
-          !profile?.has_password &&
-          !user?.user_metadata?.has_password;
+
+        const isStandardSignup = user?.user_metadata?.signup_mode === "standard";
+        const needsPassword = !profile?.has_password && (isGoogleUser || isStandardSignup);
 
         setRequiresPassword(!!needsPassword);
 
-        if (profile?.onboarding_completed) {
+        const needsPin = !profile?.transaction_pin;
+        setRequiresPin(needsPin);
+
+        if (profile?.onboarding_completed && !needsPin && !needsPassword) {
           onComplete();
           return;
         }
@@ -110,6 +113,8 @@ export function SecurityOnboarding({ onComplete }: SecurityOnboardingProps) {
           setStep("phone");
         } else if (needsPassword) {
           setStep("password");
+        } else if (needsPin) {
+          setStep("pin");
         } else {
           // Everything set but flag not updated
           await completeOnboarding();
@@ -185,13 +190,13 @@ export function SecurityOnboarding({ onComplete }: SecurityOnboardingProps) {
 
       const { error: dbError } = await supabase
         .from("profiles")
-        .update({ phone: normalizedPhone })
+        .update({ phone: normalizedPhone, full_name: fullName })
         .eq("id", user?.id);
 
       if (dbError) throw dbError;
 
       const { error: authError } = await supabase.auth.updateUser({
-        data: { phone: normalizedPhone },
+        data: { phone: normalizedPhone, full_name: fullName },
       });
 
       if (authError) throw authError;
@@ -200,6 +205,8 @@ export function SecurityOnboarding({ onComplete }: SecurityOnboardingProps) {
 
       if (requiresPassword) {
         setStep("password");
+      } else if (requiresPin) {
+        setStep("pin");
       } else {
         await completeOnboarding();
       }
@@ -239,10 +246,39 @@ export function SecurityOnboarding({ onComplete }: SecurityOnboardingProps) {
       if (profileError) throw profileError;
 
       toast.success("Password created successfully!");
-      await completeOnboarding();
+      if (requiresPin) {
+        setStep("pin");
+      } else {
+        await completeOnboarding();
+      }
     } catch (err: any) {
       console.error("Password update failed:", err);
       toast.error(err.message || "Update failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handlePinSubmit() {
+    if (pin.length !== 4 || pin !== confirmPin) {
+      toast.error("Please enter and confirm a 4-digit PIN");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ transaction_pin: pin })
+        .eq("id", user?.id);
+
+      if (error) throw error;
+
+      toast.success("Transaction PIN created successfully!");
+      await completeOnboarding();
+    } catch (err: any) {
+      console.error("PIN update failed:", err);
+      toast.error(err.message || "Failed to set PIN. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -309,50 +345,71 @@ export function SecurityOnboarding({ onComplete }: SecurityOnboardingProps) {
                   </p>
                 </div>
 
-                <div className="space-y-2">
-                  <Label className="text-xs font-bold uppercase text-slate-500">Phone Number</Label>
-                  <div className="relative">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase text-slate-500">Full Name</Label>
                     <Input
-                      type="tel"
-                      placeholder="e.g. 08012345678"
-                      value={phone}
-                      onChange={handlePhoneChange}
+                      type="text"
+                      placeholder="e.g. John Doe"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
                       className={`h-12 rounded-xl dark:bg-slate-800 focus-visible:ring-2 transition-all ${
-                        phone.length > 0
-                          ? isPhoneValid
-                            ? "border-emerald-500 focus-visible:ring-emerald-500/20"
-                            : "border-red-500 focus-visible:ring-red-500/20"
+                        fullName.trim().length >= 2
+                          ? "border-emerald-500 focus-visible:ring-emerald-500/20"
                           : "dark:border-slate-700"
                       }`}
                     />
-                    {isPhoneValid && (
-                      <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-emerald-500" />
-                    )}
                   </div>
 
-                  {/* Live Validation Warning */}
-                  <AnimatePresence>
-                    {phoneWarningText && (
-                      <motion.p
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="text-xs font-medium text-red-500 m-0"
-                      >
-                        {phoneWarningText}
-                      </motion.p>
-                    )}
-                  </AnimatePresence>
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase text-slate-500">
+                      Phone Number
+                    </Label>
+                    <div className="relative">
+                      <Input
+                        type="tel"
+                        placeholder="e.g. 08012345678"
+                        value={phone}
+                        onChange={handlePhoneChange}
+                        className={`h-12 rounded-xl dark:bg-slate-800 focus-visible:ring-2 transition-all ${
+                          phone.length > 0
+                            ? isPhoneValid
+                              ? "border-emerald-500 focus-visible:ring-emerald-500/20"
+                              : "border-red-500 focus-visible:ring-red-500/20"
+                            : "dark:border-slate-700"
+                        }`}
+                      />
+                      {isPhoneValid && (
+                        <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-emerald-500" />
+                      )}
+                    </div>
 
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 italic leading-normal">
-                    💡 <strong>Recommendation:</strong> Use a WhatsApp-enabled number to receive
-                    deposit, withdrawal, approval, and plan alerts directly on WhatsApp.
-                  </p>
+                    {/* Live Validation Warning */}
+                    <AnimatePresence>
+                      {phoneWarningText && (
+                        <motion.p
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="text-xs font-medium text-red-500 m-0"
+                        >
+                          {phoneWarningText}
+                        </motion.p>
+                      )}
+                    </AnimatePresence>
+
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 italic leading-normal">
+                      💡 <strong>Recommendation:</strong> Use a WhatsApp-enabled number to receive
+                      deposit, withdrawal, approval, and plan alerts directly on WhatsApp.
+                    </p>
+                  </div>
                 </div>
 
                 <Button
                   onClick={handlePhoneSubmit}
-                  disabled={loading || phone.length === 0 || !isPhoneValid}
+                  disabled={
+                    loading || phone.length === 0 || !isPhoneValid || fullName.trim().length < 2
+                  }
                   className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl font-bold shadow-lg shadow-emerald-500/20 transition-all"
                 >
                   {loading ? <Loader2 className="animate-spin" /> : "Continue"}
@@ -374,8 +431,7 @@ export function SecurityOnboarding({ onComplete }: SecurityOnboardingProps) {
                   </div>
                   <h2 className="text-xl font-bold dark:text-white">Create a Password</h2>
                   <p className="text-sm text-slate-500 dark:text-slate-400">
-                    Step 2 of 2: Since you signed in with Google, creating a password allows you to
-                    login directly later.
+                    Step 2: Create a password to easily log in next time.
                   </p>
                 </div>
 
@@ -428,6 +484,66 @@ export function SecurityOnboarding({ onComplete }: SecurityOnboardingProps) {
                 <Button
                   onClick={handlePasswordSubmit}
                   disabled={loading || !passFeedback.isValid || password !== confirmPassword}
+                  className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 rounded-xl font-bold shadow-lg shadow-emerald-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loading ? <Loader2 className="animate-spin" /> : "Complete Setup"}
+                </Button>
+              </motion.div>
+            )}
+
+            {step === "pin" && (
+              <motion.div
+                key="pin"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="space-y-6"
+              >
+                <div className="text-center space-y-2">
+                  <div className="mx-auto w-12 h-12 bg-indigo-100 dark:bg-indigo-900/30 rounded-xl flex items-center justify-center">
+                    <KeyRound className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+                  </div>
+                  <h2 className="text-xl font-bold dark:text-white">Set Transaction PIN</h2>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    Create a secure 4-digit PIN. This will be required to authorize any withdrawals
+                    from your wallet.
+                  </p>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase text-slate-500">
+                      4-Digit PIN
+                    </Label>
+                    <Input
+                      type="password"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      maxLength={4}
+                      value={pin}
+                      onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
+                      className="h-12 rounded-xl dark:bg-slate-800 dark:border-slate-700 text-center tracking-[1em] text-2xl font-bold"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase text-slate-500">
+                      Confirm PIN
+                    </Label>
+                    <Input
+                      type="password"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      maxLength={4}
+                      value={confirmPin}
+                      onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, ""))}
+                      className="h-12 rounded-xl dark:bg-slate-800 dark:border-slate-700 text-center tracking-[1em] text-2xl font-bold"
+                    />
+                  </div>
+                </div>
+
+                <Button
+                  onClick={handlePinSubmit}
+                  disabled={loading || pin.length !== 4 || pin !== confirmPin}
                   className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 rounded-xl font-bold shadow-lg shadow-emerald-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? <Loader2 className="animate-spin" /> : "Complete Setup"}

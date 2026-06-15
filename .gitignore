@@ -32,3 +32,6 @@ src/test-utils.tsx
 
 # Supabase CLI local cache
 supabase/.temp/
+
+# Generated reports
+eslint-report.json

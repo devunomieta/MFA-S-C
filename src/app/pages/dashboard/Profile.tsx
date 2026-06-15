@@ -17,60 +17,11 @@ import {
   Camera,
   RefreshCw,
 } from "lucide-react";
-import {
-  User,
-  KeyRound,
-  UserCheck,
-  Landmark,
-  Shield,
-  Mail,
-  Phone,
-} from "lucide-react";
+import { User, KeyRound, UserCheck, Landmark, Shield, Mail, Phone } from "lucide-react";
 import { toast } from "sonner";
 
 import { ActionConfirmModal } from "@/app/components/ui/ActionConfirmModal";
 import { Avatar, AvatarFallback, AvatarImage } from "@/app/components/ui/avatar";
-
-const NIGERIAN_STATES = [
-  "Lagos",
-  "Abuja",
-  "Abia",
-  "Adamawa",
-  "Akwa Ibom",
-  "Anambra",
-  "Bauchi",
-  "Bayelsa",
-  "Benue",
-  "Borno",
-  "Cross River",
-  "Delta",
-  "Ebonyi",
-  "Edo",
-  "Ekiti",
-  "Enugu",
-  "Gombe",
-  "Imo",
-  "Jigawa",
-  "Kaduna",
-  "Kano",
-  "Katsina",
-  "Kebbi",
-  "Kogi",
-  "Kwara",
-  "Nasarawa",
-  "Niger",
-  "Ogun",
-  "Ondo",
-  "Osun",
-  "Oyo",
-  "Plateau",
-  "Rivers",
-  "Sokoto",
-  "Taraba",
-  "Yobe",
-  "Zamfara",
-];
-
 import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
 import {
@@ -103,7 +54,6 @@ import { useAuth } from "@/app/context/AuthContext";
 import { notificationDispatcher } from "@/lib/notificationDispatcher";
 import { supabase } from "@/lib/supabase";
 import { validateFile, validatePassword } from "@/lib/validation";
-
 
 // ---------------------------------------------------------------------------
 // Image quality analysis helpers (shared with KYCModal)
@@ -209,6 +159,46 @@ async function validateDocumentQuality(file: File): Promise<{ ok: boolean; reaso
   });
 }
 
+const NIGERIAN_STATES = [
+  "Lagos",
+  "Abuja",
+  "Abia",
+  "Adamawa",
+  "Akwa Ibom",
+  "Anambra",
+  "Bauchi",
+  "Bayelsa",
+  "Benue",
+  "Borno",
+  "Cross River",
+  "Delta",
+  "Ebonyi",
+  "Edo",
+  "Ekiti",
+  "Enugu",
+  "Gombe",
+  "Imo",
+  "Jigawa",
+  "Kaduna",
+  "Kano",
+  "Katsina",
+  "Kebbi",
+  "Kogi",
+  "Kwara",
+  "Nasarawa",
+  "Niger",
+  "Ogun",
+  "Ondo",
+  "Osun",
+  "Oyo",
+  "Plateau",
+  "Rivers",
+  "Sokoto",
+  "Taraba",
+  "Yobe",
+  "Zamfara",
+];
+
 export function Profile() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
@@ -238,7 +228,8 @@ export function Profile() {
 
   const [hasActiveDebt, setHasActiveDebt] = useState(false);
   const [isEditingKyc, setIsEditingKyc] = useState(false);
-  const kycLocked = hasActiveDebt && !profile.kyc_edit_allowed && profile.gov_id_status !== "not_uploaded";
+  const kycLocked =
+    hasActiveDebt && !profile.kyc_edit_allowed && profile.gov_id_status !== "not_uploaded";
 
   // Keep track of original name to detect changes
   const [originalName, setOriginalName] = useState("");
@@ -315,6 +306,7 @@ export function Profile() {
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsMobile(
       /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent),
     );
@@ -1288,7 +1280,7 @@ export function Profile() {
           data: { publicUrl },
         } = supabase.storage.from("kyc").getPublicUrl(filePath);
         finalGovIdUrl = publicUrl;
-      } catch (err: any) {
+      } catch {
         toast.error("NIN slip upload failed");
         setUploadingId(false);
         return;
@@ -1312,7 +1304,7 @@ export function Profile() {
           data: { publicUrl },
         } = supabase.storage.from("kyc").getPublicUrl(filePath);
         finalUtilityBillUrl = publicUrl;
-      } catch (err: any) {
+      } catch {
         toast.error("Utility bill upload failed");
         setUploadingId(false);
         return;

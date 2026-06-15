@@ -4,8 +4,6 @@ import {
   Menu,
   LogOut,
   Repeat,
-  Megaphone,
-  X,
   LayoutDashboard,
   PiggyBank,
   Wallet as WalletIcon,
@@ -26,6 +24,7 @@ import { Sidebar } from "@/app/components/dashboard/Sidebar";
 import { SurveyPopup } from "@/app/components/SurveyPopup";
 import { SystemUpdatePopup } from "@/app/components/SystemUpdatePopup";
 import { Badge } from "@/app/components/ui/badge";
+import { BrandLogo } from "@/app/components/ui/BrandLogo";
 import { Button } from "@/app/components/ui/button";
 import {
   DropdownMenu,
@@ -57,6 +56,7 @@ export function DashboardLayout() {
   // Mandatory Security Onboarding
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [surveyTrigger, setSurveyTrigger] = useState<string | null>(null);
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
 
   const handleOnboardingComplete = useCallback(() => {
     setShowOnboarding(false);
@@ -77,6 +77,16 @@ export function DashboardLayout() {
 
     const fetchData = async () => {
       try {
+        // Fetch app settings for logo
+        supabase
+          .from("app_settings")
+          .select("value")
+          .eq("key", "general")
+          .single()
+          .then(({ data }) => {
+            if (data?.value?.logo_url) setLogoUrl(data.value.logo_url);
+          });
+
         // Check if user needs onboarding
         const { data: profile } = await supabase
           .from("profiles")
@@ -235,9 +245,13 @@ export function DashboardLayout() {
                 </div>
               </SheetContent>
             </Sheet>
-            <span className="text-xl font-bold text-emerald-600 uppercase">
-              Mary's Thrift Services
-            </span>
+            {logoUrl ? (
+              <BrandLogo src={logoUrl} alt="Logo" size="sm" transparent={true} />
+            ) : (
+              <span className="text-[10px] sm:text-xs font-black text-emerald-600 uppercase tracking-widest bg-emerald-50 dark:bg-emerald-900/30 px-3 py-1.5 rounded-lg border border-emerald-100 dark:border-emerald-800">
+                MTF Logo
+              </span>
+            )}
           </div>
 
           <div className="ml-auto flex items-center gap-4">

@@ -70,6 +70,7 @@ export function AjoPlanCard({
 
   useEffect(() => {
     if (user && user_plan) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       fetchProfile();
     }
   }, [user, user_plan]);

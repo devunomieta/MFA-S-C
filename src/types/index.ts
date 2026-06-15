@@ -117,7 +117,7 @@ export interface Loan {
   status: "pending" | "active" | "completed" | "rejected" | "defaulted";
   created_at: string;
   updated_at?: string;
-  
+
   // New comprehensive loan fields
   repayment_duration_type?: "weekly" | "bi-weekly" | "monthly" | "full_settlement";
   repayment_duration_value?: number;
@@ -132,7 +132,7 @@ export interface Loan {
   };
   disbursement_receipt_url?: string;
   defaulted_at?: string;
-  
+
   // Joins
   profile?: {
     full_name: string;

@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
-import { X, Sparkles, CheckCircle2, Wrench, Info } from "lucide-react";
+
 import { motion, AnimatePresence } from "framer-motion";
+import { X, Sparkles, CheckCircle2, Wrench, Info } from "lucide-react";
+
 import { supabase } from "@/lib/supabase";
+
 import { Button } from "./ui/button";
 
 interface SystemUpdate {
@@ -17,10 +20,6 @@ interface SystemUpdate {
 export function SystemUpdatePopup() {
   const [update, setUpdate] = useState<SystemUpdate | null>(null);
   const [isOpen, setIsOpen] = useState(false);
-
-  useEffect(() => {
-    fetchLatestUpdate();
-  }, []);
 
   async function fetchLatestUpdate() {
     try {
@@ -46,6 +45,10 @@ export function SystemUpdatePopup() {
     }
   }
 
+  useEffect(() => {
+    fetchLatestUpdate();
+  }, []);
+
   function handleDismiss() {
     if (update) {
       const dismissedUpdates = JSON.parse(localStorage.getItem("dismissed_updates") || "[]");
@@ -59,19 +62,27 @@ export function SystemUpdatePopup() {
 
   const getTypeIcon = () => {
     switch (update.type) {
-      case 'success': return <Sparkles className="w-6 h-6 text-emerald-500" />;
-      case 'warning': return <Wrench className="w-6 h-6 text-amber-500" />;
-      case 'error': return <CheckCircle2 className="w-6 h-6 text-red-500" />;
-      default: return <Info className="w-6 h-6 text-blue-500" />;
+      case "success":
+        return <Sparkles className="w-6 h-6 text-emerald-500" />;
+      case "warning":
+        return <Wrench className="w-6 h-6 text-amber-500" />;
+      case "error":
+        return <CheckCircle2 className="w-6 h-6 text-red-500" />;
+      default:
+        return <Info className="w-6 h-6 text-blue-500" />;
     }
   };
 
   const getTypeBadgeColor = () => {
     switch (update.type) {
-      case 'success': return "bg-emerald-100 text-emerald-700";
-      case 'warning': return "bg-amber-100 text-amber-700";
-      case 'error': return "bg-red-100 text-red-700";
-      default: return "bg-blue-100 text-blue-700";
+      case "success":
+        return "bg-emerald-100 text-emerald-700";
+      case "warning":
+        return "bg-amber-100 text-amber-700";
+      case "error":
+        return "bg-red-100 text-red-700";
+      default:
+        return "bg-blue-100 text-blue-700";
     }
   };
 
@@ -79,13 +90,13 @@ export function SystemUpdatePopup() {
     <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             className="bg-white rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden relative"
           >
-            <button 
+            <button
               onClick={handleDismiss}
               className="absolute top-4 right-4 p-2 bg-slate-100 hover:bg-slate-200 rounded-full text-slate-500 transition-colors z-10"
             >
@@ -98,20 +109,30 @@ export function SystemUpdatePopup() {
                   {getTypeIcon()}
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold text-slate-900 leading-tight tracking-tight">System Update</h2>
+                  <h2 className="text-2xl font-bold text-slate-900 leading-tight tracking-tight">
+                    System Update
+                  </h2>
                   <div className="flex items-center gap-2 mt-1">
-                    <span className="font-mono text-sm font-semibold text-slate-500">{update.version || 'v1.0'}</span>
-                    <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${getTypeBadgeColor()}`}>
-                      {update.type === 'success' ? 'New Feature' : update.type === 'warning' ? 'Maintenance' : update.type === 'error' ? 'Critical Fix' : 'Info'}
+                    <span className="font-mono text-sm font-semibold text-slate-500">
+                      {update.version || "v1.0"}
+                    </span>
+                    <span
+                      className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${getTypeBadgeColor()}`}
+                    >
+                      {update.type === "success"
+                        ? "New Feature"
+                        : update.type === "warning"
+                          ? "Maintenance"
+                          : update.type === "error"
+                            ? "Critical Fix"
+                            : "Info"}
                     </span>
                   </div>
                 </div>
               </div>
 
               <div className="prose prose-slate prose-sm mb-6">
-                <p className="text-slate-600 text-base leading-relaxed">
-                  {update.message}
-                </p>
+                <p className="text-slate-600 text-base leading-relaxed">{update.message}</p>
               </div>
 
               <div className="space-y-6">
@@ -149,7 +170,7 @@ export function SystemUpdatePopup() {
               </div>
 
               <div className="mt-8 pt-6 border-t border-slate-100 flex justify-end">
-                <Button 
+                <Button
                   onClick={handleDismiss}
                   className="bg-slate-900 hover:bg-slate-800 text-white rounded-xl px-8 h-12 text-sm font-semibold w-full sm:w-auto shadow-xl shadow-slate-900/10 active:scale-95 transition-all"
                 >

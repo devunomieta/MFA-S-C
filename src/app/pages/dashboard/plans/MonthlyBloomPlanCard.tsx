@@ -16,9 +16,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/app/components/ui/select";
+import { numberToWords } from "@/lib/numberToWords";
 import { getEstimatedMaturityDate } from "@/lib/planUtils";
 import { formatNaira } from "@/lib/utils";
-import { numberToWords } from "@/lib/numberToWords";
 import { Plan, UserPlan } from "@/types";
 
 import { SprintJoinModal } from "./SprintJoinModal";

@@ -124,10 +124,11 @@ export function Footer() {
             <h4 className="text-white font-bold uppercase tracking-widest text-[11px]">Platform</h4>
             <ul className="space-y-3">
               {[
-                { label: "How It Works", href: "#how-it-works" },
-                { label: "Features", href: "#features" },
-                { label: "Pricing", href: "#plans" },
-                { label: "Contact", href: "#contact" },
+                { label: "How It Works", href: "/#how-it-works" },
+                { label: "Features", href: "/#features" },
+                { label: "Pricing", href: "/#plans" },
+                { label: "Contact", href: "/#contact" },
+                { label: "Changelog", href: "/changelog" },
               ].map((item) => (
                 <li key={item.label}>
                   <a

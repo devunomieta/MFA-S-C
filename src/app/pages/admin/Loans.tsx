@@ -1,11 +1,30 @@
 import { useEffect, useState, useMemo } from "react";
 
-import { Check, X, Search, ChevronLeft, ChevronRight, FileText, UploadCloud, AlertCircle } from "lucide-react";
+import {
+  Check,
+  X,
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  FileText,
+  UploadCloud,
+  AlertCircle,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
+import { Card, CardContent } from "@/app/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from "@/app/components/ui/dialog";
+import { Input } from "@/app/components/ui/input";
+import { Label } from "@/app/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -13,18 +32,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/app/components/ui/select";
-import { Input } from "@/app/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/app/components/ui/dialog";
-import { Label } from "@/app/components/ui/label";
-
+import { Tabs, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
 import { notificationDispatcher } from "@/lib/notificationDispatcher";
 import { supabase } from "@/lib/supabase";
 
 export function AdminLoans() {
   const [loans, setLoans] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  
+
   // Tab & Pagination State
   const [activeTab, setActiveTab] = useState("requests");
   const [searchQuery, setSearchQuery] = useState("");
@@ -35,7 +50,7 @@ export function AdminLoans() {
   const [actionLoan, setActionLoan] = useState<any>(null);
   const [approveModalOpen, setApproveModalOpen] = useState(false);
   const [disburseModalOpen, setDisburseModalOpen] = useState(false);
-  
+
   // Approve Form State
   const [approvedAmount, setApprovedAmount] = useState("");
   const [repayableAmount, setRepayableAmount] = useState("");
@@ -116,9 +131,9 @@ export function AdminLoans() {
   }
 
   async function handleReject(loanId: string) {
-    const loan = loans.find(l => l.id === loanId);
+    const loan = loans.find((l) => l.id === loanId);
     if (!loan) return;
-    
+
     if (!confirm("Are you sure you want to reject this loan application?")) return;
 
     const { error } = await supabase.from("loans").update({ status: "rejected" }).eq("id", loanId);
@@ -149,10 +164,13 @@ export function AdminLoans() {
     setActioning(true);
 
     // 1. Update loan status to active
-    const { error } = await supabase.from("loans").update({
-      status: "active",
-      disbursement_receipt_url: receiptUrl || "Manually Confirmed",
-    }).eq("id", actionLoan.id);
+    const { error } = await supabase
+      .from("loans")
+      .update({
+        status: "active",
+        disbursement_receipt_url: receiptUrl || "Manually Confirmed",
+      })
+      .eq("id", actionLoan.id);
 
     if (error) {
       toast.error("Failed to mark loan as disbursed");
@@ -167,12 +185,12 @@ export function AdminLoans() {
       amount: actionLoan.approved_amount || actionLoan.amount,
       type: "loan_disbursement",
       status: "completed",
-      description: `Disbursement to Bank Account (${actionLoan.bank_account_details?.bank_name || 'External'} - ${actionLoan.bank_account_details?.account_number || ''})`,
+      description: `Disbursement to Bank Account (${actionLoan.bank_account_details?.bank_name || "External"} - ${actionLoan.bank_account_details?.account_number || ""})`,
       loan_id: actionLoan.id,
     });
 
     toast.success("Loan marked as disbursed and is now active.");
-    
+
     await notificationDispatcher.sendAlert({
       userId: actionLoan.user_id,
       email: actionLoan.profile?.email,
@@ -187,21 +205,24 @@ export function AdminLoans() {
   }
 
   async function handleMarkStatus(loanId: string, newStatus: string) {
-    const loan = loans.find(l => l.id === loanId);
+    const loan = loans.find((l) => l.id === loanId);
     if (!loan) return;
-    
+
     if (!confirm(`Are you sure you want to mark this loan as ${newStatus}?`)) return;
 
-    const { error } = await supabase.from("loans").update({ 
-      status: newStatus,
-      ...(newStatus === "defaulted" ? { defaulted_at: new Date().toISOString() } : {})
-    }).eq("id", loanId);
+    const { error } = await supabase
+      .from("loans")
+      .update({
+        status: newStatus,
+        ...(newStatus === "defaulted" ? { defaulted_at: new Date().toISOString() } : {}),
+      })
+      .eq("id", loanId);
 
     if (error) {
       toast.error(`Failed to mark loan as ${newStatus}`);
     } else {
       toast.success(`Loan marked as ${newStatus}`);
-      
+
       if (newStatus === "defaulted") {
         await notificationDispatcher.sendAlert({
           userId: loan.user_id,
@@ -231,13 +252,14 @@ export function AdminLoans() {
     // Search query matching
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
-      filtered = filtered.filter(l => 
-        l.loan_number?.toLowerCase().includes(q) ||
-        l.profile?.full_name?.toLowerCase().includes(q) ||
-        l.profile?.email?.toLowerCase().includes(q)
+      filtered = filtered.filter(
+        (l) =>
+          l.loan_number?.toLowerCase().includes(q) ||
+          l.profile?.full_name?.toLowerCase().includes(q) ||
+          l.profile?.email?.toLowerCase().includes(q),
       );
     }
-    
+
     return filtered;
   }, [loans, activeTab, searchQuery]);
 
@@ -245,11 +267,12 @@ export function AdminLoans() {
   const totalPages = Math.ceil(filteredLoans.length / itemsPerPage);
   const paginatedLoans = filteredLoans.slice(
     (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
+    currentPage * itemsPerPage,
   );
 
   // Reset pagination when tab or search changes
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setCurrentPage(1);
   }, [activeTab, searchQuery]);
 
@@ -258,7 +281,9 @@ export function AdminLoans() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Loan Management</h1>
-          <p className="text-slate-500">Review requests, disburse funds, and manage debt collections.</p>
+          <p className="text-slate-500">
+            Review requests, disburse funds, and manage debt collections.
+          </p>
         </div>
       </div>
 
@@ -273,12 +298,12 @@ export function AdminLoans() {
                 <TabsTrigger value="defaulted">Defaulted</TabsTrigger>
                 <TabsTrigger value="settled">Settled</TabsTrigger>
               </TabsList>
-              
+
               <div className="relative w-full sm:w-64">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
-                <Input 
-                  placeholder="Search user or loan #..." 
-                  className="pl-9 h-9" 
+                <Input
+                  placeholder="Search user or loan #..."
+                  className="pl-9 h-9"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
@@ -293,11 +318,11 @@ export function AdminLoans() {
                     <th className="px-4 py-3">User</th>
                     <th className="px-4 py-3">Amount</th>
                     <th className="px-4 py-3">Duration</th>
-                    {activeTab === 'requests' && <th className="px-4 py-3">Higher Amt Req?</th>}
-                    {(activeTab === 'approved' || activeTab === 'active' || activeTab === 'defaulted') && (
-                      <th className="px-4 py-3">Bank/Contact</th>
-                    )}
-                    {activeTab === 'active' && <th className="px-4 py-3">Remaining</th>}
+                    {activeTab === "requests" && <th className="px-4 py-3">Higher Amt Req?</th>}
+                    {(activeTab === "approved" ||
+                      activeTab === "active" ||
+                      activeTab === "defaulted") && <th className="px-4 py-3">Bank/Contact</th>}
+                    {activeTab === "active" && <th className="px-4 py-3">Remaining</th>}
                     <th className="px-4 py-3">Date</th>
                     <th className="px-4 py-3 text-right">Actions</th>
                   </tr>
@@ -305,7 +330,9 @@ export function AdminLoans() {
                 <tbody className="divide-y divide-slate-100">
                   {loading ? (
                     <tr>
-                      <td colSpan={9} className="p-12 text-center text-slate-400">Loading...</td>
+                      <td colSpan={9} className="p-12 text-center text-slate-400">
+                        Loading...
+                      </td>
                     </tr>
                   ) : paginatedLoans.length === 0 ? (
                     <tr>
@@ -317,7 +344,9 @@ export function AdminLoans() {
                   ) : (
                     paginatedLoans.map((loan) => (
                       <tr key={loan.id} className="hover:bg-slate-50 transition-colors">
-                        <td className="px-4 py-3 font-mono text-slate-600 font-medium">{loan.loan_number}</td>
+                        <td className="px-4 py-3 font-mono text-slate-600 font-medium">
+                          {loan.loan_number}
+                        </td>
                         <td className="px-4 py-3">
                           <div className="font-medium text-slate-900">
                             {loan.profile?.full_name || "Unknown"}
@@ -325,54 +354,78 @@ export function AdminLoans() {
                           <div className="text-xs text-slate-500">{loan.profile?.email}</div>
                         </td>
                         <td className="px-4 py-3">
-                           <div className="font-semibold text-slate-900">
-                             ₦{formatCurrency(loan.approved_amount || loan.requested_amount_value || loan.amount)}
-                           </div>
-                           {(loan.repayable_amount > 0 || loan.total_payable > 0) && (
-                             <div className="text-[10px] text-slate-500">
-                               Payable: ₦{formatCurrency(loan.repayable_amount || loan.total_payable)}
-                             </div>
-                           )}
+                          <div className="font-semibold text-slate-900">
+                            ₦
+                            {formatCurrency(
+                              loan.approved_amount || loan.requested_amount_value || loan.amount,
+                            )}
+                          </div>
+                          {(loan.repayable_amount > 0 || loan.total_payable > 0) && (
+                            <div className="text-[10px] text-slate-500">
+                              Payable: ₦
+                              {formatCurrency(loan.repayable_amount || loan.total_payable)}
+                            </div>
+                          )}
                         </td>
                         <td className="px-4 py-3 capitalize">
-                           {loan.duration_months} Months
-                           <div className="text-[10px] text-slate-500">
-                             {(loan.repayment_duration_type || "monthly").replace('_', ' ')}
-                           </div>
+                          {loan.duration_months} Months
+                          <div className="text-[10px] text-slate-500">
+                            {(loan.repayment_duration_type || "monthly").replace("_", " ")}
+                          </div>
                         </td>
-                        
-                        {activeTab === 'requests' && (
+
+                        {activeTab === "requests" && (
                           <td className="px-4 py-3">
-                             {loan.requested_higher_amount ? (
-                               <Badge variant="destructive" className="text-[10px]">Yes</Badge>
-                             ) : (
-                               <Badge variant="secondary" className="text-[10px]">No</Badge>
-                             )}
+                            {loan.requested_higher_amount ? (
+                              <Badge variant="destructive" className="text-[10px]">
+                                Yes
+                              </Badge>
+                            ) : (
+                              <Badge variant="secondary" className="text-[10px]">
+                                No
+                              </Badge>
+                            )}
                           </td>
                         )}
 
-                        {(activeTab === 'approved' || activeTab === 'active' || activeTab === 'defaulted') && (
+                        {(activeTab === "approved" ||
+                          activeTab === "active" ||
+                          activeTab === "defaulted") && (
                           <td className="px-4 py-3 text-xs max-w-[200px]">
-                             {activeTab === 'defaulted' ? (
-                               <>
-                                 <span className="font-medium text-slate-900 block">{loan.profile?.phone || "No Phone"}</span>
-                                 <span className="text-slate-500">{loan.profile?.email}</span>
-                               </>
-                             ) : loan.bank_account_details ? (
-                               <>
-                                 <span className="font-medium text-slate-900 block truncate">{loan.bank_account_details.bank_name}</span>
-                                 <span className="text-slate-500 block truncate">{loan.bank_account_details.account_number}</span>
-                                 <span className="text-slate-400 block truncate text-[10px]">{loan.bank_account_details.account_name}</span>
-                               </>
-                             ) : (
-                               <span className="text-red-500">No Bank Provided</span>
-                             )}
+                            {activeTab === "defaulted" ? (
+                              <>
+                                <span className="font-medium text-slate-900 block">
+                                  {loan.profile?.phone || "No Phone"}
+                                </span>
+                                <span className="text-slate-500">{loan.profile?.email}</span>
+                              </>
+                            ) : loan.bank_account_details ? (
+                              <>
+                                <span className="font-medium text-slate-900 block truncate">
+                                  {loan.bank_account_details.bank_name}
+                                </span>
+                                <span className="text-slate-500 block truncate">
+                                  {loan.bank_account_details.account_number}
+                                </span>
+                                <span className="text-slate-400 block truncate text-[10px]">
+                                  {loan.bank_account_details.account_name}
+                                </span>
+                              </>
+                            ) : (
+                              <span className="text-red-500">No Bank Provided</span>
+                            )}
                           </td>
                         )}
 
-                        {activeTab === 'active' && (
+                        {activeTab === "active" && (
                           <td className="px-4 py-3 font-semibold text-emerald-600">
-                             ₦{formatCurrency(loan.remaining_balance || loan.repayable_amount || loan.total_payable || 0)}
+                            ₦
+                            {formatCurrency(
+                              loan.remaining_balance ||
+                                loan.repayable_amount ||
+                                loan.total_payable ||
+                                0,
+                            )}
                           </td>
                         )}
 
@@ -384,27 +437,50 @@ export function AdminLoans() {
                           <div className="flex justify-end gap-2">
                             {activeTab === "requests" && (
                               <>
-                                <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 h-8 px-2" onClick={() => openApproveModal(loan)}>
+                                <Button
+                                  size="sm"
+                                  className="bg-emerald-600 hover:bg-emerald-700 h-8 px-2"
+                                  onClick={() => openApproveModal(loan)}
+                                >
                                   <Check className="w-4 h-4" />
                                 </Button>
-                                <Button size="sm" variant="outline" className="h-8 px-2 text-red-600 border-red-200 hover:bg-red-50" onClick={() => handleReject(loan.id)}>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-8 px-2 text-red-600 border-red-200 hover:bg-red-50"
+                                  onClick={() => handleReject(loan.id)}
+                                >
                                   <X className="w-4 h-4" />
                                 </Button>
                               </>
                             )}
 
                             {activeTab === "approved" && (
-                              <Button size="sm" className="bg-blue-600 hover:bg-blue-700 h-8" onClick={() => openDisburseModal(loan)}>
+                              <Button
+                                size="sm"
+                                className="bg-blue-600 hover:bg-blue-700 h-8"
+                                onClick={() => openDisburseModal(loan)}
+                              >
                                 <UploadCloud className="w-4 h-4 mr-1.5" /> Disburse
                               </Button>
                             )}
 
                             {activeTab === "active" && (
                               <>
-                                <Button size="sm" variant="outline" className="h-8 border-red-200 text-red-600 hover:bg-red-50" onClick={() => handleMarkStatus(loan.id, 'defaulted')}>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-8 border-red-200 text-red-600 hover:bg-red-50"
+                                  onClick={() => handleMarkStatus(loan.id, "defaulted")}
+                                >
                                   <AlertCircle className="w-3.5 h-3.5 mr-1" /> Default
                                 </Button>
-                                <Button size="sm" variant="secondary" className="h-8" onClick={() => handleMarkStatus(loan.id, 'completed')}>
+                                <Button
+                                  size="sm"
+                                  variant="secondary"
+                                  className="h-8"
+                                  onClick={() => handleMarkStatus(loan.id, "completed")}
+                                >
                                   Mark Settled
                                 </Button>
                               </>
@@ -412,18 +488,26 @@ export function AdminLoans() {
 
                             {activeTab === "defaulted" && (
                               <>
-                                <Button size="sm" variant="outline" className="h-8" onClick={() => handleMarkStatus(loan.id, 'active')}>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-8"
+                                  onClick={() => handleMarkStatus(loan.id, "active")}
+                                >
                                   Restore Active
                                 </Button>
-                                <Button size="sm" variant="secondary" className="h-8" onClick={() => handleMarkStatus(loan.id, 'completed')}>
+                                <Button
+                                  size="sm"
+                                  variant="secondary"
+                                  className="h-8"
+                                  onClick={() => handleMarkStatus(loan.id, "completed")}
+                                >
                                   Mark Settled
                                 </Button>
                               </>
                             )}
 
-                            {activeTab === "settled" && (
-                              <Badge variant="secondary">Archived</Badge>
-                            )}
+                            {activeTab === "settled" && <Badge variant="secondary">Archived</Badge>}
                           </div>
                         </td>
                       </tr>
@@ -436,16 +520,28 @@ export function AdminLoans() {
             {totalPages > 1 && (
               <div className="p-4 flex items-center justify-between border-t border-slate-200 bg-slate-50">
                 <p className="text-sm text-slate-500">
-                  Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredLoans.length)} of {filteredLoans.length} entries
+                  Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
+                  {Math.min(currentPage * itemsPerPage, filteredLoans.length)} of{" "}
+                  {filteredLoans.length} entries
                 </p>
                 <div className="flex items-center space-x-2">
-                  <Button variant="outline" size="sm" onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                  >
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
                   <div className="text-sm font-medium px-2 text-slate-700">
                     Page {currentPage} of {totalPages}
                   </div>
-                  <Button variant="outline" size="sm" onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                  >
                     <ChevronRight className="h-4 w-4" />
                   </Button>
                 </div>
@@ -469,28 +565,47 @@ export function AdminLoans() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Requested Amount</Label>
-                  <Input disabled value={`₦${formatCurrency(actionLoan.requested_amount_value || actionLoan.amount)}`} />
+                  <Input
+                    disabled
+                    value={`₦${formatCurrency(actionLoan.requested_amount_value || actionLoan.amount)}`}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Higher Amt Requested?</Label>
-                  <Input disabled value={actionLoan.requested_higher_amount ? "YES" : "NO"} className={actionLoan.requested_higher_amount ? "text-red-600 font-bold" : ""} />
+                  <Input
+                    disabled
+                    value={actionLoan.requested_higher_amount ? "YES" : "NO"}
+                    className={actionLoan.requested_higher_amount ? "text-red-600 font-bold" : ""}
+                  />
                 </div>
               </div>
 
               <div className="space-y-2">
                 <Label>Approved Amount (Disbursable)</Label>
-                <Input type="number" value={approvedAmount} onChange={(e) => setApprovedAmount(e.target.value)} />
+                <Input
+                  type="number"
+                  value={approvedAmount}
+                  onChange={(e) => setApprovedAmount(e.target.value)}
+                />
               </div>
 
               <div className="space-y-2">
                 <Label>Repayable Amount (Including Interest)</Label>
-                <Input type="number" value={repayableAmount} onChange={(e) => setRepayableAmount(e.target.value)} />
+                <Input
+                  type="number"
+                  value={repayableAmount}
+                  onChange={(e) => setRepayableAmount(e.target.value)}
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Duration (Months)</Label>
-                  <Input type="number" value={durationMonths} onChange={(e) => setDurationMonths(e.target.value)} />
+                  <Input
+                    type="number"
+                    value={durationMonths}
+                    onChange={(e) => setDurationMonths(e.target.value)}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Repayment Type</Label>
@@ -510,8 +625,14 @@ export function AdminLoans() {
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setApproveModalOpen(false)}>Cancel</Button>
-            <Button onClick={handleApprove} disabled={actioning} className="bg-emerald-600 hover:bg-emerald-700">
+            <Button variant="outline" onClick={() => setApproveModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleApprove}
+              disabled={actioning}
+              className="bg-emerald-600 hover:bg-emerald-700"
+            >
               {actioning ? "Saving..." : "Approve Loan"}
             </Button>
           </DialogFooter>
@@ -530,23 +651,42 @@ export function AdminLoans() {
           {actionLoan && (
             <div className="space-y-4 py-3">
               <div className="bg-blue-50 text-blue-900 p-4 rounded-md space-y-2 text-sm border border-blue-100">
-                <p><strong>Bank:</strong> {actionLoan.bank_account_details?.bank_name || "N/A"}</p>
-                <p><strong>Acct No:</strong> {actionLoan.bank_account_details?.account_number || "N/A"}</p>
-                <p><strong>Name:</strong> {actionLoan.bank_account_details?.account_name || "N/A"}</p>
+                <p>
+                  <strong>Bank:</strong> {actionLoan.bank_account_details?.bank_name || "N/A"}
+                </p>
+                <p>
+                  <strong>Acct No:</strong>{" "}
+                  {actionLoan.bank_account_details?.account_number || "N/A"}
+                </p>
+                <p>
+                  <strong>Name:</strong> {actionLoan.bank_account_details?.account_name || "N/A"}
+                </p>
                 <div className="border-t border-blue-200 mt-2 pt-2">
-                  <p className="font-bold text-lg">Send: ₦{formatCurrency(actionLoan.approved_amount || actionLoan.amount)}</p>
+                  <p className="font-bold text-lg">
+                    Send: ₦{formatCurrency(actionLoan.approved_amount || actionLoan.amount)}
+                  </p>
                 </div>
               </div>
 
               <div className="space-y-2">
                 <Label>Receipt URL / Transaction ID (Optional)</Label>
-                <Input value={receiptUrl} onChange={(e) => setReceiptUrl(e.target.value)} placeholder="Paste link to receipt or entering TxID" />
+                <Input
+                  value={receiptUrl}
+                  onChange={(e) => setReceiptUrl(e.target.value)}
+                  placeholder="Paste link to receipt or entering TxID"
+                />
               </div>
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDisburseModalOpen(false)}>Cancel</Button>
-            <Button onClick={handleDisburse} disabled={actioning} className="bg-blue-600 hover:bg-blue-700">
+            <Button variant="outline" onClick={() => setDisburseModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleDisburse}
+              disabled={actioning}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
               {actioning ? "Processing..." : "Mark as Disbursed"}
             </Button>
           </DialogFooter>

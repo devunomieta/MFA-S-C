@@ -208,9 +208,9 @@ export function Navbar() {
           <nav className="absolute left-1/2 -translate-x-1/2 hidden md:flex items-center gap-1 z-[100]">
             {[
               { name: "Plans", href: "/#plans" },
-              { name: "Features", href: "#features" },
-              { name: "How It Works", href: "#how-it-works" },
-              { name: "Contact", href: "#contact" },
+              { name: "Features", href: "/#features" },
+              { name: "How It Works", href: "/#how-it-works" },
+              { name: "Contact", href: "/#contact" },
             ].map((link) => (
               <a
                 key={link.name}
@@ -233,7 +233,7 @@ export function Navbar() {
               className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-full px-6 md:px-8 font-bold shadow-lg shadow-emerald-600/20 active:scale-95 transition-all hidden sm:flex text-xs md:text-sm"
               onClick={handleDashboardAction}
             >
-              Dashboard
+              Start Here
             </Button>
 
             {/* Mobile Toggle Button */}
@@ -298,13 +298,13 @@ export function Navbar() {
                 {[
                   { name: "Home", href: "/", icon: <Home className="size-6" /> },
                   { name: "Plans", href: "/#plans", icon: <Layout className="size-6" /> },
-                  { name: "Features", href: "#features", icon: <Zap className="size-6" /> },
+                  { name: "Features", href: "/#features", icon: <Zap className="size-6" /> },
                   {
                     name: "How It Works",
-                    href: "#how-it-works",
+                    href: "/#how-it-works",
                     icon: <Smartphone className="size-6" />,
                   },
-                  { name: "Contact", href: "#contact", icon: <Mail className="size-6" /> },
+                  { name: "Contact", href: "/#contact", icon: <Mail className="size-6" /> },
                 ].map((item, i) => (
                   <motion.a
                     key={item.name}

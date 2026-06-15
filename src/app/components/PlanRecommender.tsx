@@ -147,6 +147,7 @@ export function PlanRecommender({ open, onOpenChange, inline, defaultTab }: Plan
 
   useEffect(() => {
     if (defaultTab) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setActiveView(defaultTab);
     }
   }, [defaultTab, open]);

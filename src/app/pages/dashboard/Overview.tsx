@@ -501,7 +501,9 @@ export function Overview() {
                               </div>
                               <div>
                                 <p className="font-semibold text-gray-900 dark:text-white capitalize leading-tight">
-                                  {tx.type.toLowerCase() === "system_credit" ? "Service Charge" : tx.type.replace("_", " ")}
+                                  {tx.type.toLowerCase() === "system_credit"
+                                    ? "Service Charge"
+                                    : tx.type.replace("_", " ")}
                                 </p>
                               </div>
                             </div>
@@ -524,7 +526,9 @@ export function Overview() {
                             <span
                               className={`font-bold text-sm ${isPositive ? "text-emerald-600 dark:text-emerald-400" : "text-gray-900 dark:text-white"}`}
                             >
-                              {isBalanceHidden ? "****" : `${isPositive ? "+" : "-"}₦${formatCurrency(tx.amount)}`}
+                              {isBalanceHidden
+                                ? "****"
+                                : `${isPositive ? "+" : "-"}₦${formatCurrency(tx.amount)}`}
                             </span>
                             {tx.charge > 0 && (
                               <p className="text-[10px] text-gray-400">Fee: ₦{tx.charge}</p>

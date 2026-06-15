@@ -13,6 +13,7 @@ export function NotificationBanner() {
 
   useEffect(() => {
     if (unreadCount === 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsVisible(false);
       return;
     }

@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { lazy, Suspense, useLayoutEffect } from "react";
-import { BalanceRevealProvider } from "@/app/context/BalanceRevealContext";
 
+import { AnimatePresence, motion } from "framer-motion";
 import { Loader2 } from "lucide-react";
 import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import { Toaster } from "sonner";
@@ -13,8 +13,10 @@ import { Navbar } from "@/app/components/Navbar";
 import { UserRoute } from "@/app/components/UserRoute";
 import { WhatsAppFloating } from "@/app/components/WhatsAppFloating";
 import { AuthProvider, useAuth } from "@/app/context/AuthContext";
+import { BalanceRevealProvider } from "@/app/context/BalanceRevealContext";
 import { NotificationProvider } from "@/app/context/NotificationContext";
 import { ThemeProvider } from "@/app/context/ThemeContext";
+import { AuthLayout } from "@/app/layout/AuthLayout";
 import { supabase } from "@/lib/supabase";
 
 // Lazy Loaded Pages
@@ -138,7 +140,9 @@ function MainLayout({ children }: { children: React.ReactNode }) {
   const isAuthPage = authPaths.includes(location.pathname);
 
   return (
-    <div className="min-h-screen bg-white">
+    <div
+      className={`min-h-screen ${isAuthPage ? "bg-slate-50 dark:bg-slate-950" : "bg-white dark:bg-slate-950"}`}
+    >
       {!isAuthPage && <Navbar />}
       <main>{children}</main>
       {!isAuthPage && <Footer />}
@@ -245,11 +249,14 @@ function AppRoutes() {
     return <LoadingFallback />;
   }
 
+  const authPaths = ["/login", "/signup", "/forgot-password", "/update-password", "/verify-otp"];
+  const isAuthPage = authPaths.includes(location.pathname);
+
   return (
     <ThemeProvider
       defaultTheme="system"
       storageKey="vite-ui-theme"
-      forceTheme={isDashboard ? undefined : "light"}
+      forceTheme={isDashboard || isAuthPage ? undefined : "light"}
     >
       <NotificationProvider>
         <Toaster />
@@ -257,137 +264,115 @@ function AppRoutes() {
         <ScrollToTop />
         {!isAdminPath && <WhatsAppFloating />}
         <Suspense fallback={<LoadingFallback />}>
-          <Routes>
-            <Route element={<UserRoute />}>
-              <Route path="/dashboard" element={<DashboardLayout />}>
-                <Route index element={<Overview />} />
-                <Route path="notifications" element={<Notifications />} />
-                <Route path="plans" element={<Plans />} />
-                <Route path="plans/:id" element={<PlanDetailsPage />} />
-                <Route path="wallet" element={<Wallet />} />
-                <Route path="loans" element={<Loans />} />
-                <Route path="profile" element={<Profile />} />
-                <Route path="help" element={<Help />} />
-              </Route>
-            </Route>
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={location.pathname}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2, ease: "easeInOut" }}
+              className="min-h-screen"
+            >
+              <Routes location={location}>
+                <Route element={<UserRoute />}>
+                  <Route path="/dashboard" element={<DashboardLayout />}>
+                    <Route index element={<Overview />} />
+                    <Route path="notifications" element={<Notifications />} />
+                    <Route path="plans" element={<Plans />} />
+                    <Route path="plans/:id" element={<PlanDetailsPage />} />
+                    <Route path="wallet" element={<Wallet />} />
+                    <Route path="loans" element={<Loans />} />
+                    <Route path="profile" element={<Profile />} />
+                    <Route path="help" element={<Help />} />
+                  </Route>
+                </Route>
 
-            <Route element={<AdminRoute />}>
-              <Route path="/admin" element={<AdminLayout />}>
-                <Route index element={<AdminOverview />} />
-                <Route path="loans" element={<AdminLoans />} />
-                <Route path="transactions" element={<AdminTransactions />} />
-                <Route path="users" element={<AdminUsers />} />
-                <Route path="users/:id" element={<AdminUserDetails />} />
-                <Route path="plans" element={<AdminPlans />} />
-                <Route path="plans/:view" element={<AdminPlans />} />
-                <Route path="settings" element={<AdminSettings />} />
-                <Route path="newsletter" element={<AdminNewsletter />} />
-                <Route path="approvals" element={<AdminApprovals />} />
-                <Route path="testimonials" element={<AdminTestimonials />} />
-                <Route path="inquiries" element={<AdminInquiries />} />
-                <Route path="profile" element={<AdminProfile />} />
-                <Route path="surveys" element={<AdminSurvey />} />
-              </Route>
-            </Route>
+                <Route element={<AdminRoute />}>
+                  <Route path="/admin" element={<AdminLayout />}>
+                    <Route index element={<AdminOverview />} />
+                    <Route path="loans" element={<AdminLoans />} />
+                    <Route path="transactions" element={<AdminTransactions />} />
+                    <Route path="users" element={<AdminUsers />} />
+                    <Route path="users/:id" element={<AdminUserDetails />} />
+                    <Route path="plans" element={<AdminPlans />} />
+                    <Route path="plans/:view" element={<AdminPlans />} />
+                    <Route path="settings" element={<AdminSettings />} />
+                    <Route path="newsletter" element={<AdminNewsletter />} />
+                    <Route path="approvals" element={<AdminApprovals />} />
+                    <Route path="testimonials" element={<AdminTestimonials />} />
+                    <Route path="inquiries" element={<AdminInquiries />} />
+                    <Route path="profile" element={<AdminProfile />} />
+                    <Route path="surveys" element={<AdminSurvey />} />
+                  </Route>
+                </Route>
 
-            <Route
-              path="/"
-              element={
-                <MainLayout>
-                  <Landing />
-                </MainLayout>
-              }
-            />
-            <Route
-              path="/login"
-              element={
-                <MainLayout>
-                  <Login />
-                </MainLayout>
-              }
-            />
-            <Route
-              path="/signup"
-              element={
-                <MainLayout>
-                  <Signup />
-                </MainLayout>
-              }
-            />
-            <Route
-              path="/forgot-password"
-              element={
-                <MainLayout>
-                  <ForgotPassword />
-                </MainLayout>
-              }
-            />
-            <Route
-              path="/update-password"
-              element={
-                <MainLayout>
-                  <UpdatePassword />
-                </MainLayout>
-              }
-            />
-            <Route
-              path="/verify-otp"
-              element={
-                <MainLayout>
-                  <VerifyOTP />
-                </MainLayout>
-              }
-            />
-            <Route
-              path="/privacy"
-              element={
-                <MainLayout>
-                  <PrivacyPolicy />
-                </MainLayout>
-              }
-            />
-            <Route
-              path="/terms"
-              element={
-                <MainLayout>
-                  <TermsOfService />
-                </MainLayout>
-              }
-            />
-            <Route
-              path="/compliance"
-              element={
-                <MainLayout>
-                  <Compliance />
-                </MainLayout>
-              }
-            />
-            <Route
-              path="/security"
-              element={
-                <MainLayout>
-                  <Security />
-                </MainLayout>
-              }
-            />
-            <Route
-              path="/changelog"
-              element={
-                <MainLayout>
-                  <Changelog />
-                </MainLayout>
-              }
-            />
+                <Route
+                  path="/"
+                  element={
+                    <MainLayout>
+                      <Landing />
+                    </MainLayout>
+                  }
+                />
+                <Route element={<AuthLayout />}>
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/signup" element={<Signup />} />
+                  <Route path="/forgot-password" element={<ForgotPassword />} />
+                  <Route path="/update-password" element={<UpdatePassword />} />
+                  <Route path="/verify-otp" element={<VerifyOTP />} />
+                </Route>
+                <Route
+                  path="/privacy"
+                  element={
+                    <MainLayout>
+                      <PrivacyPolicy />
+                    </MainLayout>
+                  }
+                />
+                <Route
+                  path="/terms"
+                  element={
+                    <MainLayout>
+                      <TermsOfService />
+                    </MainLayout>
+                  }
+                />
+                <Route
+                  path="/compliance"
+                  element={
+                    <MainLayout>
+                      <Compliance />
+                    </MainLayout>
+                  }
+                />
+                <Route
+                  path="/security"
+                  element={
+                    <MainLayout>
+                      <Security />
+                    </MainLayout>
+                  }
+                />
+                <Route
+                  path="/changelog"
+                  element={
+                    <MainLayout>
+                      <Changelog />
+                    </MainLayout>
+                  }
+                />
 
-            <Route
-              path="*"
-              element={
-                <MainLayout>
-                  <Landing />
-                </MainLayout>
-              }
-            />
-          </Routes>
+                <Route
+                  path="*"
+                  element={
+                    <MainLayout>
+                      <Landing />
+                    </MainLayout>
+                  }
+                />
+              </Routes>
+            </motion.div>
+          </AnimatePresence>
         </Suspense>
       </NotificationProvider>
     </ThemeProvider>

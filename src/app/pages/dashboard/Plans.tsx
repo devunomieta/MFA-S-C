@@ -182,6 +182,7 @@ export function Plans() {
   useEffect(() => {
     const tabParam = searchParams.get("tab");
     if (tabParam === "compare" || tabParam === "my-plans" || tabParam === "available") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setActiveTab(tabParam);
     }
   }, [searchParams]);

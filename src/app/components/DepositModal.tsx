@@ -16,9 +16,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/ta
 import { useAuth } from "@/app/context/AuthContext";
 import { logActivity } from "@/lib/activity";
 import { notificationDispatcher } from "@/lib/notificationDispatcher";
-import { supabase } from "@/lib/supabase";
-import { formatCurrency, formatNaira } from "@/lib/utils";
 import { numberToWords } from "@/lib/numberToWords";
+import { supabase } from "@/lib/supabase";
+
 import { validateFile } from "@/lib/validation";
 import { calculateBalance } from "@/lib/walletUtils";
 
@@ -1023,11 +1023,12 @@ export function DepositModal({
                     Minimum contribution is ₦{formatCurrency(mandatedAmount)}
                   </p>
                 )}
-              {activeTab === "external" && amount && parseFloat(amount) > 0 && parseFloat(amount) < 1000 && (
-                <p className="text-[10px] text-red-500 font-medium">
-                  Minimum deposit is ₦1,000
-                </p>
-              )}
+              {activeTab === "external" &&
+                amount &&
+                parseFloat(amount) > 0 &&
+                parseFloat(amount) < 1000 && (
+                  <p className="text-[10px] text-red-500 font-medium">Minimum deposit is ₦1,000</p>
+                )}
               {["anchor", "sprint", "marathon", "step_up", "monthly_bloom"].includes(planType) &&
                 !isAdvanceMode && (
                   <p className="text-[10px] text-indigo-600 font-bold bg-indigo-50 dark:bg-indigo-900/20 p-2 rounded border border-indigo-100 dark:border-indigo-800 flex items-center gap-2">
