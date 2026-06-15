@@ -152,24 +152,22 @@ export function Signup() {
         <button
           type="button"
           onClick={() => setAuthMode("standard")}
-          className={`flex-1 h-9 rounded-lg text-xs font-bold transition-all ${
-            authMode === "standard"
-              ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm"
-              : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
-          }`}
+          className={`flex-1 h-9 rounded-lg text-xs font-bold transition-all ${authMode === "standard"
+            ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm"
+            : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
+            }`}
         >
           Standard Signup
         </button>
         <button
           type="button"
           onClick={() => setAuthMode("magic")}
-          className={`flex-1 h-9 rounded-lg text-xs font-bold transition-all ${
-            authMode === "magic"
-              ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm"
-              : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
-          }`}
+          className={`flex-1 h-9 rounded-lg text-xs font-bold transition-all ${authMode === "magic"
+            ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm"
+            : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
+            }`}
         >
-          Magic Sign Up
+          Passwordless Signup
         </button>
       </div>
 

@@ -90,7 +90,7 @@ export function DashboardLayout() {
         // Check if user needs onboarding
         const { data: profile } = await supabase
           .from("profiles")
-          .select("phone, onboarding_completed, has_password")
+          .select("phone, onboarding_completed, has_password, transaction_pin")
           .eq("id", user.id)
           .maybeSingle();
 
@@ -108,9 +108,12 @@ export function DashboardLayout() {
           !hasEmailProvider &&
           !profile?.has_password &&
           !user?.user_metadata?.has_password;
+        const needsPin = !profile?.transaction_pin;
 
-        if (!profile?.onboarding_completed && (!hasPhone || needsPassword)) {
+        if (!profile?.onboarding_completed && (!hasPhone || needsPassword || needsPin)) {
           setShowOnboarding(true);
+        } else {
+          setShowOnboarding(false);
         }
 
         // Survey Trigger Logic
@@ -164,8 +167,8 @@ export function DashboardLayout() {
       {/* Mandatory Security Onboarding Wizard */}
       {showOnboarding && <SecurityOnboarding onComplete={handleOnboardingComplete} />}
 
-      {surveyTrigger && <SurveyPopup triggerEvent={surveyTrigger} />}
-      <SystemUpdatePopup />
+      {surveyTrigger && !showOnboarding && <SurveyPopup triggerEvent={surveyTrigger} />}
+      {!showOnboarding && !surveyTrigger && <SystemUpdatePopup />}
 
       <Sidebar />
 

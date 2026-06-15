@@ -82,10 +82,10 @@ export function Changelog() {
           animate={{ opacity: 1, y: 0 }}
           className="text-center mb-16"
         >
-          <h1 className="text-4xl md:text-5xl font-black tracking-tight mb-4 text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-emerald-400">
+          <h1 className="text-3xl md:text-4xl font-black tracking-tight mb-4 text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-emerald-400">
             Changelog & Updates
           </h1>
-          <p className="text-lg text-slate-500 dark:text-slate-400 max-w-xl mx-auto font-medium">
+          <p className="text-base text-slate-500 dark:text-slate-400 max-w-xl mx-auto font-medium">
             Stay up to date with the latest features, bug fixes, and improvements to Mary's Thrift
             Services.
           </p>
@@ -151,7 +151,7 @@ export function Changelog() {
                       {getTypeBadge(log.type)}
                     </div>
 
-                    <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-4 tracking-tight">
+                    <h2 className="text-xl font-black text-slate-900 dark:text-white mb-4 tracking-tight">
                       {log.message}
                     </h2>
 

@@ -3,7 +3,6 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Shield,
-  Phone,
   KeyRound,
   CheckCircle2,
   ArrowRight,
@@ -11,6 +10,7 @@ import {
   Loader2,
   Eye,
   EyeOff,
+  User,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -150,6 +150,34 @@ export function SecurityOnboarding({ onComplete }: SecurityOnboardingProps) {
     }
   }
 
+  // Live validation calculations for Name
+  const validateFullName = (name: string) => {
+    const trimmed = name.trim();
+    const parts = trimmed.split(/\s+/);
+    if (parts.length < 2) return false;
+    const partRegex = /^[A-Za-z'-]+$/;
+    const hasLetter = /[A-Za-z]/;
+    return parts.every((part) => partRegex.test(part) && hasLetter.test(part));
+  };
+
+  const isNameValid = validateFullName(fullName);
+
+  let nameWarningText = "";
+  if (fullName.trim().length > 0 && !isNameValid) {
+    const trimmed = fullName.trim();
+    const parts = trimmed.split(/\s+/);
+    if (parts.length < 2) {
+      nameWarningText = "Please enter at least two names (first and last name)";
+    } else {
+      const partRegex = /^[A-Za-z'-]+$/;
+      const hasLetter = /[A-Za-z]/;
+      const invalidPart = parts.find((part) => !partRegex.test(part) || !hasLetter.test(part));
+      if (invalidPart) {
+        nameWarningText = "Names can only contain letters, apostrophes (') and hyphens (-)";
+      }
+    }
+  }
+
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let val = e.target.value;
     // Allow only digits and a leading '+'
@@ -188,10 +216,12 @@ export function SecurityOnboarding({ onComplete }: SecurityOnboardingProps) {
       // Normalize to 11 digits for consistency if they entered 234
       const normalizedPhone = is13Digits ? "0" + phoneDigitsOnly.slice(3) : phoneDigitsOnly;
 
-      const { error: dbError } = await supabase
-        .from("profiles")
-        .update({ phone: normalizedPhone, full_name: fullName })
-        .eq("id", user?.id);
+      const { error: dbError } = await supabase.from("profiles").upsert({
+        id: user?.id,
+        phone: normalizedPhone,
+        full_name: fullName,
+        email: user?.email,
+      });
 
       if (dbError) throw dbError;
 
@@ -335,30 +365,51 @@ export function SecurityOnboarding({ onComplete }: SecurityOnboardingProps) {
                 className="space-y-6"
               >
                 <div className="text-center space-y-2">
-                  <div className="mx-auto w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
-                    <Phone className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                  <div className="mx-auto w-12 h-12 bg-emerald-100 dark:bg-emerald-900/30 rounded-xl flex items-center justify-center">
+                    <User className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
                   </div>
-                  <h2 className="text-xl font-bold dark:text-white">Add Phone Number</h2>
+                  <h2 className="text-xl font-bold dark:text-white">More Details</h2>
                   <p className="text-sm text-slate-500 dark:text-slate-400">
-                    Step 1 of {isGoogleUser ? "2" : "1"}: Your phone number is required for account
-                    recovery and login.
+                    Please provide your full name and phone number to complete your profile and
+                    secure your account.
                   </p>
                 </div>
 
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label className="text-xs font-bold uppercase text-slate-500">Full Name</Label>
-                    <Input
-                      type="text"
-                      placeholder="e.g. John Doe"
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      className={`h-12 rounded-xl dark:bg-slate-800 focus-visible:ring-2 transition-all ${
-                        fullName.trim().length >= 2
-                          ? "border-emerald-500 focus-visible:ring-emerald-500/20"
-                          : "dark:border-slate-700"
-                      }`}
-                    />
+                    <div className="relative">
+                      <Input
+                        type="text"
+                        placeholder="e.g. John Doe"
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                        className={`h-12 rounded-xl dark:bg-slate-800 focus-visible:ring-2 transition-all pr-10 ${
+                          fullName.trim().length > 0
+                            ? isNameValid
+                              ? "border-emerald-500 focus-visible:ring-emerald-500/20"
+                              : "border-red-500 focus-visible:ring-red-500/20"
+                            : "dark:border-slate-700"
+                        }`}
+                      />
+                      {fullName.trim().length > 0 && isNameValid && (
+                        <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-emerald-500" />
+                      )}
+                    </div>
+
+                    {/* Live Validation Warning for Name */}
+                    <AnimatePresence>
+                      {nameWarningText && (
+                        <motion.p
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="text-xs font-medium text-red-500 m-0"
+                        >
+                          {nameWarningText}
+                        </motion.p>
+                      )}
+                    </AnimatePresence>
                   </div>
 
                   <div className="space-y-2">
@@ -407,9 +458,7 @@ export function SecurityOnboarding({ onComplete }: SecurityOnboardingProps) {
 
                 <Button
                   onClick={handlePhoneSubmit}
-                  disabled={
-                    loading || phone.length === 0 || !isPhoneValid || fullName.trim().length < 2
-                  }
+                  disabled={loading || phone.length === 0 || !isPhoneValid || !isNameValid}
                   className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl font-bold shadow-lg shadow-emerald-500/20 transition-all"
                 >
                   {loading ? <Loader2 className="animate-spin" /> : "Continue"}
