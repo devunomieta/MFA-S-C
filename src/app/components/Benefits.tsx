@@ -8,11 +8,11 @@ export function Benefits() {
   return (
     <section className="py-20 bg-white overflow-hidden" id="features">
       <div className="container mx-auto px-4">
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-6">
+        <div className="flex flex-col items-center text-center mb-16 gap-6">
           <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            className="max-w-2xl"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            className="max-w-3xl mx-auto"
           >
             <h2 className="text-3xl md:text-4xl font-black tracking-tight mb-6">
               Saving plans built for <br />

@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { lazy, Suspense, useLayoutEffect } from "react";
+import { BalanceRevealProvider } from "@/app/context/BalanceRevealContext";
 
 import { Loader2 } from "lucide-react";
 import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate } from "react-router-dom";
@@ -386,7 +387,9 @@ export default function App() {
   return (
     <Router>
       <AuthProvider>
-        <AppRoutes />
+        <BalanceRevealProvider>
+          <AppRoutes />
+        </BalanceRevealProvider>
       </AuthProvider>
     </Router>
   );

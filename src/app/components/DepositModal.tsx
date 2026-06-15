@@ -17,6 +17,8 @@ import { useAuth } from "@/app/context/AuthContext";
 import { logActivity } from "@/lib/activity";
 import { notificationDispatcher } from "@/lib/notificationDispatcher";
 import { supabase } from "@/lib/supabase";
+import { formatCurrency, formatNaira } from "@/lib/utils";
+import { numberToWords } from "@/lib/numberToWords";
 import { validateFile } from "@/lib/validation";
 import { calculateBalance } from "@/lib/walletUtils";
 
@@ -239,11 +241,13 @@ export function DepositModal({
         selectedPlanObj?.plan?.type || selectedPlanObj?.type,
       );
     const effectiveMin =
-      isFlexibleGoalPlan && mandatedAmount === 0
-        ? 50
-        : activeTab === "wallet" && selectedPlanObj?.plan?.min_amount
-          ? Math.max(selectedPlanObj.plan.min_amount, 50)
-          : 500;
+      activeTab === "external"
+        ? 1000
+        : isFlexibleGoalPlan && mandatedAmount === 0
+          ? 50
+          : activeTab === "wallet" && selectedPlanObj?.plan?.min_amount
+            ? Math.max(selectedPlanObj.plan.min_amount, 50)
+            : 500;
 
     if (isNaN(finalAmount) || finalAmount < effectiveMin) {
       toast.error(
@@ -980,6 +984,7 @@ export function DepositModal({
               <Input
                 id="amount-ex"
                 type="number"
+                step="50"
                 onKeyDown={(e) => {
                   if (["-", "+", ".", "e", "E"].includes(e.key)) e.preventDefault();
                 }}
@@ -989,6 +994,11 @@ export function DepositModal({
                 disabled={isInputLocked()}
                 className={`dark:bg-gray-800 dark:border-gray-700 dark:text-white disabled:opacity-70 disabled:cursor-not-allowed ${!isInputLocked() && !isAdvanceMode && amount && parseFloat(amount) < mandatedAmount ? "border-red-500 focus-visible:ring-red-500" : ""}`}
               />
+              {amount && parseFloat(amount) > 0 && (
+                <p className="text-[10px] text-emerald-600 font-medium italic mt-1">
+                  In Words: {numberToWords(parseFloat(amount))}
+                </p>
+              )}
               {isAdvanceMode && periodsCovered > 0 && (
                 <p className="text-[10px] text-emerald-500 font-bold uppercase tracking-wider">
                   ✨ This covers {periodsCovered} {periodLabel}
@@ -1007,11 +1017,17 @@ export function DepositModal({
               {!isInputLocked() &&
                 !isAdvanceMode &&
                 amount &&
+                parseFloat(amount) > 0 &&
                 parseFloat(amount) < mandatedAmount && (
                   <p className="text-[10px] text-red-500 font-medium">
                     Minimum contribution is ₦{formatCurrency(mandatedAmount)}
                   </p>
                 )}
+              {activeTab === "external" && amount && parseFloat(amount) > 0 && parseFloat(amount) < 1000 && (
+                <p className="text-[10px] text-red-500 font-medium">
+                  Minimum deposit is ₦1,000
+                </p>
+              )}
               {["anchor", "sprint", "marathon", "step_up", "monthly_bloom"].includes(planType) &&
                 !isAdvanceMode && (
                   <p className="text-[10px] text-indigo-600 font-bold bg-indigo-50 dark:bg-indigo-900/20 p-2 rounded border border-indigo-100 dark:border-indigo-800 flex items-center gap-2">
@@ -1349,6 +1365,11 @@ export function DepositModal({
                 disabled={isInputLocked()}
                 className={`dark:bg-gray-800 dark:border-gray-700 dark:text-white disabled:opacity-70 disabled:cursor-not-allowed ${!isInputLocked() && !isAdvanceMode && amount && parseFloat(amount) < mandatedAmount ? "border-red-500 focus-visible:ring-red-500" : ""}`}
               />
+            )}
+            {amount && parseFloat(amount) > 0 && (
+              <p className="text-[10px] text-emerald-600 font-medium italic mt-1">
+                In Words: {numberToWords(parseFloat(amount))}
+              </p>
             )}
             {["anchor", "sprint", "marathon", "step_up", "monthly_bloom"].includes(planType) &&
               !isAdvanceMode && (

@@ -154,8 +154,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (newSession?.user) {
         const isNewUser = initializedUserId.current !== newSession.user.id;
 
-        // Only show loading for actual sign-ins or initial loads
-        if (isNewUser || event === "SIGNED_IN") {
+        // Only show loading and re-initialize for ACTUAL sign-ins or initial loads of a new user
+        // We do NOT want to set loading=true on simple tab-focus session recoveries.
+        if (isNewUser) {
           setLoading(true);
           try {
             await ensureProfileExists(newSession.user);

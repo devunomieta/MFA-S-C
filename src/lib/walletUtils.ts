@@ -105,3 +105,57 @@ export function calculateBalance(
     return acc;
   }, 0);
 }
+
+/**
+ * Deduplicates transactions that share the same related_id (double-entry).
+ * specifically targeting the wallet->plan transfer/deposit pair.
+ */
+export function deduplicateTransactions(transactions: any[]): any[] {
+  const mergedIds = new Set<string>();
+  const result: any[] = [];
+  
+  const relatedMap = new Map<string, any[]>();
+  for (const tx of transactions) {
+    if (tx.related_id) {
+      if (!relatedMap.has(tx.related_id)) {
+        relatedMap.set(tx.related_id, []);
+      }
+      relatedMap.get(tx.related_id)!.push(tx);
+    }
+  }
+
+  for (const tx of transactions) {
+    if (mergedIds.has(tx.id)) continue;
+    
+    if (tx.related_id && relatedMap.has(tx.related_id)) {
+      const related = relatedMap.get(tx.related_id)!;
+      // Look for a transfer (debit) and a deposit (credit) pair
+      if (related.length >= 2) {
+        const transfer = related.find(t => t.type === 'transfer' && !t.plan_id);
+        const deposit = related.find(t => t.type === 'deposit' && t.plan_id);
+        
+        if (transfer && deposit) {
+          const mergedTx = {
+            ...deposit,
+            type: 'internal_transfer',
+            description: `Wallet ➔ ${deposit.plan?.name || 'Plan'}`,
+            amount: deposit.amount,
+            id: `merged-${tx.related_id}`,
+          };
+          result.push(mergedTx);
+          // Mark all related transactions of these types as merged
+          related.forEach(r => {
+            if (r.type === 'transfer' || r.type === 'deposit') {
+                mergedIds.add(r.id);
+            }
+          });
+          continue;
+        }
+      }
+    }
+    
+    result.push(tx);
+  }
+  
+  return result;
+}

@@ -7,6 +7,8 @@ import {
   PiggyBank,
   CreditCard,
   ArrowRightLeft,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -14,11 +16,13 @@ import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { useAuth } from "@/app/context/AuthContext";
+import { useBalanceReveal } from "@/app/context/BalanceRevealContext";
 import { supabase } from "@/lib/supabase";
-import { calculateBalance } from "@/lib/walletUtils";
+import { calculateBalance, deduplicateTransactions } from "@/lib/walletUtils";
 
 export function Overview() {
   const { user } = useAuth();
+  const { isBalanceHidden, toggleBalanceReveal } = useBalanceReveal();
   const [loading, setLoading] = useState(true);
 
   // Stats
@@ -53,7 +57,8 @@ export function Overview() {
         const wBal = calculateBalance(txData as any, null, "withdrawable_wallet");
         setWithdrawableBalance(wBal);
 
-        setRecentTransactions(txData.slice(0, 10));
+        const dedupedTx = deduplicateTransactions(txData as any);
+        setRecentTransactions(dedupedTx.slice(0, 10));
       }
 
       // 2. Fetch User Plans
@@ -173,15 +178,26 @@ export function Overview() {
           <div className="grid grid-cols-1 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x dark:divide-white/5">
             {/* General Wallet */}
             <div className="p-6 space-y-3 hover:bg-gray-50/50 dark:hover:bg-white/[0.02] transition-all duration-200">
-              <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold uppercase tracking-wider">
-                <div className="p-1.5 bg-emerald-100 dark:bg-emerald-500/10 rounded-md">
-                  <Wallet className="size-4" />
+              <div className="flex flex-col gap-3">
+                <div className="flex justify-start">
+                  <button
+                    onClick={toggleBalanceReveal}
+                    className="flex items-center gap-1.5 text-[10px] font-bold text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-md"
+                  >
+                    {isBalanceHidden ? <EyeOff className="size-3" /> : <Eye className="size-3" />}
+                    {isBalanceHidden ? "Show Balances" : "Hide Balances"}
+                  </button>
                 </div>
-                General Wallet
+                <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold uppercase tracking-wider">
+                  <div className="p-1.5 bg-emerald-100 dark:bg-emerald-500/10 rounded-md">
+                    <Wallet className="size-4" />
+                  </div>
+                  General Wallet
+                </div>
               </div>
               <div className="space-y-1">
                 <div className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">
-                  ₦{formatCurrency(generalBalance)}
+                  {isBalanceHidden ? "****" : `₦${formatCurrency(generalBalance)}`}
                 </div>
                 <p className="text-[10px] text-gray-500 font-medium">
                   Available for plan contributions
@@ -199,7 +215,7 @@ export function Overview() {
               </div>
               <div className="space-y-1">
                 <div className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">
-                  ₦{formatCurrency(withdrawableBalance)}
+                  {isBalanceHidden ? "****" : `₦${formatCurrency(withdrawableBalance)}`}
                 </div>
                 <p className="text-[10px] text-gray-500 font-medium">Payouts & matured funds</p>
               </div>
@@ -221,7 +237,7 @@ export function Overview() {
                 <div
                   className={`text-2xl font-bold tracking-tight ${outstandingLoans > 0 ? "text-amber-600 dark:text-amber-400" : "text-gray-400 dark:text-white/20"}`}
                 >
-                  ₦{formatCurrency(outstandingLoans)}
+                  {isBalanceHidden ? "****" : `₦${formatCurrency(outstandingLoans)}`}
                 </div>
                 <p className="text-[10px] text-gray-500 font-medium">
                   {outstandingLoans > 0 ? "Repayment active" : "No active loans"}
@@ -239,7 +255,7 @@ export function Overview() {
               </div>
               <div className="space-y-1">
                 <div className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">
-                  ₦{formatCurrency(totalSavedAmount)}
+                  {isBalanceHidden ? "****" : `₦${formatCurrency(totalSavedAmount)}`}
                 </div>
                 <p className="text-[10px] text-gray-500 font-medium">
                   Across {activePlansCount} active plans
@@ -282,7 +298,7 @@ export function Overview() {
                 <table className="w-full text-sm text-left">
                   <thead className="bg-gray-50 dark:bg-gray-900/50 text-gray-500 dark:text-gray-400 font-medium text-xs uppercase tracking-wider">
                     <tr>
-                      <th className="px-6 py-3">Plan Details</th>
+                      <th className="px-6 py-3">Plan</th>
                       <th className="px-6 py-3">Start Date</th>
                       <th className="px-6 py-3">Status</th>
                       <th className="px-6 py-3">Progress</th>
@@ -300,7 +316,7 @@ export function Overview() {
                             <span className="font-semibold text-gray-900 dark:text-white block">
                               {plan.plan?.name}
                             </span>
-                            <span className="text-[10px] text-gray-400 uppercase">
+                            <span className="hidden text-[10px] text-gray-400 uppercase">
                               {plan.plan?.type.replace("_", " ")}
                             </span>
                           </div>
@@ -336,8 +352,16 @@ export function Overview() {
                                 total = meta.selected_duration || 12;
                                 unit = "Months";
                               } else if (plan.plan?.type === "ajo_circle") {
-                                current = meta.current_cycle_paid || 0;
+                                current = meta.weeks_paid || 0;
                                 total = plan.plan?.duration_weeks || 10;
+                                unit = "Weeks";
+                              } else if (plan.plan?.type === "marathon") {
+                                current = meta.total_weeks_paid || 0;
+                                total = plan.plan?.duration_weeks || 52;
+                                unit = "Weeks";
+                              } else if (plan.plan?.type === "anchor") {
+                                current = meta.weeks_completed || meta.months_completed || 0;
+                                total = plan.plan?.duration_weeks || 48;
                                 unit = "Weeks";
                               } else {
                                 current = meta.weeks_completed || 0;
@@ -375,7 +399,7 @@ export function Overview() {
                         </td>
                         <td className="px-6 py-4 text-right">
                           <div className="font-bold text-gray-900 dark:text-white">
-                            ₦{formatCurrency(plan.current_balance)}
+                            {isBalanceHidden ? "****" : `₦${formatCurrency(plan.current_balance)}`}
                           </div>
                           {(() => {
                             const isActivated =
@@ -390,7 +414,7 @@ export function Overview() {
                             if (hasPaidSetup) {
                               return (
                                 <div className="text-[10px] text-emerald-500 font-bold uppercase tracking-wider">
-                                  Setup Paid
+                                  Paid
                                 </div>
                               );
                             } else if (serviceCharge > 0 && !isActivated) {
@@ -428,7 +452,7 @@ export function Overview() {
               </CardTitle>
             </div>
             <Button variant="ghost" size="sm" asChild className="text-xs dark:text-white">
-              <Link to="/dashboard/wallet">View Statement</Link>
+              <Link to="/dashboard/wallet">View All</Link>
             </Button>
           </CardHeader>
           <CardContent className="p-0 !pb-0">
@@ -442,8 +466,8 @@ export function Overview() {
                 <table className="w-full text-sm text-left">
                   <thead className="bg-gray-50 dark:bg-gray-900/50 text-gray-500 dark:text-gray-400 font-medium text-xs uppercase tracking-wider">
                     <tr>
-                      <th className="px-6 py-3">Type & Label</th>
-                      <th className="px-6 py-3">Plan / Source</th>
+                      <th className="px-6 py-3">Type</th>
+                      <th className="px-6 py-3">To</th>
                       <th className="px-6 py-3">Date</th>
                       <th className="px-6 py-3">Status</th>
                       <th className="px-6 py-3 text-right">Amount</th>
@@ -477,10 +501,7 @@ export function Overview() {
                               </div>
                               <div>
                                 <p className="font-semibold text-gray-900 dark:text-white capitalize leading-tight">
-                                  {tx.type.replace("_", " ")}
-                                </p>
-                                <p className="text-[10px] text-gray-400 font-mono">
-                                  {tx.id.substring(0, 8)}
+                                  {tx.type.toLowerCase() === "system_credit" ? "Service Charge" : tx.type.replace("_", " ")}
                                 </p>
                               </div>
                             </div>
@@ -503,7 +524,7 @@ export function Overview() {
                             <span
                               className={`font-bold text-sm ${isPositive ? "text-emerald-600 dark:text-emerald-400" : "text-gray-900 dark:text-white"}`}
                             >
-                              {isPositive ? "+" : "-"}₦{formatCurrency(tx.amount)}
+                              {isBalanceHidden ? "****" : `${isPositive ? "+" : "-"}₦${formatCurrency(tx.amount)}`}
                             </span>
                             {tx.charge > 0 && (
                               <p className="text-[10px] text-gray-400">Fee: ₦{tx.charge}</p>

@@ -18,6 +18,7 @@ import {
 } from "@/app/components/ui/select";
 import { getEstimatedMaturityDate } from "@/lib/planUtils";
 import { formatNaira } from "@/lib/utils";
+import { numberToWords } from "@/lib/numberToWords";
 import { Plan, UserPlan } from "@/types";
 
 import { SprintJoinModal } from "./SprintJoinModal";
@@ -336,6 +337,7 @@ export function MonthlyBloomPlanCard({
                 </Label>
                 <Input
                   type="number"
+                  step="50"
                   onKeyDown={(e) => {
                     if (["-", "+", ".", "e", "E"].includes(e.key)) e.preventDefault();
                   }}
@@ -352,6 +354,11 @@ export function MonthlyBloomPlanCard({
                     }
                   }}
                 />
+                {targetAmount && parseFloat(targetAmount) > 0 && (
+                  <p className="text-[10px] text-slate-600 font-medium italic mt-1">
+                    In Words: {numberToWords(parseFloat(targetAmount))}
+                  </p>
+                )}
               </div>
             </div>
 

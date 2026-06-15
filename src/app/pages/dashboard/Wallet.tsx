@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 
-import { ArrowDownLeft, ArrowUpRight, Filter, Milestone, Wallet as WalletIcon } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, Filter, Milestone, Wallet as WalletIcon, Eye, EyeOff } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -29,11 +29,13 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
 import { TransactionDetailsModal } from "@/app/components/wallet/TransactionDetailsModal";
 import { useAuth } from "@/app/context/AuthContext";
+import { useBalanceReveal } from "@/app/context/BalanceRevealContext";
 import { notificationDispatcher } from "@/lib/notificationDispatcher";
 import { checkAndProcessMaturity } from "@/lib/planUtils";
 import { supabase } from "@/lib/supabase";
 import { formatNaira, formatCurrency } from "@/lib/utils";
-import { calculateBalance } from "@/lib/walletUtils";
+import { numberToWords } from "@/lib/numberToWords";
+import { calculateBalance, deduplicateTransactions } from "@/lib/walletUtils";
 
 interface Plan {
   id: string;
@@ -60,6 +62,7 @@ interface UserPlan {
 
 export function Wallet() {
   const { user } = useAuth();
+  const { isBalanceHidden, toggleBalanceReveal } = useBalanceReveal();
   const [generalBalance, setGeneralBalance] = useState(0);
   const [withdrawableWalletBalance, setWithdrawableWalletBalance] = useState(0);
   const [transactions, setTransactions] = useState<any[]>([]);
@@ -195,6 +198,7 @@ export function Wallet() {
           tx.plan?.type === "withdrawable_wallet" ||
           activePlanIds.includes(tx.plan_id),
       );
+      result = deduplicateTransactions(result);
     } else if (selectedPlanFilter === "general") {
       result = transactions.filter((tx) => !tx.plan_id);
     } else if (selectedPlanFilter === "withdrawable") {
@@ -210,6 +214,7 @@ export function Wallet() {
         tx.description !== "System_Credit",
     );
   }, [selectedPlanFilter, transactions, userPlans]);
+
 
   async function fetchPlansData() {
     const { data: plansData } = await supabase.from("plans").select("*").eq("is_active", true);
@@ -280,6 +285,10 @@ export function Wallet() {
 
     if (finalAmount % 50 !== 0) {
       toast.error("Amount must be a whole value in multiples of 50 (e.g. 1000, 1500, 50, 100)");
+      return;
+    }
+    if (target === "bank" && finalAmount < 1000) {
+      toast.error("Minimum withdrawal to bank is ₦1,000");
       return;
     }
     if (finalAmount > totalWithdrawable) {
@@ -560,6 +569,16 @@ export function Wallet() {
                 max={totalWithdrawable}
                 className="dark:bg-gray-800 dark:border-gray-700 dark:text-white"
               />
+              {amount && parseFloat(amount) > 0 && (
+                <p className="text-[10px] text-emerald-600 font-medium italic mt-1">
+                  In Words: {numberToWords(parseFloat(amount))}
+                </p>
+              )}
+              {amount && parseFloat(amount) > 0 && parseFloat(amount) < 1000 && (
+                <p className="text-[10px] text-red-500 font-medium mt-1">
+                  Minimum withdrawal to bank is ₦1,000
+                </p>
+              )}
             </div>
             <div className="grid gap-2">
               <Label htmlFor="bank_account" className="dark:text-gray-300">
@@ -625,6 +644,11 @@ export function Wallet() {
                 max={totalWithdrawable}
                 className="dark:bg-gray-800 dark:border-gray-700 dark:text-white"
               />
+              {amount && parseFloat(amount) > 0 && (
+                <p className="text-[10px] text-emerald-600 font-medium italic mt-1">
+                  In Words: {numberToWords(parseFloat(amount))}
+                </p>
+              )}
               <p className="text-xs text-gray-500 dark:text-gray-400">
                 Funds will be moved to your General Wallet.
               </p>
@@ -800,6 +824,11 @@ export function Wallet() {
                       disabled={isLocked}
                       className={`dark:bg-gray-800 dark:border-gray-700 dark:text-white disabled:opacity-70 ${!isLocked && !isAdvanceMode && amount && parseFloat(amount) < mandated ? "border-red-500 focus-visible:ring-red-500" : ""}`}
                     />
+                    {amount && parseFloat(amount) > 0 && (
+                      <p className="text-[10px] text-emerald-600 font-medium italic mt-1">
+                        In Words: {numberToWords(parseFloat(amount))}
+                      </p>
+                    )}
                     {isAdvanceMode && periods > 0 && (
                       <p className="text-[10px] text-emerald-500 font-bold uppercase tracking-wider">
                         ✨ This covers {periods} {label}
@@ -859,7 +888,7 @@ export function Wallet() {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
                 <p className="text-2xl font-black text-red-700 dark:text-red-400 tabular-nums">
-                  {formatNaira(pendingArrears.total)}
+                  {isBalanceHidden ? "****" : formatNaira(pendingArrears.total)}
                 </p>
                 <p className="text-[10px] text-red-600/70 dark:text-red-400/70 uppercase font-black mt-1">
                   This amount (Savings + Penalties) will be auto-deducted immediately from your
@@ -894,24 +923,37 @@ export function Wallet() {
                     General Wallet
                   </h4>
                 </div>
-                {/* Chip Visual */}
-                <div className="w-12 h-9 rounded-md bg-gradient-to-br from-emerald-400/30 to-emerald-600/10 border border-emerald-500/30 relative overflow-hidden flex items-center justify-center backdrop-blur-sm">
-                  <div className="w-full h-[1px] absolute top-1/2 -translate-y-1/2 bg-emerald-500/20" />
-                  <div className="h-full w-[1px] absolute left-1/2 -translate-x-1/2 bg-emerald-500/20" />
-                  <div className="w-7 h-6 border border-emerald-500/40 rounded-sm" />
+                <div className="flex items-center gap-2">
+                  {/* Chip Visual */}
+                  <div className="w-12 h-9 rounded-md bg-gradient-to-br from-emerald-400/30 to-emerald-600/10 border border-emerald-500/30 relative overflow-hidden flex items-center justify-center backdrop-blur-sm hidden sm:flex">
+                    <div className="w-full h-[1px] absolute top-1/2 -translate-y-1/2 bg-emerald-500/20" />
+                    <div className="h-full w-[1px] absolute left-1/2 -translate-x-1/2 bg-emerald-500/20" />
+                    <div className="w-7 h-6 border border-emerald-500/40 rounded-sm" />
+                  </div>
                 </div>
               </div>
             </CardHeader>
 
             <CardContent className="pt-4 relative flex-grow">
+              <div className="space-y-3">
+                <div className="flex justify-start">
+                  <button
+                    onClick={toggleBalanceReveal}
+                    className="flex items-center gap-1.5 text-[10px] font-bold text-white/50 hover:text-white transition-colors bg-white/5 px-2 py-1 rounded-md border border-white/10"
+                  >
+                    {isBalanceHidden ? <EyeOff className="size-3" /> : <Eye className="size-3" />}
+                    {isBalanceHidden ? "Show Balances" : "Hide Balances"}
+                  </button>
+                </div>
               <div className="space-y-1">
                 <p className="text-[10px] text-gray-400 uppercase font-black tracking-widest opacity-60">
                   Available Balance
                 </p>
                 <p className="text-3xl font-black tracking-tighter tabular-nums drop-shadow-2xl">
                   <span className="text-emerald-500 mr-1 text-2xl">₦</span>
-                  {formatNaira(generalBalance).replace("₦", "")}
+                  {isBalanceHidden ? "****" : formatNaira(generalBalance).replace("₦", "")}
                 </p>
+              </div>
               </div>
             </CardContent>
 
@@ -979,7 +1021,7 @@ export function Wallet() {
                   Ready to Cashout
                 </p>
                 <p className="text-2xl font-black text-gray-900 dark:text-emerald-100 tabular-nums tracking-tighter">
-                  {formatNaira(totalWithdrawable)}
+                  {isBalanceHidden ? "****" : formatNaira(totalWithdrawable)}
                 </p>
               </div>
             </CardContent>
@@ -1018,10 +1060,10 @@ export function Wallet() {
 
           {/* Active Savings Glassmorphic Card */}
           <Card className="bg-gray-50/50 dark:bg-gray-900/40 border border-gray-200 dark:border-white/5 shadow-none backdrop-blur-xl relative overflow-hidden group min-h-[200px] flex flex-col justify-between rounded-3xl transition-all hover:border-white/20">
-            <div className="absolute -bottom-6 -right-6 p-6 opacity-[0.02] group-hover:opacity-10 transition-opacity">
+            <div className="absolute -bottom-6 -right-6 p-6 opacity-[0.02] group-hover:opacity-10 transition-opacity pointer-events-none">
               <Filter className="size-48 text-white" />
             </div>
-            <CardHeader className="pb-0">
+            <CardHeader className="pb-0 relative z-10">
               <div className="flex items-center gap-2">
                 <div className="p-2 bg-blue-500/10 rounded-lg">
                   <Milestone className="size-4 text-blue-500" />
@@ -1037,11 +1079,13 @@ export function Wallet() {
                   Portfolio Value
                 </p>
                 <p className="text-2xl font-black text-gray-900 dark:text-white tabular-nums tracking-tighter">
-                  {formatNaira(
-                    userPlans
-                      .filter((p) => p.status === "active")
-                      .reduce((acc, p) => acc + (p.current_balance || 0), 0),
-                  )}
+                  {isBalanceHidden
+                    ? "****"
+                    : formatNaira(
+                        userPlans
+                          .filter((p) => p.status === "active")
+                          .reduce((acc, p) => acc + (p.current_balance || 0), 0),
+                      )}
                 </p>
               </div>
             </CardContent>
@@ -1050,14 +1094,15 @@ export function Wallet() {
                 <p className="text-[9px] text-gray-400 font-bold uppercase max-w-[120px] leading-tight opacity-50">
                   Total assets across all your active plans
                 </p>
-                <Link to="/dashboard/plans">
-                  <Button
-                    variant="ghost"
-                    className="text-[10px] h-11 px-6 font-black uppercase tracking-widest text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-900/10 transition-all border border-transparent hover:border-emerald-500/20 rounded-xl"
-                  >
+                <Button
+                  asChild
+                  variant="ghost"
+                  className="text-[10px] h-11 px-6 font-black uppercase tracking-widest text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-900/10 transition-all border border-transparent hover:border-emerald-500/20 rounded-xl relative z-10"
+                >
+                  <Link to="/dashboard/plans?tab=my-plans">
                     View Plans
-                  </Button>
-                </Link>
+                  </Link>
+                </Button>
               </div>
             </div>
           </Card>
@@ -1072,7 +1117,7 @@ export function Wallet() {
                   Transaction History
                 </CardTitle>
                 <p className="text-[10px] text-gray-500 dark:text-gray-400 font-medium mt-1 uppercase tracking-wider">
-                  Detailed ledger of your financial activities
+                  Detailed records of your financial activities
                 </p>
               </div>
               <div className="flex items-center gap-3">
@@ -1086,7 +1131,7 @@ export function Wallet() {
                       setCurrentPage(1); // Reset to first page on filter
                     }}
                   >
-                    <option value="all">ALL ACTIVITY</option>
+                    <option value="all">ALL </option>
                     <option value="general">GENERAL WALLET</option>
                     <option value="withdrawable">WITHDRAWABLE</option>
                     {allPlans.map((plan) => (
@@ -1104,10 +1149,10 @@ export function Wallet() {
                   <TableHeader>
                     <TableRow className="bg-gray-50/30 dark:bg-transparent dark:border-gray-800 hover:bg-transparent">
                       <TableHead className="dark:text-gray-500 font-black uppercase text-[10px] tracking-widest pl-8 py-5">
-                        Timestamp
+                        Date
                       </TableHead>
                       <TableHead className="dark:text-gray-500 font-black uppercase text-[10px] tracking-widest py-5">
-                        Classification
+                        Details
                       </TableHead>
                       <TableHead className="dark:text-gray-500 font-black uppercase text-[10px] tracking-widest py-5">
                         Description
@@ -1142,12 +1187,6 @@ export function Wallet() {
                       </TableRow>
                     ) : (
                       filteredTransactions
-                        .filter((tx) => {
-                          if (selectedPlanFilter !== "all" && selectedPlanFilter !== "general")
-                            return true;
-                          if (tx.type === "transfer" && tx.amount > 0 && tx.plan_id) return false;
-                          return true;
-                        })
                         .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
                         .map((tx) => {
                           const isPositive = [
@@ -1227,8 +1266,12 @@ export function Wallet() {
                               <TableCell
                                 className={`text-right font-black font-mono tracking-tighter text-[13px] ${amountClass}`}
                               >
-                                {amountPrefix}
-                                {formatNaira(Math.abs(tx.amount))}
+                                {isBalanceHidden ? "****" : (
+                                  <>
+                                    {amountPrefix}
+                                    {formatNaira(Math.abs(tx.amount))}
+                                  </>
+                                )}
                               </TableCell>
                               <TableCell className="text-right pr-8">
                                 <Button

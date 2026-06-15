@@ -29,6 +29,7 @@ import {
 import { getEstimatedMaturityDate } from "@/lib/planUtils";
 import { supabase } from "@/lib/supabase";
 import { formatNaira } from "@/lib/utils";
+import { numberToWords } from "@/lib/numberToWords";
 import { Plan, UserPlan } from "@/types";
 
 interface DailyDropPlanCardProps {
@@ -312,6 +313,7 @@ export function DailyDropPlanCard({
                     </Label>
                     <Input
                       type="number"
+                      step="50"
                       onKeyDown={(e) => {
                         if (["-", "+", ".", "e", "E"].includes(e.key)) e.preventDefault();
                       }}
@@ -320,6 +322,11 @@ export function DailyDropPlanCard({
                       className="h-8 text-sm"
                       disabled={!metadata.withdrawn}
                     />
+                    {joinAmount && parseFloat(joinAmount) > 0 && (
+                      <p className="text-[10px] text-cyan-600 font-medium italic mt-1">
+                        In Words: {numberToWords(parseFloat(joinAmount))}
+                      </p>
+                    )}
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-[10px] font-bold text-gray-500 uppercase">
@@ -487,6 +494,7 @@ export function DailyDropPlanCard({
                   <div className="flex gap-2">
                     <Input
                       type="number"
+                      step="50"
                       onKeyDown={(e) => {
                         if (["-", "+", ".", "e", "E"].includes(e.key)) e.preventDefault();
                       }}
@@ -506,6 +514,11 @@ export function DailyDropPlanCard({
                       Cancel
                     </Button>
                   </div>
+                  {newDailyAmount && parseFloat(newDailyAmount) > 0 && (
+                    <p className="text-[10px] text-cyan-600 font-medium italic mt-1">
+                      In Words: {numberToWords(parseFloat(newDailyAmount))}
+                    </p>
+                  )}
                   <p className="text-[10px] text-cyan-600">
                     This will be your new fixed daily commitment until changed again.
                   </p>
@@ -596,6 +609,7 @@ export function DailyDropPlanCard({
             </Label>
             <Input
               type="number"
+              step="50"
               onKeyDown={(e) => {
                 if (["-", "+", ".", "e", "E"].includes(e.key)) e.preventDefault();
               }}
@@ -605,6 +619,11 @@ export function DailyDropPlanCard({
               min={500}
               placeholder="Min ₦500"
             />
+            {joinAmount && parseFloat(joinAmount) > 0 && (
+              <p className="text-[10px] text-cyan-600 font-medium italic mt-1">
+                In Words: {numberToWords(parseFloat(joinAmount))}
+              </p>
+            )}
           </div>
           <div className="space-y-1.5">
             <Label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">

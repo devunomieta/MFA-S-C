@@ -29,6 +29,8 @@ serve(async (req) => {
     let sanitizedPhone = phone.replace(/\D/g, "");
     if (sanitizedPhone.startsWith("0") && sanitizedPhone.length === 11) {
       sanitizedPhone = "234" + sanitizedPhone.substring(1);
+    } else if (sanitizedPhone.length === 10) {
+      sanitizedPhone = "234" + sanitizedPhone;
     }
     const chatId = `${sanitizedPhone}@c.us`;
 
