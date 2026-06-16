@@ -324,6 +324,43 @@ export function SecurityOnboarding({ onComplete }: SecurityOnboardingProps) {
         className="bg-white dark:bg-slate-900 w-full max-w-md rounded-[2.5rem] shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden"
       >
         <div className="p-8">
+          {step !== "intro" && step !== "success" && (
+            <div className="mb-8">
+              <div className="flex items-center justify-between relative">
+                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-slate-100 dark:bg-slate-800 rounded-full z-0" />
+                <div
+                  className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-emerald-500 rounded-full z-0 transition-all duration-500"
+                  style={{ width: `${step === "phone" ? 0 : step === "password" ? 50 : 100}%` }}
+                />
+
+                <div className="relative z-10 flex flex-col items-center gap-2">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${step === "phone" || step === "password" || step === "pin" ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/30" : "bg-slate-200 dark:bg-slate-700 text-slate-500"}`}>
+                    1
+                  </div>
+                  <span className={`text-[10px] font-bold uppercase tracking-wider ${step === "phone" ? "text-emerald-600 dark:text-emerald-400" : "text-slate-400"}`}>Profile</span>
+                </div>
+
+                {requiresPassword && (
+                  <div className="relative z-10 flex flex-col items-center gap-2">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${step === "password" || step === "pin" ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/30" : "bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-700 text-slate-400"}`}>
+                      2
+                    </div>
+                    <span className={`text-[10px] font-bold uppercase tracking-wider ${step === "password" ? "text-emerald-600 dark:text-emerald-400" : "text-slate-400"}`}>Password</span>
+                  </div>
+                )}
+
+                {requiresPin && (
+                  <div className="relative z-10 flex flex-col items-center gap-2">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${step === "pin" ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/30" : "bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-700 text-slate-400"}`}>
+                      {requiresPassword ? "3" : "2"}
+                    </div>
+                    <span className={`text-[10px] font-bold uppercase tracking-wider ${step === "pin" ? "text-emerald-600 dark:text-emerald-400" : "text-slate-400"}`}>PIN</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           <AnimatePresence mode="wait">
             {step === "intro" && (
               <motion.div
@@ -365,13 +402,8 @@ export function SecurityOnboarding({ onComplete }: SecurityOnboardingProps) {
                 className="space-y-6"
               >
                 <div className="text-center space-y-2">
-                  <div className="mx-auto w-12 h-12 bg-emerald-100 dark:bg-emerald-900/30 rounded-xl flex items-center justify-center">
-                    <User className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
-                  </div>
-                  <h2 className="text-xl font-bold dark:text-white">More Details</h2>
                   <p className="text-sm text-slate-500 dark:text-slate-400">
-                    Please provide your full name and phone number to complete your profile and
-                    secure your account.
+                    Please provide your full name and phone number
                   </p>
                 </div>
 
@@ -384,13 +416,12 @@ export function SecurityOnboarding({ onComplete }: SecurityOnboardingProps) {
                         placeholder="e.g. John Doe"
                         value={fullName}
                         onChange={(e) => setFullName(e.target.value)}
-                        className={`h-12 rounded-xl dark:bg-slate-800 focus-visible:ring-2 transition-all pr-10 ${
-                          fullName.trim().length > 0
-                            ? isNameValid
-                              ? "border-emerald-500 focus-visible:ring-emerald-500/20"
-                              : "border-red-500 focus-visible:ring-red-500/20"
-                            : "dark:border-slate-700"
-                        }`}
+                        className={`h-12 rounded-xl dark:bg-slate-800 focus-visible:ring-2 transition-all pr-10 ${fullName.trim().length > 0
+                          ? isNameValid
+                            ? "border-emerald-500 focus-visible:ring-emerald-500/20"
+                            : "border-red-500 focus-visible:ring-red-500/20"
+                          : "dark:border-slate-700"
+                          }`}
                       />
                       {fullName.trim().length > 0 && isNameValid && (
                         <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-emerald-500" />
@@ -422,13 +453,12 @@ export function SecurityOnboarding({ onComplete }: SecurityOnboardingProps) {
                         placeholder="e.g. 08012345678"
                         value={phone}
                         onChange={handlePhoneChange}
-                        className={`h-12 rounded-xl dark:bg-slate-800 focus-visible:ring-2 transition-all ${
-                          phone.length > 0
-                            ? isPhoneValid
-                              ? "border-emerald-500 focus-visible:ring-emerald-500/20"
-                              : "border-red-500 focus-visible:ring-red-500/20"
-                            : "dark:border-slate-700"
-                        }`}
+                        className={`h-12 rounded-xl dark:bg-slate-800 focus-visible:ring-2 transition-all ${phone.length > 0
+                          ? isPhoneValid
+                            ? "border-emerald-500 focus-visible:ring-emerald-500/20"
+                            : "border-red-500 focus-visible:ring-red-500/20"
+                          : "dark:border-slate-700"
+                          }`}
                       />
                       {isPhoneValid && (
                         <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-emerald-500" />
@@ -475,12 +505,8 @@ export function SecurityOnboarding({ onComplete }: SecurityOnboardingProps) {
                 className="space-y-6"
               >
                 <div className="text-center space-y-2">
-                  <div className="mx-auto w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center">
-                    <KeyRound className="w-6 h-6 text-purple-600 dark:text-purple-400" />
-                  </div>
-                  <h2 className="text-xl font-bold dark:text-white">Create a Password</h2>
                   <p className="text-sm text-slate-500 dark:text-slate-400">
-                    Step 2: Create a password to easily log in next time.
+                    Create a password to easily log in next time.
                   </p>
                 </div>
 
@@ -535,7 +561,7 @@ export function SecurityOnboarding({ onComplete }: SecurityOnboardingProps) {
                   disabled={loading || !passFeedback.isValid || password !== confirmPassword}
                   className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 rounded-xl font-bold shadow-lg shadow-emerald-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {loading ? <Loader2 className="animate-spin" /> : "Complete Setup"}
+                  {loading ? <Loader2 className="animate-spin" /> : "Continue"}
                 </Button>
               </motion.div>
             )}
@@ -549,13 +575,8 @@ export function SecurityOnboarding({ onComplete }: SecurityOnboardingProps) {
                 className="space-y-6"
               >
                 <div className="text-center space-y-2">
-                  <div className="mx-auto w-12 h-12 bg-indigo-100 dark:bg-indigo-900/30 rounded-xl flex items-center justify-center">
-                    <KeyRound className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
-                  </div>
-                  <h2 className="text-xl font-bold dark:text-white">Set Transaction PIN</h2>
                   <p className="text-sm text-slate-500 dark:text-slate-400">
-                    Create a secure 4-digit PIN. This will be required to authorize any withdrawals
-                    from your wallet.
+                    Create a secure 4-digit PIN for withdrawals.
                   </p>
                 </div>
 

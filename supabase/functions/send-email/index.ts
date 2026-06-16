@@ -71,16 +71,20 @@ serve(async (req) => {
           to: Array.isArray(to) ? to : [to],
           subject: finalSubject,
           html: `
-            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 0; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
-              <div style="padding: 30px; border-bottom: 1px solid #e2e8f0; text-align: left;">
-                ${logoUrl ? `<img src="${logoUrl}" alt="${appName}" style="height: 48px;">` : `<h2 style="margin:0; color: #0f172a;">${appName}</h2>`}
+            <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 0; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04); border: 1px solid #f1f5f9;">
+              <div style="background: linear-gradient(135deg, #059669 0%, #10b981 100%); padding: 32px; text-align: center;">
+                ${logoUrl ? `<img src="${logoUrl}" alt="${appName}" style="height: 48px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));">` : `<h2 style="margin:0; color: #ffffff; font-size: 24px; font-weight: 700; letter-spacing: -0.5px;">${appName}</h2>`}
               </div>
-              <div style="line-height: 1.8; color: #1e293b; font-size: 16px; white-space: pre-wrap; padding: 40px 30px; text-align: center;">
+              <div style="padding: 40px 32px; line-height: 1.6; color: #334155; font-size: 16px; white-space: pre-wrap;">
                 ${finalBody}
               </div>
-              <div style="background-color: #f8fafc; padding: 20px 30px; text-align: center; border-top: 1px solid #e2e8f0;">
-                <p style="font-size: 13px; color: #64748b; margin: 0;">
-                  &copy; ${new Date().getFullYear()} ${appName}. All rights reserved.
+              <div style="background-color: #f8fafc; padding: 24px 32px; text-align: center; border-top: 1px solid #e2e8f0;">
+                <p style="font-size: 14px; color: #64748b; margin: 0;">
+                  Thank you for using <strong>${appName}</strong>!
+                </p>
+                <p style="font-size: 12px; color: #94a3b8; margin: 12px 0 0 0;">
+                  &copy; ${new Date().getFullYear()} ${appName}. All rights reserved.<br/>
+                  This is an automated message, please do not reply.
                 </p>
               </div>
             </div>
@@ -119,7 +123,7 @@ serve(async (req) => {
           },
           body: JSON.stringify({
             phone: profile.phone,
-            message: `*${appName}*\n\n${cleanMessage}\n\n_Thank you for banking with us!_`,
+            message: `🏦 *${appName}*\n\n${cleanMessage}\n\n✨ _Thank you for trusting us with your finances!_`,
             user_id: profile.id,
           }),
         });

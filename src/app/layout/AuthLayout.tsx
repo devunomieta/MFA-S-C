@@ -64,7 +64,7 @@ export function AuthLayout() {
       </div>
 
       {/* ── Persistent card shell — never unmounts ── */}
-      <div className="relative z-10 w-full max-w-4xl mx-4 flex rounded-[2rem] overflow-hidden shadow-[0_24px_64px_rgba(0,0,0,0.12)] border border-slate-200/60 dark:border-slate-800/60">
+      <div className="relative z-10 w-full max-w-4xl mx-4 flex min-h-[400px] md:min-h-[450px] rounded-[2rem] overflow-hidden shadow-[0_24px_64px_rgba(0,0,0,0.12)] border border-slate-200/60 dark:border-slate-800/60">
         {/* Left branding panel (desktop/tablet) */}
         <div className="hidden md:flex flex-col justify-between w-[40%] shrink-0 bg-emerald-600 dark:bg-emerald-700 p-8 relative overflow-hidden">
           {/* Decorative rings */}

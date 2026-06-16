@@ -279,6 +279,18 @@ export function Profile() {
   const [requestingCode, setRequestingCode] = useState(false);
   const [updatingPassword, setUpdatingPassword] = useState(false);
 
+  // PIN Change State
+  const [showPinForm, setShowPinForm] = useState(false);
+  const [pinData, setPinData] = useState({
+    current_password: "",
+    new_pin: "",
+    confirm_pin: "",
+  });
+  const [pinOtpCode, setPinOtpCode] = useState("");
+  const [pinCodeRequested, setPinCodeRequested] = useState(false);
+  const [requestingPinCode, setRequestingPinCode] = useState(false);
+  const [updatingPin, setUpdatingPin] = useState(false);
+
   // Email Change State
   const [showEmailForm, setShowEmailForm] = useState(false);
   const [newEmail, setNewEmail] = useState("");
@@ -1123,6 +1135,80 @@ export function Profile() {
           "Your account password has been successfully updated. If you did not make this change, please contact support immediately.",
       });
     }
+  }
+
+  async function handleRequestPinCode() {
+    if (!pinData.current_password) {
+      toast.error("Please enter your current password first");
+      return;
+    }
+    setRequestingPinCode(true);
+    const { error: authError } = await supabase.auth.signInWithPassword({
+      email: user?.email || "",
+      password: pinData.current_password,
+    });
+    if (authError) {
+      toast.error("Current password incorrect");
+      setRequestingPinCode(false);
+      return;
+    }
+    const { error: otpError } = await supabase.auth.resetPasswordForEmail(user?.email || "");
+    if (otpError) {
+      toast.error("Failed to send verification code. Please try again.");
+    } else {
+      toast.success("Verification code sent to your email");
+      setPinCodeRequested(true);
+    }
+    setRequestingPinCode(false);
+  }
+
+  async function handlePinChange() {
+    if (!pinData.new_pin || !pinData.confirm_pin || !pinOtpCode) {
+      toast.error("Please fill all PIN fields and enter the verification code");
+      return;
+    }
+    if (pinData.new_pin.length !== 4) {
+      toast.error("PIN must be exactly 4 digits");
+      return;
+    }
+    if (pinData.new_pin !== pinData.confirm_pin) {
+      toast.error("New PINs do not match");
+      return;
+    }
+    setUpdatingPin(true);
+    const { error: verifyError } = await supabase.auth.verifyOtp({
+      email: user?.email || "",
+      token: pinOtpCode,
+      type: "recovery",
+    });
+    if (verifyError) {
+      toast.error("Invalid or expired verification code");
+      setUpdatingPin(false);
+      return;
+    }
+    const { error } = await supabase
+      .from("profiles")
+      .update({ transaction_pin: pinData.new_pin })
+      .eq("id", user?.id);
+
+    if (error) {
+      toast.error("Failed to update PIN");
+    } else {
+      toast.success("Transaction PIN updated successfully");
+      setPinData({ current_password: "", new_pin: "", confirm_pin: "" });
+      setPinOtpCode("");
+      setPinCodeRequested(false);
+      setShowPinForm(false);
+      
+      await notificationDispatcher.sendAlert({
+        userId: user?.id || "",
+        email: profile.email,
+        type: "profile",
+        title: "Transaction PIN Changed",
+        message: "Your Mary's Thrift transaction PIN has been successfully changed.",
+      });
+    }
+    setUpdatingPin(false);
   }
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -2705,6 +2791,131 @@ export function Profile() {
                           disabled={updatingPassword || otpCode.length < 6}
                         >
                           {updatingPassword ? "Updating..." : "Update Password"}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Transaction PIN Card */}
+              {!showPinForm ? (
+                <div className="flex items-center gap-4 p-4 border rounded-lg dark:border-gray-700">
+                  <div className="p-3 bg-gray-100 dark:bg-gray-900 rounded-full">
+                    <ShieldCheck className="w-6 h-6 text-gray-600 dark:text-gray-400" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-semibold dark:text-white">Transaction PIN</h4>
+                    <p className="text-sm text-gray-500">4-digit security PIN</p>
+                  </div>
+                  <Button variant="outline" onClick={() => setShowPinForm(true)}>
+                    Change PIN
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-4 p-4 border rounded-lg dark:border-gray-700 bg-gray-50 dark:bg-gray-900/30">
+                  <div className="grid gap-2">
+                    <Label className="dark:text-white text-sm font-medium">Current Password</Label>
+                    <Input
+                      type="password"
+                      placeholder="Enter your current account password"
+                      value={pinData.current_password}
+                      onChange={(e) =>
+                        setPinData({ ...pinData, current_password: e.target.value })
+                      }
+                      className="dark:bg-gray-800 dark:border-gray-700"
+                      disabled={pinCodeRequested}
+                    />
+                  </div>
+
+                  {!pinCodeRequested ? (
+                    <Button
+                      variant="secondary"
+                      className="w-full"
+                      onClick={handleRequestPinCode}
+                      disabled={requestingPinCode || !pinData.current_password}
+                    >
+                      {requestingPinCode ? "Verifying..." : "Request Verification Code"}
+                    </Button>
+                  ) : (
+                    <div className="space-y-4 pt-2 border-t dark:border-gray-700 mt-2">
+                      <div className="grid gap-2">
+                        <Label className="dark:text-white text-sm font-medium flex items-center gap-2">
+                          <Mail className="w-4 h-4" /> Verification Code (sent to email)
+                        </Label>
+                        <div className="flex justify-center py-2">
+                          <InputOTP maxLength={6} value={pinOtpCode} onChange={setPinOtpCode}>
+                            <InputOTPGroup>
+                              <InputOTPSlot index={0} />
+                              <InputOTPSlot index={1} />
+                              <InputOTPSlot index={2} />
+                            </InputOTPGroup>
+                            <InputOTPSeparator />
+                            <InputOTPGroup>
+                              <InputOTPSlot index={3} />
+                              <InputOTPSlot index={4} />
+                              <InputOTPSlot index={5} />
+                            </InputOTPGroup>
+                          </InputOTP>
+                        </div>
+                        <Button
+                          variant="link"
+                          size="sm"
+                          className="text-xs h-auto p-0"
+                          onClick={() => setPinCodeRequested(false)}
+                        >
+                          Wrong password? Go back
+                        </Button>
+                      </div>
+
+                      <div className="grid gap-2">
+                        <Label className="dark:text-white text-sm font-medium">New 4-Digit PIN</Label>
+                        <Input
+                          type="password"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          maxLength={4}
+                          placeholder="••••"
+                          value={pinData.new_pin}
+                          onChange={(e) =>
+                            setPinData({ ...pinData, new_pin: e.target.value.replace(/\D/g, "") })
+                          }
+                          className="dark:bg-gray-800 dark:border-gray-700 text-center tracking-[1em] text-xl font-bold"
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label className="dark:text-white text-sm font-medium">Confirm New PIN</Label>
+                        <Input
+                          type="password"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          maxLength={4}
+                          placeholder="••••"
+                          value={pinData.confirm_pin}
+                          onChange={(e) =>
+                            setPinData({ ...pinData, confirm_pin: e.target.value.replace(/\D/g, "") })
+                          }
+                          className="dark:bg-gray-800 dark:border-gray-700 text-center tracking-[1em] text-xl font-bold"
+                        />
+                      </div>
+
+                      <div className="flex gap-2 justify-end pt-2">
+                        <Button
+                          variant="ghost"
+                          onClick={() => {
+                            setShowPinForm(false);
+                            setPinCodeRequested(false);
+                            setPinOtpCode("");
+                          }}
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          className="bg-emerald-600 hover:bg-emerald-700"
+                          onClick={handlePinChange}
+                          disabled={updatingPin || pinOtpCode.length < 6 || pinData.new_pin.length !== 4}
+                        >
+                          {updatingPin ? "Updating..." : "Update PIN"}
                         </Button>
                       </div>
                     </div>

@@ -77,7 +77,13 @@ export function Signup() {
 
       logActivity({ action: "USER_SIGNUP", details: { method: "email", mode: "standard" } });
       toast.success("Account created successfully!");
-      navigate(`/onboarding${joinPlanId ? `?join=${joinPlanId}` : ""}`);
+      
+      if (!userAuth.session) {
+        // Email confirmation is required
+        navigate("/verify-otp", { state: { email: formData.email, mode: "signup", joinPlanId } });
+      } else {
+        navigate(`/dashboard${joinPlanId ? `?join=${joinPlanId}` : ""}`);
+      }
     } catch (error: any) {
       console.error("Signup Error:", error);
       toast.error(error.message);
@@ -136,8 +142,8 @@ export function Signup() {
 
   const handleGoogleSignUp = async () => {
     const redirectTo = joinPlanId
-      ? `${window.location.origin}/onboarding?join=${joinPlanId}`
-      : `${window.location.origin}/onboarding`;
+      ? `${window.location.origin}/dashboard?join=${joinPlanId}`
+      : `${window.location.origin}/dashboard`;
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: { redirectTo },

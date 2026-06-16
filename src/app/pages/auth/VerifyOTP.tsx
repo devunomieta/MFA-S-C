@@ -5,7 +5,7 @@ import { ArrowLeft, RefreshCw, CheckCircle2, Home } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { toast } from "sonner";
 
-import { AuthHeader } from "@/app/components/auth/AuthHeader";
+
 import { Button } from "@/app/components/ui/button";
 import { HoneypotField } from "@/app/components/ui/HoneypotField";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/app/components/ui/input-otp";
@@ -131,40 +131,16 @@ export function VerifyOTP() {
   };
 
   return (
-    <div className="min-h-screen relative flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 overflow-hidden bg-white dark:bg-slate-950">
-      {/* Premium Background Blobs */}
-      <div className="absolute inset-0 pointer-events-none">
-        <motion.div
-          animate={{ scale: [1, 1.2, 1], rotate: [0, 90, 0] }}
-          transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-emerald-50/50 dark:bg-emerald-900/10 rounded-full blur-[100px]"
-        />
-        <motion.div
-          animate={{ scale: [1.2, 1, 1.2], rotate: [0, -90, 0] }}
-          transition={{ duration: 25, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-blue-50/50 dark:bg-blue-900/10 rounded-full blur-[100px]"
-        />
-      </div>
-
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className="max-w-md w-full relative z-10"
+    <>
+      <Link
+        to="/signup"
+        className="inline-flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-emerald-600 transition-colors mb-10 group"
       >
-        <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl p-10 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-slate-200/50 dark:border-slate-800/50">
-          <Link
-            to="/signup"
-            className="inline-flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-emerald-600 transition-colors mb-10 group"
-          >
-            <ArrowLeft className="size-4 group-hover:-translate-x-1 transition-transform" /> Change
-            Email
-          </Link>
+        <ArrowLeft className="size-4 group-hover:-translate-x-1 transition-transform" /> Change
+        Email
+      </Link>
 
-          <AuthHeader
-            title="Verify Account"
-            subtitle={`We've sent a 6-digit security code to ${email || "your email"}`}
-          />
+
 
           <div className="mb-6 p-4 bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200/50 dark:border-emerald-800/30 rounded-2xl text-center">
             <p className="text-xs text-emerald-800 dark:text-emerald-300 font-medium leading-relaxed">
@@ -252,18 +228,6 @@ export function VerifyOTP() {
               </button>
             </div>
           </div>
-
-          <div className="mt-10 pt-8 border-t border-slate-100 dark:border-slate-800 text-center">
-            <Link
-              to="/"
-              className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-slate-400 hover:text-emerald-600 transition-all group"
-            >
-              <Home className="size-3.5 group-hover:-translate-y-0.5 transition-transform" />
-              Return to Homepage
-            </Link>
-          </div>
-        </div>
-      </motion.div>
-    </div>
+    </>
   );
 }
