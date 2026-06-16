@@ -77,7 +77,7 @@ export function Signup() {
 
       logActivity({ action: "USER_SIGNUP", details: { method: "email", mode: "standard" } });
       toast.success("Account created successfully!");
-      
+
       if (!userAuth.session) {
         // Email confirmation is required
         navigate("/verify-otp", { state: { email: formData.email, mode: "signup", joinPlanId } });
@@ -158,20 +158,22 @@ export function Signup() {
         <button
           type="button"
           onClick={() => setAuthMode("standard")}
-          className={`flex-1 h-9 rounded-lg text-xs font-bold transition-all ${authMode === "standard"
-            ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm"
-            : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
-            }`}
+          className={`flex-1 h-9 rounded-lg text-xs font-bold transition-all ${
+            authMode === "standard"
+              ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm"
+              : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
+          }`}
         >
           Standard Signup
         </button>
         <button
           type="button"
           onClick={() => setAuthMode("magic")}
-          className={`flex-1 h-9 rounded-lg text-xs font-bold transition-all ${authMode === "magic"
-            ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm"
-            : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
-            }`}
+          className={`flex-1 h-9 rounded-lg text-xs font-bold transition-all ${
+            authMode === "magic"
+              ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm"
+              : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
+          }`}
         >
           Passwordless Signup
         </button>

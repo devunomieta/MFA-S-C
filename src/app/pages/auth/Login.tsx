@@ -193,7 +193,7 @@ export function Login() {
       <div className="relative flex items-center gap-3 mb-4">
         <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
         <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
-          {authMode === "standard" ? "or sign in with email" : "or get a magic link"}
+          {authMode === "standard" ? "or sign in with email / phone" : "or get a magic link"}
         </span>
         <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
       </div>

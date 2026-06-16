@@ -35,3 +35,11 @@ supabase/.temp/
 
 # Generated reports
 eslint-report.json
+eslint_out.json
+eslint_clean.json
+current_errors*.json
+lint_results.txt
+
+# Scratch files
+fix_lint*.mjs
+test_*.mjs

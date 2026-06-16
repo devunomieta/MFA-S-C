@@ -1,17 +1,7 @@
 import { useState, useEffect } from "react";
 
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  Shield,
-  KeyRound,
-  CheckCircle2,
-  ArrowRight,
-  LogOut,
-  Loader2,
-  Eye,
-  EyeOff,
-  User,
-} from "lucide-react";
+import { Shield, CheckCircle2, ArrowRight, LogOut, Loader2, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/app/components/ui/button";
@@ -334,27 +324,45 @@ export function SecurityOnboarding({ onComplete }: SecurityOnboardingProps) {
                 />
 
                 <div className="relative z-10 flex flex-col items-center gap-2">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${step === "phone" || step === "password" || step === "pin" ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/30" : "bg-slate-200 dark:bg-slate-700 text-slate-500"}`}>
+                  <div
+                    className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${step === "phone" || step === "password" || step === "pin" ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/30" : "bg-slate-200 dark:bg-slate-700 text-slate-500"}`}
+                  >
                     1
                   </div>
-                  <span className={`text-[10px] font-bold uppercase tracking-wider ${step === "phone" ? "text-emerald-600 dark:text-emerald-400" : "text-slate-400"}`}>Profile</span>
+                  <span
+                    className={`text-[10px] font-bold uppercase tracking-wider ${step === "phone" ? "text-emerald-600 dark:text-emerald-400" : "text-slate-400"}`}
+                  >
+                    Profile
+                  </span>
                 </div>
 
                 {requiresPassword && (
                   <div className="relative z-10 flex flex-col items-center gap-2">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${step === "password" || step === "pin" ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/30" : "bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-700 text-slate-400"}`}>
+                    <div
+                      className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${step === "password" || step === "pin" ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/30" : "bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-700 text-slate-400"}`}
+                    >
                       2
                     </div>
-                    <span className={`text-[10px] font-bold uppercase tracking-wider ${step === "password" ? "text-emerald-600 dark:text-emerald-400" : "text-slate-400"}`}>Password</span>
+                    <span
+                      className={`text-[10px] font-bold uppercase tracking-wider ${step === "password" ? "text-emerald-600 dark:text-emerald-400" : "text-slate-400"}`}
+                    >
+                      Password
+                    </span>
                   </div>
                 )}
 
                 {requiresPin && (
                   <div className="relative z-10 flex flex-col items-center gap-2">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${step === "pin" ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/30" : "bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-700 text-slate-400"}`}>
+                    <div
+                      className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${step === "pin" ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/30" : "bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-700 text-slate-400"}`}
+                    >
                       {requiresPassword ? "3" : "2"}
                     </div>
-                    <span className={`text-[10px] font-bold uppercase tracking-wider ${step === "pin" ? "text-emerald-600 dark:text-emerald-400" : "text-slate-400"}`}>PIN</span>
+                    <span
+                      className={`text-[10px] font-bold uppercase tracking-wider ${step === "pin" ? "text-emerald-600 dark:text-emerald-400" : "text-slate-400"}`}
+                    >
+                      PIN
+                    </span>
                   </div>
                 )}
               </div>
@@ -416,12 +424,13 @@ export function SecurityOnboarding({ onComplete }: SecurityOnboardingProps) {
                         placeholder="e.g. John Doe"
                         value={fullName}
                         onChange={(e) => setFullName(e.target.value)}
-                        className={`h-12 rounded-xl dark:bg-slate-800 focus-visible:ring-2 transition-all pr-10 ${fullName.trim().length > 0
-                          ? isNameValid
-                            ? "border-emerald-500 focus-visible:ring-emerald-500/20"
-                            : "border-red-500 focus-visible:ring-red-500/20"
-                          : "dark:border-slate-700"
-                          }`}
+                        className={`h-12 rounded-xl dark:bg-slate-800 focus-visible:ring-2 transition-all pr-10 ${
+                          fullName.trim().length > 0
+                            ? isNameValid
+                              ? "border-emerald-500 focus-visible:ring-emerald-500/20"
+                              : "border-red-500 focus-visible:ring-red-500/20"
+                            : "dark:border-slate-700"
+                        }`}
                       />
                       {fullName.trim().length > 0 && isNameValid && (
                         <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-emerald-500" />
@@ -453,12 +462,13 @@ export function SecurityOnboarding({ onComplete }: SecurityOnboardingProps) {
                         placeholder="e.g. 08012345678"
                         value={phone}
                         onChange={handlePhoneChange}
-                        className={`h-12 rounded-xl dark:bg-slate-800 focus-visible:ring-2 transition-all ${phone.length > 0
-                          ? isPhoneValid
-                            ? "border-emerald-500 focus-visible:ring-emerald-500/20"
-                            : "border-red-500 focus-visible:ring-red-500/20"
-                          : "dark:border-slate-700"
-                          }`}
+                        className={`h-12 rounded-xl dark:bg-slate-800 focus-visible:ring-2 transition-all ${
+                          phone.length > 0
+                            ? isPhoneValid
+                              ? "border-emerald-500 focus-visible:ring-emerald-500/20"
+                              : "border-red-500 focus-visible:ring-red-500/20"
+                            : "dark:border-slate-700"
+                        }`}
                       />
                       {isPhoneValid && (
                         <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-emerald-500" />

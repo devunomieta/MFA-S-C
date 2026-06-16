@@ -1,10 +1,9 @@
 import { useState, useEffect } from "react";
 
 import { motion } from "framer-motion";
-import { Lock, CheckCircle2, Home } from "lucide-react";
-import { useNavigate, Link } from "react-router-dom";
+import { Lock, CheckCircle2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-
 
 import { Button } from "@/app/components/ui/button";
 import { HoneypotField } from "@/app/components/ui/HoneypotField";
@@ -91,75 +90,73 @@ export function UpdatePassword() {
 
   return (
     <>
-
-
-          <form className="space-y-6" onSubmit={handleSubmit}>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label
-                  htmlFor="password"
-                  className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1"
-                >
-                  New Password
-                </Label>
-                <div className="relative">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-slate-400 z-10" />
-                  <PasswordInput
-                    id="password"
-                    name="password"
-                    required
-                    className="h-14 pl-12 rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-base text-slate-900 dark:text-white"
-                    placeholder="••••••••"
-                    value={formData.password}
-                    onChange={handleChange}
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label
-                  htmlFor="confirmPassword"
-                  className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1"
-                >
-                  Confirm New Password
-                </Label>
-                <div className="relative">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-slate-400 z-10" />
-                  <PasswordInput
-                    id="confirmPassword"
-                    name="confirmPassword"
-                    required
-                    className="h-14 pl-12 rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-base text-slate-900 dark:text-white"
-                    placeholder="••••••••"
-                    value={formData.confirmPassword}
-                    onChange={handleChange}
-                  />
-                </div>
-              </div>
-
-              <PasswordStrength feedback={passFeedback} passwordLength={formData.password.length} />
-
-              {/* Honeypot field */}
-              <HoneypotField name="honeypot" value={formData.honeypot} onChange={handleChange} />
-            </div>
-
-            <Button
-              type="submit"
-              className="w-full h-14 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-lg font-bold shadow-xl shadow-emerald-600/20 active:scale-[0.98] transition-all"
-              disabled={loading}
+      <form className="space-y-6" onSubmit={handleSubmit}>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label
+              htmlFor="password"
+              className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1"
             >
-              {loading ? (
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                  className="size-6 border-2 border-white/30 border-t-white rounded-full"
-                />
-              ) : (
-                <span className="flex items-center justify-center gap-2">
-                  Update Password <CheckCircle2 className="size-5" />
-                </span>
-              )}
-            </Button>
-          </form>
+              New Password
+            </Label>
+            <div className="relative">
+              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-slate-400 z-10" />
+              <PasswordInput
+                id="password"
+                name="password"
+                required
+                className="h-14 pl-12 rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-base text-slate-900 dark:text-white"
+                placeholder="••••••••"
+                value={formData.password}
+                onChange={handleChange}
+              />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label
+              htmlFor="confirmPassword"
+              className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1"
+            >
+              Confirm New Password
+            </Label>
+            <div className="relative">
+              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-slate-400 z-10" />
+              <PasswordInput
+                id="confirmPassword"
+                name="confirmPassword"
+                required
+                className="h-14 pl-12 rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-base text-slate-900 dark:text-white"
+                placeholder="••••••••"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+              />
+            </div>
+          </div>
+
+          <PasswordStrength feedback={passFeedback} passwordLength={formData.password.length} />
+
+          {/* Honeypot field */}
+          <HoneypotField name="honeypot" value={formData.honeypot} onChange={handleChange} />
+        </div>
+
+        <Button
+          type="submit"
+          className="w-full h-14 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-lg font-bold shadow-xl shadow-emerald-600/20 active:scale-[0.98] transition-all"
+          disabled={loading}
+        >
+          {loading ? (
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+              className="size-6 border-2 border-white/30 border-t-white rounded-full"
+            />
+          ) : (
+            <span className="flex items-center justify-center gap-2">
+              Update Password <CheckCircle2 className="size-5" />
+            </span>
+          )}
+        </Button>
+      </form>
     </>
   );
 }

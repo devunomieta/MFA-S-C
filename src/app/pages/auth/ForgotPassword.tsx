@@ -1,10 +1,9 @@
 import { useState, useEffect } from "react";
 
 import { motion } from "framer-motion";
-import { ArrowLeft, Mail, Send, Home } from "lucide-react";
+import { ArrowLeft, Mail, Send } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-
 
 import { Button } from "@/app/components/ui/button";
 import { HoneypotField } from "@/app/components/ui/HoneypotField";
@@ -111,113 +110,111 @@ export function ForgotPassword() {
         Login
       </Link>
 
+      {submitted ? (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="space-y-6"
+        >
+          <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl border border-emerald-100 dark:border-emerald-900/30 text-center">
+            <p className="text-sm text-emerald-800 dark:text-emerald-300 font-medium">
+              If an account exists, a reset link has been sent to <strong>{email}</strong>
+            </p>
+          </div>
 
+          <form onSubmit={handleVerifyOtp} className="space-y-6">
+            <div className="space-y-4">
+              <Label className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 block text-center">
+                Enter 6-Digit Verification Code
+              </Label>
+              <div className="flex justify-center">
+                <InputOTP maxLength={6} value={otpCode} onChange={setOtpCode} className="gap-2">
+                  <InputOTPGroup>
+                    <InputOTPSlot index={0} />
+                    <InputOTPSlot index={1} />
+                    <InputOTPSlot index={2} />
+                  </InputOTPGroup>
+                  <InputOTPSeparator />
+                  <InputOTPGroup>
+                    <InputOTPSlot index={3} />
+                    <InputOTPSlot index={4} />
+                    <InputOTPSlot index={5} />
+                  </InputOTPGroup>
+                </InputOTP>
+              </div>
+            </div>
 
-          {submitted ? (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="space-y-6"
+            <Button
+              type="submit"
+              disabled={verifying || otpCode.length < 6}
+              className="w-full h-14 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-lg font-bold shadow-xl shadow-emerald-600/20 active:scale-[0.98] transition-all"
             >
-              <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl border border-emerald-100 dark:border-emerald-900/30 text-center">
-                <p className="text-sm text-emerald-800 dark:text-emerald-300 font-medium">
-                  If an account exists, a reset link has been sent to <strong>{email}</strong>
-                </p>
-              </div>
+              {verifying ? (
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  className="size-6 border-2 border-white/30 border-t-white rounded-full"
+                />
+              ) : (
+                "Verify Code & Continue"
+              )}
+            </Button>
 
-              <form onSubmit={handleVerifyOtp} className="space-y-6">
-                <div className="space-y-4">
-                  <Label className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 block text-center">
-                    Enter 6-Digit Verification Code
-                  </Label>
-                  <div className="flex justify-center">
-                    <InputOTP maxLength={6} value={otpCode} onChange={setOtpCode} className="gap-2">
-                      <InputOTPGroup>
-                        <InputOTPSlot index={0} />
-                        <InputOTPSlot index={1} />
-                        <InputOTPSlot index={2} />
-                      </InputOTPGroup>
-                      <InputOTPSeparator />
-                      <InputOTPGroup>
-                        <InputOTPSlot index={3} />
-                        <InputOTPSlot index={4} />
-                        <InputOTPSlot index={5} />
-                      </InputOTPGroup>
-                    </InputOTP>
-                  </div>
-                </div>
+            <Button
+              type="button"
+              variant="ghost"
+              className="w-full text-slate-500 font-medium"
+              onClick={() => setSubmitted(false)}
+            >
+              Didn't get a code? Try again
+            </Button>
+          </form>
+        </motion.div>
+      ) : (
+        <form className="space-y-6" onSubmit={handleSubmit}>
+          <div className="space-y-2">
+            <Label
+              htmlFor="email"
+              className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1"
+            >
+              Email Address
+            </Label>
+            <div className="relative">
+              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-slate-400 z-10" />
+              <Input
+                id="email"
+                type="email"
+                required
+                className="h-14 pl-12 rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-base text-slate-900 dark:text-white transition-all focus:ring-2 focus:ring-emerald-500/20"
+                placeholder="mary@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+          </div>
 
-                <Button
-                  type="submit"
-                  disabled={verifying || otpCode.length < 6}
-                  className="w-full h-14 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-lg font-bold shadow-xl shadow-emerald-600/20 active:scale-[0.98] transition-all"
-                >
-                  {verifying ? (
-                    <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                      className="size-6 border-2 border-white/30 border-t-white rounded-full"
-                    />
-                  ) : (
-                    "Verify Code & Continue"
-                  )}
-                </Button>
+          {/* Honeypot field */}
+          <HoneypotField value={website} onChange={(e) => setWebsite(e.target.value)} />
 
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="w-full text-slate-500 font-medium"
-                  onClick={() => setSubmitted(false)}
-                >
-                  Didn't get a code? Try again
-                </Button>
-              </form>
-            </motion.div>
-          ) : (
-            <form className="space-y-6" onSubmit={handleSubmit}>
-              <div className="space-y-2">
-                <Label
-                  htmlFor="email"
-                  className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1"
-                >
-                  Email Address
-                </Label>
-                <div className="relative">
-                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-slate-400 z-10" />
-                  <Input
-                    id="email"
-                    type="email"
-                    required
-                    className="h-14 pl-12 rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-base text-slate-900 dark:text-white transition-all focus:ring-2 focus:ring-emerald-500/20"
-                    placeholder="mary@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              {/* Honeypot field */}
-              <HoneypotField value={website} onChange={(e) => setWebsite(e.target.value)} />
-
-              <Button
-                type="submit"
-                className="w-full h-14 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-lg font-bold shadow-xl shadow-emerald-600/20 active:scale-[0.98] transition-all"
-                disabled={loading}
-              >
-                {loading ? (
-                  <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                    className="size-6 border-2 border-white/30 border-t-white rounded-full"
-                  />
-                ) : (
-                  <span className="flex items-center justify-center gap-2">
-                    Send Reset Link <Send className="size-5" />
-                  </span>
-                )}
-              </Button>
-            </form>
-          )}
+          <Button
+            type="submit"
+            className="w-full h-14 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-lg font-bold shadow-xl shadow-emerald-600/20 active:scale-[0.98] transition-all"
+            disabled={loading}
+          >
+            {loading ? (
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                className="size-6 border-2 border-white/30 border-t-white rounded-full"
+              />
+            ) : (
+              <span className="flex items-center justify-center gap-2">
+                Send Reset Link <Send className="size-5" />
+              </span>
+            )}
+          </Button>
+        </form>
+      )}
     </>
   );
 }

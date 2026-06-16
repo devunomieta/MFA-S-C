@@ -1,7 +1,16 @@
 import { useEffect, useState, useMemo } from "react";
 
 import { motion } from "framer-motion";
-import { Sparkles, Wrench, Info, Search, ListFilter, ChevronLeft, ChevronRight, X } from "lucide-react";
+import {
+  Sparkles,
+  Wrench,
+  Info,
+  Search,
+  ListFilter,
+  ChevronLeft,
+  ChevronRight,
+  X,
+} from "lucide-react";
 
 import { Footer } from "@/app/components/Footer";
 import { Navbar } from "@/app/components/Navbar";
@@ -31,16 +40,18 @@ export function Changelog() {
   }, []);
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [sortBy, setSortBy] = useState<"date_desc" | "date_asc" | "version_desc" | "version_asc">("date_desc");
+  const [sortBy, setSortBy] = useState<"date_desc" | "date_asc" | "version_desc" | "version_asc">(
+    "date_desc",
+  );
   const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
   const periods = useMemo(() => {
     const p = new Set<string>();
-    changelogs.forEach(log => {
+    changelogs.forEach((log) => {
       const date = new Date(log.created_at);
-      const periodStr = date.toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
+      const periodStr = date.toLocaleDateString(undefined, { month: "short", year: "numeric" });
       p.add(periodStr);
     });
     return Array.from(p);
@@ -50,16 +61,16 @@ export function Changelog() {
     let result = [...changelogs];
 
     if (selectedPeriod) {
-      result = result.filter(log => {
+      result = result.filter((log) => {
         const date = new Date(log.created_at);
-        const periodStr = date.toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
+        const periodStr = date.toLocaleDateString(undefined, { month: "short", year: "numeric" });
         return periodStr === selectedPeriod;
       });
     }
 
     if (searchQuery.trim() !== "") {
       const q = searchQuery.toLowerCase();
-      result = result.filter(log => {
+      result = result.filter((log) => {
         const inMessage = log.message?.toLowerCase().includes(q);
         const inVersion = log.version?.toLowerCase().includes(q);
         const inFeatures = log.features?.some((f: string) => f.toLowerCase().includes(q));
@@ -84,11 +95,10 @@ export function Changelog() {
   }, [changelogs, searchQuery, selectedPeriod, sortBy]);
 
   const totalPages = Math.ceil(processedLogs.length / itemsPerPage);
-  const currentLogs = processedLogs.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery, selectedPeriod, sortBy]);
+  const currentLogs = processedLogs.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage,
+  );
 
   const getTypeBadge = (type: string) => {
     switch (type) {
@@ -173,26 +183,43 @@ export function Changelog() {
                 <div className="flex flex-col sm:flex-row gap-4 items-center">
                   <div className="relative flex-1 w-full">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    <input 
-                      type="text" 
-                      placeholder="Search updates, features, or fixes..." 
+                    <input
+                      type="text"
+                      placeholder="Search updates, features, or fixes..."
                       value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onChange={(e) => {
+                        setSearchQuery(e.target.value);
+                        setCurrentPage(1);
+                      }}
                       className="w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all shadow-sm"
                     />
                     {searchQuery && (
-                      <button onClick={() => setSearchQuery("")} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
+                      <button
+                        onClick={() => {
+                          setSearchQuery("");
+                          setCurrentPage(1);
+                        }}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+                      >
                         <X className="w-4 h-4" />
                       </button>
                     )}
                   </div>
                   <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
                     <ListFilter className="w-4 h-4 text-slate-400 hidden sm:block" />
-                    <select 
+                    <select
                       value={sortBy}
-                      onChange={(e: any) => setSortBy(e.target.value)}
+                      onChange={(e: any) => {
+                        setSortBy(e.target.value);
+                        setCurrentPage(1);
+                      }}
                       className="w-full sm:w-auto px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-emerald-500 outline-none cursor-pointer shadow-sm text-slate-700 dark:text-slate-300 appearance-none pr-10"
-                      style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundPosition: `right 0.5rem center`, backgroundRepeat: `no-repeat`, backgroundSize: `1.5em 1.5em` }}
+                      style={{
+                        backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
+                        backgroundPosition: `right 0.5rem center`,
+                        backgroundRepeat: `no-repeat`,
+                        backgroundSize: `1.5em 1.5em`,
+                      }}
                     >
                       <option value="date_desc">Newest First</option>
                       <option value="date_asc">Oldest First</option>
@@ -201,19 +228,25 @@ export function Changelog() {
                     </select>
                   </div>
                 </div>
-                
+
                 <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-hide pt-2">
                   <button
-                    onClick={() => setSelectedPeriod(null)}
-                    className={`shrink-0 px-5 py-2 rounded-xl text-xs font-bold transition-all ${!selectedPeriod ? 'bg-emerald-500 text-white shadow-md border border-emerald-500' : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-emerald-500/50 dark:hover:border-emerald-500/50'}`}
+                    onClick={() => {
+                      setSelectedPeriod(null);
+                      setCurrentPage(1);
+                    }}
+                    className={`shrink-0 px-5 py-2 rounded-xl text-xs font-bold transition-all ${!selectedPeriod ? "bg-emerald-500 text-white shadow-md border border-emerald-500" : "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-emerald-500/50 dark:hover:border-emerald-500/50"}`}
                   >
                     All Updates
                   </button>
-                  {periods.map(period => (
+                  {periods.map((period) => (
                     <button
                       key={period}
-                      onClick={() => setSelectedPeriod(period)}
-                      className={`shrink-0 px-5 py-2 rounded-xl text-xs font-bold transition-all ${selectedPeriod === period ? 'bg-emerald-500 text-white shadow-md border border-emerald-500' : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-emerald-500/50 dark:hover:border-emerald-500/50'}`}
+                      onClick={() => {
+                        setSelectedPeriod(period);
+                        setCurrentPage(1);
+                      }}
+                      className={`shrink-0 px-5 py-2 rounded-xl text-xs font-bold transition-all ${selectedPeriod === period ? "bg-emerald-500 text-white shadow-md border border-emerald-500" : "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-emerald-500/50 dark:hover:border-emerald-500/50"}`}
                     >
                       {period}
                     </button>
@@ -228,93 +261,106 @@ export function Changelog() {
                 <p className="text-slate-500 dark:text-slate-400 font-medium">
                   No updates found matching your search.
                 </p>
-                <button 
-                  onClick={() => { setSearchQuery(""); setSelectedPeriod(null); }}
+                <button
+                  onClick={() => {
+                    setSearchQuery("");
+                    setSelectedPeriod(null);
+                    setCurrentPage(1);
+                  }}
                   className="mt-4 px-4 py-2 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 rounded-lg text-sm font-bold hover:bg-emerald-200 dark:hover:bg-emerald-900/50 transition-colors"
                 >
                   Clear Filters
                 </button>
               </div>
             ) : (
-              <div className="space-y-16">
+              <div className="relative border-l border-emerald-500/20 dark:border-emerald-500/10 ml-4 md:ml-8 pl-8 md:pl-12 space-y-16">
                 {currentLogs.map((log, index) => (
-              <motion.article
-                key={log.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className="relative pb-16 border-b border-slate-200 dark:border-slate-800/60 last:border-0 last:pb-0"
-              >
-                <div className="flex flex-col md:flex-row md:items-baseline gap-4 mb-8">
-                  <h2 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
-                    {log.message}
-                  </h2>
-                  <div className="flex flex-wrap items-center gap-3 md:ml-auto text-sm shrink-0">
-                    {getTypeBadge(log.type)}
-                    <span className="font-mono font-bold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/50 px-2.5 py-1 rounded-md">
-                      {log.version || "Update"}
-                    </span>
-                    <span className="hidden sm:inline text-slate-300 dark:text-slate-700">•</span>
-                    <span className="font-medium text-slate-500 dark:text-slate-400">
-                      {new Date(log.created_at).toLocaleDateString(undefined, {
-                        month: "long",
-                        day: "numeric",
-                        year: "numeric",
-                      })}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="space-y-8 md:grid md:grid-cols-2 md:space-y-0 md:gap-12">
-                  {log.features && log.features.length > 0 && (
-                    <div>
-                      <h3 className="flex items-center gap-2 font-bold text-slate-900 dark:text-white mb-4 text-xs uppercase tracking-widest">
-                        <Sparkles className="w-3.5 h-3.5 text-emerald-500" />
-                        New Features
-                      </h3>
-                      <ul className="space-y-3">
-                        {log.features.map((feature: string, i: number) => (
-                          <li
-                            key={i}
-                            className="flex items-start gap-3 text-sm md:text-base text-slate-600 dark:text-slate-300"
-                          >
-                            <span className="mt-2 w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
-                            <span className="leading-relaxed">{feature}</span>
-                          </li>
-                        ))}
-                      </ul>
+                  <motion.article
+                    key={log.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    className="relative pb-16 border-b border-slate-200 dark:border-slate-800/60 last:border-0 last:pb-0"
+                  >
+                    <div className="absolute -left-[41px] md:-left-[57px] top-2 w-5 h-5 rounded-full bg-white dark:bg-slate-950 border-[3px] border-emerald-500 flex items-center justify-center shadow-sm">
+                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
                     </div>
-                  )}
-
-                  {log.bugfixes && log.bugfixes.length > 0 && (
-                    <div className={!(log.features && log.features.length > 0) ? "md:col-span-2" : ""}>
-                      <h3 className="flex items-center gap-2 font-bold text-slate-900 dark:text-white mb-4 text-xs uppercase tracking-widest">
-                        <Wrench className="w-3.5 h-3.5 text-amber-500" />
-                        Bug Fixes
-                      </h3>
-                      <ul className="space-y-3">
-                        {log.bugfixes.map((fix: string, i: number) => (
-                          <li
-                            key={i}
-                            className="flex items-start gap-3 text-sm md:text-base text-slate-600 dark:text-slate-300"
-                          >
-                            <span className="mt-2 w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0"></span>
-                            <span className="leading-relaxed">{fix}</span>
-                          </li>
-                        ))}
-                      </ul>
+                    <div className="flex flex-col md:flex-row md:items-baseline gap-4 mb-8">
+                      <h2 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+                        {log.message}
+                      </h2>
+                      <div className="flex flex-wrap items-center gap-3 md:ml-auto text-sm shrink-0">
+                        {getTypeBadge(log.type)}
+                        <span className="font-mono font-bold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/50 px-2.5 py-1 rounded-md">
+                          {log.version || "Update"}
+                        </span>
+                        <span className="hidden sm:inline text-slate-300 dark:text-slate-700">
+                          •
+                        </span>
+                        <span className="font-medium text-slate-500 dark:text-slate-400">
+                          {new Date(log.created_at).toLocaleDateString(undefined, {
+                            month: "long",
+                            day: "numeric",
+                            year: "numeric",
+                          })}
+                        </span>
+                      </div>
                     </div>
-                  )}
-                </div>
-              </motion.article>
-            ))}
-          </div>
+
+                    <div className="space-y-8 md:grid md:grid-cols-2 md:space-y-0 md:gap-12">
+                      {log.features && log.features.length > 0 && (
+                        <div>
+                          <h3 className="flex items-center gap-2 font-bold text-slate-900 dark:text-white mb-4 text-xs uppercase tracking-widest">
+                            <Sparkles className="w-3.5 h-3.5 text-emerald-500" />
+                            New Features
+                          </h3>
+                          <ul className="space-y-3">
+                            {log.features.map((feature: string, i: number) => (
+                              <li
+                                key={i}
+                                className="flex items-start gap-3 text-sm md:text-base text-slate-600 dark:text-slate-300"
+                              >
+                                <span className="mt-2 w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
+                                <span className="leading-relaxed">{feature}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {log.bugfixes && log.bugfixes.length > 0 && (
+                        <div
+                          className={
+                            !(log.features && log.features.length > 0) ? "md:col-span-2" : ""
+                          }
+                        >
+                          <h3 className="flex items-center gap-2 font-bold text-slate-900 dark:text-white mb-4 text-xs uppercase tracking-widest">
+                            <Wrench className="w-3.5 h-3.5 text-amber-500" />
+                            Bug Fixes
+                          </h3>
+                          <ul className="space-y-3">
+                            {log.bugfixes.map((fix: string, i: number) => (
+                              <li
+                                key={i}
+                                className="flex items-start gap-3 text-sm md:text-base text-slate-600 dark:text-slate-300"
+                              >
+                                <span className="mt-2 w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0"></span>
+                                <span className="leading-relaxed">{fix}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  </motion.article>
+                ))}
+              </div>
             )}
 
             {!loading && processedLogs.length > 0 && totalPages > 1 && (
               <div className="mt-12 flex items-center justify-between border-t border-slate-200 dark:border-slate-800/60 pt-8">
-                <button 
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                <button
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
                   className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
@@ -323,8 +369,8 @@ export function Changelog() {
                 <span className="text-sm font-medium text-slate-500 dark:text-slate-400">
                   Page {currentPage} of {totalPages}
                 </span>
-                <button 
-                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                <button
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                   disabled={currentPage === totalPages}
                   className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >

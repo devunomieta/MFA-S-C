@@ -47,11 +47,13 @@ export function AdminSettings() {
     secure: false,
     from_email: "",
   });
-  const [bankDetails, setBankDetails] = useState<any>({
-    account_name: "",
-    bank_name: "",
-    account_number: "",
-  });
+  const [bankDetails, setBankDetails] = useState<any[]>([
+    {
+      account_name: "",
+      bank_name: "",
+      account_number: "",
+    },
+  ]);
   const [logoUrl, setLogoUrl] = useState("");
   const [faviconUrl, setFaviconUrl] = useState("");
   const [uploadingLogo, setUploadingLogo] = useState(false);
@@ -169,7 +171,7 @@ export function AdminSettings() {
         }
 
         if (bankSettings) {
-          setBankDetails(bankSettings);
+          setBankDetails(Array.isArray(bankSettings) ? bankSettings : [bankSettings]);
         }
       }
     } catch {
@@ -654,43 +656,99 @@ export function AdminSettings() {
 
         <TabsContent value="bank" className="space-y-6 mt-4">
           <Card>
-            <CardHeader>
-              <CardTitle>Deposit Bank Details</CardTitle>
-              <CardDescription>
-                Configure the official bank account displayed for user deposits.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-4 max-w-md">
-                <div className="space-y-2">
-                  <Label>Bank Name</Label>
-                  <Input
-                    value={bankDetails.bank_name}
-                    onChange={(e) => setBankDetails({ ...bankDetails, bank_name: e.target.value })}
-                    placeholder="e.g. Moniepoint"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Account Name</Label>
-                  <Input
-                    value={bankDetails.account_name}
-                    onChange={(e) =>
-                      setBankDetails({ ...bankDetails, account_name: e.target.value })
-                    }
-                    placeholder="e.g. HachStacks Technologies"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Account Number</Label>
-                  <Input
-                    value={bankDetails.account_number}
-                    onChange={(e) =>
-                      setBankDetails({ ...bankDetails, account_number: e.target.value })
-                    }
-                    placeholder="e.g. 1234567890"
-                  />
-                </div>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Deposit Bank Details</CardTitle>
+                <CardDescription>
+                  Configure official bank accounts displayed for user deposits (Max 2).
+                </CardDescription>
               </div>
+              {bankDetails.length < 2 && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() =>
+                    setBankDetails([
+                      ...bankDetails,
+                      {
+                        bank_name: "",
+                        account_name: bankDetails[0]?.account_name || "",
+                        account_number: "",
+                      },
+                    ])
+                  }
+                >
+                  + Add Account
+                </Button>
+              )}
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="mb-4 p-4 border border-emerald-100 bg-emerald-50 dark:bg-emerald-900/10 dark:border-emerald-900/30 rounded-xl space-y-2">
+                <Label>Business Account Name</Label>
+                <Input
+                  value={bankDetails[0]?.account_name || ""}
+                  onChange={(e) => {
+                    const newDetails = bankDetails.map((bank) => ({
+                      ...bank,
+                      account_name: e.target.value,
+                    }));
+                    setBankDetails(newDetails);
+                  }}
+                  placeholder="e.g. Mary's Thrift Services"
+                  className="bg-white dark:bg-slate-900"
+                />
+                <p className="text-xs text-emerald-600 dark:text-emerald-500">
+                  This exact name will be used globally for all deposit accounts to prevent
+                  confusion.
+                </p>
+              </div>
+
+              {bankDetails.map((account: any, index: number) => (
+                <div
+                  key={index}
+                  className="grid gap-4 max-w-md p-4 border rounded-xl bg-slate-50 relative"
+                >
+                  {bankDetails.length > 1 && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-2 top-2 h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                      onClick={() => {
+                        const newDetails = [...bankDetails];
+                        newDetails.splice(index, 1);
+                        setBankDetails(newDetails);
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                  <h4 className="font-semibold text-sm text-slate-700">Account {index + 1}</h4>
+                  <div className="space-y-2">
+                    <Label>Bank Name</Label>
+                    <Input
+                      value={account.bank_name}
+                      onChange={(e) => {
+                        const newDetails = [...bankDetails];
+                        newDetails[index].bank_name = e.target.value;
+                        setBankDetails(newDetails);
+                      }}
+                      placeholder="e.g. Moniepoint"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Account Number</Label>
+                    <Input
+                      value={account.account_number}
+                      onChange={(e) => {
+                        const newDetails = [...bankDetails];
+                        newDetails[index].account_number = e.target.value;
+                        setBankDetails(newDetails);
+                      }}
+                      placeholder="e.g. 1234567890"
+                    />
+                  </div>
+                </div>
+              ))}
               <div className="flex justify-start">
                 <Button onClick={() => saveSettings("bank_details", bankDetails)}>
                   <Save className="w-4 h-4 mr-2" /> Save Bank Details

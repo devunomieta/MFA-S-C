@@ -495,11 +495,18 @@ export function AdminApprovals() {
                             <Dialog>
                               <DialogTrigger asChild>
                                 <div className="cursor-pointer w-full h-full relative">
-                                  <img
-                                    src={req.gov_id_url}
-                                    alt="ID"
-                                    className="w-full h-full object-cover"
-                                  />
+                                  {req.gov_id_url?.toLowerCase().includes(".pdf") ? (
+                                    <div className="w-full h-full flex flex-col items-center justify-center bg-emerald-50 text-emerald-600">
+                                      <ShieldCheck className="w-6 h-6 mb-1" />
+                                      <span className="text-[10px] font-bold uppercase tracking-wider">PDF</span>
+                                    </div>
+                                  ) : (
+                                    <img
+                                      src={req.gov_id_url}
+                                      alt="ID"
+                                      className="w-full h-full object-cover"
+                                    />
+                                  )}
                                   <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                                     <Eye className="text-white w-5 h-5" />
                                   </div>
@@ -513,11 +520,19 @@ export function AdminApprovals() {
                                     purposes.
                                   </DialogDescription>
                                 </DialogHeader>
-                                <img
-                                  src={req.gov_id_url}
-                                  alt="Full ID"
-                                  className="w-full h-auto rounded"
-                                />
+                                {req.gov_id_url?.toLowerCase().includes(".pdf") ? (
+                                  <iframe
+                                    src={req.gov_id_url}
+                                    className="w-full h-[60vh] rounded border-0"
+                                    title="Government ID PDF"
+                                  />
+                                ) : (
+                                  <img
+                                    src={req.gov_id_url}
+                                    alt="Full ID"
+                                    className="w-full h-auto rounded max-h-[70vh] object-contain"
+                                  />
+                                )}
                               </DialogContent>
                             </Dialog>
                           ) : (
@@ -536,11 +551,18 @@ export function AdminApprovals() {
                             <Dialog>
                               <DialogTrigger asChild>
                                 <div className="cursor-pointer w-full h-full relative">
-                                  <img
-                                    src={req.utility_bill_url}
-                                    alt="Utility Bill"
-                                    className="w-full h-full object-cover"
-                                  />
+                                  {req.utility_bill_url?.toLowerCase().includes(".pdf") ? (
+                                    <div className="w-full h-full flex flex-col items-center justify-center bg-emerald-50 text-emerald-600">
+                                      <Banknote className="w-6 h-6 mb-1" />
+                                      <span className="text-[10px] font-bold uppercase tracking-wider">PDF</span>
+                                    </div>
+                                  ) : (
+                                    <img
+                                      src={req.utility_bill_url}
+                                      alt="Utility Bill"
+                                      className="w-full h-full object-cover"
+                                    />
+                                  )}
                                   <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                                     <Eye className="text-white w-5 h-5" />
                                   </div>
@@ -556,11 +578,19 @@ export function AdminApprovals() {
                                     verification.
                                   </DialogDescription>
                                 </DialogHeader>
-                                <img
-                                  src={req.utility_bill_url}
-                                  alt="Utility Bill / Signage"
-                                  className="w-full h-auto rounded"
-                                />
+                                {req.utility_bill_url?.toLowerCase().includes(".pdf") ? (
+                                  <iframe
+                                    src={req.utility_bill_url}
+                                    className="w-full h-[60vh] rounded border-0"
+                                    title="Utility Bill PDF"
+                                  />
+                                ) : (
+                                  <img
+                                    src={req.utility_bill_url}
+                                    alt="Utility Bill / Signage"
+                                    className="w-full h-auto rounded max-h-[70vh] object-contain"
+                                  />
+                                )}
                               </DialogContent>
                             </Dialog>
                           ) : (
@@ -733,11 +763,19 @@ export function AdminApprovals() {
                           KYC ID Document
                         </Label>
                         <div className="aspect-[4/3] bg-gray-100 rounded-lg overflow-hidden border">
-                          <img
-                            src={req.profile?.gov_id_url}
-                            alt="KYC ID"
-                            className="w-full h-full object-cover"
-                          />
+                          {req.profile?.gov_id_url?.toLowerCase().includes(".pdf") ? (
+                            <iframe
+                              src={req.profile?.gov_id_url}
+                              className="w-full h-full object-cover border-0"
+                              title="KYC ID PDF"
+                            />
+                          ) : (
+                            <img
+                              src={req.profile?.gov_id_url}
+                              alt="KYC ID"
+                              className="w-full h-full object-cover"
+                            />
+                          )}
                         </div>
                       </div>
 

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 
-import { CreditCard, Copy, Upload, Trash2, Wallet, AlertTriangle } from "lucide-react";
+import { Copy, Upload, Trash2, Wallet, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/app/components/ui/button";
@@ -18,7 +18,6 @@ import { logActivity } from "@/lib/activity";
 import { notificationDispatcher } from "@/lib/notificationDispatcher";
 import { numberToWords } from "@/lib/numberToWords";
 import { supabase } from "@/lib/supabase";
-
 import { validateFile } from "@/lib/validation";
 import { calculateBalance } from "@/lib/walletUtils";
 
@@ -42,11 +41,13 @@ export function DepositModal({
   const [uploading, setUploading] = useState(false);
   const [myPlans, setMyPlans] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<string>(defaultPlanId ? "wallet" : "external");
-  const [bankDetails, setBankDetails] = useState({
-    account_name: "HachStacks Technologies",
-    bank_name: "Moniepoint",
-    account_number: "7049898962",
-  });
+  const [bankDetails, setBankDetails] = useState<any[]>([
+    {
+      account_name: "",
+      bank_name: "",
+      account_number: "",
+    },
+  ]);
   const isPlanFunding = !!defaultPlanId;
 
   const [amount, setAmount] = useState("");
@@ -142,7 +143,7 @@ export function DepositModal({
       .single();
 
     if (data?.value) {
-      setBankDetails(data.value);
+      setBankDetails(Array.isArray(data.value) ? data.value : [data.value]);
     }
   }
 
@@ -272,20 +273,13 @@ export function DepositModal({
     }
 
     if (activeTab === "wallet" && (planType === "step_up" || planType === "ajo_circle")) {
-      if (!isAdvanceMode) {
-        if (finalAmount !== mandatedAmount) {
-          toast.error(`Deposit must be exactly ₦${formatCurrency(mandatedAmount)}`);
-          return;
-        }
-      } else {
-        if (mandatedAmount <= 0) {
-          toast.error("Invalid plan amount settings.");
-          return;
-        }
-        if (finalAmount % mandatedAmount !== 0) {
-          toast.error(`Deposit must be an integer multiple of ₦${formatCurrency(mandatedAmount)}`);
-          return;
-        }
+      if (mandatedAmount <= 0) {
+        toast.error("Invalid plan amount settings.");
+        return;
+      }
+      if (finalAmount % mandatedAmount !== 0) {
+        toast.error(`Deposit must be an integer multiple of ₦${formatCurrency(mandatedAmount)}`);
+        return;
       }
     }
     if (method === "external" && !receiptFile) {
@@ -402,17 +396,22 @@ export function DepositModal({
         else if (planType === "daily_drop") rpcName = "process_daily_drop_deposit";
         else rpcName = "process_daily_drop_deposit";
 
-        // Handle Upfront Fee Splitting strictly for Fixed Advance Payments
-        const isUpfrontAdvance = isAdvanceMode && ["ajo_circle", "step_up"].includes(planType);
+        let currentNumUnits = isAdvanceMode ? parseInt(numUnits) : null;
+        let currentIsUpfrontAdvance = isAdvanceMode && ["ajo_circle", "step_up"].includes(planType);
+
+        if (!isAdvanceMode && ["ajo_circle", "step_up"].includes(planType) && finalAmount > mandatedAmount && mandatedAmount > 0) {
+           currentNumUnits = Math.floor(finalAmount / mandatedAmount);
+           currentIsUpfrontAdvance = true;
+        }
 
         const rpcPayload: any = {
           p_user_id: user.id,
           p_plan_id: selectedPlanObj.id,
-          p_amount: isUpfrontAdvance ? Number(amount) || 0 : totalDeduction,
-          p_num_units: isAdvanceMode ? parseInt(numUnits) : null,
+          p_amount: currentIsUpfrontAdvance ? finalAmount : totalDeduction,
+          p_num_units: currentNumUnits,
         };
 
-        if (isUpfrontAdvance) {
+        if (currentIsUpfrontAdvance) {
           rpcPayload.p_fee = fee;
         }
 
@@ -433,8 +432,10 @@ export function DepositModal({
             msg = `Step-Up Deposit Successful! Weekly Target Progress Updated.`;
           else if (planType === "monthly_bloom")
             msg = `Monthly Bloom Deposit Successful! Progress Updated.`;
-          else if (planType === "ajo_circle")
-            msg = `Ajo Circle Deposit Successful! Week ${rpcData.week} Paid.`;
+          else if (planType === "ajo_circle") {
+            const weeksAdvanced = currentNumUnits && currentNumUnits > 1 ? `${currentNumUnits} Weeks` : "1 Week";
+            msg = `Ajo Circle Deposit Successful! ${weeksAdvanced} Paid.`;
+          }
           else if (planType === "daily_drop")
             msg = `Daily Drop Successful! ${rpcData.days_advanced} Days Advanced.`;
 
@@ -675,7 +676,7 @@ export function DepositModal({
 
   // Logic for determining if the input should be disabled
   const isInputLocked = () => {
-    return planType === "step_up";
+    return false;
   };
 
   const getPeriodsCovered = () => {
@@ -741,8 +742,12 @@ export function DepositModal({
   };
 
   const remainingToGoal = getRemainingToGoal();
+  const flexiblePlans = ["marathon", "sprint", "anchor"];
   const isExcess =
-    remainingToGoal > 0 && parseFloat(amount || "0") > remainingToGoal && planType !== "step_up";
+    remainingToGoal > 0 && 
+    parseFloat(amount || "0") > remainingToGoal && 
+    planType !== "step_up" && 
+    !flexiblePlans.includes(planType || "");
 
   const maxUnits =
     mandatedAmount > 0 && remainingToGoal > 0
@@ -893,7 +898,7 @@ export function DepositModal({
   const totalDeduction = isInclusiveFee ? Number(amount) || 0 : (Number(amount) || 0) + fee;
 
   return (
-    <DialogContent className="dark:bg-gray-900 dark:border-gray-800 max-w-md max-h-[90vh] overflow-y-auto">
+    <DialogContent className="dark:bg-gray-900 dark:border-gray-800 max-w-xl max-h-[90vh] overflow-y-auto">
       <DialogHeader>
         <DialogTitle className="dark:text-white">Add Funds</DialogTitle>
         <DialogDescription className="dark:text-gray-400">
@@ -927,36 +932,52 @@ export function DepositModal({
 
         {!isPlanFunding && (
           <TabsContent value="external" className="space-y-4">
-            <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-indigo-900 via-indigo-800 to-emerald-900 p-6 text-white shadow-xl">
-              <div className="absolute right-0 top-0 h-32 w-32 -translate-y-8 translate-x-8 rounded-full bg-white/5 blur-2xl"></div>
-              <div className="mb-8 flex justify-between items-start">
-                <div>
-                  <p className="text-xs text-indigo-200 uppercase tracking-wider mb-1">
-                    Payable ONLY TO
-                  </p>
-                  <h3 className="tex-lg font-bold">{bankDetails.account_name}</h3>
-                </div>
-                <CreditCard className="h-8 w-8 text-white/80" />
+            <div className="space-y-4">
+              <div className="bg-emerald-50 dark:bg-emerald-900/20 p-4 rounded-xl border border-emerald-100 dark:border-emerald-800 text-center">
+                <p className="text-xs text-emerald-600 dark:text-emerald-400 uppercase tracking-wider mb-1 font-bold">
+                  Payable ONLY TO
+                </p>
+                <h3 className="text-lg font-black text-emerald-900 dark:text-emerald-100">
+                  {bankDetails[0]?.account_name || "Mary's Thrift Services"}
+                </h3>
               </div>
-              <div className="space-y-4">
-                <div>
-                  <p className="text-xs text-indigo-200">Bank Name</p>
-                  <p className="font-semibold tracking-wide">{bankDetails.bank_name}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-indigo-200">Account Number</p>
-                  <div className="flex items-center gap-2">
-                    <p className="font-mono text-xl tracking-widest">
-                      {bankDetails.account_number}
-                    </p>
-                    <button
-                      onClick={() => copyToClipboard(bankDetails.account_number)}
-                      className="rounded-full bg-white/10 p-1.5 hover:bg-white/20 transition-colors"
-                    >
-                      <Copy className="h-3.5 w-3.5" />
-                    </button>
+
+              <div
+                className={`grid gap-3 ${bankDetails.length > 1 ? "sm:grid-cols-2" : "grid-cols-1"}`}
+              >
+                {bankDetails.map((bank: any, idx: number) => (
+                  <div
+                    key={idx}
+                    className="relative overflow-hidden rounded-xl bg-gradient-to-br from-indigo-900 via-indigo-800 to-emerald-900 p-4 text-white shadow-md flex flex-col justify-between"
+                  >
+                    <div className="absolute right-0 top-0 h-24 w-24 -translate-y-6 translate-x-6 rounded-full bg-white/5 blur-2xl"></div>
+
+                    <div className="flex justify-between items-center mb-4">
+                      <div>
+                        <p className="text-[10px] text-indigo-200 uppercase">Bank</p>
+                        <p className="font-bold tracking-wide text-sm">{bank.bank_name}</p>
+                      </div>
+                      <div className="p-1.5 bg-white/10 rounded-lg shrink-0">
+                        <Wallet className="h-4 w-4 text-white" />
+                      </div>
+                    </div>
+
+                    <div>
+                      <p className="text-[10px] text-indigo-200 uppercase mb-0.5">Account Number</p>
+                      <div className="flex items-center justify-between">
+                        <p className="font-mono text-xl tracking-widest font-bold">
+                          {bank.account_number}
+                        </p>
+                        <button
+                          onClick={() => copyToClipboard(bank.account_number)}
+                          className="rounded-lg bg-white/10 p-2 hover:bg-white/20 transition-colors shrink-0"
+                        >
+                          <Copy className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                </div>
+                ))}
               </div>
             </div>
 
@@ -984,13 +1005,14 @@ export function DepositModal({
               <Input
                 id="amount-ex"
                 type="number"
-                step="50"
+                step={mandatedAmount > 0 ? mandatedAmount : 50}
                 onKeyDown={(e) => {
                   if (["-", "+", ".", "e", "E"].includes(e.key)) e.preventDefault();
                 }}
                 placeholder="0.00"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
+                max={!flexiblePlans.includes(planType || "") && remainingToGoal > 0 ? remainingToGoal : undefined}
                 disabled={isInputLocked()}
                 className={`dark:bg-gray-800 dark:border-gray-700 dark:text-white disabled:opacity-70 disabled:cursor-not-allowed ${!isInputLocked() && !isAdvanceMode && amount && parseFloat(amount) < mandatedAmount ? "border-red-500 focus-visible:ring-red-500" : ""}`}
               />
@@ -1355,14 +1377,14 @@ export function DepositModal({
               <Input
                 id="amount-w"
                 type="number"
-                step="50"
+                step={mandatedAmount > 0 ? mandatedAmount : 50}
                 onKeyDown={(e) => {
                   if (["-", "+", ".", "e", "E"].includes(e.key)) e.preventDefault();
                 }}
                 placeholder="50"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                max={generalBalance}
+                max={!flexiblePlans.includes(planType || "") && remainingToGoal > 0 && remainingToGoal < generalBalance ? remainingToGoal : generalBalance}
                 disabled={isInputLocked()}
                 className={`dark:bg-gray-800 dark:border-gray-700 dark:text-white disabled:opacity-70 disabled:cursor-not-allowed ${!isInputLocked() && !isAdvanceMode && amount && parseFloat(amount) < mandatedAmount ? "border-red-500 focus-visible:ring-red-500" : ""}`}
               />

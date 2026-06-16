@@ -1,6 +1,24 @@
 import { useEffect, useState } from "react";
 
-import { MessageSquare, Plus, Trash2, Layout, CheckCircle2, XCircle } from "lucide-react";
+import {
+  MessageSquare,
+  Plus,
+  Trash2,
+  Layout,
+  CheckCircle2,
+  XCircle,
+  BarChart3,
+} from "lucide-react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
 import { toast } from "sonner";
 
 import { Badge } from "@/app/components/ui/badge";
@@ -32,6 +50,7 @@ export default function SurveyManagement() {
   const [loading, setLoading] = useState(true);
 
   const [activeTab, setActiveTab] = useState("questions");
+  const [selectedSurveyId, setSelectedSurveyId] = useState<string>("all");
 
   // New Survey Form State
   const [isNewDialogOpen, setIsNewDialogOpen] = useState(false);
@@ -52,20 +71,40 @@ export default function SurveyManagement() {
         .from("surveys")
         .select("*")
         .order("created_at", { ascending: false });
-      const { data: rData } = await supabase
+      const { data: rData, error: rError } = await supabase
         .from("survey_responses")
-        .select(
-          `
-          *,
-          profiles(full_name, email),
-          surveys(question)
-        `,
-        )
+        .select("*, surveys(question)")
         .order("created_at", { ascending: false });
 
+      if (rError) {
+        console.error("Error fetching responses:", rError);
+      }
+
+      let enrichedResponses = rData || [];
+
+      if (enrichedResponses.length > 0) {
+        const userIds = Array.from(
+          new Set(enrichedResponses.map((r) => r.user_id).filter(Boolean)),
+        );
+        if (userIds.length > 0) {
+          const { data: pData } = await supabase
+            .from("profiles")
+            .select("id, full_name, email")
+            .in("id", userIds);
+
+          if (pData) {
+            enrichedResponses = enrichedResponses.map((r: any) => ({
+              ...r,
+              profiles: pData.find((p) => p.id === r.user_id) || null,
+            }));
+          }
+        }
+      }
+
       setSurveys(sData || []);
-      setResponses(rData || []);
-    } catch {
+      setResponses(enrichedResponses);
+    } catch (err) {
+      console.error(err);
       toast.error("Failed to load survey data");
     } finally {
       setLoading(false);
@@ -113,6 +152,41 @@ export default function SurveyManagement() {
       </div>
     );
   }
+
+  // --- Analytics Data Processing ---
+  const CHART_COLORS = ["#10b981", "#3b82f6", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899"];
+
+  // Get active survey for analytics
+  const analyticsSurvey = surveys.find((s) => s.id === selectedSurveyId) || surveys[0];
+
+  // Group responses by YYYY-MM
+  const getAnalyticsData = () => {
+    if (!analyticsSurvey) return [];
+
+    const filteredResponses = responses.filter((r) => r.survey_id === analyticsSurvey.id);
+
+    // Group by month
+    const grouped = filteredResponses.reduce((acc: any, r: any) => {
+      const date = new Date(r.created_at);
+      const monthYear = date.toLocaleDateString("default", { month: "short", year: "numeric" });
+
+      if (!acc[monthYear]) {
+        acc[monthYear] = { name: monthYear };
+        analyticsSurvey.options.forEach((opt: string) => {
+          acc[monthYear][opt] = 0;
+        });
+      }
+      acc[monthYear][r.answer] = (acc[monthYear][r.answer] || 0) + 1;
+      return acc;
+    }, {});
+
+    // Convert to array and sort chronologically
+    return Object.values(grouped).sort((a: any, b: any) => {
+      return new Date(a.name).getTime() - new Date(b.name).getTime();
+    });
+  };
+
+  const chartData = getAnalyticsData();
 
   return (
     <div className="space-y-6">
@@ -212,12 +286,15 @@ export default function SurveyManagement() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="bg-slate-100 dark:bg-slate-800 p-1 rounded-xl w-full max-w-md">
+        <TabsList className="bg-slate-100 dark:bg-slate-800 p-1 rounded-xl w-full max-w-lg mb-6">
           <TabsTrigger value="questions" className="flex-1 rounded-lg gap-2">
             <Layout className="size-4" /> Questions
           </TabsTrigger>
           <TabsTrigger value="responses" className="flex-1 rounded-lg gap-2">
             <MessageSquare className="size-4" /> Responses
+          </TabsTrigger>
+          <TabsTrigger value="analytics" className="flex-1 rounded-lg gap-2">
+            <BarChart3 className="size-4" /> Analytics
           </TabsTrigger>
         </TabsList>
 
@@ -331,6 +408,97 @@ export default function SurveyManagement() {
                 </tbody>
               </table>
             </div>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="analytics" className="mt-6">
+          <Card className="dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+            <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6">
+              <div>
+                <CardTitle className="dark:text-white">Survey Analytics</CardTitle>
+                <CardDescription>
+                  Track user satisfaction across different surveys over time.
+                </CardDescription>
+              </div>
+              <div className="w-full sm:w-72">
+                <select
+                  className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm px-3 dark:text-white font-medium"
+                  value={
+                    selectedSurveyId === "all" && surveys.length > 0
+                      ? surveys[0].id
+                      : selectedSurveyId
+                  }
+                  onChange={(e) => setSelectedSurveyId(e.target.value)}
+                >
+                  {surveys.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.question.length > 40 ? s.question.substring(0, 40) + "..." : s.question}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {!analyticsSurvey || chartData.length === 0 ? (
+                <div className="h-80 flex flex-col items-center justify-center text-slate-500">
+                  <BarChart3 className="size-12 mb-3 text-slate-300 dark:text-slate-700" />
+                  <p>No response data available for this survey yet.</p>
+                </div>
+              ) : (
+                <div className="h-96 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        stroke="#334155"
+                        vertical={false}
+                        opacity={0.2}
+                      />
+                      <XAxis
+                        dataKey="name"
+                        stroke="#64748b"
+                        fontSize={12}
+                        tickLine={false}
+                        axisLine={false}
+                      />
+                      <YAxis
+                        stroke="#64748b"
+                        fontSize={12}
+                        tickLine={false}
+                        axisLine={false}
+                        allowDecimals={false}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: "#1e293b",
+                          border: "none",
+                          borderRadius: "12px",
+                          color: "#fff",
+                          boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
+                        }}
+                        cursor={{ fill: "#f1f5f9", opacity: 0.1 }}
+                      />
+                      <Legend wrapperStyle={{ paddingTop: "20px" }} />
+                      {analyticsSurvey.options.map((opt: string, idx: number) => (
+                        <Bar
+                          key={opt}
+                          dataKey={opt}
+                          stackId="a"
+                          fill={CHART_COLORS[idx % CHART_COLORS.length]}
+                          radius={
+                            idx === analyticsSurvey.options.length - 1
+                              ? [4, 4, 0, 0]
+                              : idx === 0
+                                ? [0, 0, 4, 4]
+                                : [0, 0, 0, 0]
+                          }
+                        />
+                      ))}
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </CardContent>
           </Card>
         </TabsContent>
       </Tabs>

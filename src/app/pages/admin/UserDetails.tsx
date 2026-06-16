@@ -459,11 +459,19 @@ export function AdminUserDetails() {
                       </Badge>
                     </div>
                     <div className="p-4 bg-slate-50 rounded-xl flex items-center justify-center max-w-md border border-slate-100 h-64">
-                      <img
-                        src={profile.gov_id_url}
-                        alt="NIN Document"
-                        className="max-h-full rounded shadow-md object-contain"
-                      />
+                      {profile.gov_id_url?.toLowerCase().includes(".pdf") ? (
+                        <iframe
+                          src={profile.gov_id_url}
+                          className="w-full h-full rounded shadow-md border-0"
+                          title="Government ID PDF"
+                        />
+                      ) : (
+                        <img
+                          src={profile.gov_id_url}
+                          alt="NIN Document"
+                          className="max-h-full rounded shadow-md object-contain"
+                        />
+                      )}
                     </div>
                   </div>
                 )}
@@ -487,11 +495,19 @@ export function AdminUserDetails() {
                       </Badge>
                     </div>
                     <div className="p-4 bg-slate-50 rounded-xl flex items-center justify-center max-w-md border border-slate-100 h-64">
-                      <img
-                        src={profile.utility_bill_url}
-                        alt="Utility Bill or Signage"
-                        className="max-h-full rounded shadow-md object-contain"
-                      />
+                      {profile.utility_bill_url?.toLowerCase().includes(".pdf") ? (
+                        <iframe
+                          src={profile.utility_bill_url}
+                          className="w-full h-full rounded shadow-md border-0"
+                          title="Utility Bill PDF"
+                        />
+                      ) : (
+                        <img
+                          src={profile.utility_bill_url}
+                          alt="Utility Bill or Signage"
+                          className="max-h-full rounded shadow-md object-contain"
+                        />
+                      )}
                     </div>
                   </div>
                 )}

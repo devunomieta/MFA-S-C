@@ -46,6 +46,7 @@ export function SystemUpdatePopup() {
   }
 
   useEffect(() => {
+    // eslint-disable-next-line
     fetchLatestUpdate();
   }, []);
 

@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 
-import { ShieldCheck, Upload, Loader2, Camera, RefreshCw } from "lucide-react";
+import { ShieldCheck, Upload, Loader2, FileText } from "lucide-react";
 import { toast } from "sonner";
 
 import { useAuth } from "@/app/context/AuthContext";
@@ -180,37 +180,12 @@ export function KYCModal({ isOpen, onOpenChange, onSuccess, mode = "full" }: KYC
   const [landmark, setLandmark] = useState("");
   const [addressConfirmed, setAddressConfirmed] = useState(false);
   const [existingUtilityBillUrl, setExistingUtilityBillUrl] = useState("");
-  const [existingAvatarUrl, setExistingAvatarUrl] = useState("");
-
-  // Webcam States
-  const [isCapturing, setIsCapturing] = useState(false);
-  const [livePhoto, setLivePhoto] = useState("");
-  // 'prompt' = first time, 'denied' = user clicked block, 'blocked' = persisted block, 'no_camera' = no device, 'in_use' = busy
-  const [cameraError, setCameraError] = useState<
-    "denied" | "blocked" | "no_camera" | "in_use" | "unknown" | null
-  >(null);
-  const [isMobile, setIsMobile] = useState(false);
+  const [filePreview, setFilePreview] = useState<string | null>(null);
+  const [utilityFilePreview, setUtilityFilePreview] = useState<string | null>(null);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setIsMobile(
-      /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent),
-    );
+    // Component mounted
   }, []);
-
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-
-  /** Fully stops the camera: clears intervals, stops all tracks, nulls srcObject. */
-  const releaseCamera = () => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop());
-      streamRef.current = null;
-    }
-    if (videoRef.current) videoRef.current.srcObject = null;
-    setIsCapturing(false);
-  };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.[0]) {
@@ -236,6 +211,11 @@ export function KYCModal({ isOpen, onOpenChange, onSuccess, mode = "full" }: KYC
         return;
       }
       setFile(selectedFile);
+      if (selectedFile.type.startsWith("image/")) {
+        setFilePreview(URL.createObjectURL(selectedFile));
+      } else {
+        setFilePreview(null);
+      }
       toast.success("NIN slip looks clear ✓");
     }
   };
@@ -264,33 +244,14 @@ export function KYCModal({ isOpen, onOpenChange, onSuccess, mode = "full" }: KYC
         return;
       }
       setUtilityFile(selectedFile);
+      if (selectedFile.type.startsWith("image/")) {
+        setUtilityFilePreview(URL.createObjectURL(selectedFile));
+      } else {
+        setUtilityFilePreview(null);
+      }
       toast.success("Utility bill looks clear ✓");
     }
   };
-
-  const handleManualSelfieUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files?.[0]) {
-      setLivePhoto(URL.createObjectURL(e.target.files[0]));
-      setCameraError(null);
-    }
-  };
-
-  // Release camera whenever modal closes — useRef values are never stale
-  useEffect(() => {
-    if (!isOpen) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      releaseCamera();
-      setLivePhoto("");
-    }
-  }, [isOpen]);
-
-  // Release camera on unmount
-  useEffect(() => {
-    return () => {
-      if (streamRef.current) streamRef.current.getTracks().forEach((t) => t.stop());
-      if (videoRef.current) videoRef.current.srcObject = null;
-    };
-  }, []);
 
   async function fetchExistingKYC() {
     try {
@@ -325,161 +286,6 @@ export function KYCModal({ isOpen, onOpenChange, onSuccess, mode = "full" }: KYC
     }
   }, [isOpen, user?.id]);
 
-  // ─── Camera permission + startup helpers ────────────────────────────────
-
-  /** Detects the user's browser for tailored unblock instructions. */
-  const getBrowserName = () => {
-    const ua = navigator.userAgent;
-    if (/Firefox\//.test(ua)) return "firefox";
-    if (/Edg\//.test(ua)) return "edge";
-    if (/OPR\/|Opera\//.test(ua)) return "opera";
-    if (/Chrome\//.test(ua)) return "chrome";
-    if (/Safari\//.test(ua)) return "safari";
-    return "other";
-  };
-
-  /** Returns ordered unblock steps for the detected browser / platform. */
-  const getCameraUnblockSteps = (): string[] => {
-    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-    if (isMobile)
-      return [
-        "Open your device Settings",
-        "Find your browser app (Chrome, Safari, etc.)",
-        "Tap Permissions → Camera → Allow",
-        'Return here and tap "Try Again"',
-      ];
-    const b = getBrowserName();
-    if (b === "chrome" || b === "edge")
-      return [
-        "Click the 🔒 lock icon in the address bar",
-        'Select "Site settings" then find Camera',
-        'Change Camera from "Blocked" to "Allow"',
-        'Click "Try Again" below — no refresh needed',
-      ];
-    if (b === "firefox")
-      return [
-        "Click the camera icon (🎥) in the address bar",
-        'Select "Remove Blocked permission"',
-        'Click "Try Again" below to re-trigger the prompt',
-      ];
-    if (b === "safari")
-      return [
-        "Click Safari menu → Settings for this Website",
-        'Set Camera to "Allow"',
-        'Click "Try Again" below',
-      ];
-    return [
-      "Click the camera / lock icon in your browser's address bar",
-      'Find Camera permissions and set them to "Allow"',
-      'Click "Try Again" below',
-    ];
-  };
-
-  /** Classifies a getUserMedia error and sets cameraError state. */
-  const handleCameraError = (err: unknown) => {
-    const name = (err as any)?.name ?? "";
-    if (name === "NotAllowedError" || name === "PermissionDeniedError") {
-      setCameraError("denied");
-    } else if (name === "NotFoundError" || name === "DevicesNotFoundError") {
-      setCameraError("no_camera");
-    } else if (name === "NotReadableError" || name === "TrackStartError") {
-      setCameraError("in_use");
-    } else {
-      setCameraError("unknown");
-    }
-    releaseCamera();
-  };
-
-  const startCamera = async () => {
-    releaseCamera();
-    setCameraError(null);
-    setIsCapturing(true);
-    setLivePhoto("");
-
-    // ── 0. Check if mediaDevices is supported (e.g. secure context, not webview) ──
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      setCameraError("no_camera");
-      releaseCamera();
-      return;
-    }
-
-    // ── 1. Check permission state first (if supported) ──
-    if (navigator.permissions && navigator.permissions.query) {
-      try {
-        const perm = await navigator.permissions.query({ name: "camera" as PermissionName });
-        if (perm.state === "denied") {
-          setCameraError("blocked");
-          releaseCamera();
-          return;
-        }
-        perm.onchange = () => {
-          if (perm.state === "granted") {
-            setCameraError(null);
-            startCamera();
-          }
-        };
-      } catch {
-        // Permissions API not fully supported on some mobile browsers (e.g. iOS Safari)
-      }
-    }
-
-    // ── 2. Request stream with progressive fallbacks ──
-    // Some mobile browsers throw generic errors instead of OverconstrainedError.
-    // We try ideal -> basic facing mode -> any video available.
-    let stream: MediaStream | null = null;
-    const constraintsList = [
-      { video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } } },
-      { video: { facingMode: "user" } },
-      { video: true },
-    ];
-
-    let lastErr: unknown = null;
-    for (const constraints of constraintsList) {
-      try {
-        stream = await navigator.mediaDevices.getUserMedia(constraints);
-        break; // Success!
-      } catch (err: unknown) {
-        lastErr = err;
-        // Continue to the next fallback constraint
-      }
-    }
-
-    if (!stream) {
-      handleCameraError(lastErr || new Error("No stream"));
-      return;
-    }
-
-    streamRef.current = stream;
-    if (videoRef.current) {
-      videoRef.current.srcObject = stream;
-      // Mirror the video horizontally for a more natural selfie experience
-      videoRef.current.style.transform = "scaleX(-1)";
-    }
-  };
-
-  const stopCamera = () => releaseCamera();
-
-  const capturePhoto = () => {
-    if (videoRef.current && canvasRef.current) {
-      const context = canvasRef.current.getContext("2d");
-      if (context) {
-        canvasRef.current.width = videoRef.current.videoWidth;
-        canvasRef.current.height = videoRef.current.videoHeight;
-
-        // Ensure the canvas capture respects the mirrored video
-        context.translate(canvasRef.current.width, 0);
-        context.scale(-1, 1);
-
-        context.drawImage(videoRef.current, 0, 0);
-
-        const dataUrl = canvasRef.current.toDataURL("image/jpeg", 0.9);
-        setLivePhoto(dataUrl);
-        stopCamera();
-        toast.success("Photo captured successfully ✓");
-      }
-    }
-  };
-
   // Submit Handler
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -504,11 +310,7 @@ export function KYCModal({ isOpen, onOpenChange, onSuccess, mode = "full" }: KYC
         return;
       }
 
-      // Validate Live Photo
-      if (!livePhoto) {
-        toast.error("Please capture a live photo profile picture");
-        return;
-      }
+      // Live Photo is now optional
 
       // Validate NIN file upload
       if (!file) {
@@ -557,27 +359,7 @@ export function KYCModal({ isOpen, onOpenChange, onSuccess, mode = "full" }: KYC
           finalUtilityBillUrl = utilPublicUrl;
         }
 
-        // 3. Upload Live Photo
-        let finalAvatarUrl = existingAvatarUrl;
-        if (livePhoto) {
-          const blob = await (await fetch(livePhoto)).blob();
-          const fileName = `${user.id}-avatar-${Date.now()}.jpg`;
-          const filePath = `${fileName}`;
-
-          const { error: avatarUploadError } = await supabase.storage
-            .from("avatars")
-            .upload(filePath, blob, {
-              contentType: "image/jpeg",
-            });
-
-          if (avatarUploadError) throw avatarUploadError;
-
-          const {
-            data: { publicUrl: avatarPublicUrl },
-          } = supabase.storage.from("avatars").getPublicUrl(filePath);
-
-          finalAvatarUrl = avatarPublicUrl;
-        }
+        // Removed Live Photo upload
 
         // 4. Update profiles in Supabase
         const { error: updateError } = await supabase
@@ -587,10 +369,8 @@ export function KYCModal({ isOpen, onOpenChange, onSuccess, mode = "full" }: KYC
             nin: nin,
             gov_id_url: publicUrl,
             utility_bill_url: finalUtilityBillUrl,
-            avatar_url: finalAvatarUrl,
             gov_id_status: "pending",
             nin_status: "pending",
-            avatar_status: "pending",
             utility_bill_status: "pending",
             kyc_country: country,
             kyc_state: state,
@@ -604,11 +384,6 @@ export function KYCModal({ isOpen, onOpenChange, onSuccess, mode = "full" }: KYC
 
         if (updateError) throw updateError;
 
-        // Update auth metadata
-        await supabase.auth.updateUser({
-          data: { avatar_url: finalAvatarUrl },
-        });
-
         // Notify user — submission received, pending admin review
         await notificationDispatcher.sendAlert({
           userId: user.id,
@@ -616,7 +391,7 @@ export function KYCModal({ isOpen, onOpenChange, onSuccess, mode = "full" }: KYC
           type: "profile",
           title: "KYC Documents Submitted",
           message:
-            "Your KYC documents (NIN slip, selfie photo, and utility bill) have been submitted and are pending admin review. You will be notified once each document is approved or if any action is required.",
+            "Your KYC documents (NIN slip and utility bill) have been submitted and are pending admin review. You will be notified once each document is approved or if any action is required.",
         });
 
         toast.success("KYC submitted successfully! Pending admin verification.");
@@ -635,34 +410,15 @@ export function KYCModal({ isOpen, onOpenChange, onSuccess, mode = "full" }: KYC
         return;
       }
 
-      if (!livePhoto) {
-        toast.error("Please capture a live photo to confirm your identity");
-        return;
-      }
+      // Live photo is now optional
 
       setLoading(true);
       try {
-        // 1. Upload new Live Photo
-        const blob = await (await fetch(livePhoto)).blob();
-        const fileName = `${user.id}-avatar-${Date.now()}.jpg`;
-        const filePath = `${fileName}`;
-
-        const { error: avatarUploadError } = await supabase.storage
-          .from("avatars")
-          .upload(filePath, blob, {
-            contentType: "image/jpeg",
-          });
-
-        if (avatarUploadError) throw avatarUploadError;
-
-        const {
-          data: { publicUrl: avatarPublicUrl },
-        } = supabase.storage.from("avatars").getPublicUrl(filePath);
+        // Removed Live Photo upload
 
         const { error } = await supabase
           .from("profiles")
           .update({
-            avatar_url: avatarPublicUrl,
             kyc_latitude: null,
             kyc_longitude: null,
             kyc_last_confirmed_at: new Date().toISOString(),
@@ -670,11 +426,6 @@ export function KYCModal({ isOpen, onOpenChange, onSuccess, mode = "full" }: KYC
           .eq("id", user.id);
 
         if (error) throw error;
-
-        // Update auth metadata
-        await supabase.auth.updateUser({
-          data: { avatar_url: avatarPublicUrl },
-        });
 
         toast.success("Identity and address confirmed successfully!");
         onSuccess();
@@ -749,21 +500,46 @@ export function KYCModal({ isOpen, onOpenChange, onSuccess, mode = "full" }: KYC
                 <Label className="text-xs font-bold text-slate-400 uppercase tracking-wider">
                   Upload NIN Slip / Card Image
                 </Label>
-                <div className="flex items-center justify-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl p-4 text-center cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors relative">
+                <div className="flex items-center justify-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl p-4 text-center cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors relative overflow-hidden">
                   <input
                     type="file"
                     accept="image/*,application/pdf"
                     onChange={handleFileChange}
-                    className="absolute inset-0 opacity-0 cursor-pointer"
+                    className="absolute inset-0 opacity-0 cursor-pointer z-10"
                     required={!file}
                   />
-                  <div className="space-y-1">
-                    <Upload className="w-6 h-6 text-slate-400 mx-auto" />
-                    <p className="text-xs font-bold text-slate-600 dark:text-slate-300">
-                      {file ? file.name : "Click to select NIN slip image"}
-                    </p>
-                    <p className="text-[10px] text-slate-400">JPEG, PNG or PDF format up to 5MB</p>
-                  </div>
+                  {filePreview ? (
+                    <div className="w-full relative rounded-xl overflow-hidden aspect-video">
+                      <img
+                        src={filePreview}
+                        alt="NIN Preview"
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-black/50 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <p className="text-white font-bold text-sm">Click to replace</p>
+                      </div>
+                    </div>
+                  ) : file ? (
+                    <div className="space-y-1">
+                      <div className="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center mx-auto mb-2">
+                        <FileText className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+                      </div>
+                      <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                        {file.name}
+                      </p>
+                      <p className="text-[10px] text-slate-400">PDF Document Selected</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      <Upload className="w-6 h-6 text-slate-400 mx-auto" />
+                      <p className="text-xs font-bold text-slate-600 dark:text-slate-300">
+                        Click to select NIN slip image
+                      </p>
+                      <p className="text-[10px] text-slate-400">
+                        JPEG, PNG or PDF format up to 5MB
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -771,27 +547,46 @@ export function KYCModal({ isOpen, onOpenChange, onSuccess, mode = "full" }: KYC
                 <Label className="text-xs font-bold text-slate-400 uppercase tracking-wider">
                   Upload Utility Bill or Business Signage Image
                 </Label>
-                <div className="flex items-center justify-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl p-4 text-center cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors relative">
+                <div className="flex items-center justify-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl p-4 text-center cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors relative overflow-hidden">
                   <input
                     type="file"
                     accept="image/*,application/pdf"
                     onChange={handleUtilityFileChange}
-                    className="absolute inset-0 opacity-0 cursor-pointer"
+                    className="absolute inset-0 opacity-0 cursor-pointer z-10"
                     required={!existingUtilityBillUrl && !utilityFile}
                   />
-                  <div className="space-y-1">
-                    <Upload className="w-6 h-6 text-slate-400 mx-auto" />
-                    <p className="text-xs font-bold text-slate-600 dark:text-slate-300">
-                      {utilityFile
-                        ? utilityFile.name
-                        : existingUtilityBillUrl
-                          ? "Utility bill uploaded (Click to replace)"
-                          : "Click to select utility bill or signage"}
-                    </p>
-                    <p className="text-[10px] text-slate-400">
-                      Showing User's Name and Address (Max 5MB)
-                    </p>
-                  </div>
+                  {utilityFilePreview || (existingUtilityBillUrl && !utilityFile) ? (
+                    <div className="w-full relative rounded-xl overflow-hidden aspect-video">
+                      <img
+                        src={utilityFilePreview || existingUtilityBillUrl}
+                        alt="Utility Bill Preview"
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-black/50 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <p className="text-white font-bold text-sm">Click to replace</p>
+                      </div>
+                    </div>
+                  ) : utilityFile ? (
+                    <div className="space-y-1">
+                      <div className="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center mx-auto mb-2">
+                        <FileText className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+                      </div>
+                      <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                        {utilityFile.name}
+                      </p>
+                      <p className="text-[10px] text-slate-400">PDF Document Selected</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      <Upload className="w-6 h-6 text-slate-400 mx-auto" />
+                      <p className="text-xs font-bold text-slate-600 dark:text-slate-300">
+                        Click to select utility bill or signage
+                      </p>
+                      <p className="text-[10px] text-slate-400">
+                        Showing User's Name and Address (Max 5MB)
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -903,214 +698,6 @@ export function KYCModal({ isOpen, onOpenChange, onSuccess, mode = "full" }: KYC
             </>
           )}
 
-          {/* Mandatory Live Photo Capture */}
-          <div className="bg-emerald-50/50 dark:bg-emerald-950/10 border border-emerald-500/10 rounded-2xl p-4 space-y-3">
-            <div className="flex items-start gap-3">
-              <Camera className="w-5 h-5 text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0" />
-              <div>
-                <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                  Mandatory Live Photo Update
-                </p>
-                <p className="text-[10px] text-slate-500 leading-normal mt-0.5">
-                  Please take a live photo of yourself to update your profile picture and verify
-                  your identity.
-                </p>
-              </div>
-            </div>
-
-            <div className="w-full flex flex-col items-center justify-center gap-3">
-              {isCapturing ? (
-                <div className="relative w-full overflow-hidden rounded-xl bg-black aspect-[3/4] sm:aspect-video flex items-center justify-center">
-                  <video
-                    ref={videoRef}
-                    autoPlay
-                    playsInline
-                    className="w-full h-full object-cover"
-                  />
-                  {/* Action buttons */}
-                  <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-2 z-10">
-                    <Button
-                      type="button"
-                      size="sm"
-                      onClick={capturePhoto}
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg px-6"
-                    >
-                      Capture Photo
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      onClick={stopCamera}
-                      className="bg-slate-900/80 border-slate-700 text-slate-200 hover:bg-slate-800 font-bold rounded-lg"
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                </div>
-              ) : livePhoto ? (
-                <div className="relative w-full aspect-video bg-slate-100 dark:bg-slate-900 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800">
-                  <img
-                    src={livePhoto}
-                    alt="Live Photo Selfie"
-                    className="w-full h-full object-cover scale-x-[-1]"
-                  />
-                  <div className="absolute bottom-3 left-0 right-0 flex justify-center">
-                    <Button
-                      type="button"
-                      size="sm"
-                      onClick={startCamera}
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg"
-                    >
-                      Retake Photo
-                    </Button>
-                  </div>
-                </div>
-              ) : cameraError ? (
-                /* ── Camera error / permission panel ─────────────────────────── */
-                <div className="w-full rounded-xl border border-slate-700 bg-slate-900 p-5 flex flex-col items-center gap-4 text-center">
-                  <div
-                    className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                      cameraError === "no_camera" ? "bg-red-500/15" : "bg-amber-500/15"
-                    }`}
-                  >
-                    <Camera
-                      className={`w-6 h-6 ${
-                        cameraError === "no_camera" ? "text-red-400" : "text-amber-400"
-                      }`}
-                    />
-                  </div>
-
-                  {/* Title + description */}
-                  {cameraError === "denied" || cameraError === "blocked" ? (
-                    <>
-                      <div>
-                        <p className="text-sm font-bold text-white mb-1">Camera Access Blocked</p>
-                        <p className="text-xs text-slate-400">
-                          Your browser is blocking camera access for this site. Follow the steps
-                          below to allow it:
-                        </p>
-                      </div>
-                      <ol className="text-xs text-slate-300 text-left space-y-2 w-full list-none">
-                        {getCameraUnblockSteps().map((step, i) => (
-                          <li key={i} className="flex items-start gap-2">
-                            <span className="flex-shrink-0 w-5 h-5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-bold flex items-center justify-center">
-                              {i + 1}
-                            </span>
-                            <span>{step}</span>
-                          </li>
-                        ))}
-                      </ol>
-                    </>
-                  ) : cameraError === "no_camera" ? (
-                    <div>
-                      <p className="text-sm font-bold text-white mb-1">No Camera Found</p>
-                      <p className="text-xs text-slate-400">
-                        No camera device was detected. Please connect a camera and try again.
-                      </p>
-                    </div>
-                  ) : cameraError === "in_use" ? (
-                    <div>
-                      <p className="text-sm font-bold text-white mb-1">Camera In Use</p>
-                      <p className="text-xs text-slate-400">
-                        Your camera is currently being used by another application (e.g. video call,
-                        another browser tab). Please close it and try again.
-                      </p>
-                    </div>
-                  ) : (
-                    <div>
-                      <p className="text-sm font-bold text-white mb-1">Camera Unavailable</p>
-                      <p className="text-xs text-slate-400">
-                        An unexpected error occurred. Please ensure your camera is connected and not
-                        blocked, then try again.
-                      </p>
-                    </div>
-                  )}
-
-                  <div className="flex flex-col gap-2 mt-4 items-center w-full">
-                    {!isMobile && (
-                      <Button
-                        type="button"
-                        size="sm"
-                        onClick={startCamera}
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg w-full max-w-[200px]"
-                      >
-                        <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Try Again
-                      </Button>
-                    )}
-                    {isMobile && (
-                      <div className="relative w-full max-w-[200px]">
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                          onChange={handleManualSelfieUpload}
-                        />
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          className="border-emerald-600 text-emerald-500 font-bold w-full pointer-events-none"
-                        >
-                          Or Upload Photo Instead
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <div className="w-full aspect-video flex flex-col items-center justify-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-900/50 p-4">
-                  {existingAvatarUrl ? (
-                    <div className="text-center space-y-2">
-                      <img
-                        src={existingAvatarUrl}
-                        alt="Current Profile Pic"
-                        className="w-16 h-16 rounded-full mx-auto object-cover border-2 border-emerald-505"
-                      />
-                      <p className="text-xs text-slate-500 font-semibold">
-                        Existing profile picture loaded
-                      </p>
-                    </div>
-                  ) : (
-                    <Camera className="w-8 h-8 text-slate-400 mb-2" />
-                  )}
-                  <div className="flex flex-col gap-2 w-full max-w-[200px] mt-2">
-                    {isMobile ? (
-                      <div className="relative">
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                          onChange={handleManualSelfieUpload}
-                        />
-                        <Button
-                          type="button"
-                          variant="default"
-                          size="sm"
-                          className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold w-full pointer-events-none"
-                        >
-                          Take / Upload Photo
-                        </Button>
-                      </div>
-                    ) : (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={startCamera}
-                        className="bg-white hover:bg-slate-50 text-emerald-600 border-slate-200 dark:bg-slate-900 dark:border-slate-800 dark:text-emerald-400 font-bold w-full"
-                      >
-                        Use Web Camera
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              <canvas ref={canvasRef} className="hidden" />
-            </div>
-          </div>
-
           <div className="pt-2 flex gap-3">
             <Button
               type="button"
@@ -1122,7 +709,7 @@ export function KYCModal({ isOpen, onOpenChange, onSuccess, mode = "full" }: KYC
             </Button>
             <Button
               type="submit"
-              disabled={loading || !livePhoto || (mode === "confirm" && !addressConfirmed)}
+              disabled={loading || (mode === "confirm" && !addressConfirmed)}
               className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl"
             >
               {loading ? (

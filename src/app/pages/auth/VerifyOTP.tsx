@@ -1,10 +1,9 @@
 import { useState, useEffect } from "react";
 
 import { motion } from "framer-motion";
-import { ArrowLeft, RefreshCw, CheckCircle2, Home } from "lucide-react";
+import { ArrowLeft, RefreshCw, CheckCircle2 } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { toast } from "sonner";
-
 
 import { Button } from "@/app/components/ui/button";
 import { HoneypotField } from "@/app/components/ui/HoneypotField";
@@ -140,94 +139,87 @@ export function VerifyOTP() {
         Email
       </Link>
 
+      <div className="mb-6 p-4 bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200/50 dark:border-emerald-800/30 rounded-2xl text-center">
+        <p className="text-xs text-emerald-800 dark:text-emerald-300 font-medium leading-relaxed">
+          🔑 Retrieve the <strong>6-digit OTP code</strong> from your email inbox to complete
+          signup, or simply click the <strong>confirmation link</strong> inside the email to verify
+          automatically.
+        </p>
+      </div>
 
+      <div className="flex flex-col items-center space-y-8">
+        <div className="space-y-4 w-full flex flex-col items-center">
+          <Label className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+            Security Code
+          </Label>
+          <InputOTP maxLength={6} value={otp} onChange={setOtp} onComplete={() => handleVerify()}>
+            <InputOTPGroup className="gap-2">
+              <InputOTPSlot
+                index={0}
+                className="size-12 md:size-14 rounded-xl border-2 text-lg font-bold"
+              />
+              <InputOTPSlot
+                index={1}
+                className="size-12 md:size-14 rounded-xl border-2 text-lg font-bold"
+              />
+              <InputOTPSlot
+                index={2}
+                className="size-12 md:size-14 rounded-xl border-2 text-lg font-bold"
+              />
+              <InputOTPSlot
+                index={3}
+                className="size-12 md:size-14 rounded-xl border-2 text-lg font-bold"
+              />
+              <InputOTPSlot
+                index={4}
+                className="size-12 md:size-14 rounded-xl border-2 text-lg font-bold"
+              />
+              <InputOTPSlot
+                index={5}
+                className="size-12 md:size-14 rounded-xl border-2 text-lg font-bold"
+              />
+            </InputOTPGroup>
+          </InputOTP>
+        </div>
 
-          <div className="mb-6 p-4 bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200/50 dark:border-emerald-800/30 rounded-2xl text-center">
-            <p className="text-xs text-emerald-800 dark:text-emerald-300 font-medium leading-relaxed">
-              🔑 Retrieve the <strong>6-digit OTP code</strong> from your email inbox to complete
-              signup, or simply click the <strong>confirmation link</strong> inside the email to
-              verify automatically.
-            </p>
-          </div>
+        {/* Honeypot field */}
+        <HoneypotField value={website} onChange={(e) => setWebsite(e.target.value)} />
 
-          <div className="flex flex-col items-center space-y-8">
-            <div className="space-y-4 w-full flex flex-col items-center">
-              <Label className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
-                Security Code
-              </Label>
-              <InputOTP
-                maxLength={6}
-                value={otp}
-                onChange={setOtp}
-                onComplete={() => handleVerify()}
-              >
-                <InputOTPGroup className="gap-2">
-                  <InputOTPSlot
-                    index={0}
-                    className="size-12 md:size-14 rounded-xl border-2 text-lg font-bold"
-                  />
-                  <InputOTPSlot
-                    index={1}
-                    className="size-12 md:size-14 rounded-xl border-2 text-lg font-bold"
-                  />
-                  <InputOTPSlot
-                    index={2}
-                    className="size-12 md:size-14 rounded-xl border-2 text-lg font-bold"
-                  />
-                  <InputOTPSlot
-                    index={3}
-                    className="size-12 md:size-14 rounded-xl border-2 text-lg font-bold"
-                  />
-                  <InputOTPSlot
-                    index={4}
-                    className="size-12 md:size-14 rounded-xl border-2 text-lg font-bold"
-                  />
-                  <InputOTPSlot
-                    index={5}
-                    className="size-12 md:size-14 rounded-xl border-2 text-lg font-bold"
-                  />
-                </InputOTPGroup>
-              </InputOTP>
+        <Button
+          onClick={() => handleVerify()}
+          className="w-full h-14 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-lg font-bold shadow-xl shadow-emerald-600/20 active:scale-[0.98] transition-all"
+          disabled={loading || otp.length !== 6}
+        >
+          {loading ? (
+            <div className="flex items-center justify-center">
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                className="size-6 border-2 border-white/30 border-t-white rounded-full"
+              />
             </div>
+          ) : (
+            <span className="flex items-center justify-center gap-2">
+              Verify & Continue <CheckCircle2 className="size-5" />
+            </span>
+          )}
+        </Button>
 
-            {/* Honeypot field */}
-            <HoneypotField value={website} onChange={(e) => setWebsite(e.target.value)} />
-
-            <Button
-              onClick={() => handleVerify()}
-              className="w-full h-14 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-lg font-bold shadow-xl shadow-emerald-600/20 active:scale-[0.98] transition-all"
-              disabled={loading || otp.length !== 6}
-            >
-              {loading ? (
-                <div className="flex items-center justify-center">
-                  <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                    className="size-6 border-2 border-white/30 border-t-white rounded-full"
-                  />
-                </div>
-              ) : (
-                <span className="flex items-center justify-center gap-2">
-                  Verify & Continue <CheckCircle2 className="size-5" />
-                </span>
-              )}
-            </Button>
-
-            <div className="text-center">
-              <button
-                onClick={handleResend}
-                disabled={resending || cooldown > 0}
-                className="inline-flex items-center gap-2 text-sm font-bold text-emerald-600 hover:text-emerald-500 transition-colors disabled:opacity-50"
-              >
-                {resending ? (
-                  <RefreshCw className="size-4 animate-spin" />
-                ) : (
-                  <RefreshCw className="size-4" />
-                )}
-                {cooldown > 0 ? `Resend Code (${cooldown}s)` : "Resend Code"}
-              </button>
-            </div>
-          </div>
+        <div className="text-center">
+          <button
+            onClick={handleResend}
+            disabled={resending || cooldown > 0}
+            className="inline-flex items-center gap-2 text-sm font-bold text-emerald-600 hover:text-emerald-500 transition-colors disabled:opacity-50"
+          >
+            {resending ? (
+              <RefreshCw className="size-4 animate-spin" />
+            ) : (
+              <RefreshCw className="size-4" />
+            )}
+            {cooldown > 0 ? `Resend Code (${cooldown}s)` : "Resend Code"}
+          </button>
+        </div>
+      </div>
     </>
   );
 }

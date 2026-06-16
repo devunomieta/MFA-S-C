@@ -14,8 +14,7 @@ import {
   FileCheck,
   Info,
   Eye,
-  Camera,
-  RefreshCw,
+  FileText,
 } from "lucide-react";
 import { User, KeyRound, UserCheck, Landmark, Shield, Mail, Phone } from "lucide-react";
 import { toast } from "sonner";
@@ -260,6 +259,8 @@ export function Profile() {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [utilityBillPreview, setUtilityBillPreview] = useState<string | null>(null);
+  const [ninFileName, setNinFileName] = useState<string | null>(null);
+  const [utilityFileName, setUtilityFileName] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const utilityBillInputRef = useRef<HTMLInputElement>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
@@ -303,47 +304,7 @@ export function Profile() {
   // Manual Recovery State
   const [showManualChange, setShowManualChange] = useState(false);
   const [manualEmail, setManualEmail] = useState("");
-  const [livePhoto, setLivePhoto] = useState<string | null>(null);
-  const [isCapturing, setIsCapturing] = useState(false);
   const [submittingManual, setSubmittingManual] = useState(false);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-
-  // KYC Camera state
-  const [kycLivePhoto, setKycLivePhoto] = useState<string | null>(null);
-  const [isCapturingKyc, setIsCapturingKyc] = useState(false);
-  const [kycCameraError, setKycCameraError] = useState<
-    "denied" | "blocked" | "no_camera" | "in_use" | "unknown" | null
-  >(null);
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setIsMobile(
-      /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent),
-    );
-  }, []);
-
-  const videoKycRef = useRef<HTMLVideoElement>(null);
-  const canvasKycRef = useRef<HTMLCanvasElement>(null);
-  const streamKycRef = useRef<MediaStream | null>(null);
-
-  /** Fully stops the camera: clears intervals, stops all tracks, nulls srcObject. */
-  const releaseKycCamera = () => {
-    if (streamKycRef.current) {
-      streamKycRef.current.getTracks().forEach((track) => track.stop());
-      streamKycRef.current = null;
-    }
-    if (videoKycRef.current) videoKycRef.current.srcObject = null;
-    setIsCapturingKyc(false);
-  };
-
-  const handleManualKycSelfieUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files?.[0]) {
-      setKycLivePhoto(URL.createObjectURL(e.target.files[0]));
-      setKycCameraError(null);
-    }
-  };
 
   useEffect(() => {
     if (user) {
@@ -467,9 +428,9 @@ export function Profile() {
       return false;
     }
 
-    // 1. Validation: Digits only
-    if (!/^\d+$/.test(data.account_number)) {
-      toast.error("Account Number must contain numbers only");
+    // 1. Validation: Exactly 10 Digits
+    if (!/^\d{10}$/.test(data.account_number)) {
+      toast.error("Account Number must contain exactly 10 numeric digits");
       return false;
     }
 
@@ -825,233 +786,26 @@ export function Profile() {
     setUpdatingEmail(false);
   }
 
-  const startCamera = async () => {
-    setIsCapturing(true);
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-      }
-    } catch (err) {
-      console.error("Camera Error:", err);
-      toast.error("Unable to access camera");
-      setIsCapturing(false);
-    }
-  };
-
-  const stopCamera = () => {
-    if (videoRef.current?.srcObject) {
-      const stream = videoRef.current.srcObject as MediaStream;
-      stream.getTracks().forEach((track) => track.stop());
-      videoRef.current.srcObject = null;
-    }
-    setIsCapturing(false);
-  };
-
-  const capturePhoto = () => {
-    if (videoRef.current && canvasRef.current) {
-      const context = canvasRef.current.getContext("2d");
-      if (context) {
-        canvasRef.current.width = videoRef.current.videoWidth;
-        canvasRef.current.height = videoRef.current.videoHeight;
-        context.drawImage(videoRef.current, 0, 0);
-        const dataUrl = canvasRef.current.toDataURL("image/jpeg");
-        setLivePhoto(dataUrl);
-        stopCamera();
-      }
-    }
-  };
-
-  const getKycBrowserName = () => {
-    const ua = navigator.userAgent;
-    if (/Firefox\//.test(ua)) return "firefox";
-    if (/Edg\//.test(ua)) return "edge";
-    if (/OPR\/|Opera\//.test(ua)) return "opera";
-    if (/Chrome\//.test(ua)) return "chrome";
-    if (/Safari\//.test(ua)) return "safari";
-    return "other";
-  };
-
-  const getKycCameraUnblockSteps = (): string[] => {
-    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-    if (isMobile)
-      return [
-        "Open your device Settings",
-        "Find your browser app (Chrome, Safari, etc.)",
-        "Tap Permissions → Camera → Allow",
-        'Return here and tap "Try Again"',
-      ];
-    const b = getKycBrowserName();
-    if (b === "chrome" || b === "edge")
-      return [
-        "Click the 🔒 lock icon in the address bar",
-        'Select "Site settings" then find Camera',
-        'Change Camera from "Blocked" to "Allow"',
-        'Click "Try Again" below — no refresh needed',
-      ];
-    if (b === "firefox")
-      return [
-        "Click the camera icon (🎥) in the address bar",
-        'Select "Remove Blocked permission"',
-        'Click "Try Again" below to re-trigger the prompt',
-      ];
-    if (b === "safari")
-      return [
-        "Click Safari menu → Settings for this Website",
-        'Set Camera to "Allow"',
-        'Click "Try Again" below',
-      ];
-    return [
-      "Click the camera / lock icon in your browser's address bar",
-      'Find Camera permissions and set them to "Allow"',
-      'Click "Try Again" below',
-    ];
-  };
-
-  const handleKycCameraError = (err: unknown) => {
-    const name = (err as any)?.name ?? "";
-    if (name === "NotAllowedError" || name === "PermissionDeniedError") {
-      setKycCameraError("denied");
-    } else if (name === "NotFoundError" || name === "DevicesNotFoundError") {
-      setKycCameraError("no_camera");
-    } else if (name === "NotReadableError" || name === "TrackStartError") {
-      setKycCameraError("in_use");
-    } else {
-      setKycCameraError("unknown");
-    }
-    releaseKycCamera();
-  };
-
-  const startKycCamera = async () => {
-    releaseKycCamera();
-    setKycCameraError(null);
-    setIsCapturingKyc(true);
-    setKycLivePhoto(null);
-
-    // ── 0. Check if mediaDevices is supported (e.g. secure context, not webview) ──
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      setKycCameraError("no_camera");
-      releaseKycCamera();
-      return;
-    }
-
-    // ── 1. Check permission state first (if supported) ──
-    if (navigator.permissions && navigator.permissions.query) {
-      try {
-        const perm = await navigator.permissions.query({ name: "camera" as PermissionName });
-        if (perm.state === "denied") {
-          setKycCameraError("blocked");
-          releaseKycCamera();
-          return;
-        }
-        perm.onchange = () => {
-          if (perm.state === "granted") {
-            setKycCameraError(null);
-            startKycCamera();
-          }
-        };
-      } catch {
-        // Permissions API not fully supported on some mobile browsers (e.g. iOS Safari)
-      }
-    }
-
-    // ── 2. Request stream with progressive fallbacks ──
-    let stream: MediaStream | null = null;
-    const constraintsList = [
-      { video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } } },
-      { video: { facingMode: "user" } },
-      { video: true },
-    ];
-
-    let lastErr: unknown = null;
-    for (const constraints of constraintsList) {
-      try {
-        stream = await navigator.mediaDevices.getUserMedia(constraints);
-        break; // Success!
-      } catch (err: unknown) {
-        lastErr = err;
-        // Continue to the next fallback constraint
-      }
-    }
-
-    if (!stream) {
-      handleKycCameraError(lastErr || new Error("No stream"));
-      return;
-    }
-
-    streamKycRef.current = stream;
-    if (videoKycRef.current) {
-      videoKycRef.current.srcObject = stream;
-      // Mirror the video horizontally for a more natural selfie experience
-      videoKycRef.current.style.transform = "scaleX(-1)";
-    }
-  };
-
-  const stopKycCamera = () => releaseKycCamera();
-
-  const captureKycPhoto = () => {
-    if (videoKycRef.current && canvasKycRef.current) {
-      const context = canvasKycRef.current.getContext("2d");
-      if (context) {
-        canvasKycRef.current.width = videoKycRef.current.videoWidth;
-        canvasKycRef.current.height = videoKycRef.current.videoHeight;
-
-        // Ensure the canvas capture respects the mirrored video
-        context.translate(canvasKycRef.current.width, 0);
-        context.scale(-1, 1);
-
-        context.drawImage(videoKycRef.current, 0, 0);
-
-        const dataUrl = canvasKycRef.current.toDataURL("image/jpeg", 0.9);
-        setKycLivePhoto(dataUrl);
-        stopKycCamera();
-        toast.success("Photo captured successfully ✓");
-      }
-    }
-  };
-
-  // Release KYC camera on unmount
-  useEffect(() => {
-    return () => {
-      releaseKycCamera();
-    };
-  }, []);
-
   async function handleManualEmailChangeRequest() {
-    if (!manualEmail || !livePhoto) {
-      toast.error("Please enter new email and capture a live photo");
+    if (!manualEmail) {
+      toast.error("Please enter a new email");
       return;
     }
 
     setSubmittingManual(true);
     try {
-      // Upload photo
-      const blob = await (await fetch(livePhoto)).blob();
-      const fileName = `manual-email/${user?.id}-${Date.now()}.jpg`;
-
-      const { error: uploadError } = await supabase.storage.from("kyc").upload(fileName, blob);
-
-      if (uploadError) throw uploadError;
-
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from("kyc").getPublicUrl(fileName);
-
       // Create request
       const { error: requestError } = await supabase.from("email_change_requests").insert({
         user_id: user?.id,
         new_email: manualEmail,
-        live_photo_url: publicUrl,
+        live_photo_url: null,
       });
 
       if (requestError) throw requestError;
 
-      toast.success(
-        "Manual recovery request submitted! Admins will review your ID and live photo.",
-      );
+      toast.success("Manual recovery request submitted! Admins will review your request.");
       setShowManualChange(false);
       setManualEmail("");
-      setLivePhoto(null);
 
       await notificationDispatcher.sendAlert({
         userId: user?.id || "",
@@ -1199,7 +953,7 @@ export function Profile() {
       setPinOtpCode("");
       setPinCodeRequested(false);
       setShowPinForm(false);
-      
+
       await notificationDispatcher.sendAlert({
         userId: user?.id || "",
         email: profile.email,
@@ -1240,8 +994,13 @@ export function Profile() {
         return;
       }
 
-      const objectUrl = URL.createObjectURL(file);
-      setPreviewUrl(objectUrl);
+      setNinFileName(file.name);
+      if (file.type.startsWith("image/")) {
+        const objectUrl = URL.createObjectURL(file);
+        setPreviewUrl(objectUrl);
+      } else {
+        setPreviewUrl(null);
+      }
       toast.success("NIN slip looks clear ✓");
     }
   };
@@ -1326,8 +1085,13 @@ export function Profile() {
         return;
       }
 
-      const objectUrl = URL.createObjectURL(file);
-      setUtilityBillPreview(objectUrl);
+      setUtilityFileName(file.name);
+      if (file.type.startsWith("image/")) {
+        const objectUrl = URL.createObjectURL(file);
+        setUtilityBillPreview(objectUrl);
+      } else {
+        setUtilityBillPreview(null);
+      }
       toast.success("Utility bill looks clear ✓");
     }
   };
@@ -1347,10 +1111,7 @@ export function Profile() {
       toast.error("Please fill in both the street address and closest landmark");
       return;
     }
-    if (!kycLivePhoto && !profile.avatar_url) {
-      toast.error("Please capture a live photo profile picture");
-      return;
-    }
+    // Live photo is now optional
 
     let finalGovIdUrl = profile.gov_id_url;
     if (fileInputRef.current?.files?.[0]) {
@@ -1402,26 +1163,7 @@ export function Profile() {
 
     setUploadingId(true);
     try {
-      let finalAvatarUrl = profile.avatar_url;
-      if (kycLivePhoto) {
-        const blob = await (await fetch(kycLivePhoto)).blob();
-        const fileName = `${user.id}-avatar-${Date.now()}.jpg`;
-        const filePath = `${fileName}`;
-
-        const { error: avatarUploadError } = await supabase.storage
-          .from("avatars")
-          .upload(filePath, blob, {
-            contentType: "image/jpeg",
-          });
-
-        if (avatarUploadError) throw avatarUploadError;
-
-        const {
-          data: { publicUrl: avatarPublicUrl },
-        } = supabase.storage.from("avatars").getPublicUrl(filePath);
-
-        finalAvatarUrl = avatarPublicUrl;
-      }
+      const finalAvatarUrl = profile.avatar_url;
 
       const updateData: any = {
         bvn: profile.bvn,
@@ -1448,7 +1190,7 @@ export function Profile() {
       ) {
         updateData.utility_bill_status = "pending";
       }
-      if (kycLivePhoto || profile.avatar_status === "not_uploaded") {
+      if (profile.avatar_status === "not_uploaded") {
         updateData.avatar_status = "pending";
       }
 
@@ -1738,99 +1480,88 @@ export function Profile() {
                     </div>
                   </div>
 
-                  <div className="grid gap-4 md:grid-cols-2 p-4 border rounded-lg dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/10">
-                    <div>
-                      <span className="text-xs text-gray-400 block">BVN</span>
-                      <span className="text-sm font-medium dark:text-white">
-                        {profile.bvn || "N/A"}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-xs text-gray-400 block">NIN</span>
-                      <span className="text-sm font-medium dark:text-white">
-                        {profile.nin || "N/A"}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-xs text-gray-400 block">Country</span>
-                      <span className="text-sm font-medium dark:text-white">
-                        {profile.kyc_country || "Nigeria"}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-xs text-gray-400 block">State</span>
-                      <span className="text-sm font-medium dark:text-white">
-                        {profile.kyc_state || "Lagos"}
-                      </span>
-                    </div>
-                    <div className="md:col-span-2">
-                      <span className="text-xs text-gray-400 block">Street Address</span>
-                      <span className="text-sm font-medium dark:text-white">
-                        {profile.kyc_street || "N/A"}
-                      </span>
-                    </div>
-                    <div className="md:col-span-2">
-                      <span className="text-xs text-gray-400 block">Landmark</span>
-                      <span className="text-sm font-medium dark:text-white">
-                        {profile.kyc_landmark || "N/A"}
-                      </span>
-                    </div>
+                  <div className="relative overflow-hidden p-6 border rounded-2xl dark:border-slate-800/60 bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-900/50 shadow-sm">
+                    {/* Decorative Background Elements */}
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 dark:bg-emerald-500/10 rounded-bl-full -z-0 pointer-events-none"></div>
 
-                    <div className="md:col-span-2 border-t border-slate-100 dark:border-slate-800 pt-3 mt-1 space-y-2">
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                        Document Statuses
-                      </p>
-                      <div className="grid grid-cols-3 gap-2">
-                        <div className="p-2 border border-slate-100 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 text-center">
-                          <span className="text-[9px] text-slate-400 block uppercase font-bold">
-                            NIN Status
-                          </span>
-                          <Badge
-                            variant="outline"
-                            className={`text-[8px] mt-1.5 px-1.5 py-0 h-4 uppercase font-semibold ${
-                              profile.nin_status === "verified"
-                                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                                : profile.nin_status === "rejected"
-                                  ? "bg-rose-50 text-rose-700 border-rose-200"
-                                  : "bg-amber-50 text-amber-700 border-amber-200"
-                            }`}
-                          >
-                            {profile.nin_status || "pending"}
-                          </Badge>
-                        </div>
-                        <div className="p-2 border border-slate-100 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 text-center">
-                          <span className="text-[9px] text-slate-400 block uppercase font-bold">
-                            Utility Status
-                          </span>
-                          <Badge
-                            variant="outline"
-                            className={`text-[8px] mt-1.5 px-1.5 py-0 h-4 uppercase font-semibold ${
-                              profile.utility_bill_status === "verified"
-                                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                                : profile.utility_bill_status === "rejected"
-                                  ? "bg-rose-50 text-rose-700 border-rose-200"
-                                  : "bg-amber-50 text-amber-700 border-amber-200"
-                            }`}
-                          >
-                            {profile.utility_bill_status || "pending"}
-                          </Badge>
-                        </div>
-                        <div className="p-2 border border-slate-100 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 text-center">
-                          <span className="text-[9px] text-slate-400 block uppercase font-bold">
-                            Selfie Photo
-                          </span>
-                          <Badge
-                            variant="outline"
-                            className={`text-[8px] mt-1.5 px-1.5 py-0 h-4 uppercase font-semibold ${
-                              profile.avatar_status === "verified"
-                                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                                : profile.avatar_status === "rejected"
-                                  ? "bg-rose-50 text-rose-700 border-rose-200"
-                                  : "bg-amber-50 text-amber-700 border-amber-200"
-                            }`}
-                          >
-                            {profile.avatar_status || "pending"}
-                          </Badge>
+                    <div className="relative z-10 grid gap-6 md:grid-cols-2">
+                      <div className="space-y-1">
+                        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest block">BVN</span>
+                        <span className="text-base font-semibold text-slate-900 dark:text-white">
+                          {profile.bvn || "N/A"}
+                        </span>
+                      </div>
+                      <div className="space-y-1">
+                        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest block">NIN</span>
+                        <span className="text-base font-semibold text-slate-900 dark:text-white">
+                          {profile.nin || "N/A"}
+                        </span>
+                      </div>
+                      <div className="space-y-1">
+                        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest block">Country</span>
+                        <span className="text-base font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                          {profile.kyc_country || "Nigeria"}
+                        </span>
+                      </div>
+                      <div className="space-y-1">
+                        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest block">State</span>
+                        <span className="text-base font-semibold text-slate-900 dark:text-white">
+                          {profile.kyc_state || "Lagos"}
+                        </span>
+                      </div>
+                      <div className="space-y-1 md:col-span-2">
+                        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest block">Street Address</span>
+                        <span className="text-base font-semibold text-slate-900 dark:text-white">
+                          {profile.kyc_street || "N/A"}
+                        </span>
+                      </div>
+                      <div className="space-y-1 md:col-span-2">
+                        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest block">Landmark</span>
+                        <span className="text-base font-semibold text-slate-900 dark:text-white">
+                          {profile.kyc_landmark || "N/A"}
+                        </span>
+                      </div>
+
+                      {/* Document Status Section */}
+                      <div className="md:col-span-2 border-t border-slate-200/60 dark:border-slate-800 pt-5 mt-2">
+                        <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-4">
+                          Document Statuses
+                        </p>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="p-3 border border-slate-200/60 dark:border-slate-800 rounded-xl bg-white/50 dark:bg-slate-950/50 text-center shadow-sm backdrop-blur-sm transition-all hover:border-emerald-500/30">
+                            <span className="text-[10px] text-slate-500 block uppercase font-black tracking-wider">
+                              NIN Status
+                            </span>
+                            <Badge
+                              variant="outline"
+                              className={`text-[9px] mt-2 px-2 py-0.5 h-5 uppercase font-bold tracking-wider border ${
+                                profile.nin_status === "verified"
+                                  ? "bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20"
+                                  : profile.nin_status === "rejected"
+                                    ? "bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20"
+                                    : "bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20"
+                              }`}
+                            >
+                              {profile.nin_status || "pending"}
+                            </Badge>
+                          </div>
+                          <div className="p-3 border border-slate-200/60 dark:border-slate-800 rounded-xl bg-white/50 dark:bg-slate-950/50 text-center shadow-sm backdrop-blur-sm transition-all hover:border-emerald-500/30">
+                            <span className="text-[10px] text-slate-500 block uppercase font-black tracking-wider">
+                              Utility Status
+                            </span>
+                            <Badge
+                              variant="outline"
+                              className={`text-[9px] mt-2 px-2 py-0.5 h-5 uppercase font-bold tracking-wider border ${
+                                profile.utility_bill_status === "verified"
+                                  ? "bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20"
+                                  : profile.utility_bill_status === "rejected"
+                                    ? "bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20"
+                                    : "bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20"
+                              }`}
+                            >
+                              {profile.utility_bill_status || "pending"}
+                            </Badge>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -1852,16 +1583,24 @@ export function Profile() {
                                 Review your uploaded government-issued ID for verification.
                               </DialogDescription>
                             </DialogHeader>
-                            <div className="p-4 flex flex-col items-center justify-center bg-gray-100 rounded-lg">
-                              <img
-                                src={
-                                  profile.gov_id_url?.includes("mock")
-                                    ? "https://placehold.co/600x400/png?text=Government+ID"
-                                    : profile.gov_id_url
-                                }
-                                alt="Submitted ID"
-                                className="max-w-full h-auto rounded shadow-sm"
-                              />
+                            <div className="p-4 flex flex-col items-center justify-center bg-gray-100 rounded-lg w-full h-[60vh] md:h-auto md:min-h-[400px]">
+                              {profile.gov_id_url?.toLowerCase().includes(".pdf") ? (
+                                <iframe
+                                  src={profile.gov_id_url}
+                                  className="w-full h-full rounded shadow-sm border-0 min-h-[400px]"
+                                  title="Government ID PDF"
+                                />
+                              ) : (
+                                <img
+                                  src={
+                                    profile.gov_id_url?.includes("mock")
+                                      ? "https://placehold.co/600x400/png?text=Government+ID"
+                                      : profile.gov_id_url
+                                  }
+                                  alt="Submitted ID"
+                                  className="max-w-full h-auto rounded shadow-sm max-h-[60vh] object-contain"
+                                />
+                              )}
                             </div>
                           </DialogContent>
                         </Dialog>
@@ -1880,12 +1619,20 @@ export function Profile() {
                                 Review your uploaded utility bill or business signage.
                               </DialogDescription>
                             </DialogHeader>
-                            <div className="p-4 flex flex-col items-center justify-center bg-gray-100 rounded-lg">
-                              <img
-                                src={profile.utility_bill_url}
-                                alt="Submitted Utility Bill"
-                                className="max-w-full h-auto rounded shadow-sm"
-                              />
+                            <div className="p-4 flex flex-col items-center justify-center bg-gray-100 rounded-lg w-full h-[60vh] md:h-auto md:min-h-[400px]">
+                              {profile.utility_bill_url?.toLowerCase().includes(".pdf") ? (
+                                <iframe
+                                  src={profile.utility_bill_url}
+                                  className="w-full h-full rounded shadow-sm border-0 min-h-[400px]"
+                                  title="Utility Bill PDF"
+                                />
+                              ) : (
+                                <img
+                                  src={profile.utility_bill_url}
+                                  alt="Submitted Utility Bill"
+                                  className="max-w-full h-auto rounded shadow-sm max-h-[60vh] object-contain"
+                                />
+                              )}
                             </div>
                           </DialogContent>
                         </Dialog>
@@ -1920,7 +1667,9 @@ export function Profile() {
                       <Input
                         id="bvn"
                         value={profile.bvn}
-                        onChange={(e) => setProfile({ ...profile, bvn: e.target.value })}
+                        onChange={(e) =>
+                          setProfile({ ...profile, bvn: e.target.value.replace(/\D/g, "") })
+                        }
                         disabled={kycLocked || uploadingId}
                         placeholder="11 digits"
                         maxLength={11}
@@ -1934,7 +1683,9 @@ export function Profile() {
                       <Input
                         id="nin"
                         value={profile.nin}
-                        onChange={(e) => setProfile({ ...profile, nin: e.target.value })}
+                        onChange={(e) =>
+                          setProfile({ ...profile, nin: e.target.value.replace(/\D/g, "") })
+                        }
                         disabled={kycLocked || uploadingId}
                         placeholder="11 digits"
                         maxLength={11}
@@ -1996,207 +1747,6 @@ export function Profile() {
                         className="dark:bg-gray-800 dark:border-gray-700 dark:text-white"
                       />
                     </div>
-                    <div className="md:col-span-2 grid gap-2">
-                      <Label className="dark:text-gray-300">Mandatory Live Photo Capture</Label>
-                      <div className="w-full flex flex-col items-center justify-center gap-3 border border-slate-200 dark:border-slate-700 rounded-xl p-4 bg-slate-50/50 dark:bg-slate-900/10">
-                        {isCapturingKyc ? (
-                          <div className="relative w-full overflow-hidden rounded-xl bg-black aspect-[3/4] sm:aspect-video flex items-center justify-center">
-                            <video
-                              ref={videoKycRef}
-                              autoPlay
-                              playsInline
-                              className="w-full h-full object-cover"
-                            />
-
-                            {/* Action buttons */}
-                            <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-2 z-10">
-                              <Button
-                                type="button"
-                                size="sm"
-                                onClick={captureKycPhoto}
-                                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg px-6"
-                              >
-                                Capture Photo
-                              </Button>
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="outline"
-                                onClick={stopKycCamera}
-                                className="bg-slate-900/80 border-slate-700 text-slate-200 hover:bg-slate-800 font-bold rounded-lg"
-                              >
-                                Cancel
-                              </Button>
-                            </div>
-                          </div>
-                        ) : kycLivePhoto ? (
-                          <div className="relative w-full max-w-md aspect-video bg-slate-100 dark:bg-slate-900 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700">
-                            <img
-                              src={kycLivePhoto}
-                              alt="Live Photo Selfie"
-                              className="w-full h-full object-cover scale-x-[-1]"
-                            />
-                            <div className="absolute bottom-3 left-0 right-0 flex justify-center">
-                              <Button
-                                type="button"
-                                size="sm"
-                                onClick={startKycCamera}
-                                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg"
-                              >
-                                Retake Photo
-                              </Button>
-                            </div>
-                          </div>
-                        ) : kycCameraError ? (
-                          /* ── Camera error / permission panel ────────────────────── */
-                          <div className="w-full rounded-xl border border-slate-700 bg-slate-900 p-5 flex flex-col items-center gap-4 text-center">
-                            <div
-                              className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                                kycCameraError === "no_camera" ? "bg-red-500/15" : "bg-amber-500/15"
-                              }`}
-                            >
-                              <Camera
-                                className={`w-6 h-6 ${
-                                  kycCameraError === "no_camera" ? "text-red-400" : "text-amber-400"
-                                }`}
-                              />
-                            </div>
-
-                            {kycCameraError === "denied" || kycCameraError === "blocked" ? (
-                              <>
-                                <div>
-                                  <p className="text-sm font-bold text-white mb-1">
-                                    Camera Access Blocked
-                                  </p>
-                                  <p className="text-xs text-slate-400">
-                                    Your browser is blocking camera access. Follow the steps below
-                                    to allow it:
-                                  </p>
-                                </div>
-                                <ol className="text-xs text-slate-300 text-left space-y-2 w-full list-none">
-                                  {getKycCameraUnblockSteps().map((step, i) => (
-                                    <li key={i} className="flex items-start gap-2">
-                                      <span className="flex-shrink-0 w-5 h-5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-bold flex items-center justify-center">
-                                        {i + 1}
-                                      </span>
-                                      <span>{step}</span>
-                                    </li>
-                                  ))}
-                                </ol>
-                              </>
-                            ) : kycCameraError === "no_camera" ? (
-                              <div>
-                                <p className="text-sm font-bold text-white mb-1">No Camera Found</p>
-                                <p className="text-xs text-slate-400">
-                                  No camera device was detected. Please connect a camera and try
-                                  again.
-                                </p>
-                              </div>
-                            ) : kycCameraError === "in_use" ? (
-                              <div>
-                                <p className="text-sm font-bold text-white mb-1">Camera In Use</p>
-                                <p className="text-xs text-slate-400">
-                                  Your camera is currently in use by another app or tab. Please
-                                  close it and try again.
-                                </p>
-                              </div>
-                            ) : (
-                              <div>
-                                <p className="text-sm font-bold text-white mb-1">
-                                  Camera Unavailable
-                                </p>
-                                <p className="text-xs text-slate-400">
-                                  An unexpected error occurred. Please ensure your camera is
-                                  connected and not blocked.
-                                </p>
-                              </div>
-                            )}
-
-                            <div className="flex flex-col gap-2 mt-4 items-center w-full">
-                              {!isMobile && (
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  onClick={startKycCamera}
-                                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg w-full max-w-[200px]"
-                                >
-                                  <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Try Again
-                                </Button>
-                              )}
-                              {isMobile && (
-                                <div className="relative w-full max-w-[200px]">
-                                  <input
-                                    type="file"
-                                    accept="image/*"
-                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                    onChange={handleManualKycSelfieUpload}
-                                    disabled={kycLocked || uploadingId}
-                                  />
-                                  <Button
-                                    type="button"
-                                    size="sm"
-                                    variant="outline"
-                                    className="border-emerald-600 text-emerald-500 font-bold w-full pointer-events-none"
-                                  >
-                                    Or Upload Photo Instead
-                                  </Button>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="w-full max-w-md aspect-video flex flex-col items-center justify-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-900/50 p-4">
-                            {profile.avatar_url ? (
-                              <div className="text-center space-y-2">
-                                <img
-                                  src={profile.avatar_url}
-                                  alt="Current Profile Pic"
-                                  className="w-16 h-16 rounded-full mx-auto object-cover border-2 border-emerald-505"
-                                />
-                                <p className="text-xs text-slate-500 font-semibold">
-                                  Existing profile picture loaded
-                                </p>
-                              </div>
-                            ) : (
-                              <Camera className="w-8 h-8 text-slate-400 mb-2" />
-                            )}
-                            <div className="flex flex-col gap-2 w-full max-w-[200px] mt-2">
-                              {isMobile ? (
-                                <div className="relative">
-                                  <input
-                                    type="file"
-                                    accept="image/*"
-                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                    onChange={handleManualKycSelfieUpload}
-                                    disabled={kycLocked || uploadingId}
-                                  />
-                                  <Button
-                                    type="button"
-                                    variant="default"
-                                    size="sm"
-                                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold w-full pointer-events-none"
-                                  >
-                                    Take / Upload Photo
-                                  </Button>
-                                </div>
-                              ) : (
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={startKycCamera}
-                                  disabled={kycLocked || uploadingId}
-                                  className="bg-white hover:bg-slate-50 text-emerald-600 border-slate-200 dark:bg-slate-900 dark:border-slate-800 dark:text-emerald-400 font-bold w-full"
-                                >
-                                  Use Web Camera
-                                </Button>
-                              )}
-                            </div>
-                          </div>
-                        )}
-                        <canvas ref={canvasKycRef} className="hidden" />
-                      </div>
-                    </div>
                   </div>
 
                   <input
@@ -2238,6 +1788,30 @@ export function Profile() {
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setPreviewUrl(null);
+                                setNinFileName(null);
+                                if (fileInputRef.current) fileInputRef.current.value = "";
+                              }}
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
+                      ) : ninFileName ? (
+                        <div className="relative py-4">
+                          <FileText className="w-12 h-12 text-emerald-500 mx-auto mb-2" />
+                          <p className="text-sm font-bold text-gray-700 dark:text-gray-300">
+                            {ninFileName}
+                          </p>
+                          <p className="text-xs text-gray-500">PDF Document Selected</p>
+                          {!kycLocked && (
+                            <Button
+                              size="sm"
+                              type="button"
+                              variant="secondary"
+                              className="absolute top-2 right-2 opacity-80 hover:opacity-100"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setNinFileName(null);
                                 if (fileInputRef.current) fileInputRef.current.value = "";
                               }}
                             >
@@ -2318,6 +1892,31 @@ export function Profile() {
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setUtilityBillPreview(null);
+                                setUtilityFileName(null);
+                                if (utilityBillInputRef.current)
+                                  utilityBillInputRef.current.value = "";
+                              }}
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
+                      ) : utilityFileName ? (
+                        <div className="relative py-4">
+                          <FileText className="w-12 h-12 text-emerald-500 mx-auto mb-2" />
+                          <p className="text-sm font-bold text-gray-700 dark:text-gray-300">
+                            {utilityFileName}
+                          </p>
+                          <p className="text-xs text-gray-500">PDF Document Selected</p>
+                          {!kycLocked && (
+                            <Button
+                              size="sm"
+                              type="button"
+                              variant="secondary"
+                              className="absolute top-2 right-2 opacity-80 hover:opacity-100"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setUtilityFileName(null);
                                 if (utilityBillInputRef.current)
                                   utilityBillInputRef.current.value = "";
                               }}
@@ -2417,7 +2016,7 @@ export function Profile() {
                           <Input
                             value={editBankData.bank_name}
                             onChange={(e) =>
-                              setEditBankData({ ...editBankData, bank_name: e.target.value })
+                              setEditBankData({ ...editBankData, bank_name: e.target.value.replace(/[^a-zA-Z\s]/g, '') })
                             }
                             placeholder="Bank Name"
                             className="dark:bg-gray-800 dark:border-gray-700"
@@ -2425,7 +2024,7 @@ export function Profile() {
                           <Input
                             value={editBankData.account_number}
                             onChange={(e) =>
-                              setEditBankData({ ...editBankData, account_number: e.target.value })
+                              setEditBankData({ ...editBankData, account_number: e.target.value.replace(/\D/g, '').slice(0, 10) })
                             }
                             placeholder="Account Number"
                             className="dark:bg-gray-800 dark:border-gray-700"
@@ -2533,7 +2132,7 @@ export function Profile() {
                       id="bank_name"
                       placeholder="e.g. Chase, Wells Fargo"
                       value={newBank.bank_name}
-                      onChange={(e) => setNewBank({ ...newBank, bank_name: e.target.value })}
+                      onChange={(e) => setNewBank({ ...newBank, bank_name: e.target.value.replace(/[^a-zA-Z\s]/g, '') })}
                       className="dark:bg-gray-800 dark:border-gray-700 dark:text-white"
                     />
                   </div>
@@ -2545,7 +2144,7 @@ export function Profile() {
                       id="account_number"
                       placeholder="Digits only"
                       value={newBank.account_number}
-                      onChange={(e) => setNewBank({ ...newBank, account_number: e.target.value })}
+                      onChange={(e) => setNewBank({ ...newBank, account_number: e.target.value.replace(/\D/g, '').slice(0, 10) })}
                       className="dark:bg-gray-800 dark:border-gray-700 dark:text-white"
                     />
                   </div>
@@ -2820,9 +2419,7 @@ export function Profile() {
                       type="password"
                       placeholder="Enter your current account password"
                       value={pinData.current_password}
-                      onChange={(e) =>
-                        setPinData({ ...pinData, current_password: e.target.value })
-                      }
+                      onChange={(e) => setPinData({ ...pinData, current_password: e.target.value })}
                       className="dark:bg-gray-800 dark:border-gray-700"
                       disabled={pinCodeRequested}
                     />
@@ -2869,7 +2466,9 @@ export function Profile() {
                       </div>
 
                       <div className="grid gap-2">
-                        <Label className="dark:text-white text-sm font-medium">New 4-Digit PIN</Label>
+                        <Label className="dark:text-white text-sm font-medium">
+                          New 4-Digit PIN
+                        </Label>
                         <Input
                           type="password"
                           inputMode="numeric"
@@ -2884,7 +2483,9 @@ export function Profile() {
                         />
                       </div>
                       <div className="grid gap-2">
-                        <Label className="dark:text-white text-sm font-medium">Confirm New PIN</Label>
+                        <Label className="dark:text-white text-sm font-medium">
+                          Confirm New PIN
+                        </Label>
                         <Input
                           type="password"
                           inputMode="numeric"
@@ -2893,7 +2494,10 @@ export function Profile() {
                           placeholder="••••"
                           value={pinData.confirm_pin}
                           onChange={(e) =>
-                            setPinData({ ...pinData, confirm_pin: e.target.value.replace(/\D/g, "") })
+                            setPinData({
+                              ...pinData,
+                              confirm_pin: e.target.value.replace(/\D/g, ""),
+                            })
                           }
                           className="dark:bg-gray-800 dark:border-gray-700 text-center tracking-[1em] text-xl font-bold"
                         />
@@ -2913,7 +2517,9 @@ export function Profile() {
                         <Button
                           className="bg-emerald-600 hover:bg-emerald-700"
                           onClick={handlePinChange}
-                          disabled={updatingPin || pinOtpCode.length < 6 || pinData.new_pin.length !== 4}
+                          disabled={
+                            updatingPin || pinOtpCode.length < 6 || pinData.new_pin.length !== 4
+                          }
                         >
                           {updatingPin ? "Updating..." : "Update PIN"}
                         </Button>
@@ -2968,54 +2574,6 @@ export function Profile() {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label className="dark:text-white">Identity Verification (Live Photo)</Label>
-                <div className="border-2 border-dashed rounded-lg p-4 bg-gray-50 dark:bg-gray-800/50 dark:border-gray-700 flex flex-col items-center justify-center min-h-[200px]">
-                  {livePhoto ? (
-                    <div className="relative w-full">
-                      <img
-                        src={livePhoto}
-                        alt="Live Capture"
-                        className="rounded-lg w-full h-auto shadow-md"
-                      />
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        className="absolute top-2 right-2 opacity-80"
-                        onClick={() => setLivePhoto(null)}
-                      >
-                        <X className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  ) : isCapturing ? (
-                    <div className="space-y-3 w-full flex flex-col items-center">
-                      <video
-                        ref={videoRef}
-                        autoPlay
-                        playsInline
-                        className="rounded-lg w-full aspect-video bg-black shadow-inner"
-                      />
-                      <Button onClick={capturePhoto} className="bg-emerald-600 text-white w-full">
-                        <Camera className="w-4 h-4 mr-2" /> Capture Photo
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="text-center space-y-3">
-                      <div className="p-3 bg-white dark:bg-gray-800 rounded-full shadow-sm inline-block">
-                        <Camera className="w-6 h-6 text-gray-400" />
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        <p>We need a live photo of you to match against your identity document.</p>
-                      </div>
-                      <Button variant="outline" size="sm" onClick={startCamera}>
-                        Start Camera
-                      </Button>
-                    </div>
-                  )}
-                  <canvas ref={canvasRef} className="hidden" />
-                </div>
-              </div>
-
               <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded text-[10px] text-blue-800 dark:text-blue-400">
                 <p>
                   <strong>Note:</strong> This process is manually reviewed by our security team. It
@@ -3025,7 +2583,7 @@ export function Profile() {
 
               <Button
                 className="w-full bg-emerald-600 hover:bg-emerald-700 font-bold"
-                disabled={submittingManual || !manualEmail || !livePhoto}
+                disabled={submittingManual || !manualEmail}
                 onClick={handleManualEmailChangeRequest}
               >
                 {submittingManual ? "Submitting..." : "Submit Recovery Request"}

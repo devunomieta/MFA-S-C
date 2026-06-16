@@ -330,12 +330,14 @@ export function PlanDetailsPage() {
               </p>
               <p className="text-lg font-bold text-gray-900 dark:text-white">
                 {userPlan?.plan_metadata?.selected_duration
-                  ? `${userPlan.plan_metadata.selected_duration} ${plan.duration_months ? "Months" : "Weeks"}`
-                  : plan.duration_weeks
-                    ? `${plan.duration_weeks} Weeks`
-                    : plan.duration_months
-                      ? `${plan.duration_months} Months`
-                      : "Flexible"}
+                  ? `${userPlan.plan_metadata.selected_duration} ${["marathon", "sprint"].includes(plan.type) ? "Weeks" : plan.duration_months ? "Months" : "Weeks"}`
+                  : ["marathon", "sprint"].includes(plan.type)
+                    ? "30 or 48 Weeks"
+                    : plan.duration_weeks
+                      ? `${plan.duration_weeks} Weeks`
+                      : plan.duration_months
+                        ? `${plan.duration_months} Months`
+                        : "Flexible"}
               </p>
             </div>
             <div className="bg-white dark:bg-gray-950 p-6 rounded-[2rem] border border-gray-100 dark:border-gray-800 shadow-sm space-y-2">
