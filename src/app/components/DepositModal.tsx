@@ -752,6 +752,37 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose }: DepositModal
         ? "Day"
         : "Week";
 
+  const getAdvanceDateDuration = () => {
+    if (!selectedPlanObj || periodsCovered <= 1) return null;
+    
+    const meta = selectedPlanObj.plan_metadata || {};
+    const startDate = selectedPlanObj.start_date ? new Date(selectedPlanObj.start_date) : new Date();
+    
+    let prevPeriods = 0;
+    let daysPerPeriod = 1;
+    
+    if (planType === "daily_drop") {
+      prevPeriods = Number(meta.total_days_paid || 0);
+      daysPerPeriod = 1;
+    } else if (["marathon", "sprint", "anchor", "step_up", "ajo_circle"].includes(planType || "")) {
+      prevPeriods = Number(meta.weeks_completed || meta.weeks_paid || (meta.payout_history ? meta.payout_history.length : 0));
+      daysPerPeriod = 7;
+    } else if (planType === "monthly_bloom") {
+       prevPeriods = Number(meta.months_completed || 0);
+       daysPerPeriod = 30;
+    }
+    
+    const startOfAdvance = new Date(startDate);
+    startOfAdvance.setDate(startOfAdvance.getDate() + (prevPeriods * daysPerPeriod));
+    
+    const endOfAdvance = new Date(startOfAdvance);
+    endOfAdvance.setDate(endOfAdvance.getDate() + (Math.max(0, periodsCovered - 1) * daysPerPeriod));
+    
+    const formatDate = (d: Date) => d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    
+    return `${formatDate(startOfAdvance)} - ${formatDate(endOfAdvance)}`;
+  };
+
   useEffect(() => {
     if (selectedPlanObj) {
       const amt = getMandatedAmount(selectedPlanObj);
@@ -1089,6 +1120,14 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose }: DepositModal
                       <span className="text-gray-500 dark:text-gray-400">Service Charge</span>
                       <span className="font-medium text-gray-900 dark:text-white">
                         ₦{formatCurrency(fee)}
+                      </span>
+                    </div>
+                  )}
+                  {periodsCovered > 1 && (
+                    <div className="flex justify-between items-center text-[10px] text-indigo-600 dark:text-indigo-400 font-bold uppercase tracking-wider">
+                      <span>Advance ({periodsCovered} {periodLabel}s)</span>
+                      <span>
+                        {getAdvanceDateDuration()}
                       </span>
                     </div>
                   )}

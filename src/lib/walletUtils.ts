@@ -112,6 +112,7 @@ export function calculateBalance(
  */
 export function deduplicateTransactions(transactions: any[]): any[] {
   const mergedIds = new Set<string>();
+  const processedRelatedIds = new Set<string>();
   const result: any[] = [];
 
   const relatedMap = new Map<string, any[]>();
@@ -127,7 +128,7 @@ export function deduplicateTransactions(transactions: any[]): any[] {
   for (const tx of transactions) {
     if (mergedIds.has(tx.id)) continue;
 
-    if (tx.related_id && relatedMap.has(tx.related_id)) {
+    if (tx.related_id && relatedMap.has(tx.related_id) && !processedRelatedIds.has(tx.related_id)) {
       const related = relatedMap.get(tx.related_id)!;
       // Look for a transfer (debit) and a deposit (credit) pair
       if (related.length >= 2) {
@@ -143,6 +144,9 @@ export function deduplicateTransactions(transactions: any[]): any[] {
             id: `merged-${tx.related_id}`,
           };
           result.push(mergedTx);
+          
+          processedRelatedIds.add(tx.related_id);
+          
           // Mark all related transactions of these types as merged
           related.forEach((r) => {
             if (r.type === "transfer" || r.type === "deposit") {

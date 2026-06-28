@@ -131,7 +131,7 @@ export function TransactionDetailsModal({
                     : "text-gray-900 dark:text-white"
                 }`}
               >
-                ${formatCurrency(transaction.amount)}
+                ₦{formatCurrency(transaction.amount)}
               </p>
             </div>
             <div>
@@ -263,7 +263,7 @@ export function TransactionDetailsModal({
                           : "text-gray-600"
                       }
                     >
-                      {["deposit", "loan_disbursement"].includes(tx.type) ? "+" : "-"}$
+                      {["deposit", "loan_disbursement"].includes(tx.type) ? "+" : "-"}₦
                       {formatCurrency(tx.amount)}
                     </span>
                   </div>

@@ -146,7 +146,7 @@ export async function checkAndProcessMaturity(supabase: SupabaseClient, userPlan
             email: profile.email,
             type: "plan",
             title: `Plan Maturity Alert: ${planName}`,
-            message: `Your savings plan "${planName}" has matured! The balance of $${Number(up.current_balance).toLocaleString()} is now ready for withdrawal or roll-over.`,
+            message: `Your savings plan "${planName}" has matured! The balance of ₦${Number(up.current_balance).toLocaleString()} is now ready for withdrawal or roll-over.`,
           });
         }
       }

@@ -114,7 +114,7 @@ export function AdminTransactions() {
       if (tx.type === "withdrawal" && action === "reject") {
         setActionConfirmData({
           title: "Reject Withdrawal",
-          desc: `Rejecting this withdrawal will refund $${tx.amount} back to the user's plan balance. Continue?`,
+          desc: `Rejecting this withdrawal will refund ₦${tx.amount} back to the user's plan balance. Continue?`,
           onConfirm: async () => {
             await executeStatusUpdate(tx, action);
             setIsActionConfirmOpen(false);
