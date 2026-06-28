@@ -271,7 +271,6 @@ export function KYCModal({ isOpen, onOpenChange, onSuccess, mode = "full" }: KYC
         if (data.kyc_street) setStreet(data.kyc_street);
         if (data.kyc_landmark) setLandmark(data.kyc_landmark);
         if (data.utility_bill_url) setExistingUtilityBillUrl(data.utility_bill_url);
-        if (data.avatar_url) setExistingAvatarUrl(data.avatar_url);
       }
     } catch (err) {
       console.error("Error loading profile KYC:", err);

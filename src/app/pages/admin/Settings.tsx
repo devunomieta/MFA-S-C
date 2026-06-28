@@ -10,6 +10,7 @@ import {
   ShieldCheck,
   ShieldAlert,
   Wallet as WalletIcon,
+  Activity,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -93,6 +94,24 @@ export function AdminSettings() {
   });
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [announcementToDelete, setAnnouncementToDelete] = useState<string | null>(null);
+  const [runningReconciliation, setRunningReconciliation] = useState(false);
+
+  async function runReconciliation() {
+    setRunningReconciliation(true);
+    try {
+      const { data, error } = await supabase.rpc("reconcile_system_arrears");
+      if (error) throw error;
+
+      toast.success(
+        `Reconciliation complete! Plans fixed: ${data.plans_fixed}, False arrears cancelled: ${data.arrears_cancelled}`,
+        { duration: 6000 },
+      );
+    } catch (err: any) {
+      toast.error(`Reconciliation failed: ${err.message}`);
+    } finally {
+      setRunningReconciliation(false);
+    }
+  }
 
   useEffect(() => {
     fetchSettings();
@@ -287,6 +306,9 @@ export function AdminSettings() {
           </TabsTrigger>
           <TabsTrigger value="announcements" className="gap-2">
             <Megaphone className="w-4 h-4" /> System Updates
+          </TabsTrigger>
+          <TabsTrigger value="diagnostics" className="gap-2">
+            <Activity className="w-4 h-4" /> Diagnostics
           </TabsTrigger>
         </TabsList>
 
@@ -937,6 +959,40 @@ export function AdminSettings() {
                     )}
                   </div>
                 ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="diagnostics" className="space-y-6 mt-4">
+          <Card className="border-emerald-100 shadow-sm">
+            <CardHeader className="bg-emerald-50/10">
+              <CardTitle className="text-slate-900 flex items-center gap-2">
+                <Activity className="w-5 h-5 text-emerald-600" /> System Diagnostics & Maintenance
+              </CardTitle>
+              <CardDescription>
+                Run automated tools to fix data inconsistencies and maintain system health.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6 pt-6">
+              <div className="flex flex-col md:flex-row md:items-center justify-between p-4 border rounded-xl bg-slate-50 border-slate-200 gap-4">
+                <div className="space-y-1 max-w-xl">
+                  <h4 className="font-semibold text-slate-800">
+                    Historical Arrears Reconciliation
+                  </h4>
+                  <p className="text-sm text-slate-500 leading-relaxed">
+                    Automatically scan all user plans to calculate their true progress based on
+                    actual deposited balances. This will instantly wipe out any falsely generated
+                    arrears and correctly update users' paid days/weeks metadata.
+                  </p>
+                </div>
+                <Button
+                  onClick={runReconciliation}
+                  disabled={runningReconciliation}
+                  className="bg-emerald-600 hover:bg-emerald-700 whitespace-nowrap shrink-0"
+                >
+                  {runningReconciliation ? "Running..." : "Run System Reconciliation"}
+                </Button>
               </div>
             </CardContent>
           </Card>

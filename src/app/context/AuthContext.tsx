@@ -142,7 +142,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }, 10000);
 
-    async function handleAuthStateChange(event: string, newSession: Session | null) {
+    async function handleAuthStateChange(_event: string, newSession: Session | null) {
       if (!mounted) return;
 
       // Skip redundant INITIAL_SESSION if we already have a session from init

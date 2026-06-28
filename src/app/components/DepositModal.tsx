@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 
-import { Copy, Upload, Trash2, Wallet, AlertTriangle } from "lucide-react";
+import { Copy, Upload, Trash2, Wallet, AlertTriangle, Plus, Minus } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/app/components/ui/button";
@@ -25,15 +25,9 @@ interface DepositModalProps {
   onSuccess: () => void;
   defaultPlanId?: string;
   onClose: () => void;
-  initialAdvanceMode?: boolean;
 }
 
-export function DepositModal({
-  onSuccess,
-  defaultPlanId,
-  onClose,
-  initialAdvanceMode,
-}: DepositModalProps) {
+export function DepositModal({ onSuccess, defaultPlanId, onClose }: DepositModalProps) {
   const { user } = useAuth();
 
   const [selectedPlanId, setSelectedPlanId] = useState<string>(defaultPlanId || "");
@@ -57,21 +51,7 @@ export function DepositModal({
   const [generalBalance, setGeneralBalance] = useState(0);
   const [loadingBalance, setLoadingBalance] = useState(true);
 
-  const [isAdvanceMode, setIsAdvanceMode] = useState(initialAdvanceMode || false);
-  const [numUnits, setNumUnits] = useState("1");
-  const [amountPerUnit, setAmountPerUnit] = useState("");
-  const [selectedSlotIndex, setSelectedSlotIndex] = useState<number | "all">("all");
-
-  async function fetchBankDetails() {
-    const { data } = await supabase
-      .from("app_settings")
-      .select("value")
-      .eq("key", "bank_details")
-      .single();
-    if (data?.value) {
-      setBankDetails(data.value);
-    }
-  }
+  const [selectedSlotIndex] = useState<number | "all">("all");
 
   async function fetchPlans() {
     let query = supabase.from("user_plans").select("*, plan:plans(*)").eq("user_id", user?.id);
@@ -146,10 +126,6 @@ export function DepositModal({
       setBankDetails(Array.isArray(data.value) ? data.value : [data.value]);
     }
   }
-
-  useEffect(() => {
-    Promise.resolve().then(() => setIsAdvanceMode(initialAdvanceMode || false));
-  }, [initialAdvanceMode]);
 
   useEffect(() => {
     if (user) {
@@ -265,14 +241,14 @@ export function DepositModal({
     }
 
     // Real-time compliance check for flexible plans (Anchor, Sprint, Marathon, Monthly Bloom)
-    if (!isAdvanceMode && finalAmount < mandatedAmount) {
+    if (finalAmount < mandatedAmount) {
       toast.error(
         `Initial payment for this period must be at least ₦${formatCurrency(mandatedAmount)}`,
       );
       return;
     }
 
-    if (activeTab === "wallet" && (planType === "step_up" || planType === "ajo_circle")) {
+    if (planType === "step_up" || planType === "ajo_circle" || planType === "daily_drop") {
       if (mandatedAmount <= 0) {
         toast.error("Invalid plan amount settings.");
         return;
@@ -308,6 +284,7 @@ export function DepositModal({
     if (receiptFile) {
       try {
         const fileExt = receiptFile.name.split(".").pop();
+
         // eslint-disable-next-line react-hooks/purity
         const fileName = `${user.id}-${receiptFile.size}-${Date.now()}.${fileExt}`;
 
@@ -396,12 +373,18 @@ export function DepositModal({
         else if (planType === "daily_drop") rpcName = "process_daily_drop_deposit";
         else rpcName = "process_daily_drop_deposit";
 
-        let currentNumUnits = isAdvanceMode ? parseInt(numUnits) : null;
-        let currentIsUpfrontAdvance = isAdvanceMode && ["ajo_circle", "step_up"].includes(planType);
+        let currentNumUnits = null;
+        let currentIsUpfrontAdvance = false;
 
-        if (!isAdvanceMode && ["ajo_circle", "step_up"].includes(planType) && finalAmount > mandatedAmount && mandatedAmount > 0) {
-           currentNumUnits = Math.floor(finalAmount / mandatedAmount);
-           currentIsUpfrontAdvance = true;
+        if (
+          ["ajo_circle", "step_up", "daily_drop"].includes(planType) &&
+          finalAmount > mandatedAmount &&
+          mandatedAmount > 0
+        ) {
+          currentNumUnits = Math.floor(finalAmount / mandatedAmount);
+          if (["ajo_circle", "step_up"].includes(planType)) {
+            currentIsUpfrontAdvance = true;
+          }
         }
 
         const rpcPayload: any = {
@@ -433,10 +416,10 @@ export function DepositModal({
           else if (planType === "monthly_bloom")
             msg = `Monthly Bloom Deposit Successful! Progress Updated.`;
           else if (planType === "ajo_circle") {
-            const weeksAdvanced = currentNumUnits && currentNumUnits > 1 ? `${currentNumUnits} Weeks` : "1 Week";
+            const weeksAdvanced =
+              currentNumUnits && currentNumUnits > 1 ? `${currentNumUnits} Weeks` : "1 Week";
             msg = `Ajo Circle Deposit Successful! ${weeksAdvanced} Paid.`;
-          }
-          else if (planType === "daily_drop")
+          } else if (planType === "daily_drop")
             msg = `Daily Drop Successful! ${rpcData.days_advanced} Days Advanced.`;
 
           logActivity({
@@ -606,6 +589,24 @@ export function DepositModal({
     onClose();
   }
 
+  const handleStepAmount = (direction: 1 | -1) => {
+    if (!mandatedAmount) return;
+    const currentAmount = parseFloat(amount) || mandatedAmount;
+    let newAmount = currentAmount + direction * mandatedAmount;
+
+    // Ensure we don't go below the minimum required
+    if (newAmount < mandatedAmount) newAmount = mandatedAmount;
+
+    // Ensure we don't exceed the max goal (if applicable)
+    const maxAllowed = remainingToGoal > 0 ? remainingToGoal : Infinity;
+    const balanceLimit = activeTab === "wallet" ? generalBalance : Infinity;
+    const finalMax = Math.min(maxAllowed, balanceLimit);
+
+    if (direction === 1 && newAmount > finalMax) return;
+
+    setAmount(newAmount.toString());
+  };
+
   // Derived state for the currently selected plan
   // myPlans now contains unique, prioritized UserPlan objects.
   // Match by UserPlan ID (UUID) OR template Plan ID as fallback
@@ -619,9 +620,6 @@ export function DepositModal({
   // Helper to get the mandated fixed amount (if any)
   const getMandatedAmount = (userPlan: any) => {
     if (!userPlan) return 0;
-    // Advance mode resets mandated amount to 0 (user chooses any amount)
-    // Wait, for Daily Drop, user says: "it's auto-calculated and allocated to days... based on their selected amount or duration."
-    // So for advance mode, we don't MANDATE, but we ALLOW anything.
 
     const planType = userPlan.plan?.type || userPlan.type;
     const meta = userPlan.plan_metadata || {};
@@ -645,12 +643,7 @@ export function DepositModal({
       planType === "step_up" ||
       userPlan.plan?.contribution_type === "fixed"
     ) {
-      if (
-        planType === "ajo_circle" &&
-        isAdvanceMode &&
-        selectedSlotIndex !== "all" &&
-        meta.slots?.length > 0
-      ) {
+      if (planType === "ajo_circle" && selectedSlotIndex !== "all" && meta.slots?.length > 0) {
         amount = meta.slots[selectedSlotIndex]?.amount || 0;
       } else {
         amount = meta?.fixed_amount || userPlan.plan?.fixed_amount || 0;
@@ -676,6 +669,9 @@ export function DepositModal({
 
   // Logic for determining if the input should be disabled
   const isInputLocked = () => {
+    if (["ajo_circle", "daily_drop", "step_up"].includes(planType)) {
+      return true;
+    }
     return false;
   };
 
@@ -744,15 +740,10 @@ export function DepositModal({
   const remainingToGoal = getRemainingToGoal();
   const flexiblePlans = ["marathon", "sprint", "anchor"];
   const isExcess =
-    remainingToGoal > 0 && 
-    parseFloat(amount || "0") > remainingToGoal && 
-    planType !== "step_up" && 
+    remainingToGoal > 0 &&
+    parseFloat(amount || "0") > remainingToGoal &&
+    planType !== "step_up" &&
     !flexiblePlans.includes(planType || "");
-
-  const maxUnits =
-    mandatedAmount > 0 && remainingToGoal > 0
-      ? Math.max(1, Math.floor(remainingToGoal / mandatedAmount))
-      : undefined;
 
   const periodLabel =
     selectedPlanObj?.plan?.type === "monthly_bloom"
@@ -768,44 +759,13 @@ export function DepositModal({
       Promise.resolve().then(() => {
         if (amt > 0) {
           setAmount(amt.toString());
-          setAmountPerUnit(amt.toString());
         } else {
           // If no mandated amount, reset to empty to avoid stale values from previous plans
           setAmount("");
-          setAmountPerUnit("");
         }
       });
     }
   }, [selectedPlanId, selectedPlanObj]);
-
-  // Update total amount when units change in advance mode
-  useEffect(() => {
-    if (isAdvanceMode) {
-      let unitAmt = 0;
-      if (selectedPlanObj) {
-        const planType = selectedPlanObj.plan?.type || selectedPlanObj.type;
-        if (["ajo_circle", "daily_drop", "step_up"].includes(planType)) {
-          // Use mandated amount as the unit base for fixed plans
-          unitAmt = getMandatedAmount(selectedPlanObj);
-        } else {
-          unitAmt = parseFloat(amountPerUnit) || 0;
-        }
-      }
-
-      const total = (parseInt(numUnits) || 0) * unitAmt;
-      // Use microtask to avoid cascading render lint error
-      Promise.resolve().then(() => {
-        if (unitAmt > 0) {
-          setAmount(total > 0 ? total.toString() : "");
-          // Also sync amountPerUnit purely for display
-          setAmountPerUnit(unitAmt.toString());
-        } else {
-          const fallbackTotal = (parseInt(numUnits) || 0) * (parseFloat(amountPerUnit) || 0);
-          setAmount(fallbackTotal > 0 ? fallbackTotal.toString() : "");
-        }
-      });
-    }
-  }, [isAdvanceMode, numUnits, amountPerUnit, selectedSlotIndex, selectedPlanObj]);
 
   const getFee = () => {
     if (!selectedPlanObj) return 0;
@@ -821,9 +781,16 @@ export function DepositModal({
       "monthly_bloom",
       "step_up",
     ];
+    const amt = mandatedAmount > 0 ? mandatedAmount : Number(amount) || 0;
+    const currentNumUnits =
+      ["ajo_circle", "step_up"].includes(plan.type) && amt > mandatedAmount && mandatedAmount > 0
+        ? Math.floor(amt / mandatedAmount)
+        : 1;
+    const isUpfrontAdvance = ["ajo_circle", "step_up"].includes(plan.type) && currentNumUnits > 1;
+
     if (deferredFeePlans.includes(plan.type)) {
       // Advance Mode Exception for Fixed Plans: Charge Upfront
-      if (isAdvanceMode && ["ajo_circle", "step_up"].includes(plan.type)) {
+      if (isUpfrontAdvance) {
         // Proceed to calculate upfront fee
       } else {
         return 0;
@@ -839,15 +806,12 @@ export function DepositModal({
     const daysSinceLastFee = lastFeeDate
       ? Math.floor((now.getTime() - lastFeeDate.getTime()) / (1000 * 60 * 60 * 24))
       : 999;
-
     // Suppress fee if already activated AND (not recurring OR already paid this cycle/month)
     // Exception: If we are making an advance payment for fixed plans, ALWAYS calculate the fee!
-    if (isActivated && !(isAdvanceMode && ["ajo_circle", "step_up"].includes(plan.type))) {
+    if (isActivated && !isUpfrontAdvance) {
       if (!plan.service_charge_is_recurring) return 0;
       if (daysSinceLastFee < 30) return 0;
     }
-
-    const amt = mandatedAmount > 0 ? mandatedAmount : Number(amount) || 0;
 
     if (plan.service_charge_type === "percentage") {
       return (amt * (plan.service_charge_percentage || 0)) / 100;
@@ -865,7 +829,7 @@ export function DepositModal({
         let totalFee = 0;
         const slots = userPlan.plan_metadata.slots;
         // The total units being paid for
-        const units = isAdvanceMode ? parseInt(numUnits) || 1 : 1;
+        const units = isUpfrontAdvance ? currentNumUnits : 1;
 
         for (const slot of slots) {
           const slotTier = tiers.find(
@@ -1002,29 +966,63 @@ export function DepositModal({
               <Label htmlFor="amount-ex" className="dark:text-gray-300">
                 Amount
               </Label>
-              <Input
-                id="amount-ex"
-                type="number"
-                step={mandatedAmount > 0 ? mandatedAmount : 50}
-                onKeyDown={(e) => {
-                  if (["-", "+", ".", "e", "E"].includes(e.key)) e.preventDefault();
-                }}
-                placeholder="0.00"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                max={!flexiblePlans.includes(planType || "") && remainingToGoal > 0 ? remainingToGoal : undefined}
-                disabled={isInputLocked()}
-                className={`dark:bg-gray-800 dark:border-gray-700 dark:text-white disabled:opacity-70 disabled:cursor-not-allowed ${!isInputLocked() && !isAdvanceMode && amount && parseFloat(amount) < mandatedAmount ? "border-red-500 focus-visible:ring-red-500" : ""}`}
-              />
+              <div className="flex items-center gap-2">
+                {isInputLocked() && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => handleStepAmount(-1)}
+                    disabled={parseFloat(amount) <= mandatedAmount}
+                    className="shrink-0"
+                  >
+                    <Minus className="w-4 h-4" />
+                  </Button>
+                )}
+                <Input
+                  id="amount-ex"
+                  type="number"
+                  step={mandatedAmount > 0 ? mandatedAmount : 50}
+                  onKeyDown={(e) => {
+                    if (["-", "+", ".", "e", "E"].includes(e.key)) e.preventDefault();
+                  }}
+                  placeholder="0.00"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  max={
+                    !flexiblePlans.includes(planType || "") && remainingToGoal > 0
+                      ? remainingToGoal
+                      : undefined
+                  }
+                  disabled={isInputLocked()}
+                  className={`dark:bg-gray-800 dark:border-gray-700 dark:text-white disabled:opacity-70 disabled:cursor-not-allowed ${!isInputLocked() && amount && parseFloat(amount) < mandatedAmount ? "border-red-500 focus-visible:ring-red-500" : ""}`}
+                />
+                {isInputLocked() && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => handleStepAmount(1)}
+                    disabled={
+                      !flexiblePlans.includes(planType || "") &&
+                      remainingToGoal > 0 &&
+                      parseFloat(amount) >= remainingToGoal
+                    }
+                    className="shrink-0"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </Button>
+                )}
+              </div>
               {amount && parseFloat(amount) > 0 && (
                 <p className="text-[10px] text-emerald-600 font-medium italic mt-1">
                   In Words: {numberToWords(parseFloat(amount))}
                 </p>
               )}
-              {isAdvanceMode && periodsCovered > 0 && (
+              {isInputLocked() && periodsCovered > 0 && (
                 <p className="text-[10px] text-emerald-500 font-bold uppercase tracking-wider">
-                  ✨ This covers {periodsCovered} {periodLabel}
-                  {periodsCovered > 1 ? "s" : ""} in advance
+                  ✦ This covers {periodsCovered} {periodLabel}
+                  {periodsCovered > 1 ? "s" : ""}
                 </p>
               )}
               {isExcess && (
@@ -1037,7 +1035,6 @@ export function DepositModal({
                 </p>
               )}
               {!isInputLocked() &&
-                !isAdvanceMode &&
                 amount &&
                 parseFloat(amount) > 0 &&
                 parseFloat(amount) < mandatedAmount && (
@@ -1051,13 +1048,11 @@ export function DepositModal({
                 parseFloat(amount) < 1000 && (
                   <p className="text-[10px] text-red-500 font-medium">Minimum deposit is ₦1,000</p>
                 )}
-              {["anchor", "sprint", "marathon", "step_up", "monthly_bloom"].includes(planType) &&
-                !isAdvanceMode && (
-                  <p className="text-[10px] text-indigo-600 font-bold bg-indigo-50 dark:bg-indigo-900/20 p-2 rounded border border-indigo-100 dark:border-indigo-800 flex items-center gap-2">
-                    💡{" "}
-                    <span>You can deposit more than the minimum to reach your target faster!</span>
-                  </p>
-                )}
+              {["anchor", "sprint", "marathon", "step_up", "monthly_bloom"].includes(planType) && (
+                <p className="text-[10px] text-indigo-600 font-bold bg-indigo-50 dark:bg-indigo-900/20 p-2 rounded border border-indigo-100 dark:border-indigo-800 flex items-center gap-2">
+                  💡 <span>You can deposit more than the minimum to reach your target faster!</span>
+                </p>
+              )}
               {(isInputLocked() || mandatedAmount > 0 || fee > 0) && (
                 <div className="mt-2 rounded-lg bg-gray-50 dark:bg-gray-800 p-3 border border-gray-100 dark:border-gray-700 space-y-2">
                   {(isInputLocked() || mandatedAmount > 0) && (
@@ -1281,99 +1276,22 @@ export function DepositModal({
 
           <div className="grid gap-2">
             <Label htmlFor="amount-w" className="dark:text-gray-300">
-              {isAdvanceMode ? `Amount per ${periodLabel}` : "Amount to Transfer"}
+              Amount to Transfer
             </Label>
 
-            {isAdvanceMode &&
-              planType === "ajo_circle" &&
-              selectedPlanObj?.plan_metadata?.slots?.length > 1 && (
-                <div className="mb-2">
-                  <Label className="text-[10px] text-gray-500 uppercase font-bold">
-                    Payment Target
-                  </Label>
-                  <select
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-gray-800 dark:border-gray-700 dark:text-white mt-1"
-                    value={selectedSlotIndex.toString()}
-                    onChange={(e) =>
-                      setSelectedSlotIndex(
-                        e.target.value === "all" ? "all" : parseInt(e.target.value),
-                      )
-                    }
-                  >
-                    <option value="all">
-                      Full Weekly Commitment (₦
-                      {formatCurrency(selectedPlanObj.plan_metadata.fixed_amount || 0)})
-                    </option>
-                    {selectedPlanObj.plan_metadata.slots.map((slot: any, idx: number) => (
-                      <option key={idx} value={idx}>
-                        Slot {idx + 1} - Week {slot.proposed_week} (₦{formatCurrency(slot.amount)})
-                      </option>
-                    ))}
-                  </select>
-                </div>
+            <div className="flex items-center gap-2">
+              {isInputLocked() && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => handleStepAmount(-1)}
+                  disabled={parseFloat(amount) <= mandatedAmount}
+                  className="shrink-0"
+                >
+                  <Minus className="w-4 h-4" />
+                </Button>
               )}
-
-            {isAdvanceMode ? (
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <Label
-                      htmlFor="num-units"
-                      className="text-[10px] text-gray-500 uppercase font-bold"
-                    >
-                      Number of {periodLabel}s
-                    </Label>
-                    <Input
-                      id="num-units"
-                      type="number"
-                      onKeyDown={(e) => {
-                        if (["-", "+", ".", "e", "E"].includes(e.key)) e.preventDefault();
-                      }}
-                      min="1"
-                      max={maxUnits}
-                      value={numUnits}
-                      onChange={(e) => {
-                        let val = parseInt(e.target.value);
-                        if (maxUnits && val > maxUnits) val = maxUnits;
-                        setNumUnits(isNaN(val) ? "" : val.toString());
-                      }}
-                      className="dark:bg-gray-800 dark:border-gray-700 dark:text-white"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label
-                      htmlFor="unit-amount"
-                      className="text-[10px] text-gray-500 uppercase font-bold"
-                    >
-                      ₦ Per {periodLabel}
-                    </Label>
-                    <Input
-                      id="unit-amount"
-                      type="number"
-                      step="50"
-                      onKeyDown={(e) => {
-                        if (["-", "+", ".", "e", "E"].includes(e.key)) e.preventDefault();
-                      }}
-                      placeholder="50"
-                      value={amountPerUnit}
-                      onChange={(e) => setAmountPerUnit(e.target.value)}
-                      disabled={["step_up", "ajo_circle", "daily_drop"].includes(planType || "")}
-                      className="dark:bg-gray-800 dark:border-gray-700 dark:text-white disabled:opacity-70 disabled:cursor-not-allowed"
-                    />
-                  </div>
-                </div>
-                <div className="p-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800">
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs text-emerald-700 dark:text-emerald-400 font-medium">
-                      Total Contribution
-                    </span>
-                    <span className="text-sm font-bold text-emerald-800 dark:text-emerald-200">
-                      ₦{formatCurrency(Number(amount) || 0)}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            ) : (
               <Input
                 id="amount-w"
                 type="number"
@@ -1384,37 +1302,56 @@ export function DepositModal({
                 placeholder="50"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                max={!flexiblePlans.includes(planType || "") && remainingToGoal > 0 && remainingToGoal < generalBalance ? remainingToGoal : generalBalance}
+                max={
+                  !flexiblePlans.includes(planType || "") &&
+                  remainingToGoal > 0 &&
+                  remainingToGoal < generalBalance
+                    ? remainingToGoal
+                    : generalBalance
+                }
                 disabled={isInputLocked()}
-                className={`dark:bg-gray-800 dark:border-gray-700 dark:text-white disabled:opacity-70 disabled:cursor-not-allowed ${!isInputLocked() && !isAdvanceMode && amount && parseFloat(amount) < mandatedAmount ? "border-red-500 focus-visible:ring-red-500" : ""}`}
+                className={`dark:bg-gray-800 dark:border-gray-700 dark:text-white disabled:opacity-70 disabled:cursor-not-allowed ${!isInputLocked() && amount && parseFloat(amount) < mandatedAmount ? "border-red-500 focus-visible:ring-red-500" : ""}`}
               />
-            )}
+              {isInputLocked() && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => handleStepAmount(1)}
+                  disabled={
+                    parseFloat(amount) >= generalBalance ||
+                    (!flexiblePlans.includes(planType || "") &&
+                      remainingToGoal > 0 &&
+                      parseFloat(amount) >= remainingToGoal)
+                  }
+                  className="shrink-0"
+                >
+                  <Plus className="w-4 h-4" />
+                </Button>
+              )}
+            </div>
             {amount && parseFloat(amount) > 0 && (
               <p className="text-[10px] text-emerald-600 font-medium italic mt-1">
                 In Words: {numberToWords(parseFloat(amount))}
               </p>
             )}
-            {["anchor", "sprint", "marathon", "step_up", "monthly_bloom"].includes(planType) &&
-              !isAdvanceMode && (
-                <p className="text-[10px] text-indigo-600 font-bold bg-indigo-50 dark:bg-indigo-900/20 p-2 rounded border border-indigo-100 dark:border-indigo-800 flex items-center gap-2">
-                  💡 <span>You can deposit more than the minimum to reach your target faster!</span>
-                </p>
-              )}
-
-            {isAdvanceMode && (Number(amount) || 0) > 0 && (
-              <p className="text-[10px] text-emerald-500 font-bold uppercase tracking-wider">
-                ✨ This covers {numUnits} {periodLabel}
-                {parseInt(numUnits) > 1 ? "s" : ""} in advance
+            {["anchor", "sprint", "marathon", "step_up", "monthly_bloom"].includes(planType) && (
+              <p className="text-[10px] text-indigo-600 font-bold bg-indigo-50 dark:bg-indigo-900/20 p-2 rounded border border-indigo-100 dark:border-indigo-800 flex items-center gap-2">
+                💡 <span>You can deposit more than the minimum to reach your target faster!</span>
               </p>
             )}
-            {!isAdvanceMode &&
-              selectedPlanId &&
-              mandatedAmount === 0 &&
-              (Number(amount) || 0) > 0 && (
-                <p className="text-[10px] text-emerald-500 font-bold uppercase tracking-wider">
-                  ✨ Save More for the {planType === "monthly_bloom" ? "Month" : "Week"}
-                </p>
-              )}
+
+            {isInputLocked() && periodsCovered > 0 && (Number(amount) || 0) > 0 && (
+              <p className="text-[10px] text-emerald-500 font-bold uppercase tracking-wider">
+                ✦ This covers {periodsCovered} {periodLabel}
+                {periodsCovered > 1 ? "s" : ""}
+              </p>
+            )}
+            {selectedPlanId && mandatedAmount === 0 && (Number(amount) || 0) > 0 && (
+              <p className="text-[10px] text-emerald-500 font-bold uppercase tracking-wider">
+                ✨ Save More for the {planType === "monthly_bloom" ? "Month" : "Week"}
+              </p>
+            )}
             {isExcess && (
               <p className="text-[10px] text-amber-600 font-bold bg-amber-50 dark:bg-amber-900/20 p-2 rounded border border-amber-100 dark:border-amber-800 flex items-center gap-2">
                 <AlertTriangle className="w-3 h-3 text-amber-500" />

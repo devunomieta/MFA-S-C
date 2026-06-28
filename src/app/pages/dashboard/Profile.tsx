@@ -1486,37 +1486,49 @@ export function Profile() {
 
                     <div className="relative z-10 grid gap-6 md:grid-cols-2">
                       <div className="space-y-1">
-                        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest block">BVN</span>
+                        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest block">
+                          BVN
+                        </span>
                         <span className="text-base font-semibold text-slate-900 dark:text-white">
                           {profile.bvn || "N/A"}
                         </span>
                       </div>
                       <div className="space-y-1">
-                        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest block">NIN</span>
+                        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest block">
+                          NIN
+                        </span>
                         <span className="text-base font-semibold text-slate-900 dark:text-white">
                           {profile.nin || "N/A"}
                         </span>
                       </div>
                       <div className="space-y-1">
-                        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest block">Country</span>
+                        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest block">
+                          Country
+                        </span>
                         <span className="text-base font-semibold text-slate-900 dark:text-white flex items-center gap-2">
                           {profile.kyc_country || "Nigeria"}
                         </span>
                       </div>
                       <div className="space-y-1">
-                        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest block">State</span>
+                        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest block">
+                          State
+                        </span>
                         <span className="text-base font-semibold text-slate-900 dark:text-white">
                           {profile.kyc_state || "Lagos"}
                         </span>
                       </div>
                       <div className="space-y-1 md:col-span-2">
-                        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest block">Street Address</span>
+                        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest block">
+                          Street Address
+                        </span>
                         <span className="text-base font-semibold text-slate-900 dark:text-white">
                           {profile.kyc_street || "N/A"}
                         </span>
                       </div>
                       <div className="space-y-1 md:col-span-2">
-                        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest block">Landmark</span>
+                        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest block">
+                          Landmark
+                        </span>
                         <span className="text-base font-semibold text-slate-900 dark:text-white">
                           {profile.kyc_landmark || "N/A"}
                         </span>
@@ -2016,7 +2028,10 @@ export function Profile() {
                           <Input
                             value={editBankData.bank_name}
                             onChange={(e) =>
-                              setEditBankData({ ...editBankData, bank_name: e.target.value.replace(/[^a-zA-Z\s]/g, '') })
+                              setEditBankData({
+                                ...editBankData,
+                                bank_name: e.target.value.replace(/[^a-zA-Z\s]/g, ""),
+                              })
                             }
                             placeholder="Bank Name"
                             className="dark:bg-gray-800 dark:border-gray-700"
@@ -2024,7 +2039,10 @@ export function Profile() {
                           <Input
                             value={editBankData.account_number}
                             onChange={(e) =>
-                              setEditBankData({ ...editBankData, account_number: e.target.value.replace(/\D/g, '').slice(0, 10) })
+                              setEditBankData({
+                                ...editBankData,
+                                account_number: e.target.value.replace(/\D/g, "").slice(0, 10),
+                              })
                             }
                             placeholder="Account Number"
                             className="dark:bg-gray-800 dark:border-gray-700"
@@ -2132,7 +2150,12 @@ export function Profile() {
                       id="bank_name"
                       placeholder="e.g. Chase, Wells Fargo"
                       value={newBank.bank_name}
-                      onChange={(e) => setNewBank({ ...newBank, bank_name: e.target.value.replace(/[^a-zA-Z\s]/g, '') })}
+                      onChange={(e) =>
+                        setNewBank({
+                          ...newBank,
+                          bank_name: e.target.value.replace(/[^a-zA-Z\s]/g, ""),
+                        })
+                      }
                       className="dark:bg-gray-800 dark:border-gray-700 dark:text-white"
                     />
                   </div>
@@ -2144,7 +2167,12 @@ export function Profile() {
                       id="account_number"
                       placeholder="Digits only"
                       value={newBank.account_number}
-                      onChange={(e) => setNewBank({ ...newBank, account_number: e.target.value.replace(/\D/g, '').slice(0, 10) })}
+                      onChange={(e) =>
+                        setNewBank({
+                          ...newBank,
+                          account_number: e.target.value.replace(/\D/g, "").slice(0, 10),
+                        })
+                      }
                       className="dark:bg-gray-800 dark:border-gray-700 dark:text-white"
                     />
                   </div>

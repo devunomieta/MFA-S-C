@@ -137,6 +137,11 @@ export function PlanActivityHistory({ userId, planId, userPlanId }: PlanActivity
                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">
                     {tx.description || "Transaction completed"}
                   </p>
+                  {tx.metadata?.covered_period && (
+                    <p className="text-[9px] font-bold text-indigo-500 mt-0.5 uppercase tracking-wide">
+                      {tx.metadata.covered_period}
+                    </p>
+                  )}
                 </div>
               </div>
               <div className="text-right">

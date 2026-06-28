@@ -735,8 +735,7 @@ export function PlanDetailsPage() {
             fetchPlanDetails();
           }}
           onClose={() => setSelectedPlanForDeposit(null)}
-          defaultPlanId={selectedPlanForDeposit?.id || ""}
-          initialAdvanceMode={selectedPlanForDeposit?.isAdvance}
+          defaultPlanId={selectedPlanForDeposit?.id}
         />
       </Dialog>
     </div>

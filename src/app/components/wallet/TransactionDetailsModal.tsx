@@ -145,7 +145,14 @@ export function TransactionDetailsModal({
             </div>
             <div className="col-span-2">
               <p className="text-xs text-gray-500">Description</p>
-              <p className="text-sm dark:text-gray-300">{transaction.description}</p>
+              <div className="flex flex-col">
+                <p className="text-sm dark:text-gray-300">{transaction.description}</p>
+                {transaction.metadata?.covered_period && (
+                  <p className="text-[10px] font-bold text-indigo-500 mt-1 uppercase tracking-wide">
+                    {transaction.metadata.covered_period}
+                  </p>
+                )}
+              </div>
             </div>
             <div>
               <p className="text-xs text-gray-500">Date</p>
@@ -220,7 +227,14 @@ export function TransactionDetailsModal({
                 <h4 className="text-sm font-semibold dark:text-white flex items-center gap-2">
                   <FileText className="w-4 h-4" /> Related Plan: {relatedData.name}
                 </h4>
-                <p className="text-xs text-gray-500">{relatedData.description}</p>
+                <div>
+                  <p className="text-xs text-gray-500">{relatedData.description}</p>
+                  {relatedData.metadata?.covered_period && (
+                    <p className="text-[9px] font-bold text-indigo-500 mt-0.5 uppercase tracking-wide">
+                      {relatedData.metadata.covered_period}
+                    </p>
+                  )}
+                </div>
               </div>
             )}
 

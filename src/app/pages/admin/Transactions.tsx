@@ -433,8 +433,15 @@ export function AdminTransactions() {
                 >
                   {tx.type === "withdrawal" ? "-" : "+"}${Number(tx.amount).toLocaleString()}
                 </td>
-                <td className="px-4 py-3 text-slate-500 text-xs truncate max-w-[150px]">
-                  {tx.plan?.name || tx.description || "General Wallet"}
+                <td className="px-4 py-3 text-slate-500 text-xs">
+                  <div className="truncate max-w-[150px]">
+                    {tx.plan?.name || tx.description || "General Wallet"}
+                  </div>
+                  {tx.metadata?.covered_period && (
+                    <div className="text-[9px] font-bold text-indigo-500 mt-0.5 uppercase tracking-wide truncate max-w-[150px]">
+                      {tx.metadata.covered_period}
+                    </div>
+                  )}
                 </td>
                 <td className="px-4 py-3 text-center">
                   {tx.receipt_url ? (

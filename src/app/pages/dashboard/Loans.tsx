@@ -208,7 +208,7 @@ export function Loans() {
     const activePlans = plansData ? plansData.length > 0 : false;
     setHasActivePlan(activePlans);
 
-    const withdrawablePlan = plansData?.find((p) => p.plans.type === "withdrawable_wallet");
+    const withdrawablePlan = plansData?.find((p: any) => p.plans?.type === "withdrawable_wallet");
     setWithdrawableBalance(withdrawablePlan?.current_balance || 0);
 
     // 3. Fetch Balance (For Max Loan Calc)

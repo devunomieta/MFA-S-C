@@ -75,7 +75,7 @@ export function Signup() {
 
       if (!userAuth.user) throw new Error("Signup failed. Please try again.");
 
-      logActivity({ action: "USER_SIGNUP", details: { method: "email", mode: "standard" } });
+      logActivity({ action: "USER_JOIN", details: { method: "email", mode: "standard" } });
       toast.success("Account created successfully!");
 
       if (!userAuth.session) {
@@ -129,7 +129,7 @@ export function Signup() {
 
       if (error) throw error;
 
-      logActivity({ action: "USER_SIGNUP", details: { method: "magic_link", mode: "magic" } });
+      logActivity({ action: "USER_JOIN", details: { method: "magic_link", mode: "magic" } });
       toast.info("Magic Link sent! Please check your email.");
       navigate("/verify-otp", { state: { email: formData.email, mode: "signup", joinPlanId } });
     } catch (error: any) {

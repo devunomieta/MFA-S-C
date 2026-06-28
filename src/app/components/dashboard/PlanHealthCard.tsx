@@ -36,19 +36,23 @@ export function PlanHealthCard({ userPlan }: PlanHealthCardProps) {
 
   // Arrears Calculation
   const calculateArrears = () => {
-    if (!fixedAmount || planType !== "daily_drop") return 0;
+    if (planType === "daily_drop") {
+      const totalDaysPaid = parseInt(metadata.total_days_paid || "0", 10);
+      const startDateStr = userPlan.start_date || userPlan.created_at;
+      const startDate = new Date(startDateStr);
+      startDate.setHours(0, 0, 0, 0);
 
-    const lastPaymentStr = metadata.last_payment_date || userPlan.start_date || userPlan.created_at;
-    const lastPayment = new Date(lastPaymentStr);
-    lastPayment.setHours(0, 0, 0, 0);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+      const diffTime = today.getTime() - startDate.getTime();
+      const expectedDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
 
-    const diffTime = today.getTime() - lastPayment.getTime();
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+      const missedDays = Math.max(0, expectedDays - totalDaysPaid);
+      return missedDays * fixedAmount;
+    }
 
-    return Math.max(0, diffDays * fixedAmount);
+    return 0;
   };
 
   const arrears = calculateArrears();

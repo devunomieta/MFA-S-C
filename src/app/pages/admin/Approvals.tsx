@@ -498,7 +498,9 @@ export function AdminApprovals() {
                                   {req.gov_id_url?.toLowerCase().includes(".pdf") ? (
                                     <div className="w-full h-full flex flex-col items-center justify-center bg-emerald-50 text-emerald-600">
                                       <ShieldCheck className="w-6 h-6 mb-1" />
-                                      <span className="text-[10px] font-bold uppercase tracking-wider">PDF</span>
+                                      <span className="text-[10px] font-bold uppercase tracking-wider">
+                                        PDF
+                                      </span>
                                     </div>
                                   ) : (
                                     <img
@@ -554,7 +556,9 @@ export function AdminApprovals() {
                                   {req.utility_bill_url?.toLowerCase().includes(".pdf") ? (
                                     <div className="w-full h-full flex flex-col items-center justify-center bg-emerald-50 text-emerald-600">
                                       <Banknote className="w-6 h-6 mb-1" />
-                                      <span className="text-[10px] font-bold uppercase tracking-wider">PDF</span>
+                                      <span className="text-[10px] font-bold uppercase tracking-wider">
+                                        PDF
+                                      </span>
                                     </div>
                                   ) : (
                                     <img

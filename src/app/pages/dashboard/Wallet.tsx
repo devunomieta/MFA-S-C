@@ -1291,7 +1291,14 @@ export function Wallet() {
                                 className="dark:text-gray-400 text-xs font-medium max-w-md whitespace-normal leading-relaxed"
                                 title={tx.description}
                               >
-                                {tx.description}
+                                <div>
+                                  {tx.description}
+                                  {tx.metadata?.covered_period && (
+                                    <p className="text-[9px] font-bold text-indigo-500 mt-0.5 uppercase tracking-wide">
+                                      {tx.metadata.covered_period}
+                                    </p>
+                                  )}
+                                </div>
                               </TableCell>
                               <TableCell>
                                 <span
