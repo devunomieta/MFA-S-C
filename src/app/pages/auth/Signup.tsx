@@ -154,7 +154,7 @@ export function Signup() {
   return (
     <>
       {/* Mode toggle */}
-      <div className="bg-slate-100 dark:bg-slate-800 p-1 rounded-xl flex items-center mb-5">
+      <div className="bg-slate-100 dark:bg-slate-800 hidden p-1 rounded-xl flex items-center mb-5">
         <button
           type="button"
           onClick={() => setAuthMode("standard")}
@@ -169,7 +169,7 @@ export function Signup() {
         <button
           type="button"
           onClick={() => setAuthMode("magic")}
-          className={`flex-1 h-9 rounded-lg text-xs font-bold transition-all ${
+          className={`flex-1 h-9 rounded-lg text-xs hidden font-bold transition-all ${
             authMode === "magic"
               ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm"
               : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
