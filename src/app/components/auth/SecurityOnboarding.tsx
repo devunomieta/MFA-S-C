@@ -255,7 +255,27 @@ export function SecurityOnboarding({ onComplete }: SecurityOnboardingProps) {
         data: { has_password: true },
       });
 
-      if (error) throw error;
+      if (error) {
+        // Special case: Profile was wiped but Auth user already has a password
+        if (error.message?.includes("Current password required") || error.message?.includes("password required")) {
+          // Update profile flag too
+          const { error: profileError } = await supabase
+            .from("profiles")
+            .update({ has_password: true })
+            .eq("id", user?.id);
+
+          if (profileError) throw profileError;
+
+          toast.success("You already have a password set!");
+          if (requiresPin) {
+            setStep("pin");
+          } else {
+            await completeOnboarding();
+          }
+          return;
+        }
+        throw error;
+      }
 
       // Update profile flag too
       const { error: profileError } = await supabase
