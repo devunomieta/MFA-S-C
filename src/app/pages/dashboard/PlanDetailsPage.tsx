@@ -344,18 +344,22 @@ export function PlanDetailsPage() {
               </p>
               <p className="text-lg font-bold text-gray-900 dark:text-white">
                 {userPlan?.plan_metadata?.selected_duration
-                  ? `${userPlan.plan_metadata.selected_duration} ${["marathon", "sprint", "anchor"].includes(plan.type) ? "Weeks" : plan.duration_months ? "Months" : "Weeks"}`
+                  ? `${userPlan.plan_metadata.selected_duration} ${["marathon", "sprint", "anchor", "step_up", "ajo"].includes(plan.type) ? "Weeks" : ["monthly_bloom"].includes(plan.type) ? "Months" : ["daily_drop"].includes(plan.type) ? "Days" : plan.duration_months ? "Months" : "Weeks"}`
                   : plan.type === "marathon"
                     ? "30 or 48 Weeks"
                     : plan.type === "sprint"
                       ? "30 Weeks"
                       : plan.type === "anchor"
                         ? "48 Weeks"
-                        : plan.duration_weeks
-                          ? `${plan.duration_weeks} Weeks`
-                          : plan.duration_months
-                            ? `${plan.duration_months} Months`
-                            : "Flexible"}
+                        : plan.type === "daily_drop"
+                          ? "31 Days - 12 Months"
+                          : plan.type === "monthly_bloom"
+                            ? "4 - 12 Months"
+                            : plan.duration_weeks
+                              ? `${plan.duration_weeks} Weeks`
+                              : plan.duration_months
+                                ? `${plan.duration_months} Months`
+                                : "Flexible"}
               </p>
             </div>
             <div className="bg-white dark:bg-gray-950 p-6 rounded-[2rem] border border-gray-100 dark:border-gray-800 shadow-sm space-y-2">

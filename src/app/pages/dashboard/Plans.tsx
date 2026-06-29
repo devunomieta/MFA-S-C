@@ -125,11 +125,15 @@ const PlanCardGrid = ({
                           ? "30 Weeks"
                           : plan.type === "anchor"
                             ? "48 Weeks"
-                            : plan.duration_weeks
-                              ? `${plan.duration_weeks} Weeks`
-                              : plan.duration_months
-                                ? `${plan.duration_months} Months`
-                                : "Flexible"}
+                            : plan.type === "daily_drop"
+                              ? "31 Days - 12 Months"
+                              : plan.type === "monthly_bloom"
+                                ? "4 - 12 Months"
+                                : plan.duration_weeks
+                                  ? `${plan.duration_weeks} Weeks`
+                                  : plan.duration_months
+                                    ? `${plan.duration_months} Months`
+                                    : "Flexible"}
                     </span>
                   </div>
 
