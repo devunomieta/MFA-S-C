@@ -726,10 +726,22 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose }: DepositModal
     }
     if (planType === "daily_drop" || planType === "step_up" || planType === "ajo_circle") {
       const fixedAmt = meta.fixed_amount || selectedPlanObj.plan?.fixed_amount || 0;
-      const duration =
-        selectedPlanObj.plan?.config?.duration_days ||
-        selectedPlanObj.plan?.config?.duration_weeks ||
-        10;
+      
+      let duration = 10;
+      if (meta.selected_duration) {
+        duration = meta.selected_duration;
+      } else if (meta.duration) {
+        duration = meta.duration;
+      } else if (selectedPlanObj.plan?.config?.duration_days) {
+        duration = selectedPlanObj.plan.config.duration_days;
+      } else if (selectedPlanObj.plan?.config?.duration_weeks) {
+        duration = selectedPlanObj.plan.config.duration_weeks;
+      }
+
+      if (duration === -1) {
+        return 0; // Unlimited plan, no remaining to goal cap
+      }
+
       const totalGoal = fixedAmt * duration;
       const saved = meta.total_saved || 0;
       return totalGoal - saved;
@@ -738,11 +750,10 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose }: DepositModal
   };
 
   const remainingToGoal = getRemainingToGoal();
-  const flexiblePlans = ["marathon", "sprint", "anchor"];
+  const flexiblePlans = ["marathon", "sprint", "anchor", "monthly_bloom"];
   const isExcess =
     remainingToGoal > 0 &&
     parseFloat(amount || "0") > remainingToGoal &&
-    planType !== "step_up" &&
     !flexiblePlans.includes(planType || "");
 
   const periodLabel =
