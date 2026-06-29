@@ -135,9 +135,12 @@ export function StepUpPlanCard({
             <>
               <div className="flex flex-col gap-2">
                 {arrears > 0 ? (
-                  <div className="flex items-center gap-2 p-2 bg-red-50 text-red-700 rounded-md text-xs border border-red-100 font-medium">
-                    <AlertTriangle className="w-3.5 h-3.5" />
-                    <span>Arrears: {formatNaira(arrears)}</span>
+                  <div className="flex items-center justify-between p-2 bg-red-50 text-red-700 rounded-md text-xs border border-red-100 font-medium">
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle className="w-3.5 h-3.5" />
+                      <span>Arrears: {formatNaira(arrears)}</span>
+                    </div>
+                    <Button size="sm" onClick={onDeposit} className="h-6 text-[10px] bg-red-600 hover:bg-red-700 text-white px-2">Pay</Button>
                   </div>
                 ) : isTargetMet ? (
                   <div className="flex flex-col gap-1">

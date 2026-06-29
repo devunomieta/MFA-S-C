@@ -117,9 +117,12 @@ export function MonthlyBloomPlanCard({
         <CardContent className="space-y-6 flex-1 pt-4">
           <div className="flex flex-col gap-2">
             {arrears > 0 ? (
-              <div className="bg-red-50 p-2 rounded border border-red-100 flex items-center gap-2 text-xs text-red-700 font-medium animate-pulse">
-                <AlertTriangle className="w-3.5 h-3.5 text-red-500" />
-                Arrears: {formatNaira(arrears)}
+              <div className="bg-red-50 p-2 rounded border border-red-100 flex items-center justify-between text-xs text-red-700 font-medium">
+                <div className="flex items-center gap-2 animate-pulse">
+                  <AlertTriangle className="w-3.5 h-3.5 text-red-500" />
+                  Arrears: {formatNaira(arrears)}
+                </div>
+                <Button size="sm" onClick={onDeposit} className="h-6 text-[10px] bg-red-600 hover:bg-red-700 text-white px-2">Pay</Button>
               </div>
             ) : isTargetMet ? (
               <div className="flex flex-col gap-1">

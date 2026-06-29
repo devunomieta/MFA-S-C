@@ -58,17 +58,32 @@ export function PlanDetailsPage() {
     if (!id) return;
     setLoading(true);
     try {
-      // Check if ID is a UUID
       const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 
       let planData = null;
+      let userPlanData = null;
+
       if (isUUID) {
-        const { data } = await supabase.from("plans").select("*").eq("id", id).single();
-        if (data) planData = data;
+        // Fast path: Concurrent fetch when using UUID
+        const [planRes, userPlanRes] = await Promise.all([
+          supabase.from("plans").select("*").eq("id", id).single(),
+          user?.id ? supabase
+            .from("user_plans")
+            .select(`*, plan:plans(*)`)
+            .eq("user_id", user.id)
+            .eq("plan_id", id)
+            .not("status", "eq", "cancelled")
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle() : Promise.resolve({ data: null })
+        ]);
+        
+        if (planRes.data) planData = planRes.data;
+        if (userPlanRes.data) userPlanData = userPlanRes.data;
       }
 
       if (!planData) {
-        // Try fetching by name (unslugified)
+        // Fallbacks for slug
         const possibleName = unslugify(id);
         const { data } = await supabase
           .from("plans")
@@ -80,9 +95,21 @@ export function PlanDetailsPage() {
         if (data) {
           planData = data;
         } else {
-          // Final fallback: fetch all and find matching slug
           const { data: allPlans } = await supabase.from("plans").select("*");
           planData = allPlans?.find((p) => slugify(p.name) === id) || null;
+        }
+
+        if (planData && user?.id && !userPlanData) {
+          const { data: fallbackUserPlan } = await supabase
+            .from("user_plans")
+            .select(`*, plan:plans(*)`)
+            .eq("user_id", user.id)
+            .eq("plan_id", planData.id)
+            .not("status", "eq", "cancelled")
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          userPlanData = fallbackUserPlan;
         }
       }
 
@@ -93,20 +120,7 @@ export function PlanDetailsPage() {
       }
 
       setPlan(planData as Plan);
-
-      const { data: userPlanData } = await supabase
-        .from("user_plans")
-        .select(`*, plan:plans(*)`)
-        .eq("user_id", user?.id)
-        .eq("plan_id", planData.id)
-        .not("status", "eq", "cancelled")
-        .maybeSingle();
-
-      if (userPlanData) {
-        setUserPlan(userPlanData as any);
-      } else {
-        setUserPlan(null);
-      }
+      setUserPlan(userPlanData ? (userPlanData as any) : null);
     } catch (err) {
       console.error("Error fetching plan details:", err);
     } finally {
@@ -330,14 +344,18 @@ export function PlanDetailsPage() {
               </p>
               <p className="text-lg font-bold text-gray-900 dark:text-white">
                 {userPlan?.plan_metadata?.selected_duration
-                  ? `${userPlan.plan_metadata.selected_duration} ${["marathon", "sprint"].includes(plan.type) ? "Weeks" : plan.duration_months ? "Months" : "Weeks"}`
-                  : ["marathon", "sprint"].includes(plan.type)
+                  ? `${userPlan.plan_metadata.selected_duration} ${["marathon", "sprint", "anchor"].includes(plan.type) ? "Weeks" : plan.duration_months ? "Months" : "Weeks"}`
+                  : plan.type === "marathon"
                     ? "30 or 48 Weeks"
-                    : plan.duration_weeks
-                      ? `${plan.duration_weeks} Weeks`
-                      : plan.duration_months
-                        ? `${plan.duration_months} Months`
-                        : "Flexible"}
+                    : plan.type === "sprint"
+                      ? "30 Weeks"
+                      : plan.type === "anchor"
+                        ? "48 Weeks"
+                        : plan.duration_weeks
+                          ? `${plan.duration_weeks} Weeks`
+                          : plan.duration_months
+                            ? `${plan.duration_months} Months`
+                            : "Flexible"}
               </p>
             </div>
             <div className="bg-white dark:bg-gray-950 p-6 rounded-[2rem] border border-gray-100 dark:border-gray-800 shadow-sm space-y-2">

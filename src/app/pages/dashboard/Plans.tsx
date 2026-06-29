@@ -121,11 +121,15 @@ const PlanCardGrid = ({
                     <span className="text-gray-700 dark:text-gray-200 font-bold">
                       {plan.type === "marathon"
                         ? "30 or 48 Weeks"
-                        : plan.duration_weeks
-                          ? `${plan.duration_weeks} Weeks`
-                          : plan.duration_months
-                            ? `${plan.duration_months} Months`
-                            : "Flexible"}
+                        : plan.type === "sprint"
+                          ? "30 Weeks"
+                          : plan.type === "anchor"
+                            ? "48 Weeks"
+                            : plan.duration_weeks
+                              ? `${plan.duration_weeks} Weeks`
+                              : plan.duration_months
+                                ? `${plan.duration_months} Months`
+                                : "Flexible"}
                     </span>
                   </div>
 
@@ -197,30 +201,21 @@ export function Plans() {
 
   useEffect(() => {
     const fetchData = async () => {
-      // Fetch Plans
-      const { data: plansData, error: plansError } = await supabase
-        .from("plans")
-        .select("*")
-        .eq("is_active", true)
-        .order("min_amount", { ascending: true });
+      // Fetch Plans & My Plans Concurrently
+      const [plansRes, myPlansRes] = await Promise.all([
+        supabase.from("plans").select("*").eq("is_active", true).order("min_amount", { ascending: true }),
+        user ? supabase.from("user_plans").select(`*, plan:plans(*)`).eq("user_id", user.id) : Promise.resolve({ data: null, error: null })
+      ]);
 
-      if (!plansError && plansData) {
-        setAvailablePlans(plansData as any);
+      if (!plansRes.error && plansRes.data) {
+        setAvailablePlans(plansRes.data as any);
       }
 
-      // Fetch My Plans
-      if (user) {
-        const { data: myData, error: myError } = await supabase
-          .from("user_plans")
-          .select(`*, plan:plans(*)`)
-          .eq("user_id", user.id);
-
-        if (!myError && myData) {
-          setMyPlans(myData as any);
-          await checkAndProcessMaturity(supabase, myData);
-        }
-        setLoading(false);
+      if (user && !myPlansRes.error && myPlansRes.data) {
+        setMyPlans(myPlansRes.data as any);
+        await checkAndProcessMaturity(supabase, myPlansRes.data);
       }
+      setLoading(false);
     };
 
     fetchData();

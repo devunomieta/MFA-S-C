@@ -378,7 +378,7 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose }: DepositModal
 
         if (
           ["ajo_circle", "step_up", "daily_drop"].includes(planType) &&
-          finalAmount > mandatedAmount &&
+          finalAmount >= mandatedAmount &&
           mandatedAmount > 0
         ) {
           currentNumUnits = Math.floor(finalAmount / mandatedAmount);

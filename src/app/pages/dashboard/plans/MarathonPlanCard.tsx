@@ -110,9 +110,12 @@ export function MarathonPlanCard({
           <div className="flex flex-col gap-2">
             {arrears > 0 && (
               <div className="flex flex-col gap-1 p-2 bg-red-50 text-red-700 rounded-md border border-red-100 shadow-sm">
-                <div className="flex items-center gap-2 text-xs font-bold">
-                  <AlertTriangle className="w-3.5 h-3.5" />
-                  <span>Arrears: {formatNaira(arrears)}</span>
+                <div className="flex items-center justify-between text-xs font-bold">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="w-3.5 h-3.5" />
+                    <span>Arrears: {formatNaira(arrears)}</span>
+                  </div>
+                  <Button size="sm" onClick={onDeposit} className="h-6 text-[10px] bg-red-600 hover:bg-red-700 text-white px-2">Pay</Button>
                 </div>
                 {missedWeeksDetails.length > 0 && (
                   <div className="text-[10px] mt-1 space-y-0.5 border-t border-red-200/50 pt-1">
