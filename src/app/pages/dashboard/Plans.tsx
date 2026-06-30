@@ -81,7 +81,7 @@ const PlanCardGrid = ({
                                 : "bg-gray-100 text-gray-600"
                           }`}
                         >
-                          {item.status.toUpperCase()}
+                          {item.status.replace(/_/g, " ").toUpperCase()}
                         </Badge>
                       ) : (
                         <Badge

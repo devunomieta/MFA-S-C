@@ -234,19 +234,13 @@ export function AjoPlanCard({
       <>
         <Card className="flex flex-col relative overflow-hidden bg-white dark:bg-gray-900 border-l-4 border-l-orange-500 shadow-sm hover:shadow-md transition-shadow">
           <CardHeader className="pb-2">
-            <div className="flex justify-between items-start">
-              <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <Badge
-                    variant="outline"
-                    className="text-emerald-700 border-emerald-200 bg-emerald-50"
-                  >
-                    {plan.name}
-                  </Badge>
+            <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+              <div className="w-full sm:w-auto">
+                <div className="flex flex-wrap items-center gap-2 mb-2">
                   <Badge
                     className={
                       user_plan.status === "pending_activation" ||
-                      user_plan.status === "pending_turn_approval"
+                        user_plan.status === "pending_turn_approval"
                         ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200"
                         : "bg-emerald-600 border-emerald-500 text-white"
                     }
@@ -273,7 +267,7 @@ export function AjoPlanCard({
                   {plan.name}
                 </CardTitle>
               </div>
-              <div className="text-right">
+              <div className="text-left sm:text-right">
                 <div className="text-xs text-gray-500 uppercase font-bold tracking-wider">
                   Total Payout
                 </div>
@@ -353,11 +347,10 @@ export function AjoPlanCard({
                 )}
 
                 <div
-                  className={`flex items-center gap-2 p-2 rounded-md text-xs border font-bold ${
-                    weekPaid
+                  className={`flex items-center gap-2 p-2 rounded-md text-xs border font-bold ${weekPaid
                       ? "bg-emerald-50 text-emerald-700 border-emerald-100"
                       : "bg-amber-50 text-amber-700 border-amber-100 shadow-sm"
-                  }`}
+                    }`}
                 >
                   {weekPaid ? (
                     <CheckCircle className="w-3.5 h-3.5" />
@@ -480,7 +473,7 @@ export function AjoPlanCard({
                 className="w-full bg-orange-50 text-orange-700 hover:bg-orange-100 border border-orange-200 font-bold"
                 onClick={onAdvanceDeposit}
               >
-                Save More for the Week
+                Save in Advance
               </Button>
             ) : null}
             {(user_plan.status === "pending_activation" ||

@@ -1003,7 +1003,7 @@ export function AjoCircleAdminView() {
                   Cancel
                 </Button>
 
-                {reviewedUser.status === "pending_turn_approval" ? (
+                {reviewedUser?.status === "pending_turn_approval" ? (
                   <>
                     <Button
                       className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl"
