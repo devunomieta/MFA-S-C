@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 
-import { Copy, Upload, Trash2, Wallet, AlertTriangle, Plus, Minus } from "lucide-react";
+import { Copy, Upload, Trash2, Wallet, AlertTriangle, Plus, Minus, FileText } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/app/components/ui/button";
@@ -1169,28 +1169,37 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose }: DepositModal
 
             <div className="grid gap-2">
               <Label className="dark:text-gray-300">Payment Receipt</Label>
-              <div className="flex items-center justify-center w-full">
+              <div className="flex flex-col items-center justify-center w-full gap-2">
                 <label
                   htmlFor="dropzone-file-ex"
                   className={`relative flex flex-col items-center justify-center w-full h-40 border-2 border-dashed rounded-lg cursor-pointer transition-colors overflow-hidden ${receiptFile ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/10" : "border-gray-300 bg-gray-50 hover:bg-gray-100 dark:border-gray-600 dark:bg-gray-700 dark:hover:border-gray-500 dark:hover:bg-gray-600"}`}
                 >
                   {previewUrl ? (
                     <div className="relative w-full h-full flex items-center justify-center group">
-                      <img
-                        src={previewUrl}
-                        alt="Receipt preview"
-                        className="w-full h-full object-contain p-2"
-                      />
+                      {receiptFile?.type === "application/pdf" || receiptFile?.name.toLowerCase().endsWith(".pdf") ? (
+                        <div className="flex flex-col items-center justify-center p-4 w-full">
+                          <FileText className="w-12 h-12 text-emerald-500 mb-2" />
+                          <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 text-center px-4 w-full truncate">{receiptFile.name}</span>
+                        </div>
+                      ) : (
+                        <img
+                          src={previewUrl}
+                          alt="Receipt preview"
+                          className="w-full h-full object-contain p-2"
+                        />
+                      )}
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                         <div className="bg-white/90 rounded-full p-2">
                           <Upload className="w-6 h-6 text-gray-700" />
                         </div>
                       </div>
-                      <div className="absolute bottom-2 left-0 right-0 text-center">
-                        <span className="text-xs text-white bg-black/50 px-2 py-1 rounded">
-                          {receiptFile?.name}
-                        </span>
-                      </div>
+                      {!(receiptFile?.type === "application/pdf" || receiptFile?.name.toLowerCase().endsWith(".pdf")) && (
+                        <div className="absolute bottom-2 left-0 right-0 text-center">
+                          <span className="text-xs text-white bg-black/50 px-2 py-1 rounded max-w-[90%] truncate inline-block">
+                            {receiptFile?.name}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center">
@@ -1213,14 +1222,14 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose }: DepositModal
                   />
                 </label>
                 {previewUrl && (
-                  <div className="flex justify-end">
+                  <div className="flex justify-end w-full">
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={removeFile}
-                      className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 px-2 h-8"
+                      className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 px-4 h-9"
                     >
-                      <Trash2 className="w-3 h-3 mr-1.5" /> Remove File
+                      <Trash2 className="w-4 h-4 mr-2" /> Remove File
                     </Button>
                   </div>
                 )}

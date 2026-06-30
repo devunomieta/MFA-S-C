@@ -25,6 +25,8 @@ export function TransactionDetailsModal({
 }: TransactionDetailsModalProps) {
   const [relatedData, setRelatedData] = useState<any>(null);
   const [relatedHistory, setRelatedHistory] = useState<any[]>([]);
+  const [obfuscatedUrl, setObfuscatedUrl] = useState<string | null>(null);
+  const [isFetchingUrl, setIsFetchingUrl] = useState(false);
 
   const formatCurrency = (val: number) =>
     new Intl.NumberFormat("en-US", { style: "decimal", minimumFractionDigits: 2 }).format(val);
@@ -87,6 +89,28 @@ export function TransactionDetailsModal({
       Promise.resolve().then(() => fetchContextData());
     }
   }, [transaction, open]);
+
+  useEffect(() => {
+    let active = true;
+    if (transaction?.receipt_url && transaction.receipt_url.toLowerCase().includes(".pdf") && !transaction.receipt_url.includes("mock-storage.com")) {
+      setIsFetchingUrl(true);
+      fetch(transaction.receipt_url)
+        .then(res => res.blob())
+        .then(blob => {
+          if (active) {
+            setObfuscatedUrl(URL.createObjectURL(blob));
+          }
+        })
+        .catch(err => console.error("Failed to fetch pdf for obfuscation:", err))
+        .finally(() => {
+          if (active) setIsFetchingUrl(false);
+        });
+    }
+    return () => {
+      active = false;
+      if (obfuscatedUrl) URL.revokeObjectURL(obfuscatedUrl);
+    };
+  }, [transaction?.receipt_url]);
 
   if (!transaction) return null;
 
@@ -177,6 +201,27 @@ export function TransactionDetailsModal({
                     </p>
                     <p className="text-xs text-gray-500 mt-1 italic">Mock data from development</p>
                   </div>
+                ) : transaction.receipt_url.toLowerCase().includes(".pdf") ? (
+                  <div className="flex flex-col items-center justify-center p-8 w-full">
+                    <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-full mb-3">
+                      <FileText className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />
+                    </div>
+                    <div className="text-center w-full">
+                      <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">PDF Document Attached</p>
+                      <p className="text-xs text-gray-500 mt-1 mb-4">Click below to view the receipt securely</p>
+                      <a 
+                        href={obfuscatedUrl || transaction.receipt_url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className={`inline-flex items-center gap-2 px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-emerald-500/20 hover:shadow-lg hover:-translate-y-0.5 ${isFetchingUrl ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        onClick={(e) => {
+                          if (isFetchingUrl) e.preventDefault();
+                        }}
+                      >
+                        <FileText className="w-4 h-4" /> {isFetchingUrl ? "Securing Document..." : "Open PDF Receipt"}
+                      </a>
+                    </div>
+                  </div>
                 ) : (
                   <img
                     src={transaction.receipt_url}
@@ -184,9 +229,19 @@ export function TransactionDetailsModal({
                     className="w-full h-auto max-h-[300px] object-contain"
                     onError={(e) => {
                       e.currentTarget.style.display = "none";
-                      e.currentTarget.parentElement?.classList.add("flex-col", "p-4");
+                      e.currentTarget.parentElement?.classList.add("flex-col", "p-6");
                       const fallback = document.createElement("div");
-                      fallback.innerHTML = `<p class="text-xs text-gray-500 mb-2">Image preview unavailable.</p><a href="${transaction.receipt_url}" target="_blank" rel="noopener noreferrer" class="text-xs text-blue-600 underline break-all">${transaction.receipt_url}</a>`;
+                      fallback.innerHTML = `
+                        <div class="flex flex-col items-center justify-center text-center w-full">
+                          <div class="p-3 bg-gray-100 dark:bg-gray-800 rounded-full mb-3">
+                            <svg class="w-6 h-6 text-gray-400" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+                          </div>
+                          <p class="text-sm font-semibold text-gray-700 dark:text-gray-300">Document Attached</p>
+                          <a href="${transaction.receipt_url}" target="_blank" rel="noopener noreferrer" class="mt-4 inline-flex items-center gap-2 px-5 py-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-xs font-bold rounded-lg transition-colors hover:bg-gray-800 dark:hover:bg-gray-100">
+                            View Document
+                          </a>
+                        </div>
+                      `;
                       e.currentTarget.parentElement?.appendChild(fallback);
                     }}
                   />
