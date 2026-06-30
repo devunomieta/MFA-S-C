@@ -194,8 +194,12 @@ export function DashboardLayout() {
                 className="w-64 p-0 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800"
               >
                 <SheetHeader className="p-6 text-left border-b border-gray-100 dark:border-gray-800">
-                  <SheetTitle className="text-2xl font-bold text-emerald-600">
-                    Mary's Thrift Services
+                  <SheetTitle className="flex justify-start">
+                    {logoUrl ? (
+                      <BrandLogo src={logoUrl} alt="Logo" size="sm" transparent={true} />
+                    ) : (
+                      <span className="text-2xl font-bold text-emerald-600">Mary's Thrift Services</span>
+                    )}
                   </SheetTitle>
                 </SheetHeader>
                 <nav className="flex-1 px-4 py-6 space-y-2">
@@ -248,13 +252,7 @@ export function DashboardLayout() {
                 </div>
               </SheetContent>
             </Sheet>
-            {logoUrl ? (
-              <BrandLogo src={logoUrl} alt="Logo" size="sm" transparent={true} />
-            ) : (
-              <span className="text-[10px] sm:text-xs font-black text-emerald-600 uppercase tracking-widest bg-emerald-50 dark:bg-emerald-900/30 px-3 py-1.5 rounded-lg border border-emerald-100 dark:border-emerald-800">
-                MTF Logo
-              </span>
-            )}
+
           </div>
 
           <div className="ml-auto flex items-center gap-4">

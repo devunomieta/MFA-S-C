@@ -848,9 +848,9 @@ export function Loans() {
 
       {/* NEW TABLE LAYOUT WITH PAGINATION */}
       <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden flex flex-col">
-        <div className="p-4 border-b dark:border-gray-700 flex justify-between items-center">
+        <div className="p-4 border-b dark:border-gray-700 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <h2 className="font-semibold dark:text-white">Loans History</h2>
-          <div className="relative w-64">
+          <div className="relative w-full sm:w-64">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
             <Input
               placeholder="Search loans..."

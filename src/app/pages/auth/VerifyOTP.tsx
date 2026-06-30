@@ -26,9 +26,26 @@ export function VerifyOTP() {
   );
 
   useEffect(() => {
+    const savedCooldown = localStorage.getItem("otp_cooldown_until");
+    if (savedCooldown) {
+      const remaining = Math.max(0, Math.floor((parseInt(savedCooldown, 10) - Date.now()) / 1000));
+      if (remaining > 0) {
+        setCooldown(remaining);
+      }
+    } else {
+      // Start with a 60s cooldown because the OTP was just dispatched on signup
+      setCooldown(60);
+      localStorage.setItem("otp_cooldown_until", (Date.now() + 60 * 1000).toString());
+    }
+  }, []);
+
+  useEffect(() => {
     if (cooldown > 0) {
       const timer = setTimeout(() => setCooldown(cooldown - 1), 1000);
       return () => clearTimeout(timer);
+    } else {
+      // Clear localStorage when cooldown is done
+      localStorage.removeItem("otp_cooldown_until");
     }
   }, [cooldown]);
 
@@ -122,6 +139,7 @@ export function VerifyOTP() {
       if (error) throw error;
       toast.success("New code sent to your email");
       setCooldown(60);
+      localStorage.setItem("otp_cooldown_until", (Date.now() + 60 * 1000).toString());
     } catch (error: any) {
       toast.error(error.message || "Failed to resend code");
     } finally {

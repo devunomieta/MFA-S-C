@@ -304,16 +304,16 @@ export function Plans() {
       </div>
 
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-        <TabsList className="bg-gray-100/50 dark:bg-gray-800/50 p-1.5 rounded-2xl w-fit flex h-auto gap-1 mb-6 border border-gray-200/50 dark:border-gray-700/50 backdrop-blur-sm">
+        <TabsList className="bg-gray-100/50 dark:bg-gray-800/50 p-1.5 rounded-2xl w-full sm:w-fit justify-start overflow-x-auto flex h-auto gap-1 mb-6 border border-gray-200/50 dark:border-gray-700/50 backdrop-blur-sm scrollbar-hide">
           <TabsTrigger
             value="available"
-            className="px-8 py-3 rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-gray-900 data-[state=active]:text-emerald-600 data-[state=active]:shadow-lg font-black transition-all text-gray-400 tracking-tight text-sm"
+            className="px-8 py-3 rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-gray-900 data-[state=active]:text-emerald-600 data-[state=active]:shadow-lg font-black transition-all text-gray-400 tracking-tight text-sm whitespace-nowrap"
           >
             Available Plans
           </TabsTrigger>
           <TabsTrigger
             value="my-plans"
-            className="px-8 py-3 rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-gray-900 data-[state=active]:text-emerald-600 data-[state=active]:shadow-lg font-black transition-all text-gray-400 tracking-tight text-sm flex items-center gap-2"
+            className="px-8 py-3 rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-gray-900 data-[state=active]:text-emerald-600 data-[state=active]:shadow-lg font-black transition-all text-gray-400 tracking-tight text-sm flex items-center gap-2 whitespace-nowrap"
           >
             My Active Plans
             {activePlansList.length > 0 && (
@@ -324,7 +324,7 @@ export function Plans() {
           </TabsTrigger>
           <TabsTrigger
             value="compare"
-            className="px-8 py-3 rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-gray-900 data-[state=active]:text-emerald-600 data-[state=active]:shadow-lg font-black transition-all text-gray-400 tracking-tight text-sm"
+            className="px-8 py-3 rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-gray-900 data-[state=active]:text-emerald-600 data-[state=active]:shadow-lg font-black transition-all text-gray-400 tracking-tight text-sm whitespace-nowrap"
           >
             Compare Plans
           </TabsTrigger>

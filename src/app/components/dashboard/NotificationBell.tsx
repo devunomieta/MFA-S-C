@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 import { formatDistanceToNow } from "date-fns";
-import { Bell, Inbox, ChevronRight } from "lucide-react";
+import { Bell, Inbox, ChevronRight, X } from "lucide-react";
 import { Link } from "react-router-dom";
 
 import { Badge } from "@/app/components/ui/badge";
@@ -46,9 +46,17 @@ export function NotificationBell() {
         </button>
       </PopoverTrigger>
       <PopoverContent
-        className="w-[380px] p-0 mr-4 rounded-2xl overflow-hidden shadow-2xl border-gray-100 dark:border-gray-800"
+        className="w-screen h-[100dvh] p-0 flex flex-col rounded-none md:rounded-2xl overflow-hidden shadow-2xl border-0 md:border md:border-gray-100 dark:border-gray-800 sm:w-[380px] sm:h-auto"
         align="end"
+        sideOffset={8}
       >
+        {/* Mobile Header Top Bar */}
+        <div className="flex sm:hidden items-center justify-between p-4 bg-emerald-600 text-white">
+          <h2 className="font-bold text-lg">Mary's Thrift Services</h2>
+          <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)} className="text-white hover:bg-emerald-700 h-8 w-8">
+            <X className="size-5" />
+          </Button>
+        </div>
         <div className="flex items-center justify-between p-4 bg-gray-50/50 dark:bg-gray-800/50 border-b dark:border-gray-800">
           <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
             <Inbox className="size-4 text-emerald-600" />
@@ -67,7 +75,7 @@ export function NotificationBell() {
             )}
           </div>
         </div>
-        <ScrollArea className="h-[400px]">
+        <ScrollArea className="flex-1 sm:h-[400px]">
           {notifications.length > 0 ? (
             <div className="flex flex-col">
               {notifications.slice(0, 10).map((n) => (

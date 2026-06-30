@@ -1239,22 +1239,22 @@ export function Profile() {
       </div>
 
       <Tabs defaultValue="profile" className="w-full">
-        <TabsList className="grid grid-cols-4 mb-8 dark:bg-gray-800">
-          <TabsTrigger value="profile" className="flex items-center gap-2">
+        <TabsList className="flex w-full justify-start overflow-x-auto sm:grid sm:grid-cols-4 mb-8 dark:bg-gray-800 scrollbar-hide">
+          <TabsTrigger value="profile" className="flex items-center gap-2 whitespace-nowrap shrink-0 group">
             <User className="w-4 h-4" />
-            <span className="hidden sm:inline">Profile</span>
+            <span className="hidden sm:inline group-data-[state=active]:inline">Profile</span>
           </TabsTrigger>
-          <TabsTrigger value="kyc" className="flex items-center gap-2">
+          <TabsTrigger value="kyc" className="flex items-center gap-2 whitespace-nowrap shrink-0 group">
             <UserCheck className="w-4 h-4" />
-            <span className="hidden sm:inline">KYC</span>
+            <span className="hidden sm:inline group-data-[state=active]:inline">KYC</span>
           </TabsTrigger>
-          <TabsTrigger value="bank" className="flex items-center gap-2">
+          <TabsTrigger value="bank" className="flex items-center gap-2 whitespace-nowrap shrink-0 group">
             <Landmark className="w-4 h-4" />
-            <span className="hidden sm:inline">Banks</span>
+            <span className="hidden sm:inline group-data-[state=active]:inline">Banks</span>
           </TabsTrigger>
-          <TabsTrigger value="security" className="flex items-center gap-2">
+          <TabsTrigger value="security" className="flex items-center gap-2 whitespace-nowrap shrink-0 group">
             <Shield className="w-4 h-4" />
-            <span className="hidden sm:inline">Security</span>
+            <span className="hidden sm:inline group-data-[state=active]:inline">Security</span>
           </TabsTrigger>
         </TabsList>
 
@@ -2220,15 +2220,17 @@ export function Profile() {
             <CardContent className="space-y-4">
               {/* Email Address Card */}
               {!showEmailForm ? (
-                <div className="flex items-center gap-4 p-4 border rounded-lg dark:border-gray-700">
-                  <div className="p-3 bg-gray-100 dark:bg-gray-900 rounded-full">
-                    <Mail className="w-6 h-6 text-gray-600 dark:text-gray-400" />
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 border rounded-lg dark:border-gray-700">
+                  <div className="flex items-center gap-4 w-full sm:w-auto flex-1 min-w-0">
+                    <div className="p-3 bg-gray-100 dark:bg-gray-900 rounded-full shrink-0">
+                      <Mail className="w-6 h-6 text-gray-600 dark:text-gray-400" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-semibold dark:text-white">Email Address</h4>
+                      <p className="text-sm text-gray-500 truncate">{user?.email}</p>
+                    </div>
                   </div>
-                  <div className="flex-1">
-                    <h4 className="font-semibold dark:text-white">Email Address</h4>
-                    <p className="text-sm text-gray-500">{user?.email}</p>
-                  </div>
-                  <Button variant="outline" onClick={() => setShowEmailForm(true)}>
+                  <Button className="w-full sm:w-auto" variant="outline" onClick={() => setShowEmailForm(true)}>
                     Change Email
                   </Button>
                 </div>
@@ -2301,15 +2303,17 @@ export function Profile() {
               )}
 
               {!showPasswordForm ? (
-                <div className="flex items-center gap-4 p-4 border rounded-lg dark:border-gray-700">
-                  <div className="p-3 bg-gray-100 dark:bg-gray-900 rounded-full">
-                    <KeyRound className="w-6 h-6 text-gray-600 dark:text-gray-400" />
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 border rounded-lg dark:border-gray-700">
+                  <div className="flex items-center gap-4 w-full sm:w-auto flex-1 min-w-0">
+                    <div className="p-3 bg-gray-100 dark:bg-gray-900 rounded-full shrink-0">
+                      <KeyRound className="w-6 h-6 text-gray-600 dark:text-gray-400" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-semibold dark:text-white">Password</h4>
+                      <p className="text-sm text-gray-500 truncate">Last updated recently</p>
+                    </div>
                   </div>
-                  <div className="flex-1">
-                    <h4 className="font-semibold dark:text-white">Password</h4>
-                    <p className="text-sm text-gray-500">Last updated recently</p>
-                  </div>
-                  <Button variant="outline" onClick={() => setShowPasswordForm(true)}>
+                  <Button className="w-full sm:w-auto" variant="outline" onClick={() => setShowPasswordForm(true)}>
                     Change Password
                   </Button>
                 </div>

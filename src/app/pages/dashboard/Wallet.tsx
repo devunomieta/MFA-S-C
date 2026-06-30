@@ -1003,7 +1003,7 @@ export function Wallet() {
             </CardContent>
 
             <div className="px-6 pb-6 relative">
-              <div className="flex justify-between items-center">
+              <div className="flex flex-col sm:flex-row sm:justify-between items-start sm:items-center gap-4">
                 <div className="flex items-center gap-2">
                   <div className="size-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse" />
                   <p className="text-[10px] text-emerald-400 font-black uppercase tracking-widest">
@@ -1023,7 +1023,7 @@ export function Wallet() {
                         setType("deposit");
                         setOpen(true);
                       }}
-                      className="bg-emerald-500 hover:bg-emerald-400 text-black font-black px-8 h-12 shadow-xl rounded-2xl transition-all hover:scale-105 active:scale-95 group/btn overflow-hidden relative"
+                      className="bg-emerald-500 hover:bg-emerald-400 text-black font-black px-8 h-12 shadow-xl rounded-2xl transition-all hover:scale-105 active:scale-95 group/btn overflow-hidden relative w-full sm:w-auto"
                     >
                       <span className="relative z-10 flex items-center gap-2">
                         Top Up
