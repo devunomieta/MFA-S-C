@@ -218,7 +218,7 @@ export function Notifications() {
             You have {notifications.filter((n) => !n.is_read).length} unread alerts
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
           <div className="relative w-full sm:w-64 group">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400 group-focus-within:text-emerald-500 transition-colors" />
             <Input
@@ -244,7 +244,7 @@ export function Notifications() {
       </div>
 
       <Tabs defaultValue="all" className="space-y-6">
-        <TabsList className="bg-gray-100 dark:bg-gray-800 p-1 rounded-xl w-full sm:w-auto">
+        <TabsList className="bg-gray-100 dark:bg-gray-800 p-1 rounded-xl w-full md:w-auto overflow-x-auto flex justify-start scrollbar-none">
           <TabsTrigger
             value="all"
             className="rounded-lg px-8 font-bold data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:text-emerald-600"

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import { Loader2, PiggyBank, Calendar, ShieldCheck } from "lucide-react";
+import { Loader2, PiggyBank, Calendar, ShieldCheck, MoveHorizontal } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { PlanRecommender } from "@/app/components/PlanRecommender";
@@ -113,12 +113,12 @@ const PlanCardGrid = ({
                 </p>
 
                 <div className="space-y-3.5">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-gray-400 flex items-center gap-2 font-semibold">
+                  <div className="flex flex-wrap items-center justify-between text-xs gap-2">
+                    <span className="text-gray-400 flex items-center gap-2 font-semibold whitespace-nowrap">
                       <Calendar className="size-4 text-gray-300" />
                       Duration
                     </span>
-                    <span className="text-gray-700 dark:text-gray-200 font-bold">
+                    <span className="text-gray-700 dark:text-gray-200 font-bold text-right">
                       {plan.type === "marathon"
                         ? "30 or 48 Weeks"
                         : plan.type === "sprint"
@@ -137,8 +137,8 @@ const PlanCardGrid = ({
                     </span>
                   </div>
 
-                  <div className="flex items-center justify-between text-xs pt-1">
-                    <span className="text-gray-400 flex items-center gap-2 font-semibold">
+                  <div className="flex flex-wrap items-center justify-between text-xs pt-1 gap-2">
+                    <span className="text-gray-400 flex items-center gap-2 font-semibold whitespace-nowrap">
                       <ShieldCheck className="size-4 text-emerald-400" />
                       Min. Savings
                     </span>
@@ -148,8 +148,8 @@ const PlanCardGrid = ({
                   </div>
 
                   {type === "active" && (
-                    <div className="flex items-center justify-between text-xs border-t border-gray-50 dark:border-gray-800 pt-3.5">
-                      <span className="text-gray-400 flex items-center gap-2 font-semibold">
+                    <div className="flex flex-wrap items-center justify-between text-xs border-t border-gray-50 dark:border-gray-800 pt-3.5 gap-2">
+                      <span className="text-gray-400 flex items-center gap-2 font-semibold whitespace-nowrap">
                         <PiggyBank className="size-4 text-emerald-400" />
                         Saved Balance
                       </span>
@@ -304,7 +304,7 @@ export function Plans() {
       </div>
 
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-        <TabsList className="bg-gray-100/50 dark:bg-gray-800/50 p-1.5 rounded-2xl w-full sm:w-fit justify-start overflow-x-auto flex h-auto gap-1 mb-6 border border-gray-200/50 dark:border-gray-700/50 backdrop-blur-sm scrollbar-hide">
+        <TabsList className="bg-gray-100/50 dark:bg-gray-800/50 p-1.5 rounded-2xl w-full md:w-fit justify-start overflow-x-auto flex h-auto gap-1 mb-2 border border-gray-200/50 dark:border-gray-700/50 backdrop-blur-sm scrollbar-none">
           <TabsTrigger
             value="available"
             className="px-8 py-3 rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-gray-900 data-[state=active]:text-emerald-600 data-[state=active]:shadow-lg font-black transition-all text-gray-400 tracking-tight text-sm whitespace-nowrap"
@@ -329,6 +329,9 @@ export function Plans() {
             Compare Plans
           </TabsTrigger>
         </TabsList>
+        <div className="flex md:hidden items-center text-[10px] text-gray-400 mb-6 font-medium uppercase tracking-wider pl-2">
+          <MoveHorizontal className="size-3 mr-1.5" /> Swipe tabs to view more
+        </div>
 
         <TabsContent value="available" className="pt-8">
           <PlanCardGrid

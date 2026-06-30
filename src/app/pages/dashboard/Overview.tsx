@@ -148,7 +148,7 @@ export function Overview() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">
             Welcome {firstName},
@@ -175,9 +175,9 @@ export function Overview() {
       {/* Central Balance Card - Minimalist & Simple Design */}
       <Card className="overflow-hidden border shadow-sm dark:bg-slate-900/20">
         <CardContent className="p-0 !pb-0 relative z-10">
-          <div className="grid grid-cols-1 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x dark:divide-white/5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 sm:divide-y-0 sm:gap-px bg-gray-200 dark:bg-gray-800">
             {/* General Wallet */}
-            <div className="p-6 space-y-3 hover:bg-gray-50/50 dark:hover:bg-white/[0.02] transition-all duration-200">
+            <div className="p-6 space-y-3 bg-white hover:bg-gray-50/50 dark:bg-slate-900/20 dark:hover:bg-white/[0.02] transition-all duration-200">
               <div className="flex flex-col gap-3">
                 <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold uppercase tracking-wider">
                   <div className="p-1.5 bg-emerald-100 dark:bg-emerald-500/10 rounded-md">
@@ -206,7 +206,7 @@ export function Overview() {
             </div>
 
             {/* Withdrawable Wallet */}
-            <div className="p-6 space-y-3 hover:bg-gray-50/50 dark:hover:bg-white/[0.02] transition-all duration-200">
+            <div className="p-6 space-y-3 bg-white hover:bg-gray-50/50 dark:bg-slate-900/20 dark:hover:bg-white/[0.02] transition-all duration-200">
               <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400 text-[10px] font-bold uppercase tracking-wider">
                 <div className="p-1.5 bg-blue-100 dark:bg-blue-500/10 rounded-md">
                   <ArrowRightLeft className="size-4" />
@@ -222,7 +222,7 @@ export function Overview() {
             </div>
 
             {/* Outstanding Loans */}
-            <div className="p-6 space-y-3 hover:bg-gray-50/50 dark:hover:bg-white/[0.02] transition-all duration-200">
+            <div className="p-6 space-y-3 bg-white hover:bg-gray-50/50 dark:bg-slate-900/20 dark:hover:bg-white/[0.02] transition-all duration-200">
               <div
                 className={`flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider ${outstandingLoans > 0 ? "text-amber-600 dark:text-amber-400" : "text-gray-500"}`}
               >
@@ -246,7 +246,7 @@ export function Overview() {
             </div>
 
             {/* Total Saved Amount */}
-            <div className="p-6 space-y-3 hover:bg-gray-50/50 dark:hover:bg-white/[0.02] transition-all duration-200">
+            <div className="p-6 space-y-3 bg-white hover:bg-gray-50/50 dark:bg-slate-900/20 dark:hover:bg-white/[0.02] transition-all duration-200">
               <div className="flex items-center gap-2 text-purple-600 dark:text-purple-400 text-[10px] font-bold uppercase tracking-wider">
                 <div className="p-1.5 bg-purple-100 dark:bg-purple-500/10 rounded-md">
                   <PiggyBank className="size-4" />

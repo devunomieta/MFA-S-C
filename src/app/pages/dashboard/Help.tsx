@@ -43,7 +43,7 @@ export function Help() {
         </TabsList>
 
         <TabsContent value="support" className="space-y-6 outline-none">
-          <div className="grid md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Support Channels */}
             <div className="space-y-6">
               <Card className="border-0 shadow-sm bg-white dark:bg-gray-900">
@@ -153,11 +153,11 @@ function ContactCard({ icon, title, value, description, color, onClick }: any) {
       onClick={onClick}
       className={`flex items-center gap-4 p-4 rounded-2xl border border-transparent hover:border-emerald-200 transition-all cursor-pointer bg-gray-50 dark:bg-gray-800/50 group`}
     >
-      <div className={`size-12 rounded-xl flex items-center justify-center ${color}`}>{icon}</div>
-      <div className="flex-1">
-        <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest">{title}</h4>
-        <p className="font-bold text-gray-900 dark:text-white">{value}</p>
-        <p className="text-xs text-gray-500 font-medium">{description}</p>
+      <div className={`size-12 rounded-xl flex items-center justify-center shrink-0 ${color}`}>{icon}</div>
+      <div className="flex-1 min-w-0">
+        <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest truncate">{title}</h4>
+        <p className="font-bold text-gray-900 dark:text-white truncate" title={value}>{value}</p>
+        <p className="text-xs text-gray-500 font-medium truncate">{description}</p>
       </div>
     </div>
   );

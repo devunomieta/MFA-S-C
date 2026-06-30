@@ -50,19 +50,12 @@ export function NotificationBell() {
         align="end"
         sideOffset={8}
       >
-        {/* Mobile Header Top Bar */}
-        <div className="flex sm:hidden items-center justify-between p-4 bg-emerald-600 text-white">
-          <h2 className="font-bold text-lg">Mary's Thrift Services</h2>
-          <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)} className="text-white hover:bg-emerald-700 h-8 w-8">
-            <X className="size-5" />
-          </Button>
-        </div>
         <div className="flex items-center justify-between p-4 bg-gray-50/50 dark:bg-gray-800/50 border-b dark:border-gray-800">
           <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
             <Inbox className="size-4 text-emerald-600" />
             Notifications
           </h3>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
             {unreadCount > 0 && (
               <Button
                 variant="ghost"
@@ -73,6 +66,14 @@ export function NotificationBell() {
                 Mark all read
               </Button>
             )}
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => setIsOpen(false)} 
+              className="sm:hidden text-gray-500 hover:text-gray-900 dark:hover:text-white h-8 w-8"
+            >
+              <X className="size-5" />
+            </Button>
           </div>
         </div>
         <ScrollArea className="flex-1 sm:h-[400px]">

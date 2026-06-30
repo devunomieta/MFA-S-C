@@ -909,7 +909,7 @@ export function Wallet() {
   );
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 w-full max-w-full overflow-hidden">
       <div>
         <h1 className="text-xl font-black text-gray-900 dark:text-white underline-offset-4 decoration-emerald-500/30">
           Wallet
@@ -945,9 +945,9 @@ export function Wallet() {
         </Card>
       )}
 
-      <div className="grid gap-6 md:grid-cols-4 items-start">
+      <div className="grid gap-6 md:grid-cols-4 items-start w-full min-w-0">
         {/* Stats / Balances Row */}
-        <div className="md:col-span-4 grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="md:col-span-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 w-full min-w-0">
           {/* Premium General Wallet Card */}
           <Card className="bg-gradient-to-br from-gray-950 via-slate-900 to-gray-950 text-white border-none shadow-2xl overflow-hidden relative group min-h-[200px] flex flex-col justify-between">
             {/* Shimmer & Grain Texture Overlay */}
@@ -969,6 +969,13 @@ export function Wallet() {
                   </h4>
                 </div>
                 <div className="flex items-center gap-2">
+                  <button
+                    onClick={toggleBalanceReveal}
+                    className="flex items-center gap-1.5 text-[10px] font-bold text-white/50 hover:text-white transition-colors bg-white/5 px-2 py-1.5 rounded-md border border-white/10 z-10 relative"
+                  >
+                    {isBalanceHidden ? <EyeOff className="size-3" /> : <Eye className="size-3" />}
+                    <span className="hidden sm:inline">{isBalanceHidden ? "Show" : "Hide"}</span>
+                  </button>
                   {/* Chip Visual */}
                   <div className="w-12 h-9 rounded-md bg-gradient-to-br from-emerald-400/30 to-emerald-600/10 border border-emerald-500/30 relative overflow-hidden flex items-center justify-center backdrop-blur-sm hidden sm:flex">
                     <div className="w-full h-[1px] absolute top-1/2 -translate-y-1/2 bg-emerald-500/20" />
@@ -981,15 +988,6 @@ export function Wallet() {
 
             <CardContent className="pt-4 relative flex-grow">
               <div className="space-y-3">
-                <div className="flex justify-start">
-                  <button
-                    onClick={toggleBalanceReveal}
-                    className="flex items-center gap-1.5 text-[10px] font-bold text-white/50 hover:text-white transition-colors bg-white/5 px-2 py-1 rounded-md border border-white/10"
-                  >
-                    {isBalanceHidden ? <EyeOff className="size-3" /> : <Eye className="size-3" />}
-                    {isBalanceHidden ? "Show Balances" : "Hide Balances"}
-                  </button>
-                </div>
                 <div className="space-y-1">
                   <p className="text-[10px] text-gray-400 uppercase font-black tracking-widest opacity-60">
                     Available Balance
@@ -1003,7 +1001,7 @@ export function Wallet() {
             </CardContent>
 
             <div className="px-6 pb-6 relative">
-              <div className="flex flex-col sm:flex-row sm:justify-between items-start sm:items-center gap-4">
+              <div className="flex justify-between items-center gap-2">
                 <div className="flex items-center gap-2">
                   <div className="size-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse" />
                   <p className="text-[10px] text-emerald-400 font-black uppercase tracking-widest">
@@ -1023,7 +1021,7 @@ export function Wallet() {
                         setType("deposit");
                         setOpen(true);
                       }}
-                      className="bg-emerald-500 hover:bg-emerald-400 text-black font-black px-8 h-12 shadow-xl rounded-2xl transition-all hover:scale-105 active:scale-95 group/btn overflow-hidden relative w-full sm:w-auto"
+                      className="bg-emerald-500 hover:bg-emerald-400 text-black font-black px-6 sm:px-8 h-10 sm:h-12 text-sm shadow-xl rounded-2xl transition-all hover:scale-105 active:scale-95 group/btn overflow-hidden relative"
                     >
                       <span className="relative z-10 flex items-center gap-2">
                         Top Up
@@ -1152,9 +1150,9 @@ export function Wallet() {
         </div>
 
         {/* Transaction History (Full width) */}
-        <div className="md:col-span-4 mt-6">
-          <Card className="dark:bg-gray-900 dark:border-gray-800 border-gray-100 shadow-2xl rounded-2xl overflow-hidden">
-            <CardHeader className="flex flex-col md:flex-row md:items-center justify-between gap-4 py-6 px-8 bg-gray-50/50 dark:bg-gray-800/50 border-b dark:border-gray-800">
+        <div className="md:col-span-4 mt-6 min-w-0 w-full">
+          <Card className="dark:bg-gray-900 dark:border-gray-800 border-gray-100 shadow-2xl rounded-2xl overflow-hidden w-full">
+            <CardHeader className="flex flex-col md:flex-row md:items-center justify-between gap-4 py-6 px-4 sm:px-8 bg-gray-50/50 dark:bg-gray-800/50 border-b dark:border-gray-800">
               <div>
                 <CardTitle className="dark:text-white text-lg font-black tracking-tight">
                   Transaction History
@@ -1163,11 +1161,11 @@ export function Wallet() {
                   Detailed records of your financial activities
                 </p>
               </div>
-              <div className="flex items-center gap-3">
-                <div className="relative">
+              <div className="flex items-center gap-3 w-full sm:w-auto">
+                <div className="relative w-full sm:w-auto">
                   <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <select
-                    className="h-9 pl-9 pr-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-[10px] font-bold shadow-sm focus:ring-2 focus:ring-emerald-500/20 transition-all outline-none dark:text-white"
+                    className="w-full h-9 pl-9 pr-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-[10px] font-bold shadow-sm focus:ring-2 focus:ring-emerald-500/20 transition-all outline-none dark:text-white"
                     value={selectedPlanFilter}
                     onChange={(e) => {
                       setSelectedPlanFilter(e.target.value);
@@ -1187,7 +1185,7 @@ export function Wallet() {
               </div>
             </CardHeader>
             <CardContent className="p-0">
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto w-full">
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-gray-50/30 dark:bg-transparent dark:border-gray-800 hover:bg-transparent">
@@ -1362,7 +1360,7 @@ export function Wallet() {
 
               {/* Pagination Controls */}
               {filteredTransactions.length > itemsPerPage && (
-                <div className="flex items-center justify-between p-8 bg-gray-50/30 dark:bg-gray-800/20 border-t dark:border-gray-800">
+                <div className="flex flex-col lg:flex-row items-center justify-between p-4 sm:p-8 gap-4 bg-gray-50/30 dark:bg-gray-800/20 border-t dark:border-gray-800">
                   <p className="text-[10px] text-gray-400 font-black uppercase tracking-[0.1em]">
                     LEDGER SEGMENT{" "}
                     <span className="text-gray-900 dark:text-white">
@@ -1374,7 +1372,7 @@ export function Wallet() {
                       {filteredTransactions.length}
                     </span>
                   </p>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap justify-center items-center gap-2">
                     <Button
                       variant="outline"
                       size="sm"
