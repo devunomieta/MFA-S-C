@@ -134,7 +134,7 @@ export function AdminTransactionDetails({
               <p
                 className={`text-2xl font-bold ${["deposit", "loan_disbursement"].includes(transaction.type) ? "text-emerald-600" : "text-slate-900"}`}
               >
-                ${formatCurrency(transaction.amount)}
+                ₦{formatCurrency(transaction.amount)}
               </p>
             </div>
           </div>
@@ -256,7 +256,7 @@ export function AdminTransactionDetails({
                         Status: <span className="font-bold uppercase">{relatedData.status}</span>
                       </span>
                       <span className="text-amber-800">
-                        Amount: ${formatCurrency(relatedData.amount)}
+                        Amount: ₦{formatCurrency(relatedData.amount)}
                       </span>
                     </div>
                   </div>
@@ -298,7 +298,7 @@ export function AdminTransactionDetails({
                           <td
                             className={`px-3 py-2 text-right font-medium ${["deposit", "loan_disbursement"].includes(tx.type) ? "text-emerald-600" : "text-slate-600"}`}
                           >
-                            {["deposit", "loan_disbursement"].includes(tx.type) ? "+" : "-"}$
+                            {["deposit", "loan_disbursement"].includes(tx.type) ? "+" : "-"}₦
                             {formatCurrency(tx.amount)}
                           </td>
                           <td className="px-3 py-2 text-right">

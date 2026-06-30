@@ -376,7 +376,7 @@ export function AdminTransactions() {
                   </Badge>
                 </td>
                 <td className="px-4 py-3 font-bold text-emerald-600">
-                  +${Number(tx.amount).toLocaleString()}
+                  +₦{Number(tx.amount).toLocaleString()}
                 </td>
                 <td className="px-4 py-3 text-right text-[10px] font-mono text-slate-400">
                   {tx.id.split("-")[0]}...
@@ -431,7 +431,7 @@ export function AdminTransactions() {
                 <td
                   className={`px-4 py-3 font-medium ${tx.type === "withdrawal" ? "text-red-600" : "text-emerald-600"}`}
                 >
-                  {tx.type === "withdrawal" ? "-" : "+"}${Number(tx.amount).toLocaleString()}
+                  {tx.type === "withdrawal" ? "-" : "+"}₦{Number(tx.amount).toLocaleString()}
                 </td>
                 <td className="px-4 py-3 text-slate-500 text-xs">
                   <div className="truncate max-w-[150px]">
@@ -574,7 +574,7 @@ export function AdminTransactions() {
                   <div className="text-xs text-slate-500">{loan.profile?.email}</div>
                 </td>
                 <td className="px-4 py-3 font-medium text-slate-900">
-                  ${Number(loan.amount).toLocaleString()}
+                  ₦{Number(loan.amount).toLocaleString()}
                 </td>
                 <td className="px-4 py-3">{loan.duration_months} Months</td>
                 <td className="px-4 py-3">{loan.interest_rate}%</td>
