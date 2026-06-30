@@ -174,14 +174,10 @@ serve(async (req) => {
     try {
       const checkIsDueSoon = (planType: string) => {
         const today = new Date();
+        const currentDay = today.getDate();
         const isSunday = today.getDay() === 0;
         const isSaturday = today.getDay() === 6;
         
-        const tomorrow = new Date(today);
-        tomorrow.setDate(today.getDate() + 1);
-        const isMonthEndTomorrow = tomorrow.getDate() === 1;
-        const isMonthEndToday = new Date(today.getTime() + 24 * 60 * 60 * 1000).getDate() === 1;
-
         switch (planType) {
           case "daily_drop":
             return true;
@@ -192,7 +188,7 @@ serve(async (req) => {
           case "step_up":
             return isSaturday || isSunday;
           case "monthly_bloom":
-            return isMonthEndTomorrow || isMonthEndToday;
+            return currentDay >= 25 && currentDay <= 28;
           default:
             return false;
         }

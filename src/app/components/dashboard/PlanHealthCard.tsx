@@ -8,14 +8,16 @@ import {
 } from "lucide-react";
 
 import { Badge } from "@/app/components/ui/badge";
+import { Button } from "@/app/components/ui/button";
 import { formatNaira } from "@/lib/utils";
 import { UserPlan } from "@/types";
 
 interface PlanHealthCardProps {
   userPlan: UserPlan;
+  onDeposit?: () => void;
 }
 
-export function PlanHealthCard({ userPlan }: PlanHealthCardProps) {
+export function PlanHealthCard({ userPlan, onDeposit }: PlanHealthCardProps) {
   const metadata = (userPlan.plan_metadata || {}) as any;
   const fixedAmount = metadata.fixed_amount || userPlan.plan?.fixed_amount || 0;
   const targetAmount =
@@ -37,6 +39,9 @@ export function PlanHealthCard({ userPlan }: PlanHealthCardProps) {
 
   // Arrears Calculation
   const calculateArrears = () => {
+    if (metadata.arrears_amount !== undefined && metadata.arrears_amount !== null) {
+      return metadata.arrears_amount;
+    }
     if (planType === "daily_drop") {
       const totalDaysPaid = parseInt(metadata.total_days_paid || "0", 10);
       const startDateStr = userPlan.start_date || userPlan.created_at;
@@ -101,6 +106,15 @@ export function PlanHealthCard({ userPlan }: PlanHealthCardProps) {
             {arrears > 0 ? "Payment Required" : "All Caught Up"}
           </span>
         </div>
+        {arrears > 0 && onDeposit && (
+          <Button
+            size="sm"
+            onClick={onDeposit}
+            className="w-full mt-3 bg-red-600 hover:bg-red-700 text-white font-bold h-7 text-xs"
+          >
+            Pay Arrears
+          </Button>
+        )}
       </div>
 
       <div className="bg-white dark:bg-gray-950 p-6 rounded-[2rem] border border-gray-100 dark:border-gray-800 shadow-sm relative overflow-hidden group">

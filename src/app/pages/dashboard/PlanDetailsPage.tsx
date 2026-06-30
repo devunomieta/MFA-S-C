@@ -477,7 +477,10 @@ export function PlanDetailsPage() {
                   />
                 ) : (
                   <>
-                    <PlanHealthCard userPlan={userPlan} />
+                    <PlanHealthCard
+                      userPlan={userPlan}
+                      onDeposit={() => setSelectedPlanForDeposit({ id: plan.id })}
+                    />
                     <div className="w-full">
                       <Button
                         onClick={() => setSelectedPlanForDeposit({ id: plan.id })}

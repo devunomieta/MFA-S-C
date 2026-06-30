@@ -60,7 +60,7 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose }: DepositModal
       // Contextual Mode (Join Plan or Specific Plan Deposit)
       // Show ONLY the specifically targeted plan (whether pending or active)
       // Filter out cancelled or Archived ones to prevent duplicates/confusion
-      query = query.eq("plan_id", defaultPlanId).in("status", ["active", "pending_activation"]);
+      query = query.eq("plan_id", defaultPlanId).in("status", ["active", "pending_activation", "pending_turn_approval", "turn_reassigned"]);
     } else {
       // General Mode (Wallet Add Funds)
       // Show ONLY Active plans. Pending plans should not appear here.
