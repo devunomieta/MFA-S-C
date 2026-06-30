@@ -73,6 +73,7 @@ export function PlanDetailsPage() {
             .eq("user_id", user.id)
             .eq("plan_id", id)
             .not("status", "eq", "cancelled")
+            .order("status", { ascending: true })
             .order("created_at", { ascending: false })
             .limit(1)
             .maybeSingle() : Promise.resolve({ data: null })
@@ -106,6 +107,7 @@ export function PlanDetailsPage() {
             .eq("user_id", user.id)
             .eq("plan_id", planData.id)
             .not("status", "eq", "cancelled")
+            .order("status", { ascending: true })
             .order("created_at", { ascending: false })
             .limit(1)
             .maybeSingle();
@@ -306,7 +308,7 @@ export function PlanDetailsPage() {
             {isJoined && (
               <div className="flex gap-3">
                 <Badge className="bg-emerald-500 text-white border-none px-4 py-1.5 rounded-xl font-black uppercase tracking-tight text-[10px] shadow-lg shadow-emerald-500/20">
-                  {userPlan.status.toUpperCase()}
+                  {userPlan.status.replace(/_/g, " ").toUpperCase()}
                 </Badge>
               </div>
             )}
