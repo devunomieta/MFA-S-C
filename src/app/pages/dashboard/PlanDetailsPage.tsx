@@ -303,16 +303,13 @@ export function PlanDetailsPage() {
               <ArrowLeft className="size-5" />
             </Button>
 
-            <div className="flex gap-3">
-              <Badge className="bg-white/10 text-white border-white/20 backdrop-blur-md px-4 py-1.5 rounded-xl font-bold uppercase tracking-tight text-[10px]">
-                {plan.type.replace("_", " ")}
-              </Badge>
-              {isJoined && (
+            {isJoined && (
+              <div className="flex gap-3">
                 <Badge className="bg-emerald-500 text-white border-none px-4 py-1.5 rounded-xl font-black uppercase tracking-tight text-[10px] shadow-lg shadow-emerald-500/20">
                   {userPlan.status.toUpperCase()}
                 </Badge>
-              )}
-            </div>
+              </div>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -334,7 +331,7 @@ export function PlanDetailsPage() {
           className={`${!isJoined || ["pending_activation", "pending_turn_approval", "turn_reassigned"].includes(userPlan?.status || "") ? "lg:col-span-2" : ""} space-y-8`}
         >
           {/* Key Stats / Highlights */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
             <div className="bg-white dark:bg-gray-950 p-6 rounded-[2rem] border border-gray-100 dark:border-gray-800 shadow-sm space-y-2">
               <div className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 size-10 rounded-2xl flex items-center justify-center mb-2">
                 <Zap className="size-5" />

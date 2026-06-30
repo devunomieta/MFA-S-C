@@ -448,7 +448,7 @@ export function Overview() {
             <div className="flex items-center gap-2">
               <ArrowRightLeft className="size-5 text-blue-600" />
               <CardTitle className="text-lg dark:text-white">
-                Recent Approved Transactions
+                Recent Transactions
               </CardTitle>
             </div>
             <Button variant="ghost" size="sm" asChild className="text-xs dark:text-white">
@@ -462,8 +462,8 @@ export function Overview() {
                 <p>No approved transactions yet</p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm text-left">
+              <div className="overflow-x-auto -mx-6 px-6 sm:mx-0 sm:px-0">
+                <table className="w-full text-sm text-left whitespace-nowrap">
                   <thead className="bg-gray-50 dark:bg-gray-900/50 text-gray-500 dark:text-gray-400 font-medium text-xs uppercase tracking-wider">
                     <tr>
                       <th className="px-6 py-3">Type</th>

@@ -733,12 +733,12 @@ export function DailyDropPlanCard({
       {/* Confirmation Dialogs */}
       <AlertDialog open={showJoinConfirm} onOpenChange={setShowJoinConfirm}>
         <AlertDialogContent className="rounded-2xl border-cyan-100 dark:border-gray-800">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+          <AlertDialogHeader className="text-left">
+            <AlertDialogTitle className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2 justify-start">
               <Droplets className="w-6 h-6 text-cyan-600" />
               Confirm Plan Setup
             </AlertDialogTitle>
-            <AlertDialogDescription className="space-y-4 pt-4" asChild>
+            <AlertDialogDescription className="space-y-4 pt-4 text-left" asChild>
               <div>
                 <div className="p-4 bg-cyan-50/50 dark:bg-cyan-900/10 rounded-xl border border-cyan-100 dark:border-cyan-800/50">
                   <div className="grid grid-cols-2 gap-4">

@@ -5,6 +5,7 @@ import { History, ArrowDownLeft, ArrowUpRight, Scale, Receipt } from "lucide-rea
 import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
 import { supabase } from "@/lib/supabase";
+import { formatNaira } from "@/lib/utils";
 
 interface PlanActivityHistoryProps {
   userId: string;
@@ -61,8 +62,7 @@ export function PlanActivityHistory({ userId, planId, userPlanId }: PlanActivity
     });
   }, [userId, planId, userPlanId]);
 
-  const formatCurrency = (val: number) =>
-    new Intl.NumberFormat("en-US", { style: "currency", currency: "NGN" }).format(val);
+  const formatCurrency = (val: number) => formatNaira(val);
 
   const formatDate = (date: string) =>
     new Date(date).toLocaleDateString("en-GB", {

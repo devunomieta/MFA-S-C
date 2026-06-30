@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 
 import { Badge } from "@/app/components/ui/badge";
+import { formatNaira } from "@/lib/utils";
 import { UserPlan } from "@/types";
 
 interface PlanHealthCardProps {
@@ -58,8 +59,7 @@ export function PlanHealthCard({ userPlan }: PlanHealthCardProps) {
   const arrears = calculateArrears();
   const isHealthy = arrears === 0;
 
-  const formatCurrency = (val: number) =>
-    new Intl.NumberFormat("en-US", { style: "currency", currency: "NGN" }).format(val);
+  const formatCurrency = (val: number) => formatNaira(val);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

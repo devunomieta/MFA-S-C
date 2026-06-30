@@ -6,14 +6,11 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function formatNaira(amount: number) {
-  return new Intl.NumberFormat("en-NG", {
-    style: "currency",
-    currency: "NGN",
+  return `₦${new Intl.NumberFormat("en-US", {
+    style: "decimal",
     minimumFractionDigits: 2,
-  })
-    .format(amount)
-    .replace("NGN", "₦")
-    .replace("NGN ", "₦");
+    maximumFractionDigits: 2,
+  }).format(amount)}`;
 }
 
 export const formatCurrency = (amount: number) => {
