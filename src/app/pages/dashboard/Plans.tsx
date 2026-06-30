@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 
-import { Loader2, PiggyBank, Calendar, ShieldCheck, MoveHorizontal } from "lucide-react";
+import { Loader2, PiggyBank, Calendar, ShieldCheck, ChevronLeft, ChevronRight } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { PlanRecommender } from "@/app/components/PlanRecommender";
@@ -113,12 +113,12 @@ const PlanCardGrid = ({
                 </p>
 
                 <div className="space-y-3.5">
-                  <div className="flex flex-wrap items-center justify-between text-xs gap-2">
-                    <span className="text-gray-400 flex items-center gap-2 font-semibold whitespace-nowrap">
-                      <Calendar className="size-4 text-gray-300" />
+                  <div className="flex flex-col xl:flex-row xl:items-center justify-between text-xs gap-1.5">
+                    <span className="text-gray-400 flex items-center gap-2 font-semibold">
+                      <Calendar className="size-4 text-gray-300 shrink-0" />
                       Duration
                     </span>
-                    <span className="text-gray-700 dark:text-gray-200 font-bold text-right">
+                    <span className="text-gray-700 dark:text-gray-200 font-bold xl:text-right">
                       {plan.type === "marathon"
                         ? "30 or 48 Weeks"
                         : plan.type === "sprint"
@@ -137,8 +137,8 @@ const PlanCardGrid = ({
                     </span>
                   </div>
 
-                  <div className="flex flex-wrap items-center justify-between text-xs pt-1 gap-2">
-                    <span className="text-gray-400 flex items-center gap-2 font-semibold whitespace-nowrap">
+                  <div className="flex flex-col xl:flex-row xl:items-center justify-between text-xs pt-1 gap-1.5">
+                    <span className="text-gray-400 flex items-center gap-2 font-semibold">
                       <ShieldCheck className="size-4 text-emerald-400" />
                       Min. Savings
                     </span>
@@ -148,8 +148,8 @@ const PlanCardGrid = ({
                   </div>
 
                   {type === "active" && (
-                    <div className="flex flex-wrap items-center justify-between text-xs border-t border-gray-50 dark:border-gray-800 pt-3.5 gap-2">
-                      <span className="text-gray-400 flex items-center gap-2 font-semibold whitespace-nowrap">
+                    <div className="flex flex-col xl:flex-row xl:items-center justify-between text-xs border-t border-gray-50 dark:border-gray-800 pt-3.5 gap-1.5">
+                      <span className="text-gray-400 flex items-center gap-2 font-semibold">
                         <PiggyBank className="size-4 text-emerald-400" />
                         Saved Balance
                       </span>
@@ -186,6 +186,35 @@ export function Plans() {
   const [searchParams, setSearchParams] = useSearchParams();
   const joinId = searchParams.get("join");
   const [activeTab, setActiveTab] = useState("available");
+  
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
+
+  const checkScroll = () => {
+    if (scrollContainerRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
+      setCanScrollLeft(scrollLeft > 0);
+      setCanScrollRight(Math.ceil(scrollLeft + clientWidth) < scrollWidth - 2);
+    }
+  };
+
+  useEffect(() => {
+    checkScroll();
+    window.addEventListener("resize", checkScroll);
+    return () => window.removeEventListener("resize", checkScroll);
+  }, [activeTab, availablePlans]);
+
+  const scrollTabs = (direction: "left" | "right") => {
+    if (scrollContainerRef.current) {
+      const { scrollLeft, clientWidth } = scrollContainerRef.current;
+      const scrollAmount = clientWidth / 2;
+      scrollContainerRef.current.scrollTo({
+        left: direction === "left" ? scrollLeft - scrollAmount : scrollLeft + scrollAmount,
+        behavior: "smooth",
+      });
+    }
+  };
 
   useEffect(() => {
     const tabParam = searchParams.get("tab");
@@ -303,34 +332,65 @@ export function Plans() {
         </p>
       </div>
 
-      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-        <TabsList className="bg-gray-100/50 dark:bg-gray-800/50 p-1.5 rounded-2xl w-full md:w-fit justify-start overflow-x-auto flex h-auto gap-1 mb-2 border border-gray-200/50 dark:border-gray-700/50 backdrop-blur-sm scrollbar-none">
-          <TabsTrigger
-            value="available"
-            className="px-8 py-3 rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-gray-900 data-[state=active]:text-emerald-600 data-[state=active]:shadow-lg font-black transition-all text-gray-400 tracking-tight text-sm whitespace-nowrap"
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full max-w-full">
+        <div className="relative flex items-center mb-6 w-full max-w-full group">
+          {canScrollLeft && (
+            <div className="absolute left-0 top-0 bottom-0 z-10 flex items-center pr-4 pl-1">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => scrollTabs("left")}
+                className="h-8 w-8 rounded-full border-gray-200 dark:border-gray-700 shadow-sm bg-white dark:bg-gray-800 text-gray-500 hover:text-gray-900 dark:hover:text-white"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+          
+          <div 
+            ref={scrollContainerRef}
+            onScroll={checkScroll}
+            className="w-full overflow-x-auto scrollbar-none scroll-smooth flex"
           >
-            Available Plans
-          </TabsTrigger>
-          <TabsTrigger
-            value="my-plans"
-            className="px-8 py-3 rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-gray-900 data-[state=active]:text-emerald-600 data-[state=active]:shadow-lg font-black transition-all text-gray-400 tracking-tight text-sm flex items-center gap-2 whitespace-nowrap"
-          >
-            My Active Plans
-            {activePlansList.length > 0 && (
-              <Badge className="bg-emerald-100 text-emerald-700 border-none px-1.5 h-5 min-w-5 flex items-center justify-center font-black rounded-lg">
-                {activePlansList.length}
-              </Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger
-            value="compare"
-            className="px-8 py-3 rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-gray-900 data-[state=active]:text-emerald-600 data-[state=active]:shadow-lg font-black transition-all text-gray-400 tracking-tight text-sm whitespace-nowrap"
-          >
-            Compare Plans
-          </TabsTrigger>
-        </TabsList>
-        <div className="flex md:hidden items-center text-[10px] text-gray-400 mb-6 font-medium uppercase tracking-wider pl-2">
-          <MoveHorizontal className="size-3 mr-1.5" /> Swipe tabs to view more
+            <TabsList className="bg-gray-100/50 dark:bg-gray-800/50 p-1.5 rounded-2xl w-max min-w-full md:min-w-0 md:w-fit justify-start flex h-auto gap-1 border border-gray-200/50 dark:border-gray-700/50 backdrop-blur-sm shrink-0">
+              <TabsTrigger
+                value="available"
+                className="px-8 py-3 rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-gray-900 data-[state=active]:text-emerald-600 data-[state=active]:shadow-lg font-black transition-all text-gray-400 tracking-tight text-sm whitespace-nowrap"
+              >
+                Available Plans
+              </TabsTrigger>
+              <TabsTrigger
+                value="my-plans"
+                className="px-8 py-3 rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-gray-900 data-[state=active]:text-emerald-600 data-[state=active]:shadow-lg font-black transition-all text-gray-400 tracking-tight text-sm flex items-center gap-2 whitespace-nowrap"
+              >
+                My Active Plans
+                {activePlansList.length > 0 && (
+                  <Badge className="bg-emerald-100 text-emerald-700 border-none px-1.5 h-5 min-w-5 flex items-center justify-center font-black rounded-lg">
+                    {activePlansList.length}
+                  </Badge>
+                )}
+              </TabsTrigger>
+              <TabsTrigger
+                value="compare"
+                className="px-8 py-3 rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-gray-900 data-[state=active]:text-emerald-600 data-[state=active]:shadow-lg font-black transition-all text-gray-400 tracking-tight text-sm whitespace-nowrap"
+              >
+                Compare Plans
+              </TabsTrigger>
+            </TabsList>
+          </div>
+
+          {canScrollRight && (
+            <div className="absolute right-0 top-0 bottom-0 z-10 flex items-center pl-4 pr-1">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => scrollTabs("right")}
+                className="h-8 w-8 rounded-full border-gray-200 dark:border-gray-700 shadow-sm bg-white dark:bg-gray-800 text-gray-500 hover:text-gray-900 dark:hover:text-white"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
         </div>
 
         <TabsContent value="available" className="pt-8">

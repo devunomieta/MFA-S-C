@@ -209,7 +209,7 @@ export function Notifications() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
         <div className="space-y-1">
           <h1 className="text-4xl font-black text-gray-900 dark:text-white tracking-tight">
             Notifications
@@ -218,8 +218,8 @@ export function Notifications() {
             You have {notifications.filter((n) => !n.is_read).length} unread alerts
           </p>
         </div>
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
-          <div className="relative w-full sm:w-64 group">
+        <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3 w-full lg:w-auto">
+          <div className="relative w-full lg:w-64 group">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400 group-focus-within:text-emerald-500 transition-colors" />
             <Input
               placeholder="Search alerts..."

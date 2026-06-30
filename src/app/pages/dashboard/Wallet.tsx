@@ -947,7 +947,7 @@ export function Wallet() {
 
       <div className="grid gap-6 md:grid-cols-4 items-start w-full min-w-0">
         {/* Stats / Balances Row */}
-        <div className="md:col-span-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 w-full min-w-0">
+        <div className="md:col-span-4 grid grid-cols-1 lg:grid-cols-3 gap-6 w-full min-w-0 max-w-sm mx-auto md:max-w-none">
           {/* Premium General Wallet Card */}
           <Card className="bg-gradient-to-br from-gray-950 via-slate-900 to-gray-950 text-white border-none shadow-2xl overflow-hidden relative group min-h-[200px] flex flex-col justify-between">
             {/* Shimmer & Grain Texture Overlay */}
