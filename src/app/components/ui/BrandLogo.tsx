@@ -44,7 +44,7 @@ export function BrandLogo({
         alt={alt || "Logo"}
         fetchPriority="high"
         className={cn(
-          "w-full h-auto object-contain drop-shadow-sm transition-transform duration-500",
+          "w-full h-auto object-contain drop-shadow-sm transition-transform duration-500 text-transparent",
           className,
         )}
       />
