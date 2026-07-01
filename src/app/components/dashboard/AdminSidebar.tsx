@@ -19,6 +19,7 @@ import {
   Quote,
   MessageSquare,
   BarChart3,
+  LineChart,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 
@@ -39,7 +40,7 @@ export function AdminSidebar({ isOpen, setIsOpen }: SidebarProps) {
   const [isMobile, setIsMobile] = useState(false);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [appName, setAppName] = useState("ADMIN CORE");
-  const [expandedGroups, setExpandedGroups] = useState<string[]>(["Manage Plans"]);
+  const [expandedGroups, setExpandedGroups] = useState<string[]>(["Savings Plans"]);
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 1024);
@@ -62,10 +63,10 @@ export function AdminSidebar({ isOpen, setIsOpen }: SidebarProps) {
     fetchBranding();
 
     // Auto-expand group if on a sub-route
-    if (pathname.includes("/admin/plans") && !expandedGroups.includes("Manage Plans")) {
+    if (pathname.includes("/admin/plans") && !expandedGroups.includes("Savings Plans")) {
       Promise.resolve().then(() => {
         setExpandedGroups((prev) =>
-          prev.includes("Manage Plans") ? prev : [...prev, "Manage Plans"],
+          prev.includes("Savings Plans") ? prev : [...prev, "Savings Plans"],
         );
       });
     }
@@ -89,13 +90,42 @@ export function AdminSidebar({ isOpen, setIsOpen }: SidebarProps) {
           href: "/admin",
           active: pathname === "/admin",
         },
+        {
+          label: "Analytics & Reports",
+          icon: LineChart,
+          href: "/admin/analytics",
+          active: pathname.includes("/admin/analytics"),
+        },
       ],
     },
     {
-      group: "Operations",
+      group: "Core Operations",
       items: [
         {
-          label: "Plans Catalog",
+          label: "Users",
+          icon: Users,
+          href: "/admin/users",
+          active: pathname.includes("/admin/users"),
+        },
+        {
+          label: "Transactions",
+          icon: Activity,
+          href: "/admin/transactions",
+          active: pathname.includes("/admin/transactions"),
+        },
+        {
+          label: "Approvals",
+          icon: Shield,
+          href: "/admin/approvals",
+          active: pathname.includes("/admin/approvals"),
+        },
+      ],
+    },
+    {
+      group: "Financial Products",
+      items: [
+        {
+          label: "Savings Plans",
           icon: Banknote,
           href: "/admin/plans",
           active: pathname.includes("/admin/plans"),
@@ -116,29 +146,11 @@ export function AdminSidebar({ isOpen, setIsOpen }: SidebarProps) {
           href: "/admin/loans",
           active: pathname.includes("/admin/loans"),
         },
-        {
-          label: "Transactions",
-          icon: Activity,
-          href: "/admin/transactions",
-          active: pathname.includes("/admin/transactions"),
-        },
-        {
-          label: "Approvals",
-          icon: Shield,
-          href: "/admin/approvals",
-          active: pathname.includes("/admin/approvals"),
-        },
       ],
     },
     {
-      group: "Management",
+      group: "Communications & Support",
       items: [
-        {
-          label: "Users",
-          icon: Users,
-          href: "/admin/users",
-          active: pathname.includes("/admin/users"),
-        },
         {
           label: "Inquiries",
           icon: MessageSquare,

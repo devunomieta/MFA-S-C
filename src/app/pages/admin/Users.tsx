@@ -74,8 +74,8 @@ export function AdminUsers() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border border-slate-200 overflow-hidden">
-            <table className="w-full text-sm text-left">
+          <div className="rounded-md border border-slate-200 overflow-x-auto">
+            <table className="w-full text-sm text-left min-w-[700px]">
               <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-200">
                 <tr>
                   <th className="px-4 py-3">User</th>

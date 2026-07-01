@@ -345,8 +345,8 @@ export function AdminTransactions() {
       return <div className="p-8 text-center text-gray-500">No revenue records found.</div>;
 
     return (
-      <div className="rounded-md border border-slate-200 overflow-hidden">
-        <table className="w-full text-sm text-left">
+      <div className="rounded-md border border-slate-200 overflow-x-auto">
+        <table className="w-full text-sm text-left min-w-[700px]">
           <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-200">
             <tr>
               <th className="px-4 py-3">Date</th>
@@ -400,8 +400,8 @@ export function AdminTransactions() {
       return <div className="p-8 text-center text-gray-500">No records found.</div>;
 
     return (
-      <div className="rounded-md border border-slate-200 overflow-hidden">
-        <table className="w-full text-sm text-left">
+      <div className="rounded-md border border-slate-200 overflow-x-auto">
+        <table className="w-full text-sm text-left min-w-[900px]">
           <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-200">
             <tr>
               <th className="px-4 py-3">Date</th>
@@ -546,8 +546,8 @@ export function AdminTransactions() {
       return <div className="p-8 text-center text-gray-500">No pending loan requests.</div>;
 
     return (
-      <div className="rounded-md border border-slate-200 overflow-hidden">
-        <table className="w-full text-sm text-left">
+      <div className="rounded-md border border-slate-200 overflow-x-auto">
+        <table className="w-full text-sm text-left min-w-[700px]">
           <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-200">
             <tr>
               <th className="px-4 py-3">Requested</th>

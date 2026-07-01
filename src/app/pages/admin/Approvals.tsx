@@ -662,8 +662,8 @@ export function AdminApprovals() {
               <CardDescription>Requests from users with name change history.</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="rounded-md border overflow-hidden">
-                <table className="w-full text-sm text-left">
+              <div className="rounded-md border border-slate-200 overflow-x-auto">
+                <table className="w-full text-sm text-left min-w-[700px]">
                   <thead className="bg-gray-50 text-gray-500 font-medium">
                     <tr>
                       <th className="p-4">User</th>

@@ -61,6 +61,9 @@ const AdminLayout = lazy(() =>
 const AdminOverview = lazy(() =>
   import("@/app/pages/admin/Overview").then((m) => ({ default: m.AdminOverview })),
 );
+const AdminAnalytics = lazy(() =>
+  import("@/app/pages/admin/Analytics").then((m) => ({ default: m.default })),
+);
 const AdminLoans = lazy(() =>
   import("@/app/pages/admin/Loans").then((m) => ({ default: m.AdminLoans })),
 );
@@ -290,6 +293,7 @@ function AppRoutes() {
                 <Route element={<AdminRoute />}>
                   <Route path="/admin" element={<AdminLayout />}>
                     <Route index element={<AdminOverview />} />
+                    <Route path="analytics" element={<AdminAnalytics />} />
                     <Route path="loans" element={<AdminLoans />} />
                     <Route path="transactions" element={<AdminTransactions />} />
                     <Route path="users" element={<AdminUsers />} />
