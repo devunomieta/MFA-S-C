@@ -1,5 +1,6 @@
-import { useRegisterSW } from "virtual:pwa-register/react";
 import { X, RefreshCw } from "lucide-react";
+import { useRegisterSW } from "virtual:pwa-register/react";
+
 import { Button } from "@/app/components/ui/button";
 
 export function PWAReloadPrompt() {
@@ -7,10 +8,10 @@ export function PWAReloadPrompt() {
     needRefresh: [needRefresh, setNeedRefresh],
     updateServiceWorker,
   } = useRegisterSW({
-    onRegistered(r) {
+    onRegistered(r: any) {
       console.log("SW Registered:", r);
     },
-    onRegisterError(error) {
+    onRegisterError(error: any) {
       console.error("SW registration error", error);
     },
   });
