@@ -43,4 +43,7 @@ lint_results.txt
 # Scratch files
 fix_lint*.mjs
 test_*.mjs
-supabase_funcs.json  
+supabase_funcs.json
+
+# Ignore Backend Logic
+/supabase/
