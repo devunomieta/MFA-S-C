@@ -19,10 +19,7 @@ export function PWAInstallBanner() {
       return;
     }
 
-    const handleBeforeInstallPrompt = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-
+    const checkAndShowPrompt = (e: any) => {
       // Check if user has already installed PWA
       const isInstalled = localStorage.getItem("pwa_installed") === "true";
       if (isInstalled) return;
@@ -37,13 +34,26 @@ export function PWAInstallBanner() {
         }
       }
 
+      setDeferredPrompt(e);
       setIsVisible(true);
+    };
+
+    // If the event fired before this component mounted (caught in main.tsx)
+    if ((window as any).deferredPWAEvent) {
+      checkAndShowPrompt((window as any).deferredPWAEvent);
+    }
+
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      (window as any).deferredPWAEvent = e;
+      checkAndShowPrompt(e);
     };
 
     const handleAppInstalled = () => {
       localStorage.setItem("pwa_installed", "true");
       setIsVisible(false);
       setDeferredPrompt(null);
+      (window as any).deferredPWAEvent = null;
     };
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);

@@ -13,7 +13,7 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
-      registerType: "autoUpdate",
+      registerType: "prompt",
       includeAssets: ["pwa-192x192.png", "pwa-512x512.png"],
       manifest: {
         name: "Mary's Thrift Finance",

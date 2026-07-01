@@ -10,6 +10,7 @@ import { AdminRoute } from "@/app/components/AdminRoute";
 import { AutoLogout } from "@/app/components/AutoLogout";
 import { Footer } from "@/app/components/Footer";
 import { Navbar } from "@/app/components/Navbar";
+import { PWAReloadPrompt } from "@/app/components/PWAReloadPrompt";
 import { UserRoute } from "@/app/components/UserRoute";
 import { WhatsAppFloating } from "@/app/components/WhatsAppFloating";
 import { AuthProvider, useAuth } from "@/app/context/AuthContext";
@@ -263,6 +264,7 @@ function AppRoutes() {
     >
       <NotificationProvider>
         <Toaster />
+        <PWAReloadPrompt />
         <AutoLogout />
         <ScrollToTop />
         {!isAdminPath && <WhatsAppFloating />}
