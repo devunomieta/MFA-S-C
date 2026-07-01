@@ -257,7 +257,10 @@ export function SecurityOnboarding({ onComplete }: SecurityOnboardingProps) {
 
       if (error) {
         // Special case: Profile was wiped but Auth user already has a password
-        if (error.message?.includes("Current password required") || error.message?.includes("password required")) {
+        if (
+          error.message?.includes("Current password required") ||
+          error.message?.includes("password required")
+        ) {
           // Update profile flag too
           const { error: profileError } = await supabase
             .from("profiles")

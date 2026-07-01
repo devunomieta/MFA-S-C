@@ -144,9 +144,9 @@ export function deduplicateTransactions(transactions: any[]): any[] {
             id: `merged-${tx.related_id}`,
           };
           result.push(mergedTx);
-          
+
           processedRelatedIds.add(tx.related_id);
-          
+
           // Mark all related transactions of these types as merged
           related.forEach((r) => {
             if (r.type === "transfer" || r.type === "deposit") {

@@ -240,7 +240,7 @@ export function AjoPlanCard({
                   <Badge
                     className={
                       user_plan.status === "pending_activation" ||
-                        user_plan.status === "pending_turn_approval"
+                      user_plan.status === "pending_turn_approval"
                         ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200"
                         : "bg-emerald-600 border-emerald-500 text-white"
                     }
@@ -347,10 +347,11 @@ export function AjoPlanCard({
                 )}
 
                 <div
-                  className={`flex items-center gap-2 p-2 rounded-md text-xs border font-bold ${weekPaid
+                  className={`flex items-center gap-2 p-2 rounded-md text-xs border font-bold ${
+                    weekPaid
                       ? "bg-emerald-50 text-emerald-700 border-emerald-100"
                       : "bg-amber-50 text-amber-700 border-amber-100 shadow-sm"
-                    }`}
+                  }`}
                 >
                   {weekPaid ? (
                     <CheckCircle className="w-3.5 h-3.5" />

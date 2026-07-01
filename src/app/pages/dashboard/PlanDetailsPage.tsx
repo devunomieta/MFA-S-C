@@ -67,18 +67,20 @@ export function PlanDetailsPage() {
         // Fast path: Concurrent fetch when using UUID
         const [planRes, userPlanRes] = await Promise.all([
           supabase.from("plans").select("*").eq("id", id).single(),
-          user?.id ? supabase
-            .from("user_plans")
-            .select(`*, plan:plans(*)`)
-            .eq("user_id", user.id)
-            .eq("plan_id", id)
-            .not("status", "eq", "cancelled")
-            .order("status", { ascending: true })
-            .order("created_at", { ascending: false })
-            .limit(1)
-            .maybeSingle() : Promise.resolve({ data: null })
+          user?.id
+            ? supabase
+                .from("user_plans")
+                .select(`*, plan:plans(*)`)
+                .eq("user_id", user.id)
+                .eq("plan_id", id)
+                .not("status", "eq", "cancelled")
+                .order("status", { ascending: true })
+                .order("created_at", { ascending: false })
+                .limit(1)
+                .maybeSingle()
+            : Promise.resolve({ data: null }),
         ]);
-        
+
         if (planRes.data) planData = planRes.data;
         if (userPlanRes.data) userPlanData = userPlanRes.data;
       }

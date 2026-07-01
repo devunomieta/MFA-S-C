@@ -92,16 +92,21 @@ export function TransactionDetailsModal({
 
   useEffect(() => {
     let active = true;
-    if (transaction?.receipt_url && transaction.receipt_url.toLowerCase().includes(".pdf") && !transaction.receipt_url.includes("mock-storage.com")) {
+    if (
+      transaction?.receipt_url &&
+      transaction.receipt_url.toLowerCase().includes(".pdf") &&
+      !transaction.receipt_url.includes("mock-storage.com")
+    ) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsFetchingUrl(true);
       fetch(transaction.receipt_url)
-        .then(res => res.blob())
-        .then(blob => {
+        .then((res) => res.blob())
+        .then((blob) => {
           if (active) {
             setObfuscatedUrl(URL.createObjectURL(blob));
           }
         })
-        .catch(err => console.error("Failed to fetch pdf for obfuscation:", err))
+        .catch((err) => console.error("Failed to fetch pdf for obfuscation:", err))
         .finally(() => {
           if (active) setIsFetchingUrl(false);
         });
@@ -207,18 +212,23 @@ export function TransactionDetailsModal({
                       <FileText className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />
                     </div>
                     <div className="text-center w-full">
-                      <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">PDF Document Attached</p>
-                      <p className="text-xs text-gray-500 mt-1 mb-4">Click below to view the receipt securely</p>
-                      <a 
-                        href={obfuscatedUrl || transaction.receipt_url} 
-                        target="_blank" 
+                      <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                        PDF Document Attached
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1 mb-4">
+                        Click below to view the receipt securely
+                      </p>
+                      <a
+                        href={obfuscatedUrl || transaction.receipt_url}
+                        target="_blank"
                         rel="noopener noreferrer"
-                        className={`inline-flex items-center gap-2 px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-emerald-500/20 hover:shadow-lg hover:-translate-y-0.5 ${isFetchingUrl ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        className={`inline-flex items-center gap-2 px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-emerald-500/20 hover:shadow-lg hover:-translate-y-0.5 ${isFetchingUrl ? "opacity-50 cursor-not-allowed" : ""}`}
                         onClick={(e) => {
                           if (isFetchingUrl) e.preventDefault();
                         }}
                       >
-                        <FileText className="w-4 h-4" /> {isFetchingUrl ? "Securing Document..." : "Open PDF Receipt"}
+                        <FileText className="w-4 h-4" />{" "}
+                        {isFetchingUrl ? "Securing Document..." : "Open PDF Receipt"}
                       </a>
                     </div>
                   </div>

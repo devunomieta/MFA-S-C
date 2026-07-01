@@ -60,7 +60,9 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose }: DepositModal
       // Contextual Mode (Join Plan or Specific Plan Deposit)
       // Show ONLY the specifically targeted plan (whether pending or active)
       // Filter out cancelled or Archived ones to prevent duplicates/confusion
-      query = query.eq("plan_id", defaultPlanId).in("status", ["active", "pending_activation", "pending_turn_approval", "turn_reassigned"]);
+      query = query
+        .eq("plan_id", defaultPlanId)
+        .in("status", ["active", "pending_activation", "pending_turn_approval", "turn_reassigned"]);
     } else {
       // General Mode (Wallet Add Funds)
       // Show ONLY Active plans. Pending plans should not appear here.
@@ -726,7 +728,7 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose }: DepositModal
     }
     if (planType === "daily_drop" || planType === "step_up" || planType === "ajo_circle") {
       const fixedAmt = meta.fixed_amount || selectedPlanObj.plan?.fixed_amount || 0;
-      
+
       let duration = 10;
       if (meta.selected_duration) {
         duration = meta.selected_duration;
@@ -765,32 +767,39 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose }: DepositModal
 
   const getAdvanceDateDuration = () => {
     if (!selectedPlanObj || periodsCovered <= 1) return null;
-    
+
     const meta = selectedPlanObj.plan_metadata || {};
-    const startDate = selectedPlanObj.start_date ? new Date(selectedPlanObj.start_date) : new Date();
-    
+    const startDate = selectedPlanObj.start_date
+      ? new Date(selectedPlanObj.start_date)
+      : new Date();
+
     let prevPeriods = 0;
     let daysPerPeriod = 1;
-    
+
     if (planType === "daily_drop") {
       prevPeriods = Number(meta.total_days_paid || 0);
       daysPerPeriod = 1;
     } else if (["marathon", "sprint", "anchor", "step_up", "ajo_circle"].includes(planType || "")) {
-      prevPeriods = Number(meta.weeks_completed || meta.weeks_paid || (meta.payout_history ? meta.payout_history.length : 0));
+      prevPeriods = Number(
+        meta.weeks_completed ||
+          meta.weeks_paid ||
+          (meta.payout_history ? meta.payout_history.length : 0),
+      );
       daysPerPeriod = 7;
     } else if (planType === "monthly_bloom") {
-       prevPeriods = Number(meta.months_completed || 0);
-       daysPerPeriod = 30;
+      prevPeriods = Number(meta.months_completed || 0);
+      daysPerPeriod = 30;
     }
-    
+
     const startOfAdvance = new Date(startDate);
-    startOfAdvance.setDate(startOfAdvance.getDate() + (prevPeriods * daysPerPeriod));
-    
+    startOfAdvance.setDate(startOfAdvance.getDate() + prevPeriods * daysPerPeriod);
+
     const endOfAdvance = new Date(startOfAdvance);
-    endOfAdvance.setDate(endOfAdvance.getDate() + (Math.max(0, periodsCovered - 1) * daysPerPeriod));
-    
-    const formatDate = (d: Date) => d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-    
+    endOfAdvance.setDate(endOfAdvance.getDate() + Math.max(0, periodsCovered - 1) * daysPerPeriod);
+
+    const formatDate = (d: Date) =>
+      d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+
     return `${formatDate(startOfAdvance)} - ${formatDate(endOfAdvance)}`;
   };
 
@@ -1136,10 +1145,10 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose }: DepositModal
                   )}
                   {periodsCovered > 1 && (
                     <div className="flex justify-between items-center text-[10px] text-indigo-600 dark:text-indigo-400 font-bold uppercase tracking-wider">
-                      <span>Advance ({periodsCovered} {periodLabel}s)</span>
                       <span>
-                        {getAdvanceDateDuration()}
+                        Advance ({periodsCovered} {periodLabel}s)
                       </span>
+                      <span>{getAdvanceDateDuration()}</span>
                     </div>
                   )}
                   <div className="pt-2 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center text-sm font-bold">
@@ -1176,10 +1185,13 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose }: DepositModal
                 >
                   {previewUrl ? (
                     <div className="relative w-full h-full flex items-center justify-center group">
-                      {receiptFile?.type === "application/pdf" || receiptFile?.name.toLowerCase().endsWith(".pdf") ? (
+                      {receiptFile?.type === "application/pdf" ||
+                      receiptFile?.name.toLowerCase().endsWith(".pdf") ? (
                         <div className="flex flex-col items-center justify-center p-4 w-full">
                           <FileText className="w-12 h-12 text-emerald-500 mb-2" />
-                          <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 text-center px-4 w-full truncate">{receiptFile.name}</span>
+                          <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 text-center px-4 w-full truncate">
+                            {receiptFile.name}
+                          </span>
                         </div>
                       ) : (
                         <img
@@ -1193,7 +1205,10 @@ export function DepositModal({ onSuccess, defaultPlanId, onClose }: DepositModal
                           <Upload className="w-6 h-6 text-gray-700" />
                         </div>
                       </div>
-                      {!(receiptFile?.type === "application/pdf" || receiptFile?.name.toLowerCase().endsWith(".pdf")) && (
+                      {!(
+                        receiptFile?.type === "application/pdf" ||
+                        receiptFile?.name.toLowerCase().endsWith(".pdf")
+                      ) && (
                         <div className="absolute bottom-2 left-0 right-0 text-center">
                           <span className="text-xs text-white bg-black/50 px-2 py-1 rounded max-w-[90%] truncate inline-block">
                             {receiptFile?.name}

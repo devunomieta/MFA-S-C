@@ -73,20 +73,27 @@ export function Sidebar() {
       >
         {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
       </Button>
-      
-      <div className={`p-6 h-20 flex items-center ${isCollapsed ? "justify-center" : "justify-start"}`}>
-        <Link to="/" className={`block overflow-hidden whitespace-nowrap flex items-center ${isCollapsed ? "justify-center" : "justify-start"}`}>
+
+      <div
+        className={`p-6 h-20 flex items-center ${isCollapsed ? "justify-center" : "justify-start"}`}
+      >
+        <Link
+          to="/"
+          className={`block overflow-hidden whitespace-nowrap flex items-center ${isCollapsed ? "justify-center" : "justify-start"}`}
+        >
           {logoUrl ? (
-            <BrandLogo 
-              src={isCollapsed ? "/pwa-192x192.png" : logoUrl} 
-              alt={appName} 
-              size="sm" 
-              transparent={true} 
-              className={isCollapsed ? "object-contain" : ""} 
-              containerClassName={isCollapsed ? "!w-8 !h-8 md:!w-8 md:!h-8 lg:!w-8 lg:!h-8" : ""} 
+            <BrandLogo
+              src={isCollapsed ? "/pwa-192x192.png" : logoUrl}
+              alt={appName}
+              size="sm"
+              transparent={true}
+              className={isCollapsed ? "object-contain" : ""}
+              containerClassName={isCollapsed ? "!w-8 !h-8 md:!w-8 md:!h-8 lg:!w-8 lg:!h-8" : ""}
             />
           ) : (
-            <span className={`text-2xl font-bold text-emerald-600 transition-all ${isCollapsed ? "text-xl" : ""}`}>
+            <span
+              className={`text-2xl font-bold text-emerald-600 transition-all ${isCollapsed ? "text-xl" : ""}`}
+            >
               {isCollapsed ? "MT" : appName}
             </span>
           )}
@@ -125,7 +132,7 @@ export function Sidebar() {
         {isAdmin && (
           <Link
             to="/admin"
-            className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-purple-600 hover:bg-purple-50 hover:text-purple-700 dark:text-purple-400 dark:hover:bg-purple-900/20 ${isCollapsed ? 'justify-center' : ''}`}
+            className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-purple-600 hover:bg-purple-50 hover:text-purple-700 dark:text-purple-400 dark:hover:bg-purple-900/20 ${isCollapsed ? "justify-center" : ""}`}
             title={isCollapsed ? "Admin Panel" : undefined}
           >
             <Shield className="size-5 shrink-0" />
@@ -137,11 +144,11 @@ export function Sidebar() {
       <div className="p-4 border-t border-gray-200 dark:border-gray-800 space-y-4">
         <Button
           variant="ghost"
-          className={`w-full text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/10 h-10 px-3 rounded-lg ${isCollapsed ? 'justify-center' : 'justify-start'}`}
+          className={`w-full text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/10 h-10 px-3 rounded-lg ${isCollapsed ? "justify-center" : "justify-start"}`}
           onClick={signOut}
           title={isCollapsed ? "Sign Out" : undefined}
         >
-          <LogOut className={`size-5 ${isCollapsed ? '' : 'mr-3'} shrink-0`} />
+          <LogOut className={`size-5 ${isCollapsed ? "" : "mr-3"} shrink-0`} />
           {!isCollapsed && <span className="font-medium whitespace-nowrap">Sign Out</span>}
         </Button>
       </div>

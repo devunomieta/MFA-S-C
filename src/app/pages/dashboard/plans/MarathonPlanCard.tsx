@@ -115,7 +115,13 @@ export function MarathonPlanCard({
                     <AlertTriangle className="w-3.5 h-3.5" />
                     <span>Arrears: {formatNaira(arrears)}</span>
                   </div>
-                  <Button size="sm" onClick={onDeposit} className="h-6 text-[10px] bg-red-600 hover:bg-red-700 text-white px-2">Pay</Button>
+                  <Button
+                    size="sm"
+                    onClick={onDeposit}
+                    className="h-6 text-[10px] bg-red-600 hover:bg-red-700 text-white px-2"
+                  >
+                    Pay
+                  </Button>
                 </div>
                 {missedWeeksDetails.length > 0 && (
                   <div className="text-[10px] mt-1 space-y-0.5 border-t border-red-200/50 pt-1">

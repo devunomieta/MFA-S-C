@@ -30,6 +30,7 @@ export function VerifyOTP() {
     if (savedCooldown) {
       const remaining = Math.max(0, Math.floor((parseInt(savedCooldown, 10) - Date.now()) / 1000));
       if (remaining > 0) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setCooldown(remaining);
       }
     } else {

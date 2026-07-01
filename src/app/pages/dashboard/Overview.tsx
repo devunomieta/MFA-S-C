@@ -447,9 +447,7 @@ export function Overview() {
           <CardHeader className="flex flex-row items-center justify-between border-b dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
             <div className="flex items-center gap-2">
               <ArrowRightLeft className="size-5 text-blue-600" />
-              <CardTitle className="text-lg dark:text-white">
-                Recent Transactions
-              </CardTitle>
+              <CardTitle className="text-lg dark:text-white">Recent Transactions</CardTitle>
             </div>
             <Button variant="ghost" size="sm" asChild className="text-xs dark:text-white">
               <Link to="/dashboard/wallet">View All</Link>

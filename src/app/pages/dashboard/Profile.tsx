@@ -1240,19 +1240,31 @@ export function Profile() {
 
       <Tabs defaultValue="profile" className="w-full">
         <TabsList className="flex w-full justify-start overflow-x-auto sm:grid sm:grid-cols-4 mb-8 dark:bg-gray-800 scrollbar-hide">
-          <TabsTrigger value="profile" className="flex items-center gap-2 whitespace-nowrap shrink-0 group">
+          <TabsTrigger
+            value="profile"
+            className="flex items-center gap-2 whitespace-nowrap shrink-0 group"
+          >
             <User className="w-4 h-4" />
             <span className="hidden sm:inline group-data-[state=active]:inline">Profile</span>
           </TabsTrigger>
-          <TabsTrigger value="kyc" className="flex items-center gap-2 whitespace-nowrap shrink-0 group">
+          <TabsTrigger
+            value="kyc"
+            className="flex items-center gap-2 whitespace-nowrap shrink-0 group"
+          >
             <UserCheck className="w-4 h-4" />
             <span className="hidden sm:inline group-data-[state=active]:inline">KYC</span>
           </TabsTrigger>
-          <TabsTrigger value="bank" className="flex items-center gap-2 whitespace-nowrap shrink-0 group">
+          <TabsTrigger
+            value="bank"
+            className="flex items-center gap-2 whitespace-nowrap shrink-0 group"
+          >
             <Landmark className="w-4 h-4" />
             <span className="hidden sm:inline group-data-[state=active]:inline">Banks</span>
           </TabsTrigger>
-          <TabsTrigger value="security" className="flex items-center gap-2 whitespace-nowrap shrink-0 group">
+          <TabsTrigger
+            value="security"
+            className="flex items-center gap-2 whitespace-nowrap shrink-0 group"
+          >
             <Shield className="w-4 h-4" />
             <span className="hidden sm:inline group-data-[state=active]:inline">Security</span>
           </TabsTrigger>
@@ -2230,7 +2242,11 @@ export function Profile() {
                       <p className="text-sm text-gray-500 truncate">{user?.email}</p>
                     </div>
                   </div>
-                  <Button className="w-full sm:w-auto" variant="outline" onClick={() => setShowEmailForm(true)}>
+                  <Button
+                    className="w-full sm:w-auto"
+                    variant="outline"
+                    onClick={() => setShowEmailForm(true)}
+                  >
                     Change Email
                   </Button>
                 </div>
@@ -2313,7 +2329,11 @@ export function Profile() {
                       <p className="text-sm text-gray-500 truncate">Last updated recently</p>
                     </div>
                   </div>
-                  <Button className="w-full sm:w-auto" variant="outline" onClick={() => setShowPasswordForm(true)}>
+                  <Button
+                    className="w-full sm:w-auto"
+                    variant="outline"
+                    onClick={() => setShowPasswordForm(true)}
+                  >
                     Change Password
                   </Button>
                 </div>

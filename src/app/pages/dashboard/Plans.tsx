@@ -186,7 +186,7 @@ export function Plans() {
   const [searchParams, setSearchParams] = useSearchParams();
   const joinId = searchParams.get("join");
   const [activeTab, setActiveTab] = useState("available");
-  
+
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
@@ -236,8 +236,14 @@ export function Plans() {
     const fetchData = async () => {
       // Fetch Plans & My Plans Concurrently
       const [plansRes, myPlansRes] = await Promise.all([
-        supabase.from("plans").select("*").eq("is_active", true).order("min_amount", { ascending: true }),
-        user ? supabase.from("user_plans").select(`*, plan:plans(*)`).eq("user_id", user.id) : Promise.resolve({ data: null, error: null })
+        supabase
+          .from("plans")
+          .select("*")
+          .eq("is_active", true)
+          .order("min_amount", { ascending: true }),
+        user
+          ? supabase.from("user_plans").select(`*, plan:plans(*)`).eq("user_id", user.id)
+          : Promise.resolve({ data: null, error: null }),
       ]);
 
       if (!plansRes.error && plansRes.data) {
@@ -346,8 +352,8 @@ export function Plans() {
               </Button>
             </div>
           )}
-          
-          <div 
+
+          <div
             ref={scrollContainerRef}
             onScroll={checkScroll}
             className="w-full overflow-x-auto scrollbar-none scroll-smooth flex"

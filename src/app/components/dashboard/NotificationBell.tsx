@@ -66,10 +66,10 @@ export function NotificationBell() {
                 Mark all read
               </Button>
             )}
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={() => setIsOpen(false)} 
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsOpen(false)}
               className="sm:hidden text-gray-500 hover:text-gray-900 dark:hover:text-white h-8 w-8"
             >
               <X className="size-5" />

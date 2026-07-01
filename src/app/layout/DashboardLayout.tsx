@@ -198,7 +198,9 @@ export function DashboardLayout() {
                     {logoUrl ? (
                       <BrandLogo src={logoUrl} alt="Logo" size="sm" transparent={true} />
                     ) : (
-                      <span className="text-2xl font-bold text-emerald-600">Mary's Thrift Services</span>
+                      <span className="text-2xl font-bold text-emerald-600">
+                        Mary's Thrift Services
+                      </span>
                     )}
                   </SheetTitle>
                 </SheetHeader>
@@ -252,7 +254,6 @@ export function DashboardLayout() {
                 </div>
               </SheetContent>
             </Sheet>
-
           </div>
 
           <div className="ml-auto flex items-center gap-4">

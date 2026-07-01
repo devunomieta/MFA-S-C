@@ -21,7 +21,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error("Uncaught error:", error, errorInfo);
-    
+
     // Automatically reload if a lazy-loaded chunk fails (e.g. after a new deployment)
     if (error.message.includes("Failed to fetch dynamically imported module")) {
       const lastReload = sessionStorage.getItem("chunk_reload_time");
