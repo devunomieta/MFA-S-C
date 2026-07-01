@@ -65,7 +65,7 @@ export function Signup() {
 
       const { data: userAuth, error: signupError } = await supabase.auth.signUp({
         email: formData.email,
-        password: Math.random().toString(36).slice(-8) + "Aa1!",
+        password: crypto.randomUUID().slice(-8) + "Aa1!",
         options: {
           data: { signup_mode: "standard" },
         },

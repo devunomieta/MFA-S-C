@@ -28,6 +28,14 @@ export function TransactionDetailsModal({
   const [obfuscatedUrl, setObfuscatedUrl] = useState<string | null>(null);
   const [isFetchingUrl, setIsFetchingUrl] = useState(false);
 
+  const isMockStorageUrl = (url: string) => {
+    try {
+      return new URL(url).hostname === "mock-storage.com";
+    } catch {
+      return false;
+    }
+  };
+
   const formatCurrency = (val: number) =>
     new Intl.NumberFormat("en-US", { style: "decimal", minimumFractionDigits: 2 }).format(val);
 
@@ -95,7 +103,7 @@ export function TransactionDetailsModal({
     if (
       transaction?.receipt_url &&
       transaction.receipt_url.toLowerCase().includes(".pdf") &&
-      !transaction.receipt_url.includes("mock-storage.com")
+      !isMockStorageUrl(transaction.receipt_url)
     ) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsFetchingUrl(true);
@@ -198,7 +206,7 @@ export function TransactionDetailsModal({
                 <FileText className="w-3.5 h-3.5" /> Payment Receipt
               </h4>
               <div className="relative rounded-md overflow-hidden bg-white dark:bg-black/20 border border-gray-200 dark:border-gray-700 min-h-[200px] flex items-center justify-center">
-                {transaction.receipt_url.includes("mock-storage.com") ? (
+                {isMockStorageUrl(transaction.receipt_url) ? (
                   <div className="p-6 text-center">
                     <FileText className="w-8 h-8 text-gray-400 mx-auto mb-2 opacity-50" />
                     <p className="text-sm font-medium text-gray-600 dark:text-gray-400">

@@ -112,7 +112,7 @@ serve(async (req) => {
       if (profile?.phone && profile.phone.trim().length > 3) {
         console.log(`Mirroring email to WhatsApp for user ${profile.id} at ${profile.phone}`);
         // Strip HTML tags from the final body to create a clean text message
-        const cleanMessage = finalBody.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ").trim();
+        const cleanMessage = finalBody.replace(/<[^>]*>/g, "").replaceAll("&nbsp;", " ").trim();
 
         const anonKeyJwt = Deno.env.get("ANON_KEY_JWT");
         const waRes = await fetch(`${SUPABASE_URL}/functions/v1/send-whatsapp`, {

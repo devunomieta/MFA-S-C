@@ -20,7 +20,16 @@ interface AdminTransactionDetailsProps {
   onOpenChange: (open: boolean) => void;
   onApprove?: (tx: any) => void;
   onReject?: (tx: any) => void;
+  onUpdate?: () => void;
 }
+
+const isMockStorageUrl = (url: string) => {
+  try {
+    return new URL(url).hostname === "mock-storage.com";
+  } catch {
+    return false;
+  }
+};
 
 export function AdminTransactionDetails({
   transaction,
@@ -179,7 +188,7 @@ export function AdminTransactionDetails({
                 <FileText className="w-3 h-3" /> Receipt / Proof
               </h4>
               <div className="relative rounded-md overflow-hidden bg-white border border-slate-200 min-h-[200px] flex items-center justify-center group">
-                {transaction.receipt_url.includes("mock-storage.com") ? (
+                {isMockStorageUrl(transaction.receipt_url) ? (
                   <div className="p-8 text-center bg-slate-50 w-full h-full flex flex-col items-center justify-center">
                     <FileText className="w-10 h-10 text-slate-300 mb-3" />
                     <p className="text-sm font-semibold text-slate-600">Legacy Transaction</p>
