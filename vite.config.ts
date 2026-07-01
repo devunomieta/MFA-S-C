@@ -41,6 +41,10 @@ export default defineConfig({
       workbox: {
         cleanupOutdatedCaches: true,
       },
+      devOptions: {
+        enabled: true,
+        type: "module",
+      },
     }),
   ],
   server: {

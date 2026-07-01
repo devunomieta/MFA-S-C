@@ -202,48 +202,6 @@ function AppRoutes() {
           }
           appleLink.href = favicon_url;
         }
-
-        // Dynamically update the PWA manifest to use the app settings app_name and favicon_url
-        try {
-          const manifest = {
-            name: app_name || "Mary's Thrift Finance",
-            short_name: app_name ? app_name.split(" ")[0] : "Mary's Thrift",
-            description: "Secure Thrift & Loan Management",
-            theme_color: "#ffffff",
-            background_color: "#ffffff",
-            display: "standalone",
-            start_url: "/",
-            launch_handler: {
-              client_mode: "focus-existing",
-            },
-            icons: [
-              {
-                src: favicon_url || "/pwa-192x192.png",
-                sizes: "192x192",
-                type: "image/png",
-              },
-              {
-                src: favicon_url || "/pwa-512x512.png",
-                sizes: "512x512",
-                type: "image/png",
-              },
-            ],
-          };
-
-          const stringManifest = JSON.stringify(manifest);
-          const blob = new Blob([stringManifest], { type: "application/json" });
-          const manifestURL = URL.createObjectURL(blob);
-
-          let link = document.querySelector('link[rel="manifest"]') as HTMLLinkElement;
-          if (!link) {
-            link = document.createElement("link");
-            link.rel = "manifest";
-            document.head.appendChild(link);
-          }
-          link.href = manifestURL;
-        } catch (err) {
-          console.error("Error dynamically updating PWA manifest:", err);
-        }
       }
     };
     applyBranding();
